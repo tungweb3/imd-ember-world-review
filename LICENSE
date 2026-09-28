@@ -1,0 +1,8 @@
+Copyright (c) 2026 tungweb3. All rights reserved.
+
+Published solely so reviewers can read it for the IMD Ember World security review; no licence to copy, modify,
+redistribute or use is granted.
+
+This notice covers everything in this repository, including source/ (the excerpt of the IMD Ember World source at
+commit 0def8cb5b80083d32545c59bc707fbbc92a4758d). Third-party packages named in source/package.json and
+source/package-lock.json are not included here and remain under their own licences.

@@ -1,0 +1,38 @@
+# Workers Static Assets headers (copied to dist/ by Vite, never served itself). They apply to every static file and
+# to the SPA index.html fallback, but NOT to Worker responses (/api/*): those use API_HEADERS in server/world-api.ts.
+# CSP: GLTFLoader turns each GLB-embedded texture into a blob: URL and reads it with fetch() (ImageBitmapLoader) or an
+# <img> (TextureLoader, older Safari/Firefox), hence blob: in connect-src and img-src. Inline style attributes come
+# from React. The world bundle loads no third-party script, style or font (src/style.css and its Google Fonts import
+# are not part of it). Wallets that inject window.ethereum from an MV3
+# MAIN-world content script are unaffected; one that injects through an inline <script> element (older MV2 builds)
+# would be blocked by script-src 'self' - check the wallets listed in README before launch.
+# Only origins the page really loads are listed. No Cloudflare Web Analytics beacon is injected, so
+# static.cloudflareinsights.com is not allowed: turning Web Analytics on for the zone later needs it added back here.
+# Fonts are the self-hosted woff2 files under /assets/ (font-src falls back to default-src 'self').
+# data: images: wallet icons from EIP-6963 announcements (src/world/wallet.ts accepts data:image/* only, <= 64 kB).
+# HSTS: a year and every subdomain, no preload; server/world-api.ts HSTS sends the same on every Worker response.
+# api.dexscreener.com: the market quote is read by the viewer's browser first (DEX Screener rate-limits Cloudflare's
+# egress IPs); /api/world/market is the fallback.
+# nft-cdn.alchemy.com (img-src only): seat and character NFT images in "My wallet". The Worker passes on only URLs on
+# exactly this host (server/ownership.ts safeImage); the browser never calls Alchemy's API (connect-src unchanged).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+
+# Vite's content-hashed build output only. A week, and not immutable: a hash missing from the deployed version (a page
+# loaded before a deploy) gets the SPA index.html under this same rule, and a browser must not keep that for a year in
+# case a rollback brings the hash back. Models, references and index.html keep the default
+# "public, max-age=0, must-revalidate" + ETag, because their URLs do not change when their content does.
+/assets/*
+  Cache-Control: public, max-age=604800
+
+# The world's music (src/world/musicPlayer.ts): content-hashed MP3s (scripts/encode-music.mjs names each
+# <id>.<hash>.mp3), so a changed track gets a new URL. A week and not immutable, for the same reason as /assets/*: a
+# missing file is answered with the SPA index.html under this rule. Media from this origin is already allowed by
+# default-src 'self' (no media-src needed, none added).
+/audio/*
+  Cache-Control: public, max-age=604800

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+tmp/
+*.tsbuildinfo
+.env*
+.npm-cache/
+.wrangler/
+.dev.vars*
+deploy-records/

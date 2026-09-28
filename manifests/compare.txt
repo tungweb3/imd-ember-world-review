@@ -1,0 +1,86 @@
+IMD Ember World - deployment match (read-only), 2026-09-28T16:05Z-16:12Z (= 2026-09-29 00:05-00:12 +08)
+==========================================================================================================
+Commit   0def8cb5b80083d32545c59bc707fbbc92a4758d  (committer date 2026-09-28T23:57:58+08:00)
+         main == harden2 == 0def8cb in the private repo; tag v2026.09.29-beac62be points at it.
+Live     Worker imd-world, version beac62be-27ff-40cd-9dc4-3cbbdc6add4b: the Version ID wrangler returned for the
+         deploy below (manifest wrangler.versionId). The deployment status was not re-queried with wrangler in this
+         round; that it is the version serving 100% of traffic is the team's statement.
+Record   deploy-records/20260928T160119Z-0def8cb/manifest.json (fields copied, nothing else): mode deploy,
+         startedAt 2026-09-28T16:01:19.021Z, finishedAt 16:01:50.078Z, commit 0def8cb..., branch harden2, dirty=false,
+         envFiles=[], tests "passed", node v24.19.0, wrangler 4.92.0, vite 8.3.1, typescript 5.9.3,
+         wrangler.exitCode 0, versionId beac62be-27ff-40cd-9dc4-3cbbdc6add4b, dist.unchangedDuringDeploy true.
+         config hashes: wrangler.jsonc 6dd513e6... (= the LF git blob), package-lock.json 212f78a5... (= the blob with
+         CRLF line ends), public/_headers 0de79067... (= the blob with CRLF line ends).
+
+Rebuild  git -c core.autocrlf=true archive 0def8cb -> npm ci -> vite build (node v24.19.0): all 53 dist files are
+         byte-identical to the deploy record (build-sha256.txt). A git -c core.autocrlf=false archive (LF) rebuild
+         differs only in the 4 text files listed in build-sha256.lf-run.txt (CR bytes only); JS, CSS, fonts, models,
+         audio and the Worker bundle are line-ending independent.
+Worker   From the snapshot's source/ ALONE (51 files, no withheld file): npm ci -> wrangler deploy --dry-run --outdir
+         -> index.js 257723 bytes, SHA-256 4ec73351afbcc9af133fd487d7e2d33c1df6713bfa1aced881f412d38e0eccf3
+         == deploy record worker/index.js (manifest worker.main and SHA256SUMS). TESTS/worker-dry-run-output.txt.
+         Rerun 2026-09-28T16:51:21Z after the comment-only redactions (REDACTIONS.md section 1): same bytes.
+Live     index.html, assets/index-BPJxeGls.js, assets/index-BOzKL2IR.css fetched once each (live-sha256.txt):
+         identical to the record and to the CRLF rebuild. Their response headers carry the six _headers security
+         headers with the exact values of public/_headers.
+Not      The other 49 static files were NOT fetched in this round. Their SHA-256 in this record equals the one in the
+fetched  previous record (30449b2, Worker d2c0bcda), whose live copies were checked on 2026-09-28T14:06-14:12Z (29 byte-identical,
+         20 MP3 by size and file-name hash only). Status below: RECORD-MATCH, UNCHANGED.
+
+RESULT BY FILE (build = CRLF rebuild; record = deploy record SHA256SUMS; live = this round's GET)
+NOT-SERVED | record=match | _headers | build=0de79067b75817dddd03862c6753de66829769a0458f3fec922c1e6ed3b7534b 3306 | lf-run=b89d68285973c549050146cf7732d73f3bc91ad097c15577cd1b5f1ab403c48d | differs from the previous record (30449b2)
+RECORD-MATCH, UNCHANGED | record=match | assets/cinzel-latin-400-normal-DnUIPmzd.woff2 | build=b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217 14128
+RECORD-MATCH, UNCHANGED | record=match | assets/cinzel-latin-600-normal-Dd5YO2UX.woff2 | build=61efc27ceb7d08bb841652fa8979c0b6833b92548b7f9544c07968a6c02f28e4 15204
+VERIFIED | record=match | assets/index-BOzKL2IR.css | build=83f3b7da4ac0845236cd609d89b17d3e30958ed99bbce5ded93f2ed26cafd804 53394 live=83f3b7da4ac0845236cd609d89b17d3e30958ed99bbce5ded93f2ed26cafd804
+VERIFIED | record=match | assets/index-BPJxeGls.js | build=3ba7f1e06d50d8a05f90bf23e7ccdbff0e6daf2717ce6e2cbe8e42319970277e 1306006 live=3ba7f1e06d50d8a05f90bf23e7ccdbff0e6daf2717ce6e2cbe8e42319970277e
+RECORD-MATCH, UNCHANGED | record=match | audio/music/after_the_rain_a.5f942b7366.mp3 | build=5f942b7366c84cec00e5915b387b2d5df66f160110f3d7e1b03ee33933f8e7cf 2593017
+RECORD-MATCH, UNCHANGED | record=match | audio/music/ember_boats_a.a10b3caf55.mp3 | build=a10b3caf5520f005c7a0c7ac9b6b93880739702879c674e015d9a6011c666e82 2797817
+RECORD-MATCH, UNCHANGED | record=match | audio/music/frosthollow_lullaby_a.1e01e650cf.mp3 | build=1e01e650cf2e32b2ea56a44d7e20b8e67df03bb368e129ee64d76268990399bf 2411205
+RECORD-MATCH, UNCHANGED | record=match | audio/music/glass_glints.b8052094aa.mp3 | build=b8052094aa22d8fa67479b6867a63a5c0cbfc545629a897ca5ca29e2b097b149 2850898
+RECORD-MATCH, UNCHANGED | record=match | audio/music/glowing_window.bdccc2d0f2.mp3 | build=bdccc2d0f2aa6814e84d8ea450877b1f1b2778c43ff7d55afde74f0ae0448e42 2859257
+RECORD-MATCH, UNCHANGED | record=match | audio/music/good_morning_applause.2d6f477954.mp3 | build=2d6f477954c4e7440b089b1a7565fc0201d8e6042246d0cc4bad583da04c6942 1961481
+RECORD-MATCH, UNCHANGED | record=match | audio/music/light_remains_a.20c113d2a1.mp3 | build=20c113d2a13f8ceb6695bf4cb9af8f27c350283544c7917281bbde59a8de9f38 2433775
+RECORD-MATCH, UNCHANGED | record=match | audio/music/light_remains_b.3bc7aff7aa.mp3 | build=3bc7aff7aacde3fe2a73caaafdf36aa90b2f3c384c91841c3905d5786186af61 3008469
+RECORD-MATCH, UNCHANGED | record=match | audio/music/moonlit_canal_a.e30c7c37d0.mp3 | build=e30c7c37d0b964a6888ba254a2c538d381500ed173057ca354d66a91a94b2634 3408456
+RECORD-MATCH, UNCHANGED | record=match | audio/music/overcast_village.88dbd1f21a.mp3 | build=88dbd1f21aea01c0bc146c47c90bca922d5324a91d8b26748dbb7200473a1f6d 3011394
+RECORD-MATCH, UNCHANGED | record=match | audio/music/overcast_village_ii_a.24e3bb4b43.mp3 | build=24e3bb4b432dedbcc51fe296071f5a9861f5aec54df41c47b7341423c766095d 3092061
+RECORD-MATCH, UNCHANGED | record=match | audio/music/quiet_room.f47b8cbd0d.mp3 | build=f47b8cbd0d1ff60efa61631232a3488837bde982edb9460dadb3cc65aefeffaf 1671417
+RECORD-MATCH, UNCHANGED | record=match | audio/music/rain_window.1a05eeec3b.mp3 | build=1a05eeec3b42691cfa6906bf23a27c8b8073dc79250c9bbfe9f296c47e30d69a 3002617
+RECORD-MATCH, UNCHANGED | record=match | audio/music/riverside_morning.4132a9f094.mp3 | build=4132a9f094b44ff0a256157c7d5d9df9f3748c046aa2b771f0ccba03f84e900c 2920279
+RECORD-MATCH, UNCHANGED | record=match | audio/music/riverside_morning_ii_b.702e117f18.mp3 | build=702e117f18a2c70b86eea1c8cd613d8bd2770596374d9576151b51ca20bd95a6 2917354
+RECORD-MATCH, UNCHANGED | record=match | audio/music/storm_lantern.33e309f219.mp3 | build=33e309f2192f5d66c265394ed510db52edab848730f2122e40df222e729acae0 3092061
+RECORD-MATCH, UNCHANGED | record=match | audio/music/storm_lantern_ii_a.d627a6f8eb.mp3 | build=d627a6f8eb2c105226fc3aed85284ae4d01d9b68ef05b7be644020cf8eb3e7c1 3085373
+RECORD-MATCH, UNCHANGED | record=match | audio/music/the_spark.cc3a5958b2.mp3 | build=cc3a5958b25fa5de4a4571321b35ae8c6787375cfc75620a7a8b49d89ff35bcb 2319254
+RECORD-MATCH, UNCHANGED | record=match | audio/music/thunder_emberford_a.a221003eef.mp3 | build=a221003eefc3010827d1ea97ce2de8b4b095335173c55d3d44ddc09f30d2f65a 2880573
+RECORD-MATCH, UNCHANGED | record=match | audio/music/window_rain_ii_a.f59833d724.mp3 | build=f59833d724f13b596eef2b882e3c9114054ff0cc9426214250eb8de7c770fc9d 3265096
+RECORD-MATCH, UNCHANGED | record=match | favicon.svg | build=104dcbb66bf8987bec7e1b606d962a0adc409c23dd78496d1d4cb9b83560a909 513 | lf-run=873b25043a02365ade8685b695f6340b06cb8c4171d6e72eef7a72ef32c0406e
+VERIFIED | record=match | index.html | build=49973696ecc3db3bdac2cf041d3f903b2b5f9bfe687f0895f2d0eb0aae357459 730 live=49973696ecc3db3bdac2cf041d3f903b2b5f9bfe687f0895f2d0eb0aae357459 | lf-run=fe1a16a4c368dad0c4e03520379640df2e9a3036ff11da3f60e929bc0e3deca7 | differs from the previous record (30449b2)
+RECORD-MATCH, UNCHANGED | record=match | licenses/cinzel-OFL.txt | build=e7440e690fe3f0671e13dfc72980d0387e304e3e2673486be0369b4e65323c38 4475 | lf-run=f5a242cf68ad6ebd0603b3359a74c593ca080318a681035be5296ba2c6b04ae6
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_lisbon_l.glb | build=3eafb0a6de93ac08fe1edcde555b477a33abbef0c5f6ba92d93592fac7609820 494776
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_lisbon_m.glb | build=059df41c3cd6ddd46f644798161c24d3c4f04eb7b6556c4e3eb918d6918f8be5 518104
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_lisbon_ms.glb | build=ec053c8d96f44d2d30318db1c60dce69cd7cc1e634f7841cef74721d372ae29b 460376
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_lisbon_s.glb | build=7625ac749003a3ccd2b9445eb0ec8bd12b1c695511f69cf476ec6173fe11e758 336572
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_lisbon_xl.glb | build=b025cb4517b289712251b4088b9e1875fa2656dcdaa36848e3f8062c561c3740 424744
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_timber_l.glb | build=1aabeffe76627ba8ffbc38248ff0f265e8b29c68954990fec6ee1ec69db8a2c7 490360
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_timber_m.glb | build=952dbf674ae7ff2c420fad3438cc6f8b8ef1257fd939eefa5df2f5504a12b01e 445556
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_timber_ms.glb | build=d2d9b7bc7d43b582834d9fe43ef3229633ca9339aeca075ff070f8f70b4bf614 426564
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_timber_s.glb | build=8b99b53e505ea97d989a88bc45eb08aba1c71ae905bce41f9497a0a5a23fe963 461536
+RECORD-MATCH, UNCHANGED | record=match | models/houses/house_timber_xl.glb | build=19461b3e2602bb4f683239d68053fed1e3dd8414db76a85f63867056296a769b 501032
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_arch.glb | build=66ebc09753400aa2e318c39580469c553204c02d74c2489f1efa53983004ab88 342440
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_archive.glb | build=175d0bad21f32d3380a3498240192c24abb7eaa78ff3b1cb4c573b18fd6b8e28 402712
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_bellspire.glb | build=8a570bb6a06b16304444dad7c9c54b346fbbf478a1261d961aade1722b8653a9 438932
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_chronicle.glb | build=c82568ee8eb40a0aa0b76042149a9d1dabb2a6108abf08a1ed5497966483d918 346808
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_equestrian.glb | build=a828f44b1770b8773b4e7a96d30d396aac85af05bdf938266729ba508a9cb7ed 341768
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_forge.glb | build=21aaec0dd30f66af5e1d36db811c5e3925c4c5ea6b51ca8f8f371a794d77613c 409416
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_guardian.glb | build=b96b298a34177db58e9ee1139e22b21eec7684a485dbd81d6c2a9385643cf2ad 328068
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_heart.glb | build=8d00cefffe1c98e9da397ce4cd0c9a4cae8087c367c1ca37637d9a8f8c76796f 426240
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_lift.glb | build=5383e2b4c572e5b1a82a8a877fe0d9dce77c9fdcaafcb0908ead706f477c6283 486328
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_longhouse.glb | build=d6989f306111e9530183cee798ad11debbcd90654fb625b70bb4d8bce0e3d267 489448
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_mill.glb | build=10c2b3cc214a35fc6841099efa0162c62c39b35b975b3b1a4d6f7c2991d54070 414272
+RECORD-MATCH, UNCHANGED | record=match | models/landmarks/landmark_oracle.glb | build=5b3ef2422475db708fa1b480a42f84967d796da2448fc5c3aea20e165af4147d 465272
+RECORD-MATCH, UNCHANGED | record=match | models/props/boat.glb | build=90f27242fc14b61a32679d0c2cb58c8790e0cd4452416225bfe090364df05467 247544
+RECORD-MATCH, UNCHANGED | record=match | references/imd/pepe.webp | build=e142d6d788cb5f80ad2dbbbee6c010c420fd247e19d7b6b5c561c7d84f03d856 394498
+RECORD-MATCH, UNCHANGED | record=match | third-party-licenses.txt | build=55ae744d250b53fe9de705688a62072224628bd8b00785dad642ebce276f8b63 4537
+
+TALLY {"NOT-SERVED":1,"RECORD-MATCH, UNCHANGED":49,"VERIFIED":3}
+build files 53, record dist files 53

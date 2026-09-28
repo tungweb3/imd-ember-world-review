@@ -1,0 +1,8 @@
+2026-09-28T16:12:10Z
+1) 5 bad verifies: 401 SIGNATURE_INVALID | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED || then the RIGHT signature on the same nonce: 409 CHALLENGE_USED
+   keyed chain calls: 1 eth_getCode | Authorization header set: true | buckets: AUTH(ip:203.0.113.7),CHAIN(chain:erc1271)
+   challenge row: {"net":"net:203.0.113.0/24","checked":1,"burnt":1,"used_at":null}
+2) sign-in 200 | home 200 recheck=- | keyed chain calls: getNFTsForOwner | buckets: API(ip:198.51.100.7),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
+3) chain:index refused: home 200 recheck=limited seats=0 | keyed chain calls: 0 | buckets: API(ip:198.51.100.8),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
+4) assets 200 | keyed chain calls: 0 | buckets: API(ip:unknown),SEAT(ip:unknown)
+5) AUTH_LIMITER missing: challenge on https://imdember.com -> 503 LIMITER_UNAVAILABLE | on http://127.0.0.1:8792 -> 200 || API_LIMITER missing: /api/world/snapshot -> 503 limiter_unavailable
