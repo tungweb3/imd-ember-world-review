@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setup,newAccount,fakeImd,fakeChain,windowLimiter,openLimiter} from './wallet-harness.mjs';
 import {AuthClient,statusOf,ownerAddress,statusText,chipText,noticeText,watchOwner,OWNER_RECHECK_MS} from '../src/world/auth.ts';
-import {seatRows,countsText,eligibleText,markedHome,markerLabel} from '../src/world/walletView.ts';
+import {seatRows,countsText,eligibleText,markedHome,markerLabel,signingText,presignText,logoutView,runLogout,confirmOpen} from '../src/world/walletView.ts';
 import {ERC6492_SUFFIX} from '../server/auth.ts';
 import {readMoves,commitMove,moveGate,moveHint,movesKey} from '../src/world/moves.ts';
 import {WalletRegistry,announced,unidentifiedNote} from '../src/world/wallet.ts';
+import {checkSignInMessage,signInSummary} from '../src/world/siwe.ts';
 // The browser side of sign-in (src/world/auth.ts) driven against the real Worker (createWorker → handleAccountApi over
 // the real migration on node:sqlite). The wallet is a fake EIP-1193 provider that personal_signs the exact bytes it is
 // handed with a key generated for this run; the cookie jar is one browser profile. Every expectation is what the server
@@ -38,11 +39,13 @@ function tab(w,b,wallet,{hint=memoryHint(),channel=null,hold=null,holdReply=null
   const fetch=async(path,init={})=>{calls.push((init.method??'GET')+' '+path);if(hold)await hold(path);if(drop?.(path))throw new TypeError('Failed to fetch');
     const r=await b.send(b.request(path,{method:init.method??'GET',body:init.body,headers:init.headers}));if(holdReply)await holdReply(path);b.keep(r);return rewrite?rewrite(path,r):r;};
   const client=new AuthClient({fetch,provider:registry?()=>registry.current():()=>wallet,onProviderChange:registry?fn=>registry.subscribe(fn):undefined,
-    hint,now:w.clock.now,channel:channel&&(()=>new BroadcastChannel(channel))});
+    hint,now:w.clock.now,origin:b.origin,channel:channel&&(()=>new BroadcastChannel(channel))});
   const seen=[];client.subscribe(()=>{const s=statusOf(client.state);if(seen.at(-1)!==s)seen.push(s);});
   return {client,calls,seen,hint,stop:client.start()};
 }
 const settle=()=>new Promise(r=>setTimeout(r,20));
+/** Waits (up to 4 s) until `ok()` holds, so a busy machine (the full suite runs files in parallel) is never a failure. */
+const until=async ok=>{for(let i=0;i<200&&!ok();i++)await settle();};
 const posts=(calls,p)=>calls.filter(c=>c==='POST '+p).length;
 
 test('first sign-in asks for exactly one signature, goes connect → sign → verify → owner, and a double click starts one flow',async()=>{
@@ -67,7 +70,7 @@ test('a reload restores the session from the cookie with no signature and no cha
   const again=tab(w,b,wallet);await again.client.signIn();          // clicked before the session read came back
   assert.equal(statusOf(again.client.state),'owner');assert.equal(wallet.signed,1);
   assert.equal(posts(again.calls,'/api/auth/challenge'),0);assert.equal(wallet.asked.filter(m=>m==='personal_sign').length,1);
-  const quiet=tab(w,b,wallet);await settle();
+  const quiet=tab(w,b,wallet);await until(()=>quiet.calls.length>=2&&!quiet.client.state.checking);
   assert.equal(statusOf(quiet.client.state),'owner');assert.deepEqual(quiet.calls,['GET /api/auth/session','GET /api/me/home?fresh=1']);
   again.stop();quiet.stop();
 });
@@ -198,6 +201,88 @@ test('sign out ends the page’s session only when the server revoked it; a lost
   assert.equal(statusOf(t.client.state),'connected');assert.equal(t.client.state.notice,null);assert.ok(!b.jar.has('__Host-imd_session'));
   assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL').get().n,0);
   t.stop();
+});
+
+test('Sign out on all devices: every browser of the address is signed out, the other tab at once, the other device on its next read; a lost request keeps it and says so',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),name='imd-auth-test-'+Math.random(),hint=memoryHint();
+  const laptop=w.browser(),phone=w.browser(),wallet=fakeWallet(A),phoneWallet=fakeWallet(A);
+  let lose=true;const one=tab(w,laptop,wallet,{hint,channel:name,drop:p=>p==='/api/auth/logout-all'&&lose}),two=tab(w,laptop,wallet,{hint,channel:name});
+  const other=tab(w,phone,phoneWallet);
+  await one.client.signIn();await other.client.signIn();await settle();await settle();
+  assert.deepEqual([statusOf(one.client.state),statusOf(two.client.state),statusOf(other.client.state)],['owner','owner','owner']);
+  await one.client.signOut(true);
+  assert.deepEqual([statusOf(one.client.state),one.client.state.notice],['owner','signout-failed'],'the server never heard it: still signed in, and told so');
+  lose=false;await one.client.signOut(true);await settle();await settle();
+  assert.deepEqual([statusOf(one.client.state),one.client.state.notice,two.client.state.session],['connected',null,null],'this tab and its sibling (on the channel) are signed out');
+  assert.equal(posts(one.calls,'/api/auth/logout-all'),2);assert.equal(posts(one.calls,'/api/auth/logout'),0);
+  assert.equal(statusOf(other.client.state),'owner','the phone has not asked yet');
+  await other.client.refreshHome(true);
+  assert.deepEqual([other.client.state.session,statusOf(other.client.state)],[null,'expired'],'its next read finds the session ended: sign in again');
+  await other.client.restore();assert.deepEqual([other.client.state.session,statusOf(other.client.state)],[null,'expired']);
+  assert.deepEqual([...new Set([...wallet.asked,...phoneWallet.asked])].sort(),['eth_accounts','eth_requestAccounts','personal_sign']);
+  assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL').get().n,0);
+  one.stop();two.stop();other.stop();
+});
+
+// F-4 UX (remediation 2026-09-29): My wallet has "Log out this device" and "Log out all devices"; the second asks first,
+// inline. The buttons run through walletView.ts runLogout with the real client, as the panel's clicks do.
+test('My wallet: “Log out this device” ends only this browser; “Log out all devices” asks inline, and only its confirm ends every device',async ctx=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),name='imd-auth-test-'+Math.random(),hint=memoryHint();
+  const laptop=w.browser(),phone=w.browser(),tablet=w.browser();
+  const one=tab(w,laptop,fakeWallet(A),{hint,channel:name}),two=tab(w,laptop,fakeWallet(A),{hint,channel:name}),p=tab(w,phone,fakeWallet(A)),t=tab(w,tablet,fakeWallet(A));
+  ctx.after(()=>{for(const x of [one,two,p,t])x.stop();});                        // a failed assertion must not leave a channel open
+  for(const x of [one,p,t])await x.client.signIn();
+  await until(()=>statusOf(two.client.state)==='owner');
+  const en=(zh,e)=>e,zh=z=>z,labels=v=>[v.buttons.map(b=>b.label),v.confirm&&[v.confirm.note,v.confirm.buttons.map(b=>b.label)]];
+  assert.deepEqual(labels(logoutView(false,a,en)),[['Log out this device','Log out all devices'],null]);
+  assert.deepEqual(labels(logoutView(false,a,zh)),[['登出此裝置','登出所有裝置'],null]);
+  // A click: the button with that label in the view the panel shows now, run as the panel runs it.
+  let open=false;const confirm=v=>{open=v;};
+  const click=(label,client)=>{const v=logoutView(open,a,en),b=[...v.buttons,...v.confirm?.buttons??[]].find(b=>b.label===label);assert.ok(b,'no button '+label);return runLogout(b.act,client,confirm);};
+  // The tablet logs out this device only: the others stay signed in at the server.
+  await click('Log out this device',t.client);
+  assert.deepEqual([statusOf(t.client.state),open,posts(t.calls,'/api/auth/logout'),posts(t.calls,'/api/auth/logout-all')],['connected',false,1,0]);
+  assert.deepEqual([(await phone.get('/api/me/home')).status,(await laptop.get('/api/me/home')).status],[200,200]);
+  // "Log out all devices" only opens the confirm: nothing is sent, and Cancel closes it.
+  await click('Log out all devices',one.client);
+  assert.deepEqual([open,statusOf(one.client.state),posts(one.calls,'/api/auth/logout-all'),posts(one.calls,'/api/auth/logout')],[true,'owner',0,0]);
+  const v=logoutView(open,a,en);
+  assert.deepEqual(labels(v),[['Log out this device'],['This logs out '+a.slice(0,6)+'…'+a.slice(-4)+' on every browser and device, including this one. Other tabs here log out at once; other devices on their next signed-in request.',
+    ['Yes, log out all devices','Cancel']]]);
+  const vz=logoutView(open,a,zh);assert.deepEqual(vz.confirm.buttons.map(b=>b.label),['確定，登出所有裝置','取消']);assert.match(vz.confirm.note,/^這會結束 0x[\da-f]{4}…[\da-f]{4} 在所有瀏覽器與裝置上的登入（包括這裡）：本瀏覽器的其他分頁立即登出，其他裝置在下一次需要登入的操作時登出。$/);
+  await click('Cancel',one.client);assert.deepEqual([open,statusOf(one.client.state),posts(one.calls,'/api/auth/logout-all')],[false,'owner',0]);
+  // Confirmed: this tab at once, its sibling tab through the channel, the phone on its next signed-in request.
+  await click('Log out all devices',one.client);await click('Yes, log out all devices',one.client);
+  assert.deepEqual([open,statusOf(one.client.state),posts(one.calls,'/api/auth/logout-all')],[false,'connected',1]);
+  await until(()=>two.client.state.session===null);assert.equal(two.client.state.session,null,'the other tab follows at once');
+  assert.equal(statusOf(p.client.state),'owner','the phone has not asked yet');
+  await p.client.refreshHome(true);assert.deepEqual([p.client.state.session,statusOf(p.client.state)],[null,'expired'],'its next signed-in request is refused');
+  assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL').get().n,0);
+  assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions').get().n,3,'revoked, never deleted');
+  // L8: a confirm left open belongs to the session it was opened for. The sibling tab opens it; the laptop logs out and
+  // signs in again in that tab's still-open drawer: the confirm is closed for the new session.
+  await two.client.signIn();const asked=two.client.state.session;assert.ok(confirmOpen(asked,two.client.state.session));
+  await one.client.signOut();await until(()=>two.client.state.session===null);assert.equal(confirmOpen(asked,two.client.state.session),false);
+  await two.client.signIn();assert.equal(statusOf(two.client.state),'owner');
+  assert.equal(confirmOpen(asked,two.client.state.session),false,'a new sign-in never finds the old confirm open');
+  assert.equal(logoutView(confirmOpen(asked,two.client.state.session),a,en).confirm,null);
+});
+
+// R-1: a 401 from logout-all (this browser's own cookie already dead) looked like a success while the phone stayed signed in.
+test('Sign out on all devices from a browser whose sign-in already ended: this page is signed out, says other devices were not, and a fresh sign-in can do it',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),laptop=w.browser(),phone=w.browser();
+  const t=tab(w,laptop,fakeWallet(A)),p=tab(w,phone,fakeWallet(A));await t.client.signIn();await p.client.signIn();
+  const copy=w.browser();copy.jar.set('__Host-imd_session',laptop.jar.get('__Host-imd_session'));
+  assert.equal((await copy.post('/api/auth/logout')).status,204,'whoever holds a copy of the laptop cookie ends it');
+  assert.equal(statusOf(t.client.state),'owner','the laptop page has not read since');
+  await t.client.signOut(true);
+  assert.deepEqual([statusOf(t.client.state),t.client.state.session,t.client.state.notice],['connected',null,'signout-all-stale']);
+  assert.equal((await phone.get('/api/me/home')).status,200,'the phone is still signed in, and the page no longer claims otherwise');
+  assert.match(noticeText('signout-all-stale',(zh,en)=>en),/other devices were not signed out/);assert.match(noticeText('signout-all-stale',zh=>zh),/沒有登出其他裝置/);
+  await t.client.signIn();await t.client.signOut(true);
+  assert.deepEqual([statusOf(t.client.state),t.client.state.notice],['connected',null]);
+  assert.equal((await phone.get('/api/me/home')).status,401,'signed in again, it does sign the phone out');
+  t.stop();p.stop();
 });
 
 test('with the sign-in bucket drained by cross-site reads (the reported attack), Sign out still revokes and a reload stays signed out',async()=>{
@@ -471,6 +556,102 @@ test('only the address that asked can end up signed in: a wallet signing with an
   assert.equal(u.client.state.session,null);assert.equal(u.client.state.notice,'failed');assert.equal(ownerAddress(u.client.state),null);
   assert.equal((await b2.get('/api/auth/session').then(r=>r.json())).signedIn,false,'the session the server made was revoked');
   u.stop();
+});
+
+// F-7a (swarm review 4bd31cfb): the page personal_signed whatever text the server returned. It now signs only the exact
+// message this site builds; the messages here come from the real server (createSiweMessage) and are then altered.
+test('the page checks the sign-in message before the wallet sees it: the real server message passes, every altered one ends the flow unsigned',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  const real=await w.browser().post('/api/auth/challenge',{address:A.address}).then(r=>r.json()),at=w.clock.now();
+  let net=0;   // one network per signing tab below: one address may have 5 challenges a minute per network (F-5 L2)
+  const ok=(m,o={})=>checkSignInMessage(m,{origin:'https://imdember.com',account:a,nonce:real.nonce,now:at,...o});
+  assert.equal(ok(real.message),true,'the server\'s own message');
+  for(const account of [A.address,a,'0x'+a.slice(2).toUpperCase()])assert.equal(ok(real.message,{account}),true,'any letter case: '+account);
+  const local=await w.browser('http://localhost:8792','http://localhost:8792').post('/api/auth/challenge',{address:A.address}).then(r=>r.json());
+  assert.equal(checkSignInMessage(local.message,{origin:'http://localhost:8792',account:a,nonce:local.nonce,now:at}),true,'local dev origin');
+  assert.equal(checkSignInMessage(local.message,{origin:'https://imdember.com',account:a,nonce:local.nonce,now:at}),false,'another origin\'s message');
+  for(const skew of [-9*60_000,9*60_000])assert.equal(ok(real.message,{now:at+skew}),true,'a device clock off by '+skew/60_000+' min');
+  for(const skew of [-11*60_000,11*60_000])assert.equal(ok(real.message,{now:at+skew}),false,'a message from '+-skew/60_000+' min away');
+  const iso=ms=>new Date(ms).toISOString(),T=real.message.match(/Issued At: (.*)/)[1];
+  const variants={
+    domain:m=>m.replace('imdember.com wants','evil.example wants'),lookalike:m=>m.replace('imdember.com wants','imdеmber.com wants'),
+    uri:m=>m.replace('URI: https://imdember.com/','URI: https://evil.example/'),uriPath:m=>m.replace('URI: https://imdember.com/','URI: https://imdember.com/x'),
+    version:m=>m.replace('Version: 1','Version: 2'),chain:m=>m.replace('Chain ID: 1','Chain ID: 11155111'),
+    statement:m=>m.replace('transactions.','transactions. Also approve all transfers.'),noStatement:m=>m.replace(/\n\nSign in to[^\n]*\n/,'\n'),
+    address:m=>m.replace(/0x[\da-fA-F]{40}/,B.address),nonce:m=>m.replace(/Nonce: [\da-f]{32}/,'Nonce: '+'0'.repeat(32)),
+    issuedLate:m=>m.replace(/Issued At: .*/,'Issued At: '+iso(Date.parse(T)+11*60_000)).replace(/Expiration Time: .*/,'Expiration Time: '+iso(Date.parse(T)+15*60_000)),
+    issuedEarly:m=>m.replace(/Issued At: .*/,'Issued At: '+iso(Date.parse(T)-11*60_000)).replace(/Expiration Time: .*/,'Expiration Time: '+iso(Date.parse(T)-7*60_000)),
+    longLife:m=>m.replace(/Expiration Time: .*/,'Expiration Time: '+iso(Date.parse(T)+6*60_000)),weekLife:m=>m.replace(/Expiration Time: .*/,'Expiration Time: 2026-10-05T12:00:00.000Z'),
+    backwards:m=>m.replace(/Expiration Time: .*/,'Expiration Time: '+iso(Date.parse(T)-1)),noExpiry:m=>m.replace(/\nExpiration Time: .*/,''),
+    resources:m=>m+'\nResources:\n- https://evil.example/approve',requestId:m=>m+'\nRequest ID: 1',notBefore:m=>m+'\nNot Before: '+T,
+    crlf:m=>m.replace(/\n/g,'\r\n'),trailing:m=>m+'\n',
+    line2:m=>m.replace('\n\n','\nApprove all transfers.\n'),line4:m=>{const l=m.split('\n');l[4]='Approve all transfers.';return l.join('\n');}};
+  for(const [name,alter] of Object.entries(variants)){
+    assert.notEqual(alter(real.message),real.message,name+' alters the message');assert.equal(ok(alter(real.message)),false,name);
+    const b=w.browser(undefined,undefined,'198.18.'+(++net)+'.1'),wallet=fakeWallet(A),t=tab(w,b,wallet,{rewrite:async(path,r)=>path==='/api/auth/challenge'&&r.ok?Response.json({...await r.json().then(v=>({...v,message:alter(v.message)}))}):r});
+    await t.client.signIn();
+    assert.deepEqual([t.client.state.notice,t.client.state.phase,statusOf(t.client.state)],['message-mismatch','idle','connected'],name);
+    assert.deepEqual([wallet.asked.includes('personal_sign'),wallet.signed,posts(t.calls,'/api/auth/verify')],[false,0,0],name+': the wallet was never asked to sign');
+    t.stop();
+  }
+  // A nonce that is not 32 lowercase hex fails even when the field and the Nonce line agree; an origin given with a path,
+  // a default port or another spelling is not this page's origin (its URI line differs).
+  for(const n of ['G'.repeat(32),'f'.repeat(31),'F'.repeat(32),real.nonce+'0'])
+    assert.equal(ok(real.message.replace('Nonce: '+real.nonce,'Nonce: '+n),{nonce:n}),false,'nonce '+n);
+  for(const origin of ['https://imdember.com/','https://imdember.com/x','https://imdember.com:443','HTTPS://imdember.com','not a url'])assert.equal(ok(real.message,{origin}),false,origin);
+  // The challenge's nonce field and its message must agree; a page served from another host never signs imdember.com's message.
+  const mismatch=async(rewrite,origin)=>{const b=w.browser(origin,origin,'198.18.'+(++net)+'.1'),wallet=fakeWallet(A),t=tab(w,b,wallet,{rewrite});await t.client.signIn();t.stop();return [t.client.state.notice,wallet.signed];};
+  assert.deepEqual(await mismatch(async(p,r)=>p==='/api/auth/challenge'&&r.ok?Response.json({...await r.json(),nonce:'f'.repeat(32)}):r),['message-mismatch',0]);
+  assert.deepEqual(await mismatch(async(p,r)=>p==='/api/auth/challenge'&&r.ok?Response.json({...await r.json(),message:null}):r),['message-mismatch',0]);
+  const c=w.browser(),cw=fakeWallet(A),other=new AuthClient({fetch:async(p,i={})=>c.keep(await c.send(c.request(p,{method:i.method??'GET',body:i.body,headers:i.headers}))),
+    provider:()=>cw,hint:memoryHint(),now:w.clock.now,origin:'https://www.imdember.com'});
+  const stop=other.start();await other.signIn();stop();assert.deepEqual([other.state.notice,cw.signed],['message-mismatch',0]);
+  // A device clock a few minutes off still signs in, with the one signature and the wallet methods it always used.
+  const b=w.browser(),wallet=fakeWallet(A),skewed=new AuthClient({fetch:async(p,i={})=>b.keep(await b.send(b.request(p,{method:i.method??'GET',body:i.body,headers:i.headers}))),
+    provider:()=>wallet,hint:memoryHint(),now:()=>w.clock.now()+8*60_000,origin:'https://imdember.com'});
+  const stop2=skewed.start();await skewed.signIn();stop2();
+  assert.deepEqual([statusOf(skewed.state),wallet.signed,[...new Set(wallet.asked)].sort()],['owner',1,['eth_accounts','eth_requestAccounts','personal_sign']]);
+  assert.equal(noticeText('message-mismatch',(zh,en)=>en).includes('was not asked to sign'),true);assert.ok(noticeText('message-mismatch',zh=>zh).includes('沒有請錢包簽名'));
+});
+
+// F-1 UX (remediation 2026-09-29): while the wallet's prompt is open the panel says what is being signed, read back from
+// the message the page checked, and to compare the domain with the wallet's screen. No extra click, nothing else asked.
+test('while the wallet asks for the signature, the page shows a summary read from the checked message, and only then',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  const watch=async(b)=>{const wallet=fakeWallet(A);let open;wallet.gate=new Promise(r=>{open=r;});const t=tab(w,b,wallet),shown=[];
+    t.client.subscribe(()=>{const s=t.client.state;shown.push([s.phase,s.signing]);});
+    const flow=t.client.signIn();while(!wallet.asked.includes('personal_sign'))await settle();
+    const during=t.client.state;open();await flow;t.stop();return {during,after:t.client.state,shown,wallet};};
+  const {during,after,shown,wallet}=await watch(w.browser());
+  assert.equal(statusOf(during),'awaitingSignature');
+  assert.deepEqual(during.signing,{domain:'imdember.com',network:'Ethereum',address:A.address},'from the message: its domain, chain 1 and the account line');
+  assert.deepEqual(signingText(during.signing,(zh,en)=>en),['Sign in to IMD Ember World · Domain: imdember.com · Network: Ethereum · Wallet: '+A.address.slice(0,6)+'…'+A.address.slice(-4)+
+    ' · Purpose: sign-in only · No asset transfer or approval','Sign only when the address bar shows imdember.com. If your wallet says the request comes from another site or warns of a mismatch, reject.']);
+  const [zhLine,zhCheck]=signingText(during.signing,zh=>zh);
+  for(const part of ['登入 IMD Ember World','網域：imdember.com','網路：Ethereum','用途：僅限登入','不轉移資產、不做任何授權'])assert.ok(zhLine.includes(part),part);
+  assert.equal(zhCheck,'只在網址列顯示 imdember.com 時簽名；若錢包顯示請求來自其他網站或出現不符警告，請拒絕。');
+  // Before the click (L9): the same facts above the button, since a phone wallet's sheet can cover the summary.
+  assert.deepEqual(presignText('imdember.com',(zh,en)=>en)[1],'Domain: imdember.com · Network: Ethereum · Purpose: sign-in only');
+  const [zhPre,zhWhere]=presignText('imdember.com',zh=>zh);assert.equal(zhWhere,'網域：imdember.com · 網路：Ethereum · 用途：僅限登入');
+  assert.match(zhPre,/不會轉移資產、不會對代幣或 NFT 做任何授權（approve），也不會送出交易/);assert.doesNotMatch(zhPre,/授權[^；]*授權（approve）/);
+  assert.match(presignText('imdember.com',(zh,en)=>en)[0],/authorizes no asset transfer, token or NFT approval, or transaction/);
+  assert.deepEqual([statusOf(after),after.signing],['owner',null],'gone once the wallet answered');
+  assert.equal(shown.find(([p])=>p==='awaitingSignature')[1],null,'nothing is shown before the message is back and checked');
+  assert.ok(shown.every(([p,s])=>p==='awaitingSignature'||s===null),'never outside the wallet prompt');
+  assert.deepEqual(wallet.asked.filter(m=>m!=='eth_accounts'),['eth_requestAccounts','personal_sign'],'no extra step: the one click opens the wallet');
+  // The domain is the message's own: a local dev page's message names its host.
+  const local=await watch(w.browser('http://localhost:8792','http://localhost:8792','198.18.200.1'));
+  assert.equal(local.during.signing.domain,'localhost:8792');
+  // Any other text has no summary: the previous statement, another chain, a missing line.
+  const real=await w.browser(undefined,undefined,'198.18.201.1').post('/api/auth/challenge',{address:A.address}).then(r=>r.json());
+  assert.deepEqual(signInSummary(real.message),{domain:'imdember.com',network:'Ethereum',address:A.address});
+  for(const bad of [real.message.replace(/7 days\. This does not authorize asset transfers, token or NFT approvals, or transactions\./,'7 days. This does not authorize asset transfers or transactions.'),
+    real.message.replace('Chain ID: 1','Chain ID: 5'),real.message.replace(/\nExpiration Time: .*/,''),real.message.replace('imdember.com wants','imdember.com  wants')]){
+    assert.notEqual(bad,real.message);assert.equal(signInSummary(bad),null,bad.split('\n').find((l,i)=>l!==real.message.split('\n')[i]));}
+  // A message the page refuses is never summarised either.
+  const b=w.browser(undefined,undefined,'198.18.202.1'),wallet2=fakeWallet(A),t=tab(w,b,wallet2,{rewrite:async(p,r)=>p==='/api/auth/challenge'&&r.ok?Response.json({...await r.json().then(v=>({...v,message:v.message.replace('imdember.com wants','evil.example wants')}))}):r});
+  const seen=[];t.client.subscribe(()=>seen.push(t.client.state.signing));await t.client.signIn();t.stop();
+  assert.deepEqual([t.client.state.notice,wallet2.signed,seen.every(s=>s===null)],['message-mismatch',0,true]);
 });
 
 test('a chain switch in the wallet changes nothing: still the owner, no re-login, no wallet or server request',async()=>{

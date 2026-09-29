@@ -58,8 +58,10 @@ export function networkKey(ip:string|null):string{
   return k.startsWith('ip6:')?'net6:'+k.slice(4).split(':').slice(0,3).join(':')+'::/48':'net:'+k.slice(3);
 }
 const LOOPBACK=new Set(['localhost','127.0.0.1','[::1]']);
-/** The binding each bucket spends ('home' shares AUTH_LIMITER's namespace under session keys). */
-export const LIMITER_BINDINGS={api:'API_LIMITER',seat:'SEAT_LIMITER',auth:'AUTH_LIMITER',home:'AUTH_LIMITER',chain:'CHAIN_LIMITER'} as const;
+/** The binding each bucket spends ('verify' shares AUTH_LIMITER's namespace under 'verify:'+IP keys, so challenges and
+ *  verifies of one IP each get 20/min; 'home' shares it under session keys; 'code', the sign-in's
+ *  eth_getCode cap, shares API_LIMITER's under the constant key 'chain:code': 180/min per location, fails closed). */
+export const LIMITER_BINDINGS={api:'API_LIMITER',seat:'SEAT_LIMITER',auth:'AUTH_LIMITER',verify:'AUTH_LIMITER',home:'AUTH_LIMITER',chain:'CHAIN_LIMITER',code:'API_LIMITER'} as const;
 // Rate limits are per client (see rateLimitKey) and per Cloudflare location, or per the key the caller names ('home'
 // passes the session, 'chain' a constant: still per location, never global; the global sign-in budgets live in D1). A failing binding throws to the caller: the read API fails open, the other
 // buckets fail closed (server/auth.ts). A binding missing from the deployment (S2: renamed or dropped in wrangler.jsonc)
@@ -70,7 +72,7 @@ function limiter(request:Request,env:Env):Allow&((bucket:keyof typeof LIMITER_BI
   return async(bucket:keyof typeof LIMITER_BINDINGS,key?:string)=>{
     const name=LIMITER_BINDINGS[bucket],binding=env[name];
     if(!binding){if(loopback)return bucket!=='chain';throw new LimiterMissing(name);}
-    return (await binding.limit({key:key??ip})).success;
+    return (await binding.limit({key:key??(bucket==='verify'?'verify:'+ip:ip)})).success;
   };
 }
 /** Chain reads for this request: Alchemy with the secret, or the CHAIN_MOCK_OWNERS fixture on a loopback URL only. */
@@ -81,12 +83,12 @@ export function chainAccess(request:Request,env:Env,chainFetch:typeof fetch):Cha
 type ScheduledController={scheduledTime:number;cron:string};
 /** chainFetch reaches Alchemy for the wallet routes (Authorization is set, so upstreamFetch never edge-caches it). */
 export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstreamFetch,now:()=>number=Date.now,collections=CHARACTER_COLLECTIONS) {
-  const ownership=new Ownership(gateway,collections);
+  const ownership=new Ownership(gateway,collections),noCode=new Map<string,number>();   // per isolate (server/auth.ts NoCodeCache)
   return {
     async fetch(request:Request,env:Env,ctx:Context):Promise<Response> {
       const waitUntil=(promise:Promise<unknown>)=>ctx.waitUntil(promise),allow=limiter(request,env);
-      const account=await handleAccountApi(request,{db:env.DB,now,allow,chain:chainAccess(request,env,chainFetch),ownership,waitUntil,
-        client:networkKey(request.headers.get('cf-connecting-ip'))});
+      const account=await handleAccountApi(request,{db:env.DB,now,allow,chain:chainAccess(request,env,chainFetch),ownership,waitUntil,noCode,
+        client:networkKey(request.headers.get('cf-connecting-ip')),colo:(request as {cf?:{colo?:string}}).cf?.colo});
       if(account)return account;
       const api=await handleWorldApi(request,gateway,{waitUntil,allow,floorKey:env.ALCHEMY_API_KEY||undefined});
       return api??env.ASSETS.fetch(request);

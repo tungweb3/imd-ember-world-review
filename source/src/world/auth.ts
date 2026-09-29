@@ -1,10 +1,11 @@
 // Wallet sign-in on the client (W1, docs/wallet-login/DESIGN_W1_v001.md §9). The server is the only truth: the session is
 // an HttpOnly cookie this code never sees, owner rights come from GET /api/me/home, and the SIWE text is built by the
-// server; the client only personal_signs it (hex UTF-8; the one signature the client ever asks for). No crypto here and no viem in the bundle.
+// server; the client checks it line for line (siwe.ts) and only then personal_signs it (hex UTF-8; the one signature the client ever asks for). No crypto here and no viem in the bundle.
 // Everything a test needs is injected (fetch, the EIP-1193 provider, the tab channel, the clock), so tests/wallet-client
 // drive this class against the real Worker handler.
 import type {HouseSize} from './houseSize.ts';
 import type {PollEnv} from './cadence.ts';
+import {checkSignInMessage,signInSummary,type SignInSummary} from './siwe.ts';
 
 export type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,fn:(v:unknown)=>void)=>void;removeListener?:(event:string,fn:(v:unknown)=>void)=>void};
 export type MeSeat={tokenId:string;agentId:string|null;online:boolean;lastOnlineAt:number|null;counts:boolean;reason?:'not-agent'|'offline-24h'|'not-seen'};
@@ -16,8 +17,8 @@ export type Session={address:string;expiresAt:number};
 /** Spec 7.1: the nine states the chip and the panel show. */
 export type AuthStatus='visitor'|'connected'|'awaitingSignature'|'verifying'|'owner'|'signedInNoHouse'|'expired'|'ownershipUnavailable'|'mismatch';
 /** Why the last click did not end signed in, or signed out (shown once, never retried by itself). */
-export type Notice='no-wallet'|'connect-rejected'|'sign-rejected'|'rate-limited'|'busy'|'auth-unavailable'|'verify-unavailable'|'challenge-lost'|
-  'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed';
+export type Notice='message-mismatch'|'no-wallet'|'connect-rejected'|'sign-rejected'|'rate-limited'|'busy'|'auth-unavailable'|'verify-unavailable'|'challenge-lost'|
+  'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed'|'signout-all-stale';
 export type AuthState={
   /** The wallet account this page is connected to (lowercase), from eth_accounts / eth_requestAccounts. */
   account:string|null;
@@ -36,9 +37,12 @@ export type AuthState={
   sessionKnown:boolean;
   /** A sign-out is on its way to the server (the page stays signed in until the server has revoked the session). */
   leaving:boolean;
+  /** While the wallet's signature prompt is open: the summary read from the checked message (siwe.ts signInSummary),
+   *  shown beside the prompt (F-1 UX). Null in every other phase. */
+  signing:SignInSummary|null;
   checking:boolean;notice:Notice|null;
 };
-export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,restored:false,sessionKnown:false,leaving:false,checking:false,notice:null};
+export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,restored:false,sessionKnown:false,leaving:false,signing:null,checking:false,notice:null};
 
 /** The state the chip shows, derived from the facts only (so no two fields can disagree). Owner = the server read the
  *  session's seats and at least one counts, and the connected wallet (if any) is the session's. */
@@ -72,7 +76,9 @@ export type AuthDeps={fetch:(path:string,init?:RequestInit)=>Promise<Response>;
   provider:()=>Provider|null;
   /** Subscribes to changes of `provider()` (a choice, a late announcement); returns the unsubscribe. */
   onProviderChange?:(fn:()=>void)=>()=>void;
-  channel?:()=>Channel|null;hint?:HintStore;now?:()=>number};
+  channel?:()=>Channel|null;hint?:HintStore;now?:()=>number;
+  /** This page's origin, which the sign-in message must name (default location.origin; none: nothing is signed). */
+  origin?:string};
 const JSON_POST=(body:unknown):RequestInit=>({method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),credentials:'same-origin'});
 const code=async(r:Response)=>{try{const v=await r.clone().json();return typeof v?.error==='string'?v.error as string:null;}catch{return null;}};
 /** Re-read /api/me/home no more often than this unless the click is the refresh button (20 per session per minute);
@@ -91,7 +97,7 @@ export class AuthClient{
   constructor(deps:AuthDeps){this.deps=deps;}
   get state(){return this.s;}
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};};
-  private set(patch:Partial<AuthState>){this.s={...this.s,...patch};for(const fn of this.listeners)fn();}
+  private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;this.s=s;for(const fn of this.listeners)fn();}
   private get hint(){return this.deps.hint??localHint;}
   private now(){return (this.deps.now??Date.now)();}
   private broadcast(kind:'signed-in'|'signed-out'){try{this.channel?.postMessage(kind);}catch{/* closed */}}
@@ -187,11 +193,16 @@ export class AuthClient{
       if(this.s.session&&!await this.logoutRequest()){                                 // another address's session ends first
         if(g===this.gen)this.set({notice:'signout-failed'});return;}
       if(g!==this.gen)return;
-      this.set({session:null,home:null,phase:'awaitingSignature'});
+      this.set({session:null,home:null,phase:'awaitingSignature',signing:null});
       const c=await this.deps.fetch('/api/auth/challenge',JSON_POST({address:account}));
       if(g!==this.gen)return;
       if(!c.ok){this.set({phase:'idle',notice:failure(c.status,await code(c))});return;}
       const {nonce,message}=await c.json() as {nonce:string;message:string};
+      // F-7a: the wallet sees only this site's own sign-in message for this account, now; anything else ends the flow here.
+      const origin=this.deps.origin??globalThis.location?.origin??'';
+      const signing=typeof message==='string'&&typeof nonce==='string'&&checkSignInMessage(message,{origin,account,nonce,now:this.now()})?signInSummary(message):null;
+      if(!signing){this.set({phase:'idle',notice:'message-mismatch'});return;}
+      this.set({signing});                                                             // the panel's summary while the wallet is open
       let signature:string;
       try{signature=await p.request({method:'personal_sign',params:[hexUtf8(message),account]}) as string;}
       catch{if(g===this.gen)this.set({phase:'idle',notice:'sign-rejected'});return;}
@@ -211,15 +222,19 @@ export class AuthClient{
   }
   /** Sign out: the server revokes the session and the flow's open challenges, and only then is this page signed out.
    *  A logout that did not reach the server (network, 5xx) leaves the page signed in with a notice, because the cookie
-   *  and the server session are both still there and a reload would show them (SEC-1 / CORR-01). */
-  async signOut(){
+   *  and the server session are both still there and a reload would show them (SEC-1 / CORR-01). `everywhere` ends every
+   *  session of the address (F-4); other tabs hear it on the channel, other devices on their next session read. */
+  async signOut(everywhere=false){
     if(this.s.leaving)return;
     this.gen++;this.busy=false;const g=this.gen;
     this.set({phase:'idle',notice:null,leaving:true});
-    const ok=await this.logoutRequest();
+    const ok=everywhere?await this.logoutAllRequest():await this.logoutRequest();
     if(g!==this.gen){this.set({leaving:false});return;}                                // switched meanwhile: that path decides
     if(!ok){this.set({leaving:false,notice:'signout-failed'});return;}
-    this.hint.set(null);this.set({session:null,home:null,expired:false,checking:false,leaving:false,sessionKnown:true});this.broadcast('signed-out');
+    // R-1: a 401 means this browser's own sign-in had already ended, so the server could not act for the address and
+    // other devices are still signed in; this page is signed out, and says so instead of looking like a success.
+    this.hint.set(null);this.set({session:null,home:null,expired:false,checking:false,leaving:false,sessionKnown:true,notice:ok==='stale'?'signout-all-stale':null});
+    this.broadcast('signed-out');
   }
   /** The wallet switched account (A → B): owner mode off at once, A's in-flight flow dropped here and at the server, A's
    *  session ended; B starts as merely connected. If that logout does not reach the server, the session is read again,
@@ -237,6 +252,10 @@ export class AuthClient{
   /** A verify that succeeded for a flow this page abandoned: its cookie arrived after the switch, so it is logged out
    *  here; if that fails the session is read again and shows as what it is. */
   private revokeAbandoned(){void this.logoutRequest().then(ok=>{if(!ok)void this.restore();});}
+  /** POST /api/auth/logout-all (every session of the session's address, on every device): true when the server revoked
+   *  them (200); 'stale' when there was no live session to act for (401: this browser's cookie is dead and cleared
+   *  already, so nobody else was signed out); false when it did not reach the server. */
+  private async logoutAllRequest():Promise<boolean|'stale'>{try{const r=await this.deps.fetch('/api/auth/logout-all',JSON_POST({}));return r.ok||(r.status===401&&'stale');}catch{return false;}}
   /** POST /api/auth/logout; true only when the server answered 2xx (the session is revoked and the cookies cleared). */
   private async logoutRequest(){try{return (await this.deps.fetch('/api/auth/logout',JSON_POST({}))).ok;}catch{return false;}}
 }
@@ -270,7 +289,7 @@ export function statusText(st:AuthStatus,s:AuthState,say:Say):string{
     case 'signedInNoHouse':return say('已登入，目前沒有符合資格的席位','Signed in, no eligible seat right now');
     case 'expired':return say('登入已到期，重新驗證後即可回家','Session expired, sign in again to go home');
     case 'ownershipUnavailable':return say('暫時無法確認持有資格，請稍後重試','Can’t confirm seats right now, try again later');
-    case 'mismatch':return say(`錢包已切換到 ${short(s.account!)}；請重新簽名或登出`,`Wallet switched to ${short(s.account!)}; sign in again or sign out`);
+    case 'mismatch':return say(`錢包已切換到 ${short(s.account!)}；請重新簽名或登出`,`Wallet switched to ${short(s.account!)}; sign in again or log out`);
   }
 }
 /** The chip's own short label (the bottom bar must not grow into the zoom tools or the hint). */
@@ -289,6 +308,7 @@ export function chipText(st:AuthStatus,s:AuthState,say:Say):string{
 }
 export function noticeText(n:Notice,say:Say):string{
   switch(n){
+    case 'message-mismatch':return say('伺服器傳來的登入訊息與本站預期的不符（網域、帳戶、時間或內容不對），所以沒有請錢包簽名。請重新整理後再試；若一再出現，請不要在任何地方簽這則訊息。','The sign-in message from the server isn’t the one this site expects (wrong site, account, time or wording), so your wallet was not asked to sign. Reload and try again; if it keeps happening, don’t sign it anywhere.');
     case 'no-wallet':return say('這個瀏覽器沒有偵測到錢包擴充功能。','No wallet extension found in this browser.');
     case 'connect-rejected':return say('錢包沒有同意連接。','The wallet did not approve the connection.');
     case 'sign-rejected':return say('尚未完成登入驗證，暫不能以屋主身分入住。','Sign-in was not completed, so you can’t move in as the owner yet.');
@@ -301,6 +321,7 @@ export function noticeText(n:Notice,say:Say):string{
     case 'failed':return say('登入沒有完成，請再試一次。','Sign-in did not complete. Try again.');
     case 'unsupported-wallet':return say('這種智慧合約錢包（尚未部署到主網）目前不支援登入，請改用一般錢包帳戶。','This smart-account wallet isn’t supported for sign-in yet (it isn’t deployed on mainnet). Use a regular wallet account.');
     case 'session-unknown':return say('暫時無法確認你是否已登入，所以沒有要求簽名；請稍後再按一次。','Couldn’t check whether you’re already signed in, so no signature was requested. Try again in a moment.');
-    case 'signout-failed':return say('登出沒有送達伺服器，你仍是登入狀態；請再按一次登出。','Sign-out didn’t reach the server, so you’re still signed in. Press Sign out again.');
+    case 'signout-all-stale':return say('這個瀏覽器的登入早已結束，所以沒有登出其他裝置。請重新簽名登入，再按「登出所有裝置」。','This browser’s sign-in had already ended, so other devices were not signed out. Sign in again, then use Log out all devices.');
+    case 'signout-failed':return say('登出沒有送達伺服器，你仍是登入狀態；請再按一次「登出此裝置」（或「登出所有裝置」）。','Log-out didn’t reach the server, so you’re still signed in. Press Log out this device (or Log out all devices) again.');
   }
 }

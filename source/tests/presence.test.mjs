@@ -15,12 +15,12 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
 const owners=map=>Object.assign(Array(2000).fill(null),map);
 
 test('migrations: numbered files, applied in order, creating the three tables and the sign-in budget columns and indexes',()=>{
-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql']);
+  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql']);
   const db=openD1(),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
   assert.deepEqual(tables,['login_challenges','seat_presence','sessions']);
   const indexes=t=>db.raw.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL ORDER BY name").all(t).map(r=>r.name);
-  assert.deepEqual(indexes('login_challenges'),['login_challenges_flow','login_challenges_issued','login_challenges_net']);
-  assert.deepEqual(indexes('sessions'),['sessions_address','sessions_expires']);
+  assert.deepEqual(indexes('login_challenges'),['login_challenges_address','login_challenges_called_address','login_challenges_called_net','login_challenges_flow','login_challenges_issued','login_challenges_net']);
+  assert.deepEqual(indexes('sessions'),['sessions_address','sessions_erc1271','sessions_expires','sessions_live']);
 });
 
 test('0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work',()=>{
@@ -35,6 +35,20 @@ test('0002 is additive: on a live 0001 database every row stays as it was, new c
   const before=dump();db.exec(file('0002_sign_in_budgets.sql'));
   assert.deepEqual(dump(),before);assert.deepEqual({...db.prepare('SELECT net,checked_at FROM login_challenges').get()},{net:null,checked_at:null});
   db.prepare(oldInsert).run('n2');assert.equal(db.prepare('SELECT count(*) n FROM login_challenges').get().n,2,'the deployed code (before 0002) keeps inserting');
+});
+
+test('0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work',()=>{
+  const db=new DatabaseSync(':memory:'),file=f=>readFileSync(new URL('../migrations/'+f,import.meta.url),'utf8');
+  db.exec(file('0001_wallet_login.sql'));db.exec(file('0002_sign_in_budgets.sql'));
+  db.prepare("INSERT INTO login_challenges(nonce,address,origin,flow_hash,message,issued_at,accept_until,net,checked_at) VALUES('n','a','o','f','m',1,2,'net:x',1)").run();
+  const oldSession="INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce) SELECT ?,address,1,1,2,? FROM login_challenges WHERE nonce='n'";
+  db.prepare(oldSession).run('h','n');
+  const dump=()=>[db.prepare('SELECT nonce,address,origin,flow_hash,message,issued_at,accept_until,used_at,invalidated_at,session_hash,net,checked_at FROM login_challenges').all(),
+    db.prepare('SELECT token_hash,address,chain_id,created_at,expires_at,revoked_at,nonce FROM sessions').all()].map(rows=>rows.map(r=>({...r})));
+  const before=dump();db.exec(file('0003_sign_in_layers.sql'));
+  assert.deepEqual(dump(),before);assert.deepEqual({...db.prepare('SELECT wallet_type,verification_method FROM sessions').get()},{wallet_type:null,verification_method:null});
+  assert.equal(db.prepare('SELECT called_at FROM login_challenges').get().called_at,null);
+  db.prepare(oldSession).run('h2','n2');assert.equal(db.prepare('SELECT count(*) n FROM sessions').get().n,2,'the deployed code (before 0003) keeps inserting sessions');
 });
 
 test('a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched',async()=>{

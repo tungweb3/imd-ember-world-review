@@ -1,6 +1,6 @@
-# The only dist/ files that differ when rebuilding from git -c core.autocrlf=false archive 0def8cb5b80083d32545c59bc707fbbc92a4758d (LF working tree; npm ci + npm run build). All other 49 files, including the JS and CSS, are identical to build-sha256.txt.
+# The only dist/ files that differ when rebuilding from git -c core.autocrlf=false archive 2da46cdafcf8ad3fb3571ea0273ecc5d1ab5be1d (LF working tree; npm ci + npm run build, 2026-09-29T05:56Z). All other 66 files, including the JS and CSS, are identical to build-sha256.txt.
 # sha256  size  path
 b89d68285973c549050146cf7732d73f3bc91ad097c15577cd1b5f1ab403c48d  3268  _headers
 873b25043a02365ade8685b695f6340b06cb8c4171d6e72eef7a72ef32c0406e  502  favicon.svg
-fe1a16a4c368dad0c4e03520379640df2e9a3036ff11da3f60e929bc0e3deca7  718  index.html
+4e35a414d257f159b0824aae6edf3ebf4d740a61045f20613ab5f4ccc963b537  718  index.html
 f5a242cf68ad6ebd0603b3359a74c593ca080318a681035be5296ba2c6b04ae6  4382  licenses/cinzel-OFL.txt

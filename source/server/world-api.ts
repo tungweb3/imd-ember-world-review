@@ -17,7 +17,7 @@ export type ApiRequest={method:string;url:string};
 /** Thrown by the Worker's limiter (worker/app.ts) when a production request needs a rate-limit binding the deployment
  *  lacks (renamed or dropped in wrangler.jsonc): every route that needs it answers 503 instead of running unthrottled.
  *  A limiter that is configured but throws is a different case, handled per bucket (the read API fails open). */
-export class LimiterMissing extends Error{constructor(binding:string){super('rate-limit binding missing: '+binding);}}
+export class LimiterMissing extends Error{binding:string;constructor(binding:string){super('rate-limit binding missing: '+binding);this.binding=binding;}}
 /** Rate-limit check per bucket: 'api' for every GET under /api/world/, 'seat' additionally for seat lookups. */
 export type Allow=(bucket:'api'|'seat')=>boolean|Promise<boolean>;
 export type WorldApiOptions={waitUntil?:WaitUntil;allow?:Allow;

@@ -4,5 +4,6 @@ Published solely so reviewers can read it for the IMD Ember World security revie
 redistribute or use is granted.
 
 This notice covers everything in this repository, including source/ (the excerpt of the IMD Ember World source at
-commit 0def8cb5b80083d32545c59bc707fbbc92a4758d). Third-party packages named in source/package.json and
+commit 2da46cdafcf8ad3fb3571ea0273ecc5d1ab5be1d; the earlier commit of this repository holds the excerpt at commit
+0def8cb5b80083d32545c59bc707fbbc92a4758d). Third-party packages named in source/package.json and
 source/package-lock.json are not included here and remain under their own licences.

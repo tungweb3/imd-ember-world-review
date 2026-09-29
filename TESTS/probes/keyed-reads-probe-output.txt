@@ -1,8 +1,13 @@
-2026-09-28T16:12:10Z
-1) 5 bad verifies: 401 SIGNATURE_INVALID | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED || then the RIGHT signature on the same nonce: 409 CHALLENGE_USED
-   keyed chain calls: 1 eth_getCode | Authorization header set: true | buckets: AUTH(ip:203.0.113.7),CHAIN(chain:erc1271)
-   challenge row: {"net":"net:203.0.113.0/24","checked":1,"burnt":1,"used_at":null}
-2) sign-in 200 | home 200 recheck=- | keyed chain calls: getNFTsForOwner | buckets: API(ip:198.51.100.7),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
+2026-09-29T06:00:12Z
+1) EOA, 5 bad verifies: 401 SIGNATURE_INVALID | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED || then the RIGHT signature on the same nonce: 409 CHALLENGE_USED
+   keyed chain calls: 1 eth_getCode | Authorization header set: true | buckets: AUTH(verify:ip:203.0.113.7),API(chain:code)
+   challenge row: {"net":"net:203.0.113.0/24","checked":1,"called":0,"burnt":1,"used_at":null}
+   same EOA, next challenge, bad signature: 401 SIGNATURE_INVALID | keyed chain calls: 0 | buckets: AUTH(verify:ip:203.0.113.7) | row: {"checked":0,"burnt":1}
+1b) contract, 3 bad verifies: 401 SIGNATURE_INVALID | 409 CHALLENGE_USED | 409 CHALLENGE_USED | keyed chain calls: eth_getCode,eth_call 2 | buckets: AUTH(verify:ip:203.0.113.8),API(chain:code),CHAIN(chain:erc1271) | row: {"checked":1,"called":1,"burnt":1}
+1c) chain:code refused: verify 429 CHAIN_BUSY | keyed chain calls: 0 | log line: {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:203.0.113.0/24"}
+2) sign-in 200 (buckets: AUTH(ip:198.51.100.7),AUTH(verify:ip:198.51.100.7)) | home 200 recheck=- | keyed chain calls: getNFTsForOwner | buckets: API(ip:198.51.100.7),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
 3) chain:index refused: home 200 recheck=limited seats=0 | keyed chain calls: 0 | buckets: API(ip:198.51.100.8),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
 4) assets 200 | keyed chain calls: 0 | buckets: API(ip:unknown),SEAT(ip:unknown)
 5) AUTH_LIMITER missing: challenge on https://imdember.com -> 503 LIMITER_UNAVAILABLE | on http://127.0.0.1:8792 -> 200 || API_LIMITER missing: /api/world/snapshot -> 503 limiter_unavailable
+   log line: {"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+6) every limiter refusing: logout-all -> 200 | logout -> 204

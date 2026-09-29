@@ -4,14 +4,16 @@
 // [REDACTED-INTERNAL]
 // [REDACTED-INTERNAL]
 // Local use needs no account: `npm run edge:dev` (wrangler dev) and `npm run edge:dry-run`.
-// Also before the first deploy (README, 正式環境): Always Use HTTPS and a WAF rate limiting rule for /api/world/ on the
+// Also before the first deploy (README, 正式環境): Always Use HTTPS and a WAF rate limiting rule for /api/ on the
 // imdember.com zone. pepe.webp: the owner confirmed on 2026-09-27 that IMD agreed to its use (assets/references/imd/PROVENANCE.md).
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "imd-world",
   "account_id": "REDACTED-CLOUDFLARE-ACCOUNT-ID",
   "main": "worker/index.ts",
-  // The newest date the pinned wrangler 4.92.0 / workerd 1.20260515.1 supports, so local dev runs production semantics.
+  // Runtime semantics, chosen as the newest date wrangler 4.92.0 / workerd 1.20260515.1 supported. Kept when wrangler went to
+  // 4.143.0 (swarm review F-6: build-machine advisories), so production behaviour does not move with a tool update; local
+  // dev (workerd 1.20260926.1) runs these same semantics.
   "compatibility_date": "2026-05-15",
   // Workers Paid guardrail: a request normally needs about 1-4 ms of CPU; anything past 50 ms is a bug, and the cap
   // stops it before it runs up CPU billing. (Free would reject this setting.)
@@ -37,14 +39,18 @@
   // needs it answer 503 (worker/app.ts, fail closed), so a rename here is an outage, never an unthrottled route.
   // namespace_id only has to be unique within the account.
   "ratelimits": [
+    // Also, under the constant key 'chain:code' (server/auth.ts CODE_CAP, fails closed): the sign-in's eth_getCode reads,
+    // 180/min per Cloudflare location. The key never collides with the per-IP 'ip:' / 'ip6:' keys.
     { "name": "API_LIMITER", "namespace_id": "4101", "simple": { "limit": 180, "period": 60 } },
     { "name": "SEAT_LIMITER", "namespace_id": "4102", "simple": { "limit": 60, "period": 60 } },
-    // Sign-in per IP, and /api/me/home per session (session keys): unlike the two above, this one fails CLOSED when the
-    // binding throws (server/auth.ts). Logout is never limited.
+    // Sign-in per IP: challenges under the IP's key and verifies under 'verify:'+IP, so each gets 20/min and a challenge
+    // flood never starves a verify (F-5 L4); and /api/me/home per session (session keys). Unlike the two above, this one
+    // fails CLOSED when the binding throws (server/auth.ts). Logout is never limited.
     { "name": "AUTH_LIMITER", "namespace_id": "4103", "simple": { "limit": 20, "period": 60 } },
     // Constant keys (server/auth.ts CHAIN_KEYS), one budget each: the keyed Alchemy reads a throwaway-key session can
-    // cause. The ERC-1271 check of a non-ECDSA sign-in, every NFT index read of /api/me/home, and the public assets
-    // route's character list (once collections.ts lists one). Per Cloudflare location, not global (the global sign-in
+    // cause. The ERC-1271 check of a non-ECDSA sign-in (a first-time contract 'chain:erc1271', one that signed in that
+    // way before 'chain:erc1271:known'), every NFT index read of /api/me/home, and the public assets route's character
+    // list (once collections.ts lists one). Per Cloudflare location, not global (the global sign-in
     // budgets are counted in D1, server/auth.ts); fails closed.
     { "name": "CHAIN_LIMITER", "namespace_id": "4104", "simple": { "limit": 20, "period": 60 } }
   ],

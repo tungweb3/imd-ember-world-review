@@ -4,9 +4,10 @@ import {readFileSync,readdirSync} from 'node:fs';
 // batch() is one transaction (BEGIN/COMMIT, ROLLBACK on any error), as D1 documents. Values bound as undefined are null.
 const dir=new URL('../migrations/',import.meta.url);
 export function migrationFiles(){return readdirSync(dir).filter(f=>/^\d{4}_.+\.sql$/.test(f)).sort();}
-export function openD1(){
+/** `files`: the migrations to run (default all; a test of a deploy that ran ahead of a migration passes fewer). */
+export function openD1(files=migrationFiles()){
   const db=new DatabaseSync(':memory:');
-  for(const f of migrationFiles())db.exec(readFileSync(new URL(f,dir),'utf8'));
+  for(const f of files)db.exec(readFileSync(new URL(f,dir),'utf8'));
   const exec=(sql,args)=>{
     const s=db.prepare(sql),values=args.map(v=>v===undefined?null:v);
     if(/^\s*(select|with)\b/i.test(sql)||/\breturning\b/i.test(sql))return {results:s.all(...values).map(r=>({...r})),success:true,meta:{changes:0}};

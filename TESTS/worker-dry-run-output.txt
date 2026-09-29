@@ -1,8 +1,8 @@
 
- ⛅️ wrangler 4.92.0 (update available 4.143.0)
-──────────────────────────────────────────────
+ ⛅️ wrangler 4.143.0
+────────────────────
 ✨ Read 1 file from the assets directory <SCRATCH>\source\dist
-Total Upload: 251.68 KiB / gzip: 64.53 KiB
+Total Upload: 258.36 KiB / gzip: 66.26 KiB
 Your Worker has access to the following bindings:
 Binding                                   Resource         
 env.DB (imd-world)                        D1 Database      

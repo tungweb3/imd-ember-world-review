@@ -8,7 +8,8 @@ import {AuthClient,statusOf,statusText,chipText,noticeText,watchOwner,type AuthS
 import {wallets,unidentifiedNote,type WalletRegistry} from './wallet.ts';
 import {browserEnv} from './cadence.ts';
 import {moveGate,moveHint} from './moves.ts';
-import {seatRows,countsText,eligibleText,type SeatRow} from './walletView.ts';
+import {seatRows,countsText,eligibleText,signingText,presignText,logoutView,logoutDeviceLabel,runLogout,confirmOpen,type SeatRow,type LogoutAct} from './walletView.ts';
+import {AuditRecord} from './auditRecord.ts';
 // "My wallet" (W1, DESIGN_W1 §9): the chip in the tools bar and the drawer body. Sign-in state comes from AuthClient
 // (auth.ts); the assets list is public data (GET /api/wallet/:address/assets: IMD's roster) and needs no signature. The
 // drawer is modal, so nothing here overlaps the onboarding HUD, the speaker toggle, the world-time card or the minimap.
@@ -77,7 +78,7 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
   onUseAddress:(a:string)=>void;onForget:()=>void;onTravel:()=>void;onMove:()=>void;onLocate:(id:string)=>void}){
   const {text,zh,locale}=useWorldText(),say=(a:string,b:string)=>text(a,b),st=statusOf(state);
   const session=state.session,view=session&&st!=='mismatch'?session.address:address;
-  const [bump,setBump]=useState(0),[copied,setCopied]=useState(false),assets=useAssets(view,bump);
+  const [bump,setBump]=useState(0),[copied,setCopied]=useState(false),[everywhere,setEverywhere]=useState<object|null>(null),assets=useAssets(view,bump);
   const me=state.home&&state.home!=='unavailable'&&session?.address===view?state.home:null;
   // Seat rows: the signed-in wallet's verified seats, or the public list (walletView.ts seatRows).
   const rows=useMemo(()=>seatRows(assets?.state==='ok'&&assets.address===view?assets.data!.seats:null,me),[assets,me,view]);
@@ -85,11 +86,14 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
   const copy=()=>{if(!view)return;void navigator.clipboard?.writeText(view).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),1500);},()=>{});};
   const busy=st==='awaitingSignature'||st==='verifying'&&!!state.session===false;
   const registry=wallets(),found=useSyncExternalStore(registry.subscribe,()=>registry.state),hasProvider=found.any;
-  const presign=<p className="small-note presign">{text('此次簽名僅用於登入 IMD Ember World（登入有效 7 天）、確認錢包控制權。不收取 Gas，也不授予 NFT 或代幣轉移權限；請確認錢包顯示的是本站登入訊息。','This signature only signs you in to IMD Ember World (for 7 days) and proves you control the wallet. It costs no gas and grants no NFT or token transfer rights. Check that your wallet shows this site’s sign-in message.')}</p>;
+  const presign=(([what,where])=><p className="small-note presign">{what}<br/><b>{where}</b></p>)(presignText(location.host,say));
   // With several wallets and none chosen, the chooser comes first: no wallet is asked anything before the pick.
   const signButton=(label:string)=>found.needsChoice?null:<>{presign}<button className="primary" disabled={busy} onClick={()=>void client.signIn()}>{label}</button></>;
   const refresh=<button className="secondary" disabled={state.checking} onClick={()=>{void client.refreshHome(true,true);setBump(b=>b+1);}}>{state.checking?text('確認中…','Checking…'):text('重新確認','Check again')}</button>;
-  const signOut=<button className="secondary" disabled={state.leaving} onClick={()=>void client.signOut()}>{state.leaving?text('登出中…','Signing out…'):text('登出','Sign out')}</button>;
+  // F-4: "Log out this device" and "Log out all devices" (the second only through its inline confirm; walletView.ts).
+  const act=(a:LogoutAct)=>()=>void runLogout(a,client,open=>setEverywhere(open?session:null));
+  const logout=session?logoutView(confirmOpen(everywhere,session),session.address,say):null;
+  const signOut=<button className="secondary" disabled={state.leaving} onClick={act('device')}>{state.leaving?text('登出中…','Logging out…'):logoutDeviceLabel(say)}</button>;
   return <div className="wallet-panel">
     <div className="wallet-head">
       {view?<><code>{shortAddr(view)}</code><button className="wallet-copy" onClick={copy} aria-label={text('複製地址','Copy address')}>{copied?text('已複製','Copied'):text('複製','Copy')}</button></>:<span>{text('尚未連接錢包','No wallet connected')}</span>}
@@ -102,6 +106,7 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
     {st==='visitor'&&(hasProvider?signButton(text('連接錢包並入住','Connect wallet')):<p className="small-note">{text('這個瀏覽器沒有偵測到錢包擴充功能；仍可用地址查看公開資產。','No wallet extension found in this browser. You can still view public assets by address.')}</p>)}
     {(st==='connected'||st==='expired')&&signButton(text('簽名驗證入住','Sign in to move in'))}
     {st==='mismatch'&&<>{signButton(text('用 ','Sign in as ')+shortAddr(state.account!)+text(' 重新簽名',''))}{signOut}</>}
+    {st==='awaitingSignature'&&state.signing&&(([what,check])=><p className="small-note signing-summary" role="note">{what}<br/><b>{check}</b></p>)(signingText(state.signing,say))}
     {busy&&<button className="primary" disabled>{statusText(st,state,say)}</button>}
 
     {st==='owner'&&me&&<section className="wallet-home">
@@ -142,9 +147,13 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
     </section>}
 
     {error&&<p className="empty-state">{error}</p>}
-    {session&&st!=='mismatch'&&signOut}
+    {logout&&st!=='mismatch'&&<div className="wallet-signout">{signOut}
+      {logout.confirm?<p className="small-note wallet-confirm" role="group" aria-label={text('登出所有裝置','Log out all devices')}>{logout.confirm.note}
+        {logout.confirm.buttons.map(b=><button key={b.act} className="secondary" disabled={b.act==='all'&&state.leaving} onClick={act(b.act)}>{b.label}</button>)}</p>:
+        logout.buttons.slice(1).map(b=><button key={b.act} className="secondary" disabled={state.leaving} onClick={act(b.act)}>{b.label}</button>)}</div>}
     {!session&&address&&<button className="secondary" onClick={onForget}>{text('換一個錢包','Use another wallet')}</button>}
     {!session&&!address&&<form className="agent-search" onSubmit={e=>{e.preventDefault();const v=new FormData(e.currentTarget).get('addr');if(typeof v==='string')onUseAddress(v);}}>
       <input name="addr" placeholder="0x…" aria-label={text('錢包地址','Wallet address')} autoComplete="off"/><button type="submit">{text('用地址查看','View by address')}</button></form>}
+    <AuditRecord say={say}/>
   </div>;
 }

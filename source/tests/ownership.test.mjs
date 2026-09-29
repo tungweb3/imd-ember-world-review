@@ -6,7 +6,7 @@ import {houseSize} from '../src/world/households.ts';
 // Ownership and eligibility through GET /api/me/home and GET /api/wallet/:address/assets on the real Worker. The fake
 // chain answers ownerOf from `owners` and the NFT index from `index` (which may lie or lag), so each case states what
 // the chain says and checks what the route lets the owner do.
-const HOUR=3_600_000,DAY=24*HOUR;
+const HOUR=3_600_000,DAY=24*HOUR,NL=String.fromCharCode(10);
 const body=r=>r.clone().json();
 const owners=(n,map)=>Object.assign(Array(n).fill('0x'+'0'.repeat(40)),map);
 async function signedIn(w,account){const b=w.browser();const {verify}=await b.signIn(account);assert.equal(verify.status,200);return b;}
@@ -24,6 +24,25 @@ test('an owner of #361 and #921 (both online) gets one house of size ms, verifie
   assert.equal(home.checkedAt,START);assert.equal(home.presence,'fresh');
   // The key never leaves the Authorization header; the owner address is the only thing in the index URL.
   for(const c of w.chain.state.calls){assert.equal(c.headers.get('authorization'),'Bearer test-alchemy-key');assert.ok(!c.url.includes('test-alchemy-key'));}
+});
+
+// Remediation 2026-09-29 §7A item 7: the wallet /api/me/home answers for comes from the server session only. Whatever
+// else the request names (a query parameter, a header, a body) is ignored, and nothing is read on chain for it.
+test('/api/me/home answers for the session’s wallet only: an address in the query, a header or a body changes nothing',async()=>{
+  const a=newAccount(),me=a.address.toLowerCase(),other=newAccount(),them=other.address.toLowerCase();
+  const w=world({swarmOwners:{361:them,921:me},online:[361,921],chain:{361:them,921:me}});
+  const b=await signedIn(w,a);
+  for(const [path,init] of [['/api/me/home',{}],['/api/me/home?address='+other.address,{}],['/api/me/home?wallet='+them+'&fresh=1',{}],
+    ['/api/me/home',{headers:{'x-wallet-address':other.address,'x-address':them}}],['/api/me/home?owner='+them,{headers:{'content-type':'application/json'}}]]){
+    const r=await b.get(path,init),home=await body(r);
+    assert.equal(r.status,200,path);assert.equal(home.address.toLowerCase(),me,path);
+    assert.deepEqual(home.seats.map(s=>s.tokenId),['921'],path+': only the session wallet’s seat');
+  }
+  assert.equal((await b.send(b.request('/api/me/home',{method:'POST',body:JSON.stringify({address:other.address}),headers:{'content-type':'application/json'}}))).status,405,'no write form at all');
+  const asked=w.chain.state.calls.map(c=>c.url.toLowerCase()+' '+(c.body??'')).join(NL);
+  assert.ok(asked.includes(me.slice(2)),'the session wallet was looked up');assert.ok(!asked.includes(them.slice(2)),'nothing was asked on chain about the other wallet');
+  const stranger=w.browser();
+  assert.equal((await stranger.get('/api/me/home?address='+other.address,{headers:{'x-wallet-address':other.address}})).status,401,'and without a session no address opens it');
 });
 
 test('forged candidates are rejected by ownerOf: an index or swarm entry is only a candidate',async()=>{

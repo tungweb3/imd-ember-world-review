@@ -1,54 +1,222 @@
+2026-09-29T05:54:48Z
 
 > stickember-imd-world@0.1.0 test
 > node --test tests/*.test.mjs
 
-✔ sign-in: server-built SIWE message, one session cookie with every flag, token stored only as its hash (87.7867ms)
-✔ every auth and /api/me response is no-store and carries no CORS header (25.1455ms)
-✔ every Worker route answers with HSTS: success, errors, 429, 503, 204 logout and the wallet assets route (17.6848ms)
-✔ forged signature, another key, and every altered message field are refused (401), with or without an RPC fallback (65.6494ms)
-✔ Origin: missing, foreign, and loopback-on-production are 403; loopback works only on a loopback URL; verify must match the challenge origin (16.3736ms)
-✔ flow cookie: missing or another browser's flow cannot use a challenge (login CSRF, cross-browser replay) (10.2207ms)
-✔ challenge lifetime: expired 410, replayed 409, superseded 409, unknown 409 (21.5973ms)
-✔ the SIWE Expiration Time is the challenge window (5 min), not the 7-day session, and the stored message must say so (17.1543ms)
-✔ concurrent verifies of one signature create exactly one session (30.0127ms)
-✔ logout revokes the session server-side, clears both cookies, invalidates open challenges, and is idempotent (10.9554ms)
-✔ sessions end at 7 days (absolute, no renewal); a dead cookie is cleared (14.7861ms)
-✔ only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401 (3.02ms)
-✔ rate limits: sign-in answers 429 when exhausted and fails CLOSED when the binding throws; the read buckets fail open (14.5467ms)
-✔ challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing (126.631ms)
-✔ ERC-1271: each network gets ERC1271_NETWORK_SHARE checks a minute before the location budget; past it 429 CHAIN_BUSY, nothing asked or read, and the challenge is burnt (30.5024ms)
-✔ ERC-1271: the challenge is claimed before any read, so garbage retries, racing verifies and a failed burn all read the chain once (17.1256ms)
-✔ on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding makes exactly the routes that need it answer 503; loopback stays open (80.3779ms)
-✔ logout is never rate limited: after anonymous reads drain the bucket, or with the limiter refusing or down, it still revokes (24.5063ms)
-✔ /api/me/home is limited per session: one session re-checking too often does not starve another on the same IP, nor sign-in (19.4213ms)
-✔ ERC-1271 smart wallets: magic value signs in, anything else is 401, no key is 503; ERC-6492 wrappers are 400 (24.8111ms)
-✔ any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read (24.2795ms)
-✔ ERC-1271 checks spend the per-location CHAIN_LIMITER (chain:erc1271) first and fail closed; ECDSA sign-ins never touch it (20.6468ms)
-✔ ERC-1271 needs code at the address and exactly the magic word: echoes, precompiles and padded answers are 401 (9.4771ms)
-✔ challenge always issues a new flow value; the one the browser brings only names the challenges it supersedes (9.1449ms)
-✔ malformed input is 400 and wrong methods 405; unknown account routes 404; the read API is untouched (2.7286ms)
-✔ without D1 (the Vite dev server, a missing binding) sign-in and /api/me answer 503 AUTH_UNAVAILABLE (2.627ms)
-verify handler: cold 9.6 (window-8 table alone 18.0) ms, warm 4.3 ms
-✔ one @noble/curves copy, _setWindowSize exists, and a cold verify in a fresh process stays far below the 50 ms CPU cap (466.8374ms)
-✔ hashTree lists every file under the tree, sorted, with POSIX paths relative to the base, size and SHA-256 (10.0596ms)
-✔ SHA256SUMS lines are sha256sum -c format, and the tree digest changes with any byte or any file name (6.2574ms)
-✔ a real deploy refuses a dirty tree; a dry run only records it (0.2991ms)
-✔ record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler (2.2104ms)
-✔ deploy records are gitignored and importing the script deploys nothing (138.7722ms)
-✔ env files Vite would load are refused on a real deploy and listed by name on a dry run; others are ignored (15.6266ms)
-✔ the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip (448.412ms)
-✔ the script runs main only as the started script, on any Node 24 (no import.meta.main), with Windows paths compared without case (0.529ms)
-✔ the script itself, run on a throwaway git repo: a failing test stops a dry run before tsc with no record; --skip-tests alone is refused (955.3155ms)
-✔ every static response and the SPA fallback carry the security headers (1.2488ms)
-✔ the CSP allows the GLB texture path (blob:) and nothing that would let an injected script run (1.6384ms)
-✔ hashed build output is cached for a week, never immutable; everything else keeps the default revalidation (0.4714ms)
-✔ the world music is cached for a week like the hashed build, and the CSP lets it play from this origin only (0.3155ms)
-✔ HSTS: a year or more, every subdomain, no preload, and the same value on static files and Worker responses (0.381ms)
+✔ sign-in: server-built SIWE message, one session cookie with every flag, token stored only as its hash (124.6677ms)
+✔ every auth and /api/me response is no-store and carries no CORS header (25.9206ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ every Worker route answers with HSTS: success, errors, 429, 503, 204 logout and the wallet assets route (17.1783ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+✔ forged signature, another key, and every altered message field are refused (401), with or without an RPC fallback (62.2821ms)
+✔ Origin: missing, foreign, and loopback-on-production are 403; loopback works only on a loopback URL; verify must match the challenge origin (20.85ms)
+✔ flow cookie: missing or another browser's flow cannot use a challenge (login CSRF, cross-browser replay) (13.6087ms)
+✔ challenge lifetime: expired 410, replayed 409, superseded 409, unknown 409 (21.8462ms)
+✔ the SIWE Expiration Time is the challenge window (5 min), not the 7-day session, and the stored message must say so (14.8461ms)
+✔ F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; a challenge stored with the previous wording still verifies, any other is 401 (16.6089ms)
+✔ concurrent verifies of one signature create exactly one session (23.7631ms)
+✔ logout revokes the session server-side, clears both cookies, invalidates open challenges, and is idempotent (8.2ms)
+✔ logout-all: one browser ends every live session of its address on every device, and its open challenges; others are untouched (29.623ms)
+✔ logout-all needs a live session of its own: no, forged, revoked or expired cookies are 401 and end nobody; Origin, JSON and method rules hold; never rate limited (32.0467ms)
+✔ sessions end at 7 days (absolute, no renewal); a dead cookie is cleared (11.9071ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"RATE_LIMITED","reason":"verify","colo":null,"net":"net:unknown"}
+✔ only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401 (2.4632ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ rate limits: sign-in answers 429 when exhausted and fails CLOSED when the binding throws; the read buckets fail open (14.7915ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net6:2001:db8:1::/48"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:100.64.0.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:198.51.100.0/24"}
+✔ challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing (221.4481ms)
+✔ F-5: a challenge flood starves neither its own verify nor anyone else; the wallet cooldown binds only (address, network); every refusal and surge is one line without identifiers (82.6189ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:100.64.0.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:198.18.0.0/24"}
+✔ ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt (50.7418ms)
+✔ P3: garbage signatures for EOAs from 7 /24s never reach chain:erc1271, so a smart wallet still signs in; a no-code answer is cached briefly (53.1755ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:100.64.6.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:198.51.100.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget_known","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+✔ F-3: a /24's garbage leaves its other wallets alone, fake addresses never reach the contract budget, returning smart wallets keep a budget of their own, EOAs never wait (225.2979ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"error","colo":null,"net":"net:192.0.2.0/24"}
+✔ ERC-1271: the challenge is claimed before any read, so garbage retries, racing verifies and a failed burn all read the chain once (10.2379ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:SEAT_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding makes exactly the routes that need it answer 503; loopback stays open (50.3109ms)
+✔ logout is never rate limited: after anonymous reads drain the bucket, or with the limiter refusing or down, it still revokes (16.0193ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ /api/me/home is limited per session: one session re-checking too often does not starve another on the same IP, nor sign-in (15.7881ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","walletType":"CONTRACT","colo":null,"net":"net:198.18.14.0/24"}
+✔ ERC-1271 smart wallets: magic value signs in, anything else is 401, no key is 503; ERC-6492 wrappers are 400 (18.0048ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:198.18.21.0/24"}
+✔ any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read (17.4472ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ ERC-1271 checks spend the per-location CHAIN_LIMITER (chain:erc1271) before eth_call and fail closed; ECDSA sign-ins never touch it (13.1756ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+✔ F-2: each session records EOA/ECDSA or CONTRACT/ERC1271; every way the ERC-1271 path can be unavailable is refused and makes no session (34.912ms)
+✔ ERC-1271 needs code at the address and exactly the magic word: echoes, precompiles and padded answers are 401 (7.2417ms)
+✔ challenge always issues a new flow value; the one the browser brings only names the challenges it supersedes (5.5657ms)
+✔ malformed input is 400 and wrong methods 405; unknown account routes 404; the read API is untouched (2.1263ms)
+✔ the known-smart-wallet lookup and logout-all read through partial indexes: an address’s ECDSA or revoked sessions, however many, are never visited (6.8173ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/logout","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ deployed before migrations/0003: sign-in is a logged 503 AUTH_UNAVAILABLE with no session and the challenge kept; once 0003 is applied it signs in (7.3938ms)
+✔ without D1 (the Vite dev server, a missing binding) sign-in and /api/me answer 503 AUTH_UNAVAILABLE (2.9373ms)
+verify handler: cold 7.7 (window-8 table alone 13.8) ms, warm 3.0 ms
+✔ one @noble/curves copy, _setWindowSize exists, and a cold verify in a fresh process stays far below the 50 ms CPU cap (343.183ms)
+✔ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (446.8765ms)
+✔ outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts (365.0136ms)
+✔ hashTree lists every file under the tree, sorted, with POSIX paths relative to the base, size and SHA-256 (11.9528ms)
+✔ SHA256SUMS lines are sha256sum -c format, and the tree digest changes with any byte or any file name (6.0379ms)
+✔ a real deploy refuses a dirty tree; a dry run only records it (0.332ms)
+✔ record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler (1.9027ms)
+✔ deploy records are gitignored and importing the script deploys nothing (149.1792ms)
+✔ env files Vite would load are refused on a real deploy and listed by name on a dry run; others are ignored (10.6362ms)
+✔ the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip (451.8985ms)
+✔ the script runs main only as the started script, on any Node 24 (no import.meta.main), with Windows paths compared without case (0.5451ms)
+✔ the script itself, run on a throwaway git repo: a failing test stops a dry run before tsc with no record; --skip-tests alone is refused (802.1482ms)
+✔ every static response and the SPA fallback carry the security headers (1.6145ms)
+✔ the CSP allows the GLB texture path (blob:) and nothing that would let an injected script run (1.2394ms)
+✔ hashed build output is cached for a week, never immutable; everything else keeps the default revalidation (0.3632ms)
+✔ the world music is cached for a week like the hashed build, and the CSP lets it play from this origin only (0.3198ms)
+✔ HSTS: a year or more, every subdomain, no preload, and the same value on static files and Worker responses (1.3055ms)
 node:internal/modules/esm/resolve:271
     throw new ERR_MODULE_NOT_FOUND(
           ^
 
-Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<SCRATCH>\source\src\world\households.ts' imported from <SCRATCH>\source\tests\ownership.test.mjs
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<SCRATCH>\src\world\households.ts' imported from <SCRATCH>\src\world\homeEntry.ts
     at finalizeResolution (node:internal/modules/esm/resolve:271:11)
     at moduleResolve (node:internal/modules/esm/resolve:865:10)
     at defaultResolve (node:internal/modules/esm/resolve:992:11)
@@ -60,11 +228,32 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<SCRATCH>\source\src\world\hou
     at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
     at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
   code: 'ERR_MODULE_NOT_FOUND',
-  url: 'file:///<SCRATCH>/source/src/world/households.ts'
+  url: 'file:///<SCRATCH>/src/world/households.ts'
 }
 
 Node.js v24.19.0
-✖ tests\ownership.test.mjs (674.7529ms)
+✖ tests\home-entry.test.mjs (678.6392ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<SCRATCH>\src\world\households.ts' imported from <SCRATCH>\tests\ownership.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
+    at #resolve (node:internal/modules/esm/loader:683:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///<SCRATCH>/src/world/households.ts'
+}
+
+Node.js v24.19.0
+✖ tests\ownership.test.mjs (659.7131ms)
 presence {"written":2,"at":1790596800000}
 presence {"written":2,"at":1790597700000}
 presence {"written":2,"at":1790596800000}
@@ -72,73 +261,110 @@ presence {"written":0,"skipped":"workers-incomplete","at":1790597700000}
 presence {"written":0,"skipped":"workers-incomplete","at":1790597700000}
 presence {"written":0,"skipped":"workers-incomplete","at":1790597700000}
 presence {"written":1,"at":1790596560000}
-presence run (parse 2 bodies + derive + 1 upsert): 9.4 / 12.2 / 7.2 / 6.0 / 5.9 ms
-✔ migrations: numbered files, applied in order, creating the three tables and the sign-in budget columns and indexes (4.4572ms)
-✔ 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work (2.0863ms)
-✔ a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched (42.6674ms)
-✔ a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs (9.8087ms)
-✔ an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one (5.6292ms)
-✔ an edge-cached roster is dated by its Age, not by the time the cron read it (3.504ms)
-✔ no database: the cron does nothing and makes no upstream read (1.7559ms)
-✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (52.7907ms)
-✔ first sign-in asks for exactly one signature, goes connect → sign → verify → owner, and a double click starts one flow (118.7164ms)
-✔ a reload restores the session from the cookie with no signature and no challenge, even when the click comes first (54.902ms)
-✔ a rejected signature leaves a visitor with the owner-less notice, and nothing is retried by itself (48.0527ms)
-✔ switching A → B turns owner mode off at once and ends A at the server; B is merely connected (35.2085ms)
-✔ A’s signature arriving after the switch to B is never sent to verify (55.0378ms)
-✔ A’s verify held before the server answers, then the switch to B: dropped, and no session of A survives (97.0433ms)
-✔ A’s verify held after the server answers, then the switch to B: dropped, and no session of A survives (90.2163ms)
-✔ a wallet with no IMD seat is signed in with no house, and a failing chain read is a different state (21.1561ms)
-✔ after 7 days the session is expired, on the next check and on the next visit; signing in again needs one signature (68.2015ms)
-✔ tabs follow each other through the channel by re-reading the server, and a forged message changes nothing (166.9058ms)
-✔ a visit whose wallet is on another account than the session is a mismatch until signed in again as that account (74.8234ms)
-✔ every state has its own chip and status wording in both languages (0.5419ms)
-✔ sign out ends the page’s session only when the server revoked it; a lost logout keeps it, says so, and a retry works (9.6438ms)
-✔ with the sign-in bucket drained by cross-site reads (the reported attack), Sign out still revokes and a reload stays signed out (32.5631ms)
-✔ an account switch whose logout is lost shows the old session as a mismatch, never as signed out (55.7559ms)
-✔ a reload whose session read fails (429) never asks for a signature while the session is valid (35.5387ms)
-✔ a reload whose session read fails (network) never asks for a signature while the session is valid (34.7412ms)
-✔ owner mode ends when every re-check has failed for longer than 3 minutes, and comes back when one succeeds (10.0325ms)
-✔ a smart wallet whose check the server's chain budget refused gets the busy notice, and its next click signs in (13.279ms)
-✔ an undeployed smart account gets its own notice, and one verify only (4.6359ms)
-✔ the owner re-check asks nothing while the tab is hidden and once when it is shown again (317.903ms)
-✔ My-wallet rows after a sale show only the seats the server proved, with each reason worded and the count pluralised (8.0859ms)
-✔ a seat bought after sign-in shows on a reload or on Check again, with no second signature (67.6447ms)
-✔ the map marks the owner’s own household 「我家」 only in owner mode; otherwise the viewed wallet’s, as “this wallet’s home” (0.6658ms)
-✔ saved moves from older builds lose their message and signature on read, malformed ones are dropped, and a clean list is left alone (0.6478ms)
-✔ moving needs owner mode: a connected wallet, a switched account or another wallet’s house cannot move, and the move asks the wallet for nothing (8.1572ms)
-✔ discovery: window.ethereum only without announcements, the single announced wallet, a choice among several remembered per browser (2.8663ms)
-✔ with several wallets, only the chosen one is asked anything; choosing another shows a mismatch and follows only its accounts (118.0385ms)
-✔ switching wallets while a signature is pending drops that flow: the late signature is never verified and nothing is signed in (57.017ms)
-✔ only the address that asked can end up signed in: a wallet signing with another key, or a verify answer for another address (69.5834ms)
-✔ a chain switch in the wallet changes nothing: still the owner, no re-login, no wallet or server request (35.1014ms)
-✔ a click waiting on the session read never reaches a wallet that was replaced meanwhile (55.0766ms)
-✔ a second provider announcing the chosen wallet’s rdns never takes over: the pick stays, the copy is flagged and never asked (70.4743ms)
-✔ a remembered wallet that has not announced is never replaced by whichever one did: the player is asked (46.9899ms)
-✔ a replaced wallet’s late answers change nothing: a slow eth_accounts, and accountsChanged from a wallet without removeListener (70.8685ms)
-✔ under one’s own house, only an account without a session is told to sign in; a signed-in one is told why its seats do not count (13.091ms)
-✔ worker answers the three read routes with JSON, API headers and no sensitive fields (50.1394ms)
-✔ worker rejects writes with 405, unknown API paths with 404 and gateway failures with 503 (5.5006ms)
-✔ everything outside /api/world/ goes to the ASSETS binding untouched (1.4495ms)
-✔ seat details are bounded to 256 per isolate, least recently read dropped first (230.9477ms)
-✔ the snapshot body is serialised once per data change and rebuilt when any source changes (7.4845ms)
-✔ per-IP rate limits: 429 JSON when a limiter refuses, open when it fails, 503 when production lacks the binding (3.5151ms)
-✔ the deployed worker sends upstream reads with edge-cache TTLs and an identifying User-Agent, kept alive by waitUntil (1.7343ms)
-✔ the Worker entry module exports only its default handler (workerd rejects any other export) (0.1174ms)
-✔ the Vite dev adapter runs the same handler and passes other paths on (1.1883ms)
-✔ rate limits key IPv6 clients by their /64, so rotating host bits within one block gains nothing (8.8887ms)
-✔ the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-mapped IPv6 as IPv4 (0.3631ms)
-ℹ tests 97
+presence run (parse 2 bodies + derive + 1 upsert): 5.6 / 8.4 / 4.5 / 4.9 / 5.2 ms
+✔ migrations: numbered files, applied in order, creating the three tables and the sign-in budget columns and indexes (4.0488ms)
+✔ 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work (1.9914ms)
+✔ 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work (2.1769ms)
+✔ a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched (42.4932ms)
+✔ a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs (8.0367ms)
+✔ an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one (6.3759ms)
+✔ an edge-cached roster is dated by its Age, not by the time the cron read it (3.4931ms)
+✔ no database: the cron does nothing and makes no upstream read (1.9726ms)
+✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (39.578ms)
+✔ the Swarm Audit Record is a collapsed block naming scope, reviewed version, date, deployment match and the previous-review label (18.3582ms)
+✔ its job and report links open the real pages in a new tab with no referrer and no opener (1.7022ms)
+✔ every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open (3.8658ms)
+✔ My wallet shows the record in every state, before sign-in too, and no longer the old one-line link (2.3505ms)
+✔ the remediation status doc agrees with the site’s record, names only real tests, and carries no forbidden word or personal detail (8.8784ms)
+✔ first sign-in asks for exactly one signature, goes connect → sign → verify → owner, and a double click starts one flow (118.8288ms)
+✔ a reload restores the session from the cookie with no signature and no challenge, even when the click comes first (49.2949ms)
+✔ a rejected signature leaves a visitor with the owner-less notice, and nothing is retried by itself (67.7166ms)
+✔ switching A → B turns owner mode off at once and ends A at the server; B is merely connected (35.3627ms)
+✔ A’s signature arriving after the switch to B is never sent to verify (54.4888ms)
+✔ A’s verify held before the server answers, then the switch to B: dropped, and no session of A survives (112.8823ms)
+✔ A’s verify held after the server answers, then the switch to B: dropped, and no session of A survives (128.6464ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ a wallet with no IMD seat is signed in with no house, and a failing chain read is a different state (17.1506ms)
+✔ after 7 days the session is expired, on the next check and on the next visit; signing in again needs one signature (67.6972ms)
+✔ tabs follow each other through the channel by re-reading the server, and a forged message changes nothing (200.6746ms)
+✔ a visit whose wallet is on another account than the session is a mismatch until signed in again as that account (54.1764ms)
+✔ every state has its own chip and status wording in both languages (0.3053ms)
+✔ sign out ends the page’s session only when the server revoked it; a lost logout keeps it, says so, and a retry works (6.7332ms)
+✔ Sign out on all devices: every browser of the address is signed out, the other tab at once, the other device on its next read; a lost request keeps it and says so (109.6229ms)
+✔ My wallet: “Log out this device” ends only this browser; “Log out all devices” asks inline, and only its confirm ends every device (81.8645ms)
+✔ Sign out on all devices from a browser whose sign-in already ended: this page is signed out, says other devices were not, and a fresh sign-in can do it (15.4133ms)
+✔ with the sign-in bucket drained by cross-site reads (the reported attack), Sign out still revokes and a reload stays signed out (27.8593ms)
+✔ an account switch whose logout is lost shows the old session as a mismatch, never as signed out (66.8203ms)
+{"evt":"auth_refused","route":"/api/auth/session","status":429,"error":"RATE_LIMITED","reason":"api","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":429,"error":"RATE_LIMITED","reason":"api","colo":null,"net":"net:unknown"}
+✔ a reload whose session read fails (429) never asks for a signature while the session is valid (33.0132ms)
+✔ a reload whose session read fails (network) never asks for a signature while the session is valid (28.4898ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ owner mode ends when every re-check has failed for longer than 3 minutes, and comes back when one succeeds (8.5499ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ a smart wallet whose check the server's chain budget refused gets the busy notice, and its next click signs in (11.6755ms)
+✔ an undeployed smart account gets its own notice, and one verify only (3.2921ms)
+✔ the owner re-check asks nothing while the tab is hidden and once when it is shown again (354.3829ms)
+✔ My-wallet rows after a sale show only the seats the server proved, with each reason worded and the count pluralised (9.9038ms)
+✔ a seat bought after sign-in shows on a reload or on Check again, with no second signature (69.8214ms)
+✔ the map marks the owner’s own household 「我家」 only in owner mode; otherwise the viewed wallet’s, as “this wallet’s home” (0.4006ms)
+✔ saved moves from older builds lose their message and signature on read, malformed ones are dropped, and a clean list is left alone (0.6543ms)
+✔ moving needs owner mode: a connected wallet, a switched account or another wallet’s house cannot move, and the move asks the wallet for nothing (8.1502ms)
+✔ discovery: window.ethereum only without announcements, the single announced wallet, a choice among several remembered per browser (2.8684ms)
+✔ with several wallets, only the chosen one is asked anything; choosing another shows a mismatch and follows only its accounts (141.4063ms)
+✔ switching wallets while a signature is pending drops that flow: the late signature is never verified and nothing is signed in (62.6489ms)
+✔ only the address that asked can end up signed in: a wallet signing with another key, or a verify answer for another address (65.2331ms)
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.18.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.19.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.20.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.21.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.22.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.23.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.24.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:198.18.25.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:unknown"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xf1af","colo":null,"net":"net:unknown"}
+✔ the page checks the sign-in message before the wallet sees it: the real server message passes, every altered one ends the flow unsigned (27.2181ms)
+✔ while the wallet asks for the signature, the page shows a summary read from the checked message, and only then (61.6323ms)
+✔ a chain switch in the wallet changes nothing: still the owner, no re-login, no wallet or server request (42.3638ms)
+✔ a click waiting on the session read never reaches a wallet that was replaced meanwhile (62.4316ms)
+✔ a second provider announcing the chosen wallet’s rdns never takes over: the pick stays, the copy is flagged and never asked (62.717ms)
+✔ a remembered wallet that has not announced is never replaced by whichever one did: the player is asked (65.6251ms)
+✔ a replaced wallet’s late answers change nothing: a slow eth_accounts, and accountsChanged from a wallet without removeListener (78.1153ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ under one’s own house, only an account without a session is told to sign in; a signed-in one is told why its seats do not count (13.9063ms)
+✔ worker answers the three read routes with JSON, API headers and no sensitive fields (42.2446ms)
+✔ worker rejects writes with 405, unknown API paths with 404 and gateway failures with 503 (5.572ms)
+✔ everything outside /api/world/ goes to the ASSETS binding untouched (1.0696ms)
+✔ seat details are bounded to 256 per isolate, least recently read dropped first (162.7977ms)
+✔ the snapshot body is serialised once per data change and rebuilt when any source changes (6.4788ms)
+✔ per-IP rate limits: 429 JSON when a limiter refuses, open when it fails, 503 when production lacks the binding (7.3391ms)
+✔ the deployed worker sends upstream reads with edge-cache TTLs and an identifying User-Agent, kept alive by waitUntil (1.4337ms)
+✔ the Worker entry module exports only its default handler (workerd rejects any other export) (0.1641ms)
+✔ the Vite dev adapter runs the same handler and passes other paths on (1.013ms)
+✔ rate limits key IPv6 clients by their /64, so rotating host bits within one block gains nothing (6.8875ms)
+✔ the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-mapped IPv6 as IPv4 (0.2103ms)
+ℹ tests 120
 ℹ suites 0
-ℹ pass 96
-ℹ fail 1
+ℹ pass 118
+ℹ fail 2
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 2712.4234
+ℹ duration_ms 3227.71
 
 ✖ failing tests:
 
-test at tests\ownership.test.mjs:1:1
-✖ tests\ownership.test.mjs (674.7529ms)
+test at tests\home-entry.test.mjs:1:1
+✖ tests\home-entry.test.mjs (678.6392ms)
   'test failed'
+
+test at tests\ownership.test.mjs:1:1
+✖ tests\ownership.test.mjs (659.7131ms)
+  'test failed'
+exit 1
+2026-09-29T05:54:52Z

@@ -101,6 +101,10 @@ const unit=(x:number)=>Number.isFinite(x)?Math.min(1,Math.max(0,x)):0;
 export function rainIntensity(weather:Weather,mood:{rain:number}):number {
   return Math.min(1,(WEATHER_RAIN[weather]??0)+.3*unit(mood.rain));
 }
+/** A shower from the falling hour on a dry 24h sky: rain is drawn (rainIntensity > 0) though the tier has none of its own.
+ *  The weather card and the Observatory name it, so rain under "Fair skies" reads as meant, not as a fault. */
+export function showerOver(weather:Weather,mood:{rain:number}):boolean {return weather!=='unknown'&&!(WEATHER_RAIN[weather]>0)&&rainIntensity(weather,mood)>0;}
+export const SHOWER_LABEL={en:'shower',zh:'陣雨'} as const;
 /** Wind for the rain, 0..1: the tier's own (storms) with the 1h mood's wind blowing on top of it. */
 export function rainWind(weather:Weather,mood:{wind:number}):number {
   const own=WEATHER_WIND[weather]??0;return own+(1-own)*unit(mood.wind);

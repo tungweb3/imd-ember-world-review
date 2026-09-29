@@ -1,48 +1,59 @@
-# De-sensitized SIWE sample, IMD Ember World (source commit 0def8cb5b80083d32545c59bc707fbbc92a4758d, the commit of live Worker version beac62be-27ff-40cd-9dc4-3cbbdc6add4b)
-# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:177-178)
-# on this snapshot's source/, against migrations/0001_wallet_login.sql + 0002_sign_in_budgets.sql on node:sqlite (in-memory, tests/d1-sqlite.mjs).
+# De-sensitized SIWE sample, IMD Ember World (source commit 2da46cdafcf8ad3fb3571ea0273ecc5d1ab5be1d, the commit of live Worker version 50c688c9-1bcf-4b68-a0ab-b7a9dc6ec82f)
+# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:297-298)
+# on this snapshot's source/, against migrations/0001 + 0002 + 0003 on node:sqlite (in-memory, tests/d1-sqlite.mjs).
 # Address: a freshly generated SYNTHETIC local key (in memory only, discarded; controls no funds). Nonce: server-generated random (crypto.getRandomValues, 16 bytes hex), local DB only.
-# Clock fixed at 2026-09-28T12:00:00.000Z. No request was made to imdember.com or any network (the chain is a local stub answering eth_getCode "0x"); no signature is included in this file.
-# The wallet receives this text hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:196).
+# Clock fixed at 2026-09-29T12:00:00.000Z. No request was made to imdember.com or any network (the chain is a local stub answering eth_getCode "0x"); no signature is included in this file.
+# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:203-207).
 
 ----- BEGIN EXACT MESSAGE (as returned in POST /api/auth/challenge .message) -----
 imdember.com wants you to sign in with your Ethereum account:
-0x0edeA60e00450DE82b7D1F15C48fb453b3033919
+0xf8Bf960426e249f886f24A0a20519D3675aCE5e6
 
-Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers or transactions.
+Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers, token or NFT approvals, or transactions.
 
 URI: https://imdember.com/
 Version: 1
 Chain ID: 1
-Nonce: 9718b7a95d913abf3a3d6bcc70d0f9d2
-Issued At: 2026-09-28T12:00:00.000Z
-Expiration Time: 2026-09-28T12:05:00.000Z
+Nonce: 122ed2209ef36bf6fd3e9a1854fbd0d5
+Issued At: 2026-09-29T12:00:00.000Z
+Expiration Time: 2026-09-29T12:05:00.000Z
 ----- END EXACT MESSAGE -----
 
 # Parsed fields (viem parseSiweMessage):
 #   domain: "imdember.com"
-#   address: "0x0edeA60e00450DE82b7D1F15C48fb453b3033919"
+#   address: "0xf8Bf960426e249f886f24A0a20519D3675aCE5e6"
 #   uri: "https://imdember.com/"
 #   version: "1"
-#   nonce: "9718b7a95d913abf3a3d6bcc70d0f9d2"
+#   nonce: "122ed2209ef36bf6fd3e9a1854fbd0d5"
 #   chainId: 1
-#   expirationTime: 2026-09-28T12:05:00.000Z
-#   issuedAt: 2026-09-28T12:00:00.000Z
-#   statement: "Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers or transactions."
+#   expirationTime: 2026-09-29T12:05:00.000Z
+#   issuedAt: 2026-09-29T12:00:00.000Z
+#   statement: "Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers, token or NFT approvals, or transactions."
 #   notBefore / requestId / resources: {"notBefore":null,"requestId":null,"resources":null}
+# Page-side check (checkSignInMessage; true = the wallet is asked to sign): {"asServed":true,"otherOrigin":false,"otherAccount":false,"otherNonce":false,"clockOff11min":false,"crlf":false,"extraLine":false}
+# Page-side summary shown while the wallet is open (signInSummary): {"domain":"imdember.com","network":"Ethereum","address":"<the synthetic address above>"}
 
-# challenge response: HTTP 200  body keys: nonce, message, acceptUntil  acceptUntil=2026-09-28T12:05:00.000Z
+# challenge response: HTTP 200  body keys: nonce, message, acceptUntil  acceptUntil=2026-09-29T12:05:00.000Z
 # challenge Set-Cookie: __Host-imd_flow=<REDACTED>; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=300
 # challenge Cache-Control: no-store  Strict-Transport-Security: max-age=31536000; includeSubDomains
 # verify with Origin https://evil.example: HTTP 403 {"error":"ORIGIN_NOT_ALLOWED"}
 # verify without the flow cookie: HTTP 403 {"error":"FLOW_MISMATCH"}
-# local verify with the synthetic key: HTTP 200  body keys: address, expiresAt  expiresAt=2026-10-05T12:00:00.000Z
+# local verify with the synthetic key: HTTP 200  body keys: address, expiresAt  expiresAt=2026-10-06T12:00:00.000Z
 # verify Set-Cookie: __Host-imd_session=<REDACTED>; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=604800, __Host-imd_flow=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0
 # same nonce+signature replayed: HTTP 409 {"error":"CHALLENGE_USED"}
 # a second challenge verified exactly 5 min after issue: HTTP 410 {"error":"CHALLENGE_EXPIRED"}
 # a third challenge signed by another synthetic key: HTTP 401 {"error":"SIGNATURE_INVALID"}  chain calls: eth_getCode (the ERC-1271 path: the address has no code, so no eth_call)
 #   then the right signature for the same nonce: HTTP 409 {"error":"CHALLENGE_USED"}  (the failed verify burnt the challenge)
 #   that challenge row: {"net":"net:203.0.113.0/24","checked":1,"burnt":1,"used_at":null}
-# 31 challenges from one network within a minute: 30 x 200, 1 x 429; the next one: HTTP 429 {"error":"SIGN_IN_BUSY"} Retry-After: 60
+# a fourth challenge, again signed by the wrong key: HTTP 401 {"error":"SIGNATURE_INVALID"}  chain calls: none (the "no code" answer is cached per address for 60 s)
+# 6 challenges for ONE address from one network within a minute: 5 x HTTP 200 , 1 x HTTP 429 {"error":"SIGN_IN_BUSY"} Retry-After: 60
+#   the same address from another network at the same moment: HTTP 200 
+# 30 challenges for different addresses from one network within a minute: 30 x 200; the next one: HTTP 429 {"error":"SIGN_IN_BUSY"} Retry-After: 60
 #   a challenge from another network at the same moment: HTTP 200
-# sessions table after the run (token_hash is SHA-256 of the cookie token, 64 hex chars): [{"token_hash_len":64,"chain_id":1,"ttl_days":7,"revoked_at":null}]
+# logout-all: a second browser of the same address signed in ({"signedIn":true}); logout-all without a session: HTTP 401 {"error":"AUTH_REQUIRED"}
+#   logout-all from the first browser: HTTP 200 {"revoked":2}; Set-Cookie: __Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0, __Host-imd_flow=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0
+#   the second browser afterwards: GET /api/auth/session -> {"signedIn":false}
+# refusal log lines written by the handler (one JSON line per 429/503; no IP, address, cookie, token, signature or message):
+#   {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"wallet","colo":"TEST","net":"net:203.0.113.0/24"}
+#   {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":"TEST","net":"net:203.0.113.0/24"}
+# sessions table after the run (token_hash is SHA-256 of the cookie token, 64 hex chars): [{"token_hash_len":64,"chain_id":1,"ttl_days":7,"revoked":true,"wallet_type":"EOA","verification_method":"ECDSA"},{"token_hash_len":64,"chain_id":1,"ttl_days":7,"revoked":true,"wallet_type":"EOA","verification_method":"ECDSA"}]

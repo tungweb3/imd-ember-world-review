@@ -50,6 +50,7 @@ No `Access-Control-*` header is ever sent (same-origin only; no CORS credentials
 | `POST /api/auth/verify` body `{nonce,signature}` | Origin + flow cookie | 200 `{address,expiresAt}` + `Set-Cookie __Host-imd_session`, flow cookie cleared | 400 `BAD_REQUEST` / `UNSUPPORTED_SIGNATURE` (ERC-6492 wrapper), 401 `SIGNATURE_INVALID`, 403 `ORIGIN_NOT_ALLOWED` / `FLOW_MISMATCH`, 409 `CHALLENGE_USED` (used, superseded or lost a concurrent race), 410 `CHALLENGE_EXPIRED`, 429, 503 `AUTH_UNAVAILABLE` / `VERIFY_UNAVAILABLE` (ERC-1271 needed but no RPC key) |
 | `GET /api/auth/session` | cookie | 200 `{signedIn:false}` or `{signedIn:true,address,expiresAt}`; a dead cookie is also cleared | 503 `AUTH_UNAVAILABLE` |
 | `POST /api/auth/logout` | Origin | 204, session revoked, both cookies cleared, open challenges of this flow invalidated; idempotent | 403 `ORIGIN_NOT_ALLOWED`, 429 |
+| `POST /api/auth/logout-all` | Origin, JSON, a live session | 200 `{revoked}`: every live session of the session's address revoked, its open challenges (and this flow's) invalidated, both cookies cleared; never rate limited (added 2026-09-29, swarm review F-4) | 400 `BAD_REQUEST`, 401 `AUTH_REQUIRED`/`SESSION_EXPIRED` (ends nobody), 403 `ORIGIN_NOT_ALLOWED` |
 | `GET /api/me/home` | session | 200 `{address,seats:[{tokenId,agentId,online,lastOnlineAt,counts}],eligible,size|null,block,checkedAt}` | 401 `AUTH_REQUIRED` / `SESSION_EXPIRED`, 429, 503 `OWNERSHIP_UNAVAILABLE` (never "you own nothing") |
 | `GET /api/wallet/:address/assets` | none (public chain data) | 200 `{address,seats:[{tokenId,image,agentId,online,counts}],characters:{collections:[],items:[]},fetchedAt}`, `Cache-Control: public, max-age=300` | 400 `BAD_REQUEST`, 429, 503 `OWNERSHIP_UNAVAILABLE` |
 
@@ -60,17 +61,36 @@ read API, the auth bucket fails **closed** when the binding throws (429); an abs
 /48: 30/min) and a global valve (60 per 6 s), 429 `SIGN_IN_BUSY`; ERC-1271 checks claim the challenge first and spend a
 per-network share (3/min) and `CHAIN_LIMITER` (`chain:erc1271`, per location), 429 `CHAIN_BUSY` burns the challenge; every
 NFT index read of `/api/me/home` spends `chain:index` (refused: roster candidates only, `recheck:'limited'`).
+2026-09-29 (swarm review F-3): the network share now gates the one `eth_getCode`, and only an address with code spends
+`chain:erc1271` before `eth_call`; a "no code" answer is cached per address for 60 s (per isolate), so garbage signatures for
+EOAs no longer close smart-wallet sign-in. Still open: garbage aimed at real contract addresses spends `chain:erc1271`.
+Trade-off (accepted, review R-3): `eth_getCode` is bounded only by the per-/24 share, the 60 s no-code cache and the
+challenge valve, no longer by the per-location `CHAIN_LIMITER` (≈600 cheap keyed reads/min at the valve's full rate from
+~200 /24s; watch the Alchemy CU quota), and the EOA path never asks `CHAIN_LIMITER`, so a missing binding there does not
+turn it into 503. A global `chain:code` key would bring back the F-3 lever (garbage spending it closes smart wallets).
+Superseded by §15 F-3 (round 2): a per-location `chain:code` cap (180/min) now bounds `eth_getCode`, and the contract
+budget is split so returning smart wallets keep their own.
 
-## 3. SIWE message (server-built, client only signs)
+## 3. SIWE message (server-built; the page checks it, then signs)
 
 Built with viem `createSiweMessage` from server values only; the exact text is stored in `login_challenges.message`
 and verified from there, so nothing the client sends back can change what was signed.
+
+Page check before signing (swarm review F-7a, `src/world/siwe.ts` `checkSignInMessage`): the wallet is asked to
+`personal_sign` only a message that is, line for line, the one this site builds: 11 lines; domain = `location.host`;
+the signing account (any letter case); blank, the exact statement, blank; `URI:` = `location.origin` + `/`; Version 1;
+Chain ID 1; `Nonce:` = the challenge's own nonce, 32 lowercase hex; Issued At within ±10 min of the device clock;
+Expiration Time after it by at most 5 min; nothing else (no Resources, Request ID, Not Before, CR or look-alike
+characters). Anything else ends the flow with the notice `message-mismatch` ("…your wallet was not asked to sign") and
+the wallet is never opened. A device clock off by more than 10 min cannot sign in and sees that notice. Limits: this
+guards against a wrong or tampered challenge response (a proxy, a server bug); it does not protect against script
+injected into this origin, which can call the wallet provider directly.
 
 | Field | Value |
 |---|---|
 | domain | host of the request `Origin`, which must be in the allow-list: `https://imdember.com`; and `http://localhost:<port>` / `http://127.0.0.1:<port>` only when the request URL's own hostname is loopback (so production can never accept them, no config needed) |
 | address | `getAddress(body.address)` (EIP-55); stored lowercased |
-| statement | `Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers or transactions.` (ASCII; the session lifetime is stated here, see Amendments F2) |
+| statement | `Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers, token or NFT approvals, or transactions.` (ASCII; the session lifetime is stated here, see Amendments F2; approvals named since 2026-09-29, §15 F-1) |
 | uri | `<origin>/` |
 | version / chain-id | `1` / `1` (Ethereum mainnet only; the wallet's current chain is irrelevant to a personal_sign) |
 | nonce | 16 bytes from `crypto.getRandomValues`, 32 hex chars (128 bit, alphanumeric) |
@@ -201,7 +221,7 @@ INSERT INTO seat_presence(token_id,owner,last_online_at,updated_at)
 (one bound JSON parameter, so one D1 query instead of ~430). `owner` is IMD's `swarm.owners[id]`, informational only.
 A failed or partial read writes nothing (never "offline"). CPU: parsing a 459 KB workers body 0.4–0.9 ms, the 105 KB
 swarm 0.1–0.2 ms, the JSON parameter 0.1 ms (Node, measured) — a few ms per run. Writes ≈ 430 × 96/day ≈ 41 k rows/day
-([REDACTED-INTERNAL]).
+(IMD account's own D1).
 
 ## 9. Frontend
 
@@ -245,14 +265,21 @@ Rules:
 My-wallet panel (existing drawer: right sheet 420 px on desktop, bottom sheet from 15dvh on phones — modal, so it never
 overlaps the onboarding HUD, speaker toggle, world-time card or minimap, which the drawer already hides):
 1. Header: short address + copy, state badge (已登入 · 有效至 <date> / 未登入 / 只看).
-2. Primary action for the state; above the sign button the pre-sign note 「此次簽名僅用於登入 IMD Ember World、確認錢包控制權。
-   不收取 Gas，也不授予 NFT 或代幣轉移權限。」 / "This signature only signs you in to IMD Ember World and proves you control the
-   wallet. It costs no gas and grants no NFT or token transfer rights."
+2. Primary action for the state; above the sign button the pre-sign note 「此次簽名僅用於登入 IMD Ember World（登入有效 7 天）、
+   確認錢包控制權。不收取 Gas，也不授權資產轉移、代幣或 NFT 的授權（approve）或任何交易…」 / "This signature only signs you in
+   to IMD Ember World (for 7 days) and proves you control the wallet. It costs no gas and authorizes no asset transfer, token or
+   NFT approval, or transaction…" (swarm review F-1: it names what the SIWE statement names). While the wallet's prompt is
+   open, a two-line summary read back from the checked message (siwe.ts signInSummary, walletView.ts signingText): 「登入
+   IMD Ember World · 網域 · 網路 · 錢包 · 用途：僅限登入 · 不轉移資產、不授權」 and 「錢包應顯示相同的網域；若顯示的是其他網站，
+   請拒絕。」 / "Your wallet should show the same domain. If it shows another site, reject." No extra click before the wallet
+   opens. It is a reminder, not a defence: a phishing page does not run this code (the wallet's own domain check is).
 3. 我的家 (owner): size, eligible count, [回家] [搬家…] (existing actions), last checked time, refresh.
 4. 資產 · IMD 席位: rows `#361 · 在線/離線 · 計入房子/不計入 (reason)`, tap = locate the agent; loading / 503 / empty states
    distinct ("目前未查到此錢包持有 IMD" only on a successful empty read).
 5. Pepe 角色 NFT: grid from `CHARACTER_COLLECTIONS`, or 「即將推出 / Coming soon」.
-6. Footer: 登出 / Sign out, 換一個錢包, view-by-address form (view only, never owner).
+6. Footer: 登出此裝置 / Log out this device and 登出所有裝置 / Log out all devices (F-4; the second opens an inline confirm that
+   says this browser's other tabs follow at once and other devices on their next signed-in request; walletView.ts
+   logoutView / runLogout), 換一個錢包, view-by-address form (view only, never owner).
 
 Chip: the 4th `world-tools` button (already placed and tested on desktop and phones). Desktop label = state text or
 short address + status dot; ≤700 px and coarse-landscape keep the fixed short label 「錢包 / Wallet」 + dot so the bar does
@@ -434,3 +461,80 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   chainId 1 and personal_sign does not depend on the wallet's chain. A verify answer naming any address other than the
   one that asked is not adopted and its cookie is logged out. The only wallet RPC methods the client calls are
   `eth_accounts`, `eth_requestAccounts` and `personal_sign` (SIWE sign-in only); it listens to `accountsChanged`.
+
+## 15. Swarm review follow-ups, round 2 (2026-09-29; job 4bd31cfb, remediation doc v1.0)
+
+- **F-2, wallet type and verification method.** Every new session records `wallet_type` (`EOA` | `CONTRACT`) and
+  `verification_method` (`ECDSA` | `ERC1271`) (`migrations/0003_sign_in_layers.sql`, nullable; sessions from before it
+  keep NULL). Audit and debugging only: nothing reads them to grant anything, `/api/auth/session` does not return them,
+  and ownership is still `ownerOf`. `EOA`/`ECDSA` means the address's own key signed (a 7702-delegated EOA signing with
+  its key counts; no chain read is made); `CONTRACT`/`ERC1271` means the contract at the address answered exactly the
+  magic word. The ERC-1271 path fails closed in every way it can be unavailable: no key, the node down or erroring
+  (503 `VERIFY_UNAVAILABLE`), a refused or throwing budget (429 `CHAIN_BUSY`), a missing binding (503
+  `LIMITER_UNAVAILABLE`); none of them ever makes a session or falls back to trusting the address.
+  Smart-wallet owner-mode risk (stated, not fixed): ERC-1271 lets the contract decide who may sign for it. A contract
+  that accepts any signature (some vaults, escrows or badly written wallets) lets anyone sign in as it, and if it holds
+  a seat, anyone gets owner mode for that seat (today: a local, read-only view). The session's `CONTRACT` mark makes such
+  sessions visible in D1; it does not make them safer.
+  Reminder for the Genesis Mint (not changed in this round): a World session is not consent to mint. If the Mint ever
+  reuses this session, whether it needs its own explicit signature or transaction confirmation is decided by the Mint's
+  own specification and review.
+- **F-3, smart-wallet budget split (and round-1 R-3 closed).** The ERC-1271 path (`server/auth.ts verifySignature`)
+  now asks, each before the read it pays for, with one check per challenge (the claim) and every refusal 429
+  `CHAIN_BUSY` + burn: the claim (per /24 or /48: 10 a minute, one `eth_getCode` each); `chain:code` (180/min per
+  Cloudflare location, a constant key in the `API_LIMITER` namespace, fails closed, missing binding 503); `eth_getCode`
+  (no code: 401, cached 60 s); the contract check `CLAIM_CONTRACT` (per network 3 a minute, per contract address 2 a
+  minute over all networks; `login_challenges.called_at` and two partial indexes, `migrations/0003`); the per-location
+  `CHAIN_LIMITER` key, `chain:erc1271:known` for an address that already signed in by ERC-1271 (a kept session with
+  `verification_method='ERC1271'`, up to 8 days; it skips the code read and the claim's code share) else
+  `chain:erc1271` (20/min each); then one `eth_call`.
+  Numbers, per location: closing first-time smart-wallet sign-in takes ≥ 7 /24s aimed at ≥ 10 distinct contracts
+  (before: 7 /24s, any one contract); returning smart wallets have their own key (closing it takes ≥ 7 more /24s
+  aimed at ≥ 10 addresses that signed in here by ERC-1271 — which can be contracts the attacker deploys itself, e.g. one
+  that accepts any signature (F-2), at the cost of gas and one first-time sign-in each, and stay "known" for 8 days); closing `chain:code` takes ≥ 18 /24s and delays only first-time smart
+  wallets. Garbage from one /24 leaves its neighbours: garbage for EOAs spends only its 10 code reads (a returning
+  Safe needs none), garbage at one contract only 2 of its 3 contract checks. Accepted trade-off: 2 garbage checks a
+  minute, from anywhere, hold that one contract's sign-in at 429 while they last (ECDSA and every other wallet
+  untouched). Alchemy: `eth_getCode` ≤ 10/min per /24, ≤ 180/min per location, ≤ the challenge valve (600/min) overall;
+  `eth_call` ≤ 3/min per /24, ≤ 2/min per contract, ≤ 40/min per location. Tests: `tests/auth.test.mjs` "ERC-1271
+  shares" and "F-3: …" (acceptance 1–4 of the remediation doc).
+- **F-5, sign-in limits in layers.** L1 per network (IPv4 /24, IPv6 /48): 30 challenges a minute, plus the ERC-1271
+  shares of F-3. L2 per wallet: 5 challenges a minute for one address from one network (a short cooldown; per (address,
+  network), so nobody elsewhere can lock the key holder out; ECDSA sign-in is never gated by any per-address limit). One
+  address asked for from many networks is not blocked: from its 20th challenge within a minute on, each challenge writes
+  an `auth_surge` line (one line alone would usually be lost to the 0.2 log sampling).
+  L3 per challenge: one-time nonce, burnt on any failure, one ERC-1271 check (unchanged). L4 per location: `AUTH_LIMITER`
+  20/min per IP for challenges and, under `verify:`+IP keys of the same binding, 20/min for verifies, so a challenge
+  flood never starves verify (no new binding); `CHAIN_LIMITER` and `chain:code` for the ERC-1271 path. L5 global: the
+  challenge valve, 60 per 6 s (600/min), the emergency ceiling only (real traffic is a few a minute); keeping it shut
+  takes 20 /24s at their full share. Every 429/503 of the account routes writes one JSON line `{evt:'auth_refused',
+  route, status, error, reason, colo, net, walletType?}` (reason: the refusing layer or bucket: `auth`, `verify`,
+  `network`, `wallet`, `global`, `code_share`, `code_cap`, `network_contract`, `address`, `budget`, `budget_known`, `rpc`,
+  `home`, `api`, `missing:<BINDING>`, `error`), and a surge `{evt:'auth_surge', route, reason:'address_surge', addr
+  (first 4 hex digits), colo, net}`. `net` is the /24 or /48 key; no line carries an IP, a full address, a cookie,
+  token, signature or message. Workers Logs (observability, head sampling 0.2) keeps about one line in five, so
+  monitoring reads counts as about 1/5 of the real number. D1 per
+  challenge: +1 index entry written (`login_challenges_address`), ≤ 5 + 21 more rows read (≤ 35 more on a refusal);
+  worst-case monthly figures in `server/auth.ts`.
+- **F-1, the statement names approvals.** `SIWE_STATEMENT` (`src/world/siwe.ts`, shared by the server that builds the
+  message and the page that checks it before `personal_sign`) now reads "…This does not authorize asset transfers, token
+  or NFT approvals, or transactions." and keeps "for 7 days". The page accepts only this text. The server verifies the
+  message it stored, so a challenge issued by the previous build (the old wording, `SIWE_PREVIOUS_STATEMENTS`) still
+  verifies during the 5 minutes it can stay open across a deploy; any other statement is 401. The build live before this
+  one has no page check, so its open pages sign the new statement as before; from now on a later statement change
+  makes open pages refuse ("message-mismatch", nothing signed) until they are reloaded. This is defence in depth, not
+  a cure for phishing: a phishing page can skip any check this page makes.
+- **Page and docs (round 2).** F-1 UX: while the wallet's prompt is open, My wallet shows a summary read back from the
+  checked message (§9 item 2). F-4 UX: "Log out this device" / "Log out all devices" (§9 item 6). The round-1 review
+  link is replaced by a collapsed "Swarm Audit Record" / 「審查紀錄」 at the foot of My wallet in every state
+  (`src/world/reviewRecord.ts` data, `src/world/auditRecord.ts` markup): scope, reviewed version and date, job and
+  report, deployment match `partial`, "Previous review — current version has changed", each finding's severity and
+  status. F-6: wrangler 4.143.0 (`npm audit` 0; `compatibility_date` unchanged). Status of every finding, the limit
+  table and the regression-test map: `docs/security/AUDIT_REMEDIATION_STATUS.md`; deployment evidence:
+  `scripts/deploy-evidence.mjs`.
+- **Internal re-check of round 2 (2026-09-29).** The known-smart-wallet lookup (`KNOWN_ERC1271`) and logout-all's
+  revocation (`REVOKE_ALL_SESSIONS`) read through two partial indexes added to `migrations/0003` (`sessions_erc1271`,
+  `sessions_live`), so an address's ECDSA or revoked sessions, however many, are never visited. A session write that
+  fails for any reason but a UNIQUE race (a deploy ahead of 0003, D1 down) is a logged 503 `AUTH_UNAVAILABLE`, not a
+  silent 409. The audit record says its statuses are the team's own account, not re-reviewed, and has a "Re-review:
+  none yet" row. The WAF rule on the evidence page is marked as stated (not read from Cloudflare), with a rule-id field.
