@@ -4,9 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#25312f" />
-    <meta name="description" content="IMD Ember World: a 3D village drawn live from the public IMD agent network. Every agent seat has a home, and the town shows who is online and working." />
+    <meta name="description" content="IMD Ember World: a 3D village drawn live from the public IMD agent network. Every agent seat has a home, and the town shows who is online and working. Independent community project · Identity.md does not run or endorse it." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>IMD Ember World</title>
+    <!-- The world's title where the app draws it, shown from the first paint until the app replaces #root's contents
+         (the bundle is about 400 KB compressed and builds a 3D scene: seconds on a phone). Inline CSS only (the CSP's
+         style-src allows it), no script, no font or image to wait for. -->
+    <style>
+      html,body{margin:0;background:#54717d;color:#f2ecda}
+      .boot{position:absolute;left:30px;top:26px;font-family:Cinzel,Georgia,"Noto Serif TC",serif;text-shadow:0 2px 16px #12303c}
+      .boot h1{margin:0;font-weight:400;font-size:31px;line-height:1.1;letter-spacing:.07em;color:#f4ecd8}
+      .boot h1 span{font-size:1.2em;font-weight:600;letter-spacing:.08em}.boot h1 b{font-weight:600;color:#e2c07c}
+      .boot p{margin:12px 0 0;font:12px/1.5 "Microsoft JhengHei","PingFang TC",sans-serif;letter-spacing:.05em;color:#d9e5da}
+      .boot p::after{content:"";display:inline-block;width:6px;height:6px;margin-left:8px;border-radius:50%;background:#e2c07c;animation:boot 1.2s ease-in-out infinite alternate}
+      @keyframes boot{from{opacity:.2}to{opacity:1}}
+      @media (prefers-reduced-motion:reduce){.boot p::after{animation:none}}
+      .noscript{position:absolute;left:30px;right:30px;top:104px;margin:0;font:12px/1.7 "Microsoft JhengHei","PingFang TC",sans-serif;letter-spacing:.03em;color:#d9e5da}
+      @media (max-width:700px){.boot{left:18px;top:19px}.boot h1{font-size:21px;letter-spacing:.06em}.boot p{font-size:10px}.noscript{left:18px;right:18px;top:78px;font-size:10px}}
+    </style>
   </head>
-  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+  <body><div id="root"><div class="boot" role="status"><h1><span>IMD</span> <b>Ember</b> World</h1><p>正在載入 3D 世界 · Loading the 3D world</p></div></div><script type="module" src="/src/main.tsx"></script><noscript><p class="noscript">3D 世界需要 JavaScript · The 3D world needs JavaScript<br />獨立社群專案 · 並非由 Identity.md 營運或背書<br />Independent community project · Identity.md does not run or endorse it</p></noscript></body>
 </html>

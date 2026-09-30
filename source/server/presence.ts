@@ -23,7 +23,8 @@ export const UPSERT_PRESENCE=`INSERT INTO seat_presence(token_id,owner,last_onli
  SELECT value->>'id',value->>'owner',?1,?2 FROM json_each(?3) WHERE true
  ON CONFLICT(token_id) DO UPDATE SET owner=COALESCE(excluded.owner,seat_presence.owner),
  last_online_at=MAX(seat_presence.last_online_at,excluded.last_online_at),updated_at=excluded.updated_at`;
-export type PresenceRun={written:number;skipped?:'workers-incomplete';at:number};
+/** indexPruned: stored index answers deleted (null: the prune failed, e.g. a deploy ahead of migrations/0004). */
+export type PresenceRun={written:number;skipped?:'workers-incomplete';at:number;indexPruned:number|null};
 /** A challenge never used (expired, superseded, burnt or logged out) is deleted this long after issue (S3; its 5 min
  *  window is long over). A used one, which names its session, stays until a day after its window closed. */
 export const UNUSED_CHALLENGE_KEEP_MS=10*60_000;
@@ -33,16 +34,25 @@ export const UNUSED_CHALLENGE_KEEP_MS=10*60_000;
  *  only the rows it deletes. */
 export const PRUNE_CHALLENGES='DELETE FROM login_challenges WHERE issued_at<?2 AND (used_at IS NULL OR accept_until<?1)';
 export const PRUNE_SESSIONS='DELETE FROM sessions WHERE expires_at<?1';
+/** A stored NFT-index answer (A-2, server/ownership.ts KEEP_INDEX) is kept 8 days, a day past a session's 7: any index
+ *  read since has replaced it, and older ones only name candidates for an owner who has not been back. A scan (?1 = now -
+ *  INDEX_KEEP_MS): index_candidates holds only addresses the index names a seat for (a few thousand rows at most, read
+ *  96 times a day), and an index on read_at would add a row written to every upsert. Its own statement, after the batch,
+ *  so a deploy ahead of migrations/0004 never stops the presence record or the other prunes. */
+export const INDEX_KEEP_MS=8*DAY_MS;
+export const PRUNE_INDEX='DELETE FROM index_candidates WHERE read_at<?1';
 /** Records every seat the roster lists online at the roster's own time (fetchedAt: an edge-cached copy can be up to
- *  5 min old), drops never-used challenges after UNUSED_CHALLENGE_KEEP_MS, used ones a day after their window closed, and
- *  sessions that ended more than a day ago. seat_presence is never deleted. */
+ *  5 min old), drops never-used challenges after UNUSED_CHALLENGE_KEEP_MS, used ones a day after their window closed,
+ *  sessions that ended more than a day ago, and stored index answers older than INDEX_KEEP_MS. seat_presence is never
+ *  deleted. */
 export async function recordPresence(gateway:Pick<ReadGateway,'source'>,db:D1Database,now=Date.now(),waitUntil?:WaitUntil):Promise<PresenceRun>{
   const [swarm,workers]=await Promise.all([gateway.source('swarm',waitUntil),gateway.source('workers',waitUntil)]);
   const world=liveWorld(swarm,workers),at=workers.fetchedAt??now;
   const housekeeping=[db.prepare(PRUNE_CHALLENGES).bind(now-DAY_MS,now-UNUSED_CHALLENGE_KEEP_MS),db.prepare(PRUNE_SESSIONS).bind(now-DAY_MS)];
-  if(!world.completeWorkers){await db.batch(housekeeping);return {written:0,skipped:'workers-incomplete',at};}
+  const pruneIndex=()=>db.prepare(PRUNE_INDEX).bind(now-INDEX_KEEP_MS).run().then(r=>r.meta.changes??0,()=>null);
+  if(!world.completeWorkers){await db.batch(housekeeping);return {written:0,skipped:'workers-incomplete',at,indexPruned:await pruneIndex()};}
   const online=world.agents.filter(a=>a.presence==='online'&&Number.isSafeInteger(Number(a.tokenId)))
     .map(a=>({id:Number(a.tokenId),owner:swarm.data&&a.owner?a.owner.toLowerCase():null}));
   await db.batch([db.prepare(UPSERT_PRESENCE).bind(at,now,JSON.stringify(online)),...housekeeping]);
-  return {written:online.length,at};
+  return {written:online.length,at,indexPruned:await pruneIndex()};
 }

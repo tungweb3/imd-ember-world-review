@@ -9,9 +9,9 @@ export type EnterGate='ok'|'sign-in'|'not-yours'|'no-house'|'expired';
 /** 'ok' only in owner mode (a server session whose house read counts a seat, the connected wallet if any the session's),
  *  with the session still unexpired at `now`, the house read for that session's address, and `home` that address's. */
 export function enterGate(state:AuthState,home:{owner:string}|null,now:number):EnterGate{
-  const owner=ownerAddress(state);
+  if(state.session&&!(state.session.expiresAt>now))return 'expired';
+  const owner=ownerAddress(state,now);
   if(!owner||!state.session)return 'sign-in';
-  if(!(state.session.expiresAt>now))return 'expired';
   const read=state.home;if(!read||read==='unavailable'||read.address.toLowerCase()!==owner)return 'sign-in';
   if(!home)return 'no-house';
   return home.owner.toLowerCase()===owner?'ok':'not-yours';
@@ -19,10 +19,15 @@ export function enterGate(state:AuthState,home:{owner:string}|null,now:number):E
 /** The one house the page may offer an Enter action for: the owner's own home when enterGate is 'ok' at `now`, else
  *  null (visitors, every other owner state, a stale or expired session, and every other wallet's house). */
 export function enterableHome<H extends {owner:string}>(state:AuthState,homes:readonly H[],now:number):H|null{
-  const owner=ownerAddress(state);if(!owner)return null;
+  const owner=ownerAddress(state,now);if(!owner)return null;
   const own=homes.find(h=>h.owner.toLowerCase()===owner)??null;
   return own&&enterGate(state,own,now)==='ok'?own:null;
 }
+/** The house an Enter press (E, the door pill, the household block) opens: `offered` (the memoised enterableHome of the
+ *  last render) only if enterGate is still 'ok' at the moment of the press, the way the move flow re-checks at its click
+ *  (moves.ts). Swarm retest W-1: an expiry timer that fired late (a sleeping device) must not leave the door open until
+ *  the next 10 s clock tick. */
+export const enterAtPress=<H extends {owner:string}>(state:AuthState,offered:H|null,now:number):H|null=>offered&&enterGate(state,offered,now)==='ok'?offered:null;
 /** Whether a household's block shows `Enter your home`: only the enterable home's own block. */
 export const offersEnter=(home:{owner:string},enterable:{owner:string}|null)=>!!enterable&&home.owner.toLowerCase()===enterable.owner.toLowerCase();
 /** Standing within this many metres of the owner's door offers the way in. */

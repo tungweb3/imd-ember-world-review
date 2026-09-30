@@ -10,9 +10,11 @@ import {checkSignInMessage,signInSummary,type SignInSummary} from './siwe.ts';
 export type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,fn:(v:unknown)=>void)=>void;removeListener?:(event:string,fn:(v:unknown)=>void)=>void};
 export type MeSeat={tokenId:string;agentId:string|null;online:boolean;lastOnlineAt:number|null;counts:boolean;reason?:'not-agent'|'offline-24h'|'not-seen'};
 export type MeHome={address:string;seats:MeSeat[];eligible:number;size:HouseSize|null;block:number;checkedAt:number;presence:'fresh'|'stale'|'unavailable';
-  /** 'limited': the NFT index was due while the server's chain budget was spent, so only IMD's roster (and an earlier
-   *  index answer) named the seats that ownerOf then proved. */
-  recheck?:'limited'};
+  /** Not a complete answer (server/ownership.ts HomeView). 'limited': the NFT index was due while the server's chain budget
+   *  was spent, so only IMD's roster (and an earlier index answer) named the seats that ownerOf then proved. 'partial':
+   *  the wallet names more seats than one check covers (256; those whose agent can count were checked first), or the
+   *  index had more pages than one read covers. */
+  recheck?:'limited'|'partial'};
 export type Session={address:string;expiresAt:number};
 /** Spec 7.1: the nine states the chip and the panel show. */
 export type AuthStatus='visitor'|'connected'|'awaitingSignature'|'verifying'|'owner'|'signedInNoHouse'|'expired'|'ownershipUnavailable'|'mismatch';
@@ -45,20 +47,24 @@ export type AuthState={
 export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,restored:false,sessionKnown:false,leaving:false,signing:null,checking:false,notice:null};
 
 /** The state the chip shows, derived from the facts only (so no two fields can disagree). Owner = the server read the
- *  session's seats and at least one counts, and the connected wallet (if any) is the session's. */
-export function statusOf(s:AuthState):AuthStatus{
+ *  session's seats and at least one counts, the connected wallet (if any) is the session's, and the session's expiresAt
+ *  is still ahead of `now` on this device's clock (W-1: a session past its expiry is 'expired' here before any server
+ *  says so, and a missing `now` counts as expired). A read that counted no seat but was not complete (`recheck`) is
+ *  'ownershipUnavailable', never 'signedInNoHouse' (A-8: that is not a checked "no seat"). */
+export function statusOf(s:AuthState,now:number):AuthStatus{
   if(s.phase!=='idle')return s.phase;
   if(s.session){
+    if(!(s.session.expiresAt>now))return 'expired';
     if(s.account&&s.account!==s.session.address)return 'mismatch';
     if(s.home==='unavailable')return 'ownershipUnavailable';
     if(!s.home)return 'verifying';
-    return s.home.eligible>0?'owner':'signedInNoHouse';
+    return s.home.eligible>0?'owner':s.home.recheck?'ownershipUnavailable':'signedInNoHouse';
   }
   if(s.expired)return 'expired';
   return s.account?'connected':'visitor';
 }
-/** Owner mode: only in the owner state, and only for the session's own address. */
-export const ownerAddress=(s:AuthState)=>statusOf(s)==='owner'?s.session!.address:null;
+/** Owner mode: only in the owner state at `now`, and only for the session's own address. */
+export const ownerAddress=(s:AuthState,now:number)=>statusOf(s,now)==='owner'?s.session!.address:null;
 
 export const hexUtf8=(text:string)=>'0x'+[...new TextEncoder().encode(text)].map(b=>b.toString(16).padStart(2,'0')).join('');
 const isAddress=(v:unknown):v is string=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v);
@@ -71,12 +77,19 @@ export const localHint:HintStore={
   set(s){try{if(s)localStorage.setItem(HINT,JSON.stringify(s));else localStorage.removeItem(HINT);}catch{/* private window */}}
 };
 type Channel={postMessage(v:unknown):void;close():void;addEventListener(type:'message',fn:()=>void):void};
+/** Timers and the tab's visibility (cadence.ts PollEnv's shape). Default: setTimeout (unref'd under Node) and
+ *  document visibilitychange (none without a document). */
+export type AuthEnv=Pick<PollEnv,'set'|'clear'|'onVisible'>;
+const defaultEnv:AuthEnv={set:(fn,ms)=>{const t=setTimeout(fn,ms) as unknown as {unref?:()=>void};t.unref?.();return t;},clear:t=>clearTimeout(t as ReturnType<typeof setTimeout>),
+  onVisible:fn=>{if(typeof document==='undefined')return()=>{};const h=()=>{if(!document.hidden)fn();};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);}};
+/** setTimeout's longest delay (a longer one fires at once); the expiry timer re-arms in steps of at most this. */
+const MAX_TIMER_MS=2**31-1;
 export type AuthDeps={fetch:(path:string,init?:RequestInit)=>Promise<Response>;
   /** The wallet every call goes to (wallet.ts WalletRegistry.current: the EIP-6963 choice, or window.ethereum). */
   provider:()=>Provider|null;
   /** Subscribes to changes of `provider()` (a choice, a late announcement); returns the unsubscribe. */
   onProviderChange?:(fn:()=>void)=>()=>void;
-  channel?:()=>Channel|null;hint?:HintStore;now?:()=>number;
+  channel?:()=>Channel|null;hint?:HintStore;now?:()=>number;env?:AuthEnv;
   /** This page's origin, which the sign-in message must name (default location.origin; none: nothing is signed). */
   origin?:string};
 const JSON_POST=(body:unknown):RequestInit=>({method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),credentials:'same-origin'});
@@ -94,10 +107,32 @@ export class AuthClient{
   private bound:Provider|null=null;private binds=0;
   /** The load's session read: a click waits for it, so a reload with a live cookie never asks for a signature. */
   private restoring:Promise<void>|null=null;private deps:AuthDeps;
+  /** W-1: the timer that ends the session here at its expiresAt, and when the last session read began. */
+  private expiry:{session:Session;timer:unknown}|null=null;private sessionAt=-Infinity;
   constructor(deps:AuthDeps){this.deps=deps;}
   get state(){return this.s;}
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};};
-  private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;this.s=s;for(const fn of this.listeners)fn();}
+  private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;this.s=s;this.arm();for(const fn of this.listeners)fn();}
+  private get env(){return this.deps.env??defaultEnv;}
+  /** Keeps one timer on the current session's expiresAt (W-1), so owner mode ends on time even with nothing else going on. */
+  private arm(){
+    const session=this.s.session;if(this.expiry?.session===session)return;
+    if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;if(!session)return;
+    this.expiry={session,timer:this.env.set(()=>{if(this.expiry?.session!==session)return;this.expiry=null;if(!this.expireIfDue())this.arm();},
+      Math.min(MAX_TIMER_MS,Math.max(0,session.expiresAt-this.now())))};
+  }
+  /** A session whose expiresAt has passed on this clock is over here now: owner mode off, 'expired' shown, the hint kept
+   *  (it says expired on the next visit too) and any in-flight house read dropped. The server refuses it anyway. */
+  private expireIfDue(){
+    if(!this.s.session||this.s.session.expiresAt>this.now())return false;
+    this.homeGen++;this.set({session:null,home:null,expired:true,checking:false});return true;
+  }
+  /** The tab is visible again (W-1): a session that ran out while hidden ends at once, and a page that had a session
+   *  re-reads it (and so its house) from the server, at most once per HOME_MIN_GAP_MS; visitors ask nothing. */
+  visible(){
+    const had=!!this.s.session;this.expireIfDue();
+    if(had&&this.now()-this.sessionAt>=HOME_MIN_GAP_MS&&this.s.phase==='idle'&&!this.busy)void this.restore();
+  }
   private get hint(){return this.deps.hint??localHint;}
   private now(){return (this.deps.now??Date.now)();}
   private broadcast(kind:'signed-in'|'signed-out'){try{this.channel?.postMessage(kind);}catch{/* closed */}}
@@ -109,8 +144,10 @@ export class AuthClient{
     this.channel?.addEventListener('message',()=>{void this.restore();});      // re-read the server; never trust the message
     this.bind(this.deps.provider());
     const off=this.deps.onProviderChange?.(()=>this.providerChanged())??(()=>{});
+    const offVisible=this.env.onVisible(()=>this.visible());
     void this.restore();
-    return ()=>{off();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;};
+    return ()=>{off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
+      if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
   }
   /** Follows `p`: its already-granted account (eth_accounts, never a prompt) and its accountsChanged. chainChanged is not
    *  followed: the SIWE message is always chainId 1 and personal_sign does not depend on the wallet's chain. */
@@ -134,7 +171,7 @@ export class AuthClient{
   /** GET /api/auth/session; a signed-in answer is followed by the home read. */
   restore(){const r=this.readSession().finally(()=>{if(this.restoring===r)this.restoring=null;});this.restoring=r;return r;}
   private async readSession(){
-    const g=this.gen;
+    const g=this.gen;this.sessionAt=this.now();
     try{
       const r=await this.deps.fetch('/api/auth/session',{credentials:'same-origin'});if(g!==this.gen)return;
       if(!r.ok){this.set({restored:true,sessionKnown:false,notice:r.status===503?'auth-unavailable':r.status===429?'rate-limited':this.s.notice});return;}
@@ -150,23 +187,26 @@ export class AuthClient{
     }catch{if(g===this.gen)this.set({restored:true,sessionKnown:false});}
   }
   /** GET /api/me/home for the session. force skips the 15 s gap (the refresh button, a new session); fresh (the refresh
-   *  button) also has the server re-ask the NFT index if its answer is older than 30 s. */
+   *  button) also has the server re-ask the NFT index if its answer is older than 30 s. Only the latest read is kept:
+   *  one overtaken by a newer read (homeGen) or a new flow (gen) is dropped after every await, the body's too (A-3: an
+   *  older answer whose body came last restored owner mode after a newer one had ended it). */
   async refreshHome(force=false,fresh=false){
     if(!this.s.session)return;
     if(!force&&this.now()-this.homeAt<HOME_MIN_GAP_MS&&this.s.home)return;
     const g=this.gen,hg=++this.homeGen;this.homeAt=this.now();this.set({checking:true});
+    const stale=()=>g!==this.gen||hg!==this.homeGen;
     try{
       const r=await this.deps.fetch(fresh?'/api/me/home?fresh=1':'/api/me/home',{credentials:'same-origin'});
-      if(g!==this.gen||hg!==this.homeGen)return;
-      if(r.ok){const home=await r.json() as MeHome;if(g!==this.gen)return;
+      if(stale())return;
+      if(r.ok){const home=await r.json() as MeHome;if(stale())return;
         if(this.s.session&&home.address.toLowerCase()!==this.s.session.address){await this.restore();return;}  // another tab switched the cookie
         this.homeOkAt=this.now();this.set({home,checking:false});return;}
-      const c=await code(r);if(g!==this.gen)return;
+      const c=await code(r);if(stale())return;
       if(r.status===401){this.hint.set(null);this.set({session:null,home:null,expired:c==='SESSION_EXPIRED'||!!this.s.session,checking:false});return;}
       if(r.status===503)this.set({home:'unavailable',checking:false});
       else{const h=this.s.home,kept=h&&h!=='unavailable'&&this.now()-this.homeOkAt<=OWNER_STALE_MS?h:'unavailable';   // CORR-05
         this.set({checking:false,notice:r.status===429?'rate-limited':'failed',home:kept});}
-    }catch{if(g===this.gen&&hg===this.homeGen)this.set({home:'unavailable',checking:false});}
+    }catch{if(!stale())this.set({home:'unavailable',checking:false});}
   }
   /** The one sign-in click. One flow at a time (a second click while one runs does nothing); the wallet is asked to
    *  connect only if no account is known, and to sign only when the server has said no valid session for that account

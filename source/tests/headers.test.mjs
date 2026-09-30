@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {HSTS} from '../server/world-api.ts';
 import {MARKET_URL} from '../src/world/market.ts';
+import {PUBLIC_HASHES} from '../src/world/publicHashes.ts';
+import {publicUrl} from '../src/world/publicUrl.ts';
 // public/_headers is what Workers Static Assets applies to every static response (Vite copies it into dist/). This reads
 // it the way Cloudflare's parser does (a path line, then indented "Name: value" lines; # comments) and rejects anything
 // that parser would drop, then checks the headers each kind of URL ends up with.
@@ -68,4 +70,14 @@ test('HSTS: a year or more, every subdomain, no preload, and the same value on s
   assert.ok(Number(/^max-age=(\d+)$/.exec(d[0])?.[1])>=31536000,HSTS);
   assert.ok(d.includes('includeSubDomains'),HSTS);assert.ok(!d.some(x=>/^preload$/i.test(x)),'no preload');
   assert.equal(h['strict-transport-security'],HSTS);
+});
+
+test('the hashed copies of the models, decor and Pepe frame the page loads are cached for a week; their originals revalidate',()=>{
+  for(const path of Object.keys(PUBLIC_HASHES)){
+    const url=publicUrl(path,true),h=headersFor(url),maxAge=Number(/max-age=(\d+)/.exec(h['cache-control'])?.[1]);
+    assert.ok(url.startsWith('/assets/')&&url!=='/'+path,url);
+    assert.ok(maxAge>=86400&&maxAge<=604800&&!h['cache-control'].includes('immutable'),url+' '+h['cache-control']);
+    assert.ok(h['content-security-policy']&&h['x-content-type-options']==='nosniff',url);
+    assert.equal(headersFor('/'+path)['cache-control'],undefined,'/'+path+' keeps the default revalidation (ETag)');
+  }
 });

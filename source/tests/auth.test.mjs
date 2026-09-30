@@ -10,8 +10,8 @@ import {setup,newAccount,Browser,START,windowLimiter} from './wallet-harness.mjs
 import {openD1} from './d1-sqlite.mjs';
 import {readFileSync} from 'node:fs';
 import {imdGatewayPlugin} from '../server/vite-plugin.ts';
-import {sha256,SIWE_STATEMENT,SIWE_PREVIOUS_STATEMENTS,ERC6492_SUFFIX,INSERT_CHALLENGE,NETWORK_CHALLENGE_BUDGET,NETWORK_WINDOW_MS,CHALLENGE_BUDGET,CHALLENGE_BUDGET_WINDOW_MS,
-  CHALLENGE_BUDGET_NETWORKS,WALLET_CHALLENGE_BUDGET,ADDRESS_SURGE,CLAIM_CONTRACT,ERC1271_CODE_SHARE,ERC1271_NETWORK_SHARE,ERC1271_ADDRESS_SHARE,CODE_CAP,NO_CODE_TTL_MS,
+import {sha256,SIWE_STATEMENT,ERC6492_SUFFIX,INSERT_CHALLENGE,NETWORK_CHALLENGE_BUDGET,NETWORK_WINDOW_MS,CHALLENGE_BUDGET,CHALLENGE_BUDGET_WINDOW_MS,
+  CHALLENGE_BUDGET_NETWORKS,FRESH_NETWORK_RESERVE,FRESH_NETWORKS,ADDRESS_SURGE,CLAIM_CONTRACT,CLAIM_LANE,ERC1271_CODE_SHARE,ERC1271_NETWORK_SHARE,ERC1271_ADDRESS_SHARE,CODE_CAP,NO_CODE_TTL_MS,
   KNOWN_ERC1271,REVOKE_ALL_SESSIONS} from '../server/auth.ts';
 import {ALCHEMY_RPC_URL} from '../server/ownership.ts';
 // Every rule runs through the real Worker handler (createWorker → handleAccountApi) against the real migration SQL on
@@ -188,20 +188,25 @@ test('the SIWE Expiration Time is the challenge window (5 min), not the 7-day se
 });
 
 // F-1 (swarm review 4bd31cfb): the statement did not say that signing grants no approvals.
-test('F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; a challenge stored with the previous wording still verifies, any other is 401',async()=>{
+test('F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; only that text verifies, the retired wording and any other is 401',async()=>{
   assert.equal(SIWE_STATEMENT,'Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers, token or NFT approvals, or transactions.');
-  assert.deepEqual(SIWE_PREVIOUS_STATEMENTS,['Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers or transactions.']);
+  const auth=await import('../server/auth.ts');assert.equal('SIWE_PREVIOUS_STATEMENTS' in auth,false,'the transition allowance is gone');
   const w=setup(),a=newAccount(),at=w.clock.now();
   const fresh=await w.browser().signIn(a);assert.deepEqual([fresh.verify.status,parseSiweMessage(fresh.c.message).statement],[200,SIWE_STATEMENT]);
   assert.equal(checkSignInMessage(fresh.c.message,{origin:'https://imdember.com',account:a.address,nonce:fresh.c.nonce,now:at}),true,'the page accepts the new text');
-  // A challenge the previous build stored (its exact text) is verified from the row, as issued.
+  // A stored challenge whose text carries another statement, signed exactly as stored, is refused and burnt.
   const stored=async statement=>{const b=spread(w),c=await body(await b.post('/api/auth/challenge',{address:a.address}));
     const message=c.message.replace(SIWE_STATEMENT,statement);w.db.raw.prepare('UPDATE login_challenges SET message=? WHERE nonce=?').run(message,c.nonce);
-    const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await a.signMessage({message})});return [message,r.status+' '+((await body(r)).error??'ok')];};
-  const [old,before]=await stored(SIWE_PREVIOUS_STATEMENTS[0]);assert.equal(before,'200 ok','issued before the deploy, verified after it');
-  assert.equal(checkSignInMessage(old,{origin:'https://imdember.com',account:a.address,nonce:/Nonce: (\w+)/.exec(old)[1],now:at}),false,'the page itself signs only the new text');
+    const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await a.signMessage({message})});return [message,r.status+' '+((await body(r)).error??'ok'),c.nonce];};
+  // The wording before F-1 (accepted for one release while challenges issued before that deploy were still open).
+  const retired='Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers or transactions.';
+  const [old,status,nonce]=await stored(retired);assert.equal(status,'401 SIGNATURE_INVALID','the retired wording no longer verifies');
+  assert.notEqual(w.db.raw.prepare('SELECT invalidated_at FROM login_challenges WHERE nonce=?').get(nonce).invalidated_at,null,'and its challenge is burnt');
+  assert.equal(checkSignInMessage(old,{origin:'https://imdember.com',account:a.address,nonce:/Nonce: (\w+)/.exec(old)[1],now:at}),false,'the page signs only the current text');
   for(const statement of ['Sign in to IMD Ember World to access your home for 7 days.','Sign in to IMD Ember World. Approve all transfers.'])
     assert.equal((await stored(statement))[1],'401 SIGNATURE_INVALID',statement);
+  // The same path with the current text still signs in (so the 401s above are the statement, not the rewrite).
+  assert.equal((await stored(SIWE_STATEMENT))[1],'200 ok');
   assert.equal(sessionCount(w.db),2);
 });
 
@@ -330,11 +335,12 @@ test('rate limits: sign-in answers 429 when exhausted and fails CLOSED when the 
 // S3 / M1: POST /api/auth/challenge writes a row without login. A single global budget (120/min) let six addresses of one
 // network lock every other player out of sign-in; the budgets now give each network a small share and keep a high valve.
 test('challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing',async()=>{
-  assert.deepEqual([NETWORK_CHALLENGE_BUDGET,NETWORK_WINDOW_MS,CHALLENGE_BUDGET,CHALLENGE_BUDGET_WINDOW_MS,CHALLENGE_BUDGET_NETWORKS],[30,60_000,60,6_000,20]);
+  assert.deepEqual([NETWORK_CHALLENGE_BUDGET,NETWORK_WINDOW_MS,CHALLENGE_BUDGET,CHALLENGE_BUDGET_WINDOW_MS,CHALLENGE_BUDGET_NETWORKS],[30,60_000,60,6_000,14]);
+  assert.deepEqual([FRESH_NETWORK_RESERVE,FRESH_NETWORKS],[20,200]);
   const w=setup(),a=newAccount();w.env.AUTH_LIMITER=windowLimiter(20,w.clock.now);
   const rows=()=>w.db.raw.prepare('SELECT count(*) n FROM login_challenges').get().n;
   const ask=async(ip,b=w.browser())=>{const r=await b.post('/api/auth/challenge',{address:newAccount().address},{headers:{'cf-connecting-ip':ip}});return r.status===200?200:r.status+' '+(await body(r)).error+' '+r.headers.get('retry-after');};
-  // (A new address each time, so this is the network's budget, not one wallet's cooldown.)
+  // (A new address each time.)
   const burst=async(ips,n)=>{const out=[];for(const ip of ips)for(let i=0;i<n;i++)out.push(await ask(ip));return out;};
   // Six addresses of one /24, each at its full AUTH_LIMITER rate: the network's share, not the valve.
   const attack=await burst([1,2,3,4,5,6].map(i=>'203.0.113.'+i),20);
@@ -344,28 +350,32 @@ test('challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all c
   // IPv6 counts by /48 (in the next 6 s slice; this one already holds 31): another /64 of the same /48 shares it, another /48 does not.
   w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);for(let i=0;i<NETWORK_CHALLENGE_BUDGET;i++)await ask('2001:db8:1:'+(i%10)+'::1');
   assert.deepEqual([await ask('2001:db8:1:ff::9'),await ask('2001:db8:2::9')],['429 SIGN_IN_BUSY 60',200]);
-  // The valve: past the minute, two networks bursting 30 + 29 on top of one open challenge fill the 6 s slice; a third
-  // network and the first browser alike are refused, nothing is written, and the first browser's challenge is not superseded.
+  // The valve: past the minute, two networks bursting on top of one open challenge fill the regular 40: a network that
+  // asked in the last minute, like the first browser, is refused, while networks that have not asked get the last 20;
+  // then the valve is full for everyone. Nothing refused is written, and the first browser's challenge is not superseded.
   w.clock.advance(NETWORK_WINDOW_MS);
-  const first=w.browser(undefined,undefined,'192.0.2.9'),c0=await body(await first.post('/api/auth/challenge',{address:a.address}));
-  const filled=[...await burst(['198.51.100.1','198.51.100.2'],15),...await burst(['203.0.113.1','203.0.113.2'],15)].slice(0,59);
-  assert.equal(filled.filter(s=>s===200).length,59);const before=rows();
-  assert.equal(await ask('100.64.0.1'),'429 SIGN_IN_BUSY 60');
-  const again=await first.post('/api/auth/challenge',{address:a.address});assert.deepEqual([again.status,again.headers.getSetCookie().length],[429,0]);
+  const before0=rows(),first=w.browser(undefined,undefined,'192.0.2.9'),c0=await body(await first.post('/api/auth/challenge',{address:a.address}));
+  const filled=[...await burst(['198.51.100.1','198.51.100.2'],15),...await burst(['203.0.113.1','203.0.113.2'],15)];
+  assert.deepEqual([filled.length,filled.filter(s=>s===200).length,rows()-before0],[60,39,40]);
+  const before=rows(),again=await first.post('/api/auth/challenge',{address:a.address});assert.deepEqual([again.status,again.headers.getSetCookie().length],[429,0]);
   assert.equal(rows(),before);assert.equal(w.db.raw.prepare('SELECT count(*) n FROM login_challenges WHERE invalidated_at IS NOT NULL').get().n,0);
+  const fresh=[];for(let k=0;k<20;k++)fresh.push(await ask('100.64.'+k+'.1'));
+  assert.deepEqual([[...new Set(fresh)],rows()-before0],[[200],60]);
+  assert.deepEqual([await ask('100.64.20.1'),rows()-before0],['429 SIGN_IN_BUSY 60',60]);
   assert.equal((await first.post('/api/auth/verify',{nonce:c0.nonce,signature:await a.signMessage({message:c0.message})})).status,200,'sign-in with a challenge already held still works');
   // The valve reopens with the next slice; a network that spent its share still waits for its minute.
   w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);assert.deepEqual([await ask('100.64.0.1'),await ask('198.51.100.3')],[200,'429 SIGN_IN_BUSY 60']);
-  // Both counts are range reads of an index (migrations/0002), each capped at its budget; the network count runs first.
-  const plan=w.db.raw.prepare('EXPLAIN QUERY PLAN '+INSERT_CHALLENGE).all(...Array(8).fill('x'),0,NETWORK_CHALLENGE_BUDGET,0,CHALLENGE_BUDGET,WALLET_CHALLENGE_BUDGET).map(r=>r.detail).join(' | ');
-  assert.match(plan,/SEARCH login_challenges USING COVERING INDEX login_challenges_net \(net=\? AND issued_at>\?\)[\s\S]*SEARCH login_challenges USING COVERING INDEX login_challenges_address \(address=\? AND issued_at>\?\)[\s\S]*SEARCH login_challenges USING COVERING INDEX login_challenges_issued \(issued_at>\?\)/,plan);
+  // The three counts are range reads of an index (migrations/0002), each capped; the network count runs first.
+  const plan=w.db.raw.prepare('EXPLAIN QUERY PLAN '+INSERT_CHALLENGE).all(...Array(8).fill('x'),0,NETWORK_CHALLENGE_BUDGET,0,CHALLENGE_BUDGET,FRESH_NETWORK_RESERVE).map(r=>r.detail).join(' | ');
+  assert.match(plan,/SEARCH login_challenges USING COVERING INDEX login_challenges_net \(net=\? AND issued_at>\?\)[\s\S]*SEARCH login_challenges USING COVERING INDEX login_challenges_issued \(issued_at>\?\)[\s\S]*SEARCH login_challenges USING COVERING INDEX login_challenges_net \(net=\? AND issued_at>\?\)/,plan);
 });
 
 // F-5 (swarm review 4bd31cfb; remediation v1.0 §5): sign-in limits in layers, so no single place closes sign-in for
-// everyone, and one JSON line per refusal or surge that names the layer but no person.
-test('F-5: a challenge flood starves neither its own verify nor anyone else; the wallet cooldown binds only (address, network); every refusal and surge is one line without identifiers',async t=>{
+// everyone, and one JSON line per refusal or surge that names the layer, an IP-derived network key (IPv4 /24, IPv6 /48)
+// and, on a surge, a 6-character address prefix: never a full IP or a full address.
+test('F-5: a challenge flood starves neither its own verify nor anyone else; no neighbour can refuse a player\'s challenges; every refusal and surge is one line whose only client details are a network key and, on surges, a 6-character address prefix',async t=>{
   const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
-  assert.deepEqual([WALLET_CHALLENGE_BUDGET,ADDRESS_SURGE],[5,20]);
+  assert.equal(ADDRESS_SURGE,20);
   const w=setup(),auth=windowLimiter(20,w.clock.now);w.env.AUTH_LIMITER=auth;
   const a=newAccount(),victim=newAccount(),owner=newAccount(),safe='0x'+'5a'.repeat(20);w.chain.state.contracts.set(safe,()=>'0x1626ba7e');
   const ask=async(ip,address)=>{const r=await w.browser(undefined,undefined,ip).post('/api/auth/challenge',{address});return r.status===200?200:r.status+' '+(await body(r)).error;};
@@ -381,10 +391,12 @@ test('F-5: a challenge flood starves neither its own verify nor anyone else; the
   assert.equal((await w.browser(undefined,undefined,'198.51.100.1').signIn(newAccount())).verify.status,200);
   const sb=w.browser(undefined,undefined,'198.51.100.2'),sc=await body(await sb.post('/api/auth/challenge',{address:safe}));
   assert.equal((await sb.post('/api/auth/verify',{nonce:sc.nonce,signature:await owner.signMessage({message:sc.message})})).status,200);
-  // L2: five challenges a minute for one address from one network. Someone on 192.0.2.x asking for the victim's address
-  // gets five; the sixth is refused, yet the victim signs in from its own network, and 192.0.2.x can still ask for others.
+  // No per-wallet cooldown (A-6): a neighbour on 192.0.2.x asking for the victim's address six times is admitted, and the
+  // victim still signs in from its own network. (In the next 6 s slice: this one already holds 32 of the 40 that networks
+  // which asked in the last minute share, A-7.)
+  w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);
   const cool=[];for(let i=0;i<6;i++)cool.push(await ask('192.0.2.'+(i+1),victim.address));
-  assert.deepEqual(cool,[200,200,200,200,200,'429 SIGN_IN_BUSY']);
+  assert.deepEqual(cool,[200,200,200,200,200,200]);
   assert.equal((await w.browser(undefined,undefined,'198.51.100.3').signIn(victim)).verify.status,200,'the key holder, from another network');
   assert.equal(await ask('192.0.2.9',newAccount().address),200,'the network\'s own budget is not spent');
   // One address asked for from many networks is not blocked, only logged: from the 20th challenge in a minute on, each
@@ -393,23 +405,24 @@ test('F-5: a challenge flood starves neither its own verify nor anyone else; the
   for(let n=0;n<5;n++){w.clock.advance(1000);for(let i=0;i<(n<4?5:1);i++)surge.push(await ask('100.64.'+n+'.'+(i+1),victim.address));}
   assert.deepEqual([...new Set(surge)],[200],'21 challenges for one address from five networks: none refused');
   assert.equal((await w.browser(undefined,undefined,'100.65.0.1').signIn(victim)).verify.status,200);
-  // Two checks of one contract a minute, from anywhere: the third is refused, and its line says why and that it is a contract.
-  for(const ip of ['192.0.2.50','192.0.3.50']){const b=w.browser(undefined,undefined,ip),x=await body(await b.post('/api/auth/challenge',{address:safe}));
+  // Two checks of one contract a minute from anywhere, then each network's own one: past both, a check is refused, and its
+  // line says why and that it is a contract.
+  for(const ip of ['192.0.2.50','192.0.3.50','192.0.4.51']){const b=w.browser(undefined,undefined,ip),x=await body(await b.post('/api/auth/challenge',{address:safe}));
     await b.post('/api/auth/verify',{nonce:x.nonce,signature:randomSignature()});}
   const held=w.browser(undefined,undefined,'192.0.4.50'),hc=await body(await held.post('/api/auth/challenge',{address:safe}));
   const hr=held.request('/api/auth/verify',{method:'POST',body:{nonce:hc.nonce,signature:await owner.signMessage({message:hc.message})}});Object.defineProperty(hr,'cf',{value:{colo:'NRT'}});
   assert.equal((await held.keep(await w.call(hr))).status,429);
   w.clock.advance(NETWORK_WINDOW_MS);delete w.env.CHAIN_LIMITER;const gone=w.browser(undefined,undefined,'192.0.5.50'),gc=await body(await gone.post('/api/auth/challenge',{address:safe}));
   assert.equal((await gone.post('/api/auth/verify',{nonce:gc.nonce,signature:await owner.signMessage({message:gc.message})})).status,503);
-  // The lines: one per refusal (6 + 15 + 1 + 1 + 1), one per surge challenge (the 20th, 21st and the victim's own 22nd);
-  // only these fields, and no IP, address, token, signature or message.
+  // The lines: one per refusal (6 + 15 + 1 + 1), one per surge challenge (the 20th, 21st and the victim's own 22nd);
+  // only these fields: the IP-derived network key (never the full IP), the surge line's 6-character address prefix (never
+  // the full address), and no token, signature or message.
   const logged=lines.map(l=>JSON.parse(l)),by=(evt,reason)=>logged.filter(l=>l.evt===evt&&l.reason===reason);
   for(const l of logged)assert.deepEqual(Object.keys(l).filter(k=>!['evt','route','status','error','reason','colo','net','walletType','addr'].includes(k)),[],JSON.stringify(l));
-  assert.deepEqual(logged.map(l=>l.evt+' '+l.reason).sort(),[...Array(6).fill('auth_refused auth'),...Array(15).fill('auth_refused network'),'auth_refused wallet',
+  assert.deepEqual(logged.map(l=>l.evt+' '+l.reason).sort(),[...Array(6).fill('auth_refused auth'),...Array(15).fill('auth_refused network'),
     'auth_refused address','auth_refused missing:CHAIN_LIMITER',...Array(3).fill('auth_surge address_surge')].sort());
   assert.deepEqual(by('auth_surge','address_surge').map(l=>l.net),['net:100.64.3.0/24','net:100.64.4.0/24','net:100.65.0.0/24']);
   assert.deepEqual(by('auth_refused','auth')[0],{evt:'auth_refused',route:'/api/auth/challenge',status:429,error:'RATE_LIMITED',reason:'auth',colo:null,net:'net:203.0.113.0/24'});
-  assert.deepEqual(by('auth_refused','wallet')[0],{evt:'auth_refused',route:'/api/auth/challenge',status:429,error:'SIGN_IN_BUSY',reason:'wallet',colo:null,net:'net:192.0.2.0/24'});
   assert.deepEqual(by('auth_surge','address_surge')[0],{evt:'auth_surge',route:'/api/auth/challenge',reason:'address_surge',addr:victim.address.toLowerCase().slice(0,6),colo:null,net:'net:100.64.3.0/24'});
   assert.deepEqual(by('auth_refused','address')[0],{evt:'auth_refused',route:'/api/auth/verify',status:429,error:'CHAIN_BUSY',reason:'address',walletType:'CONTRACT',colo:'NRT',net:'net:192.0.4.0/24'});
   assert.deepEqual(by('auth_refused','missing:CHAIN_LIMITER')[0],{evt:'auth_refused',route:'/api/auth/verify',status:503,error:'LIMITER_UNAVAILABLE',reason:'missing:CHAIN_LIMITER',colo:null,net:'net:192.0.5.0/24'});
@@ -418,10 +431,201 @@ test('F-5: a challenge flood starves neither its own verify nor anyone else; the
   assert.ok(!/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.(?!0\/24)\d{1,3}\b/.test(text),'a full IPv4 address was logged');
 });
 
+// W-2 (Swarm retest e48d0a96): what a refusal line says about the client, stated exactly in README, DESIGN_W1 §15 and the
+// audit status: an IP-derived network key (IPv4 /24, IPv6 /48) and, on surge lines only, a 6-character address prefix.
+test('W-2: an IPv6 client\'s refusal line carries its /48 network key and nothing longer of its IP; the surge prefix is 6 characters',async t=>{
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup();w.env.AUTH_LIMITER=windowLimiter(1,w.clock.now);
+  const ip='2001:db8:1:2:3:4:5:6',b=w.browser(undefined,undefined,ip);
+  assert.equal((await b.post('/api/auth/challenge',{address:newAccount().address})).status,200);
+  assert.equal((await b.post('/api/auth/challenge',{address:newAccount().address})).status,429);
+  assert.deepEqual(lines.map(l=>JSON.parse(l)),[{evt:'auth_refused',route:'/api/auth/challenge',status:429,error:'RATE_LIMITED',reason:'auth',colo:null,net:'net6:2001:db8:1::/48'}]);
+  assert.ok(!lines.join('\n').includes('2001:db8:1:2'),'more than the /48 was logged');
+  // A surge line: from the 20th challenge for one address within a minute (any networks), `addr` is its first 6 characters.
+  w.env.AUTH_LIMITER={limit:async()=>({success:true})};const victim=newAccount().address;lines.length=0;
+  for(let n=0;n<20;n++)assert.equal((await w.browser(undefined,undefined,'100.64.'+n+'.1').post('/api/auth/challenge',{address:victim})).status,200);
+  const surge=lines.map(l=>JSON.parse(l)).filter(l=>l.evt==='auth_surge');
+  assert.deepEqual(surge.map(l=>[l.addr,l.net]),[[victim.toLowerCase().slice(0,6),'net:100.64.19.0/24']]);assert.equal(surge[0].addr.length,6);
+});
+
+/** A POST whose body arrives in two parts: all but its last byte now, the last when the returned function is called
+ *  (which resolves to the response). When this returns, the handler is waiting for the rest of the body. */
+const held=async(b,path,obj)=>{let ctl;const stream=new ReadableStream({start(c){ctl=c;}}),text=JSON.stringify(obj),enc=new TextEncoder();
+  ctl.enqueue(enc.encode(text.slice(0,-1)));const q=b.request(path,{method:'POST',body:obj});
+  const done=b.send(new Request(q.url,{method:'POST',headers:q.headers,body:stream,duplex:'half'})).then(r=>b.keep(r));
+  await new Promise(r=>setImmediate(r));
+  return async()=>{ctl.enqueue(enc.encode('}'));ctl.close();return done;};};
+// A-5 (Swarm audit 519db624): the clock was read when the request began, so bodies held open and finished together
+// dated their D1 claims into earlier minutes, and a verify begun before its challenge's end passed the expiry check.
+test('A-5: a challenge or verify whose body arrives late is counted when it arrives, and the contract check after its code read',async()=>{
+  const said=async r=>r.status+' '+((await body(r)).error??'ok'),A='0x'+'22'.repeat(20),B='0x'+'33'.repeat(20);
+  const reads=(x,m)=>x.chain.state.calls.filter(c=>c.url===ALCHEMY_RPC_URL&&JSON.parse(c.body).method===m).length;
+  // (a) One /24 holds three contract verifies from T and three from T+60 s, and finishes all six at T+70 s: that is one
+  // minute's three contract checks, not two minutes' six.
+  const w=setup();for(const c of [A,B])w.chain.state.contracts.set(c,()=>'0xffffffff');
+  const start=async()=>{const out=[];for(const address of [A,A,B]){const b=w.browser(undefined,undefined,'203.0.113.9'),c=await body(await b.post('/api/auth/challenge',{address}));
+    out.push(await held(b,'/api/auth/verify',{nonce:c.nonce,signature:'0x00'}));}return out;};
+  const pending=await start();w.clock.advance(NETWORK_WINDOW_MS);pending.push(...await start());w.clock.advance(10_000);
+  const out=[];for(const finish of pending)out.push(await said(await finish()));
+  assert.deepEqual([out,reads(w,'eth_call')],[[...Array(3).fill('401 SIGNATURE_INVALID'),...Array(3).fill('429 CHAIN_BUSY')],3]);
+  assert.deepEqual(w.db.raw.prepare('SELECT checked_at,called_at FROM login_challenges ORDER BY rowid').all().map(r=>[r.checked_at,r.called_at]),
+    [...Array(3).fill([START+70_000,START+70_000]),...Array(3).fill([START+70_000,null])],'every claim and check is dated when its body arrived');
+  // (b) A verify begun a second before its challenge ends and finished 30 s after is expired: no chain read.
+  const x=setup();x.chain.state.contracts.set(A,()=>'0xffffffff');
+  const xb=x.browser(undefined,undefined,'198.51.100.9'),xc=await body(await xb.post('/api/auth/challenge',{address:A}));
+  x.clock.advance(299_000);const late=await held(xb,'/api/auth/verify',{nonce:xc.nonce,signature:'0x00'});x.clock.advance(31_000);
+  assert.deepEqual([await said(await late()),reads(x,'eth_getCode'),reads(x,'eth_call')],['410 CHALLENGE_EXPIRED',0,0]);
+  // (c) Thirty challenges from one /24 held from T and finished at T+70 s are dated T+70 s (row and message alike), so
+  // they are that minute's thirty and the next one from the /24 waits.
+  const y=setup(),waiting=[];
+  for(let i=0;i<NETWORK_CHALLENGE_BUDGET;i++)waiting.push(await held(y.browser(undefined,undefined,'203.0.113.'+(i+1)),'/api/auth/challenge',{address:newAccount().address}));
+  y.clock.advance(70_000);const dated=[];
+  for(const finish of waiting){const r=await finish(),c=await body(r);assert.equal(r.status,200);
+    dated.push(y.db.raw.prepare('SELECT issued_at FROM login_challenges WHERE nonce=?').get(c.nonce).issued_at,parseSiweMessage(c.message).issuedAt.getTime());}
+  assert.deepEqual([...new Set(dated)],[START+70_000]);
+  assert.equal(await said(await y.browser(undefined,undefined,'203.0.113.99').post('/api/auth/challenge',{address:newAccount().address})),'429 SIGN_IN_BUSY');
+  // (d) eth_getCode takes 10 s: the contract check is dated after it, not when the verify began.
+  const z=setup(),owner=newAccount(),safe='0x'+'5a'.repeat(20);z.chain.state.contracts.set(safe,()=>'0x1626ba7e');
+  z.chain.state.intercept=m=>{if(m==='eth_getCode')z.clock.advance(10_000);};
+  const zb=z.browser(undefined,undefined,'192.0.2.9'),zc=await body(await zb.post('/api/auth/challenge',{address:safe}));
+  assert.equal(await said(await zb.post('/api/auth/verify',{nonce:zc.nonce,signature:await owner.signMessage({message:zc.message})})),'200 ok');
+  const row=z.db.raw.prepare('SELECT checked_at,called_at FROM login_challenges WHERE nonce=?').get(zc.nonce);
+  assert.deepEqual([row.checked_at,row.called_at],[START,START+10_000]);
+});
+
+// A-1 (Swarm audit 519db624, Medium; the F-3 residual): a contract address's 2 checks a minute were shared by every
+// network, so two garbage verifies a minute from anywhere held a chosen smart wallet at 429 CHAIN_BUSY.
+test('A-1: garbage from a few other networks no longer holds a chosen smart wallet; its own network keeps one check of it a minute until the lane key (20 a minute per location) is spent, and the shared keys still see at most two checks per address',async t=>{
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup(),chain=windowLimiter(20,w.clock.now);w.env.CHAIN_LIMITER=chain;w.env.API_LIMITER=windowLimiter(180,w.clock.now);w.env.AUTH_LIMITER=windowLimiter(20,w.clock.now);
+  // The contracts answer the magic word only for signatures their owner really made, 0xffffffff for anything else.
+  const owner=newAccount(),genuine=new Set(),C='0x'+'5a'.repeat(20),C2='0x'+'5c'.repeat(20),S2='0x'+'5b'.repeat(20);
+  for(const a of [C,C2,S2])w.chain.state.contracts.set(a,(hash,signature)=>genuine.has(signature.toLowerCase())?'0x1626ba7e':'0xffffffff');
+  const signed=async m=>{const s=await owner.signMessage({message:m});genuine.add(s.toLowerCase());return s;};
+  const attempt=async(ip,address,sign=()=>'0x12')=>{const b=w.browser(undefined,undefined,ip),c=await body(await b.post('/api/auth/challenge',{address}));
+    lines.length=0;const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await sign(c.message)});
+    return r.status+' '+((await body(r)).error??'ok')+(r.status===429?' '+JSON.parse(lines.at(-1)).reason:'');};
+  const count=k=>chain.keys.filter(x=>x===k).length,next=()=>w.clock.advance(NETWORK_WINDOW_MS+1),no='401 SIGNATURE_INVALID';
+  // (a) The judge's repro. C and S2 signed in before (both "known"). Every minute two garbage verifies from 203.0.113.9
+  // spend C's two shared checks; the owner, on its own network, still signs in with that network's own check of C.
+  assert.deepEqual([await attempt('198.51.100.20',C,signed),await attempt('198.51.100.30',S2,signed)],['200 ok','200 ok']);next();
+  for(let i=0;i<3;i++){const lane=count('chain:erc1271:lane');
+    assert.deepEqual([await attempt('203.0.113.9',C),await attempt('203.0.113.9',C),await attempt('198.51.100.20',C,signed),count('chain:erc1271:lane')-lane],[no,no,'200 ok',1],'minute '+i);next();}
+  // The same for a contract signing in here for the first time.
+  assert.deepEqual([await attempt('203.0.113.10',C2),await attempt('203.0.113.10',C2),await attempt('198.51.100.21',C2,signed)],[no,no,'200 ok']);next();
+  // (b) Round 1's guard stands: ten /24s, two garbage verifies each at C, reach the shared key twice and the lane once
+  // per network (nine), the rest wait (reason 'address'), and another returning smart wallet signs in.
+  const known=count('chain:erc1271:known'),lanes=count('chain:erc1271:lane'),ten=[];
+  for(let k=0;k<10;k++)for(let j=0;j<2;j++)ten.push(await attempt('100.64.'+k+'.9',C));
+  assert.deepEqual([count('chain:erc1271:known')-known,count('chain:erc1271:lane')-lanes,ten.filter(x=>x===no).length,ten.filter(x=>x==='429 CHAIN_BUSY address').length],[2,9,11,9]);
+  assert.equal(await attempt('192.0.2.30',S2,signed),'200 ok');next();
+  // (c) The lanes share one per-location key (20 a minute): with C's shared checks spent, 20 /24s take it and the 21st
+  // network waits (reason 'budget_lane'), the owner's too. The documented residual.
+  assert.deepEqual([await attempt('203.0.113.9',C),await attempt('203.0.113.9',C)],[no,no]);
+  const many=[];for(let k=0;k<21;k++)many.push(await attempt('100.65.'+k+'.9',C));
+  assert.deepEqual([many.slice(0,20).every(x=>x===no),many[20],await attempt('198.51.100.20',C,signed)],[true,'429 CHAIN_BUSY budget_lane','429 CHAIN_BUSY budget_lane']);next();
+  // (d) Garbage from the owner's own /24 spends that network's check of C: the owner waits (reason 'address').
+  assert.deepEqual([await attempt('203.0.113.9',C),await attempt('203.0.113.9',C),await attempt('198.51.100.21',C),await attempt('198.51.100.20',C,signed)],
+    [no,no,no,'429 CHAIN_BUSY address']);next();
+  // (f) The lane is per (network, address): the owner's /24 checking another smart wallet this minute leaves its check of C.
+  assert.deepEqual([await attempt('198.51.100.30',S2,signed),await attempt('203.0.113.9',C),await attempt('203.0.113.9',C),await attempt('198.51.100.20',C,signed)],
+    ['200 ok',no,no,'200 ok']);
+  // (e) The lane counts the network's checks of the minute on the partial index (at most ERC1271_NETWORK_SHARE entries)
+  // and looks for the address only on those rows (+address), never through the address index.
+  const plan=w.db.raw.prepare('EXPLAIN QUERY PLAN '+CLAIM_LANE).all(1,'n','net',0,3,'a').map(r=>r.detail).join(' | ');
+  assert.match(plan,/COVERING INDEX login_challenges_called_net \(net=\? AND called_at>\?\)[\s\S]*SEARCH login_challenges USING INDEX login_challenges_called_net \(net=\? AND called_at>\?\)/,plan);
+});
+
+// A-1's residual at its stated cost (the site's A-1 line: "at least 9 /24s aimed at 3 or more addresses every minute at
+// one location"), run as a schedule: each /24 aims one garbage verify at each target, with the shared shares and the
+// location's lane key (20 a minute) as production has them.
+test('A-1: the residual at its stated cost: 9 /24s aiming garbage at 3 smart wallets every minute keep one of them out at a location; 8 /24s, or 9 at 2 wallets, do not',async t=>{
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup();w.env.CHAIN_LIMITER=windowLimiter(20,w.clock.now);w.env.API_LIMITER=windowLimiter(180,w.clock.now);w.env.AUTH_LIMITER=windowLimiter(20,w.clock.now);
+  const owner=newAccount(),genuine=new Set(),[C,C2,S2]=['0x'+'5a'.repeat(20),'0x'+'5c'.repeat(20),'0x'+'5b'.repeat(20)];
+  for(const a of [C,C2,S2])w.chain.state.contracts.set(a,(hash,signature)=>genuine.has(signature.toLowerCase())?'0x1626ba7e':'0xffffffff');
+  const signed=async m=>{const s=await owner.signMessage({message:m});genuine.add(s.toLowerCase());return s;};
+  const attempt=async(ip,address,sign=()=>'0x12')=>{const b=w.browser(undefined,undefined,ip),c=await body(await b.post('/api/auth/challenge',{address}));
+    lines.length=0;const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await sign(c.message)});
+    return r.status+' '+((await body(r)).error??'ok')+(r.status===429?' '+JSON.parse(lines.at(-1)).reason:'');};
+  // The three wallets signed in here before (each is "known"); then, each minute, one schedule and the owner of C.
+  for(const [ip,a] of [['198.51.100.20',C],['198.51.100.30',C2],['198.51.100.40',S2]])assert.equal(await attempt(ip,a,signed),'200 ok');
+  const siege=async(nets,targets,prefix)=>{w.clock.advance(NETWORK_WINDOW_MS+1);const got=[];
+    for(let k=0;k<nets;k++)for(const a of targets)got.push(await attempt(prefix+k+'.9',a));
+    return [got.filter(x=>x==='401 SIGNATURE_INVALID').length,got.filter(x=>x==='429 CHAIN_BUSY budget_lane').length,got.length,await attempt('198.51.100.20',C,signed)];};
+  // 9 /24s at 3 wallets: the first two spend the wallets' 6 shared checks, the next seven take the location's 20 lane
+  // checks (the 21st waits), and C's owner, on its own network, waits too.
+  assert.deepEqual(await siege(9,[C,C2,S2],'100.66.'),[26,1,27,'429 CHAIN_BUSY budget_lane'],'9 /24s at 3 wallets hold the owner');
+  assert.deepEqual(await siege(8,[C,C2,S2],'100.67.'),[24,0,24,'200 ok'],'8 /24s leave the owner a lane check');
+  assert.deepEqual(await siege(9,[C,C2],'100.68.'),[18,0,18,'200 ok'],'and so do 9 /24s at 2 wallets');
+});
+
+// A-6 (Swarm audit 519db624): the per-(address, network) cooldown counted every challenge naming the address from the
+// /24, whoever asked, so a neighbour's five unsigned challenges a minute kept a player from starting a sign-in.
+test('A-6: a neighbour\'s challenges for a player\'s address never refuse that player; the /24 share stays the only network limit',async t=>{
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup(),V=newAccount();w.env.AUTH_LIMITER=windowLimiter(20,w.clock.now);
+  const ask=async(ip,address)=>{lines.length=0;const r=await w.browser(undefined,undefined,ip).post('/api/auth/challenge',{address});
+    return r.status===200?200:r.status+' '+(await body(r)).error+' '+JSON.parse(lines.at(-1)).reason;};
+  // Every minute a neighbour on 203.0.113.x asks for V's address five times; V, on the same /24, still signs in.
+  for(let i=0;i<3;i++){
+    const junk=[];for(let j=0;j<5;j++)junk.push(await ask('203.0.113.5',V.address));
+    const player=w.browser(undefined,undefined,'203.0.113.77'),r=await player.post('/api/auth/challenge',{address:V.address}),c=await body(r);
+    const signedIn=r.status===200&&(await player.post('/api/auth/verify',{nonce:c.nonce,signature:await V.signMessage({message:c.message})})).status;
+    assert.deepEqual([junk,r.status===200?200:r.status+' '+c.error+' '+JSON.parse(lines.at(-1)).reason,signedIn],[Array(5).fill(200),200,200],'minute '+i);
+    w.clock.advance(NETWORK_WINDOW_MS+1);}
+  // The residual: two IPs of one /24 spend its 30 a minute, and everyone else there waits for the minute (D1 counts by
+  // network key only; no full IP is stored).
+  const spent=[];for(const ip of ['192.0.2.5','192.0.2.6'])for(let j=0;j<15;j++)spent.push(await ask(ip,newAccount().address));
+  assert.deepEqual([spent.every(x=>x===200),await ask('192.0.2.77',V.address)],[true,'429 SIGN_IN_BUSY network']);
+});
+
+// A-7 (Swarm audit 519db624): the valve (60 per 6 s) admitted first come first served, so 20 /24s at their full share
+// (two IPs each) kept every new sign-in out, even from a network that had not asked at all.
+test('A-7: while 20 networks keep the valve full, a network that has not asked in the last minute still gets its challenge',async t=>{
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup();w.env.AUTH_LIMITER=windowLimiter(20,w.clock.now);
+  const ask=async(ip,at)=>{w.clock.set(at);const address='0x'+Buffer.from(crypto.getRandomValues(new Uint8Array(20))).toString('hex');
+    const r=await w.browser(undefined,undefined,ip).post('/api/auth/challenge',{address});return r.status===200?200:r.status+' '+(await body(r)).error+' '+r.headers.get('retry-after');};
+  // The judge's schedule: 10 challenges a second for 90 s from 20 /24s (two IPs each, 15 a minute per IP, 30 per /24).
+  // Every 5 s once the valve is full, a player from a /24 that has not asked; ten seconds after the first, a second
+  // player from that first player's /24, which has asked within the minute now.
+  const probes=[];let again,line;
+  for(let i=0;i<900;i++){
+    await ask('203.0.'+(i%20)+'.'+(1+Math.floor(i/20)%2),START+i*100);
+    if(i>=60&&i%50===0)probes.push(await ask('198.51.'+(100+probes.length)+'.9',START+i*100+1));
+    if(i===200){again=await ask('198.51.100.10',START+i*100+1);line=JSON.parse(lines.at(-1));}
+  }
+  assert.deepEqual([probes.length,[...new Set(probes)]],[16,[200]]);
+  assert.equal(again,'429 SIGN_IN_BUSY 60','a network that already asked waits while the valve is full');
+  // Its line names the valve, not its network's share (one challenge from that /24 so far): the attack's sign in the logs.
+  assert.deepEqual(line,{evt:'auth_refused',route:'/api/auth/challenge',status:429,error:'SIGN_IN_BUSY',reason:'global',colo:null,net:'net:198.51.100.0/24'});
+  // The valve still holds: no 6 s window holds more than 60 challenges.
+  const most=w.db.raw.prepare('SELECT max((SELECT count(*) FROM login_challenges b WHERE b.issued_at>a.issued_at-6000 AND b.issued_at<=a.issued_at)) n FROM login_challenges a').get().n;
+  assert.ok(most<=60,'at most 60 in a 6 s window: '+most);
+  // The residual's stated cost (the site's A-7 line): 14 /24s at full share (two IPs each, 3 challenges a slice, at most 30
+  // a minute) plus 20 networks asking once per 6 s slice (about 200 a minute), timed so the /24s fill the valve's regular 40
+  // and the new networks its reserved 20, keep out a network that has not asked, for as long as they go on (11 slices,
+  // over a minute). One /24 fewer, or one new network fewer a slice, and it gets its challenge.
+  const siege=async(busy,fresh,slices)=>{const v=setup();v.env.AUTH_LIMITER=windowLimiter(20,v.clock.now);let n=0;
+    const at=async(ip,ms)=>{v.clock.set(ms);const address='0x'+Buffer.from(crypto.getRandomValues(new Uint8Array(20))).toString('hex');
+      const r=await v.browser(undefined,undefined,ip).post('/api/auth/challenge',{address});return r.status===200?200:r.status+' '+(await body(r)).error;};
+    const probes=[];
+    for(let s=0;s<slices;s++){const t0=START+s*6_200;
+      for(let j=0;j<3*busy;j++)await at('203.0.'+(j+s)%busy+'.'+(1+s%2),t0+j);
+      for(let j=0;j<fresh;j++,n++)await at('10.0.'+n+'.1',t0+50+j);
+      if(s>0)probes.push(await at('198.51.'+(100+s)+'.9',t0+3_000));
+    }
+    return [...new Set(probes)];};
+  assert.deepEqual(await siege(14,20,11),['429 SIGN_IN_BUSY'],'14 /24s and 20 new networks a slice keep it out');
+  assert.deepEqual(await siege(13,20,4),[200],'13 /24s do not');
+  assert.deepEqual(await siege(14,19,4),[200],'nor do 19 new networks a slice');
+});
+
 // M2: a refused ERC-1271 budget left the challenge open, so one challenge could ask the per-location budget again and
 // again, and one or two IPs could hold a location's smart-wallet sign-ins at zero with garbage signatures. F-3 split the
 // one per-network share into the steps below, each asked before the read it pays for.
-test('ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt',async()=>{
+test('ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE and then one check per network; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt',async()=>{
   assert.deepEqual([ERC1271_CODE_SHARE,ERC1271_NETWORK_SHARE,ERC1271_ADDRESS_SHARE,CODE_CAP],[10,3,2,180]);
   const keys=[];const w=setup({env:{CHAIN_LIMITER:{limit:async({key})=>{keys.push(key);return {success:true};}}}});
   const owner=newAccount(),contracts=Array.from({length:6},(_,i)=>'0x'+(0xa0+i).toString(16).repeat(20));
@@ -439,10 +643,11 @@ test('ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETW
   const retry=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await signed(c.message)});
   assert.deepEqual([retry.status,(await body(retry)).error,keys.length,reads('eth_call')],[409,'CHALLENGE_USED',3,3],'burnt: no second try against the budget');
   assert.equal((await check('198.51.100.7',contracts[4],signed)).r,'200 ok','another network is untouched');
-  // The address's contract checks, counted over every network: contracts[5] twice from two networks, then a third network waits.
+  // The address's contract checks, counted over every network: contracts[5] twice from two networks, then a third network
+  // gets the one check of its own.
   for(const ip of ['192.0.2.1','192.0.3.1'])assert.equal((await check(ip,contracts[5])).r,'401 SIGNATURE_INVALID');
   w.chain.state.contracts.set(contracts[5],()=>'0x1626ba7e');
-  assert.deepEqual([(await check('100.64.0.1',contracts[5],signed)).r,reads('eth_call')],['429 CHAIN_BUSY',6],'the owner of a contract under garbage waits for its minute');
+  assert.deepEqual([(await check('100.64.0.1',contracts[5],signed)).r,reads('eth_call')],['200 ok',7],'the owner of a contract under garbage from elsewhere keeps its own network\'s check');
   assert.equal((await check('100.64.0.2',contracts[4],signed)).r,'200 ok','another contract from the same network does not');
   // The network's claims: ten garbage verifies for EOAs from one /24 read ten codes; the eleventh reads nothing.
   const eoa=[];for(let i=0;i<11;i++)eoa.push((await check('198.18.0.'+(i+1),newAccount().address)).r);
@@ -469,7 +674,7 @@ test('P3: garbage signatures for EOAs from 7 /24s never reach chain:erc1271, so 
   assert.deepEqual([limiter.keys.length,reads('eth_getCode'),reads('eth_call')],[0,21,0],'one code read per challenge, none of the location budget');
   assert.equal((await attempt('198.51.100.20',safe,m=>owner.signMessage({message:m}))).r,'200 ok','the smart wallet signs in');
   assert.deepEqual([limiter.keys,reads('eth_getCode')],[['chain:erc1271'],22]);
-  // Hammering one EOA: its first answer is kept, so later garbage costs no keyed read and no claim of the network's share (four more: the fifth challenge of one address from one network a minute is its cooldown's last).
+  // Hammering one EOA: its first answer is kept, so later garbage costs no keyed read and no claim of the network's share (four more).
   const eoa=newAccount().address,first=await attempt('192.0.2.9',eoa),later=[];for(let i=0;i<4;i++)later.push(await attempt('192.0.2.9',eoa));
   const claimed=nonce=>w.db.raw.prepare('SELECT checked_at FROM login_challenges WHERE nonce=?').get(nonce).checked_at;
   assert.deepEqual([first.r,claimed(first.nonce),reads('eth_getCode')],['401 SIGNATURE_INVALID',START,23]);
@@ -654,6 +859,39 @@ test('ERC-1271 smart wallets: magic value signs in, anything else is 401, no key
   assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions').get().n,1,'only the first smart-wallet login made a session');
 });
 
+// W-3 (Swarm retest e48d0a96): a JSON-RPC error from eth_call was taken as a bad signature (401, challenge burnt), but
+// only a revert or an EVM halt the contract's code causes (out of gas, invalid opcode, ...) is the contract's answer.
+// Every other way the node can fail is 503, burns the challenge like every 503 of verify (invalidated_at is set in that
+// same request, not only by the later retry), and makes no session; a revert, a halt or any answer but the magic word stays 401.
+test('W-3: a contract wallet\'s eth_call failing at the node is 503 VERIFY_UNAVAILABLE with no session; a revert or a non-magic answer is 401',async t=>{
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup(),owner=newAccount(),wallet='0x'+'ab'.repeat(20);w.chain.state.contracts.set(wallet,()=>'0x1626ba7e');
+  const json=v=>Response.json({jsonrpc:'2.0',id:1,...v}),err=(code,message)=>()=>json({error:{code,message}});
+  const cases={nodeError:err(-32000,'header not found'),limit:err(-32005,'limit exceeded'),internal:err(-32603,'internal error'),otherCode:err(-32603,'execution reverted'),noCode:()=>json({error:{message:'boom'}}),
+    string:()=>json({error:'boom'}),network:()=>{throw new TypeError('network down');},http:()=>new Response('{}',{status:500}),nullResult:()=>json({result:null}),
+    notHex:()=>json({result:'0xzz'}),revert3:err(3,'execution reverted'),revertNoData:err(-32000,'execution reverted'),
+    outOfGas:err(-32000,'out of gas'),badOpcode:err(-32000,'invalid opcode: INVALID'),badJump:err(-32000,'invalid jump destination'),
+    stackUnder:err(-32000,'stack underflow (0 <=> 1)'),stackLimit:err(-32000,'stack limit reached 1024 (1023)'),writeProt:err(-32000,'write protection'),
+    returnOOB:err(-32000,'return data out of bounds'),haltOtherCode:err(-32603,'out of gas'),haltMidMessage:err(-32000,'node says out of gas'),
+    nonMagic:()=>json({result:'0xffffffff'+'0'.repeat(56)}),empty:()=>json({result:'0x'}),magic:null};
+  const seen={};
+  for(const [name,answer] of Object.entries(cases)){
+    w.clock.advance(MIN);const b=spread(w),ch=await body(await b.post('/api/auth/challenge',{address:wallet})),signature=await owner.signMessage({message:ch.message});
+    w.chain.state.intercept=answer&&(method=>method==='eth_call'?answer():undefined);lines.length=0;
+    const r=await b.post('/api/auth/verify',{nonce:ch.nonce,signature});w.chain.state.intercept=null;
+    seen[name]=r.status+' '+((await body(r)).error??'ok');
+    if(r.status===200)continue;
+    assert.notEqual(w.db.raw.prepare('SELECT invalidated_at FROM login_challenges WHERE nonce=?').get(ch.nonce).invalidated_at,null,name+': burnt in the same request');
+    assert.equal(b.jar.has('__Host-imd_session'),false,name);
+    const again=await b.post('/api/auth/verify',{nonce:ch.nonce,signature});assert.equal(again.status,409,name+': the challenge is burnt');
+    if(r.status===503)assert.equal(JSON.parse(lines[0]).reason,'rpc',name);
+  }
+  const down='503 VERIFY_UNAVAILABLE',no='401 SIGNATURE_INVALID';
+  assert.deepEqual(seen,{nodeError:down,limit:down,internal:down,otherCode:down,noCode:down,string:down,network:down,http:down,nullResult:down,notHex:down,
+    revert3:no,revertNoData:no,outOfGas:no,badOpcode:no,badJump:no,stackUnder:no,stackLimit:no,writeProt:no,returnOOB:no,haltOtherCode:down,haltMidMessage:down,nonMagic:no,empty:no,magic:'200 ok'});
+  assert.equal(sessionCount(w.db),1,'only the magic answer made a session');
+});
+
 // S1: a 401 used to leave the challenge open for its 5 minutes, and every retry of a bad signature was another keyed
 // eth_getCode (plus eth_call for a contract) on the Alchemy key, bounded only per IP per location.
 test('any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read',async()=>{
@@ -680,7 +918,7 @@ test('any failed signature check burns the challenge: its own flow cannot retry 
   // The node failing (503) spent a read too: burnt.
   ({b,c}=await start(wallet));w.chain.state.fail='http';
   r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:bad});assert.deepEqual([r.status,(await body(r)).error],[503,'VERIFY_UNAVAILABLE']);
-  w.chain.state.fail=null;assert.deepEqual(await retry(b,c,await owner.signMessage({message:c.message}),1),['409 CHALLENGE_USED']);
+  assert.equal(open(c.nonce),START,'burnt in the same request');w.chain.state.fail=null;assert.deepEqual(await retry(b,c,await owner.signMessage({message:c.message}),1),['409 CHALLENGE_USED']);
   // Nobody else can burn it: without the flow cookie, or from another origin, the answer is 403 and the challenge stays open.
   ({b,c}=await start(a.address));const calls=rpc();
   r=await w.browser().post('/api/auth/verify',{nonce:c.nonce,signature:bad});assert.deepEqual([r.status,(await body(r)).error],[403,'FLOW_MISMATCH']);

@@ -11,7 +11,8 @@ import {houseSize,type HouseSize} from '../src/world/houseSize.ts';
 // seat ids come from IMD's swarm.owners and Alchemy's NFT index; only ownerOf read on mainnet through Multicall3 (one
 // eth_call, one block) proves ownership. Every chain read goes through an injected fetch (tests and local runs use
 // fixtures). The Alchemy key only travels in the Authorization header; errors are generic and never cached, so a
-// failure is 503 OWNERSHIP_UNAVAILABLE, never "owns nothing".
+// failure is 503 OWNERSHIP_UNAVAILABLE, never "owns nothing" (a failed index read with an answer kept from an earlier one
+// is a limited answer instead, as when the budget refuses it: A-2).
 export const ALCHEMY_RPC_URL='https://eth-mainnet.g.alchemy.com/v2';
 export const ALCHEMY_NFTS_URL='https://eth-mainnet.g.alchemy.com/nft/v3/getNFTsForOwner';
 export const MULTICALL3='0xcA11bde05977b3631167028862bE2a173976CA11';
@@ -32,8 +33,9 @@ export type ChainAccess={key?:string;fetch:typeof fetch};
 type Json=Record<string,unknown>;
 const plain=(v:unknown):v is Json=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 
-/** One JSON-RPC call. A node's JSON-RPC error (a revert) is returned as `error`; no key, a network or HTTP failure,
- *  or a malformed reply throws OwnershipUnavailable. */
+/** One JSON-RPC call. A JSON-RPC error object is returned as `error` (a revert, or the node failing: the caller tells
+ *  them apart, e.g. auth.ts `reverted`; here in ownership any error is OwnershipUnavailable); no key, a network or HTTP
+ *  failure, or a malformed reply throws OwnershipUnavailable. */
 export async function rpc(chain:ChainAccess,method:string,params:unknown[]):Promise<{result?:unknown;error?:unknown}>{
   if(!chain.key)throw new OwnershipUnavailable();
   let body:unknown;
@@ -110,9 +112,12 @@ export type SeatStatus={tokenId:string;agentId:string|null;online:boolean;lastOn
 export type HomeView={address:string;seats:SeatStatus[];eligible:number;size:HouseSize|null;block:number|null;checkedAt:number;
   /** The /workers read behind `online`: 'fresh' is the live roster; otherwise only recorded presence decides. */
   presence:'fresh'|'stale'|'unavailable';
-  /** 'limited': the NFT index was due but the chain budget refused it, so the candidates are IMD's roster plus any
-   *  stored index answer, and ownerOf proves them as always (a seat bought after the roster's last listing may be missing). */
-  recheck?:'limited'};
+  /** Not a complete answer. 'limited': the NFT index was due but the chain budget refused it (or the read failed, with
+   *  an answer kept), so the candidates are IMD's roster plus the last stored index answer (this isolate's or D1's,
+   *  whichever is newer), and ownerOf proves them as always (a seat bought after both last listings may be missing).
+   *  'partial': more candidates than CANDIDATE_CAP, so some were not checked (A-4: seats whose agent can count come
+   *  first), or the index stopped at NFT_PAGE_CAP pages with more left. 'limited' is named when both apply. */
+  recheck?:'limited'|'partial'};
 /** The public view of a wallet: its seats as IMD's public roster (swarm.owners) lists them, with no keyed chain read at
  *  all (SEC-3: anyone can ask about any address); owner rights and on-chain proof come only from home(). */
 export type AssetsView={address:string;source:'imd';seats:(SeatStatus&{image:string|null})[];fetchedAt:number|null;
@@ -120,14 +125,56 @@ export type AssetsView={address:string;source:'imd';seats:(SeatStatus&{image:str
 export type OwnershipRequest={chain:ChainAccess;db?:D1Database;now:number;waitUntil?:WaitUntil;
   /** The chain budget (per Cloudflare location) every NFT index read spends first: home()'s candidates and the public
    *  character list. Absent or refusing means no such Alchemy call. */
-  budget?:()=>Promise<boolean>};
-/** indexedAt: when the index answer behind these candidates was read (0: none); limited: the index was due but refused. */
-type Proof={ids:string[];block:number|null;checkedAt:number;indexedAt:number;limited:boolean};
+  budget?:()=>Promise<boolean>;
+  /** The clock, read again when an NFT index read begins (absent: `now`). Its answer is dated then, not when the request
+   *  began: a request held before its index read (a slow roster read) must not date a later answer before one read
+   *  meanwhile, or the newer-answer rule keeps the older one (Codex crosscheck review A2-R1). */
+  clock?:()=>number};
+/** indexedAt: when the index answer behind these candidates was read (0: none); limited: the index was due but refused;
+ *  partial: CANDIDATE_CAP left candidates unchecked, or the index left pages unread. */
+type Proof={ids:string[];block:number|null;checkedAt:number;indexedAt:number;limited:boolean;partial:boolean};
+/** Which candidates the cap keeps (A-4): seats whose agent the live roster shows online, then other registered ones (both
+ *  can count), then the rest, each by id; the ones kept are checked and listed by id. */
+const rank=(agent:Agent|undefined)=>agent?.agentId==null?2:agent.presence==='online'?0:1;
 /** The budget refused an index read (never cached; the caller falls back to the roster). */
 class Limited extends Error{}
+/** A-2 across instances: the last NFT-index answer per address, kept in D1 (migrations/0004) so every isolate and
+ *  location has it, not only the one that read it. Every successful index read keeps its answer with one statement, run
+ *  after the reply (waitUntil): an answer naming seats is upserted (at most CANDIDATE_CAP ids, ranked like the
+ *  candidates), never over a newer one (read_at: when the index read began); an answer naming none deletes the row, so a
+ *  throwaway address writes nothing. It is read only when an index read is refused or fails, and it only names
+ *  candidates: ownerOf proves each one.
+ *  D1 (measured on workerd's D1): the upsert reads ≤ 1 row and writes 1 (2 for an address not kept yet: the row and its
+ *  key); the delete writes none (1 when it removes a row); the read reads ≤ 1. Upserts are bounded by chain:index
+ *  (20/min per location), reads by the proof cache (30 s per address and isolate) and the 'home' limit; the table holds
+ *  only addresses the index names a seat for, and the cron deletes rows older than INDEX_KEEP_MS (server/presence.ts).
+ *  Without a database (the Vite dev server) nothing is read or written; before the migration both fail and are ignored:
+ *  this isolate's answer alone, as before. */
+export const KEEP_INDEX=`INSERT INTO index_candidates(address,ids,read_at) VALUES(?1,?2,?3)
+ ON CONFLICT(address) DO UPDATE SET ids=excluded.ids,read_at=excluded.read_at WHERE excluded.read_at>=index_candidates.read_at`;
+export const DROP_INDEX='DELETE FROM index_candidates WHERE address=?1 AND read_at<=?2';
+export const READ_INDEX='SELECT ids,read_at FROM index_candidates WHERE address=?1';
+/** at: when the index read began (req.clock after the budget), in D1 read_at; complete: false when the index stopped at
+ *  NFT_PAGE_CAP pages with more left (this isolate's reads only; a kept answer is read only when the index is refused or
+ *  fails, and that view is 'limited' anyway). */
+type Indexed={ids:string[];at:number;complete?:boolean};
+function keepIndex(address:string,ids:string[],at:number,req:OwnershipRequest){
+  if(!req.db)return;
+  try{const done=(ids.length?req.db.prepare(KEEP_INDEX).bind(address,JSON.stringify(ids),at):req.db.prepare(DROP_INDEX).bind(address,at)).run().then(()=>{},()=>{});
+    req.waitUntil?.(done);}catch{/* never fails the read */}
+}
+async function keptIndex(address:string,db:D1Database|undefined):Promise<Indexed|undefined>{
+  if(!db)return undefined;
+  try{
+    const row=await db.prepare(READ_INDEX).bind(address).first<{ids:string;read_at:number}>(),ids:unknown=row&&JSON.parse(row.ids);
+    if(!row||!Array.isArray(ids))return undefined;
+    return {ids:ids.filter((id):id is string=>typeof id==='string'&&/^\d{1,80}$/.test(id)).slice(0,CANDIDATE_CAP),at:Number(row.read_at)};
+  }catch{return undefined;}
+}
 type Entry<T>={value?:T;at:number;inflight?:Promise<T>};
-/** Per-isolate LRU with in-flight sharing. Failures are never stored. The age limit is the caller's, per read, and `keep`
- *  can refuse a stored value that is young enough but not good enough for this read. */
+/** Per-isolate LRU with in-flight sharing. Failures are never stored: a failed reload puts back the last good value with
+ *  its own age (A-2, stale on error), so `peek` still has it and the next read past its age loads again. The age limit
+ *  is the caller's, per read, and `keep` can refuse a stored value that is young enough but not good enough for this read. */
 class Cache<T>{
   private map=new Map<string,Entry<T>>();
   /** The stored value, if any, without loading or reordering. */
@@ -135,14 +182,14 @@ class Cache<T>{
   async get(key:string,now:number,ttl:number,load:()=>Promise<T>,keep:(v:T)=>boolean=()=>true):Promise<T>{
     const hit=this.map.get(key);
     if(hit){this.map.delete(key);this.map.set(key,hit);if(hit.inflight)return hit.inflight;if(hit.value!==undefined&&hit.at+ttl>now&&keep(hit.value))return hit.value;}
-    const entry:Entry<T>={at:now};
-    entry.inflight=load().then(v=>{entry.value=v;return v;},e=>{if(this.map.get(key)===entry)this.map.delete(key);throw e;}).finally(()=>{entry.inflight=undefined;});
+    const entry:Entry<T>={at:now},last=hit?.value!==undefined?hit:undefined;
+    entry.inflight=load().then(v=>{entry.value=v;return v;},e=>{if(this.map.get(key)===entry){if(last)this.map.set(key,last);else this.map.delete(key);}throw e;}).finally(()=>{entry.inflight=undefined;});
     this.map.set(key,entry);while(this.map.size>CACHE_LIMIT)this.map.delete(this.map.keys().next().value!);
     return entry.inflight;
   }
 }
 export class Ownership{
-  private proofs=new Cache<Proof>();private candidates=new Cache<{ids:string[];at:number}>();private lists=new Cache<IndexedNft[]>();private failed=new Map<string,number>();
+  private proofs=new Cache<Proof>();private candidates=new Cache<Indexed>();private lists=new Cache<IndexedNft[]>();private failed=new Map<string,number>();
   private gateway:Pick<ReadGateway,'source'>;private collections:readonly CharacterCollection[];
   constructor(gateway:Pick<ReadGateway,'source'>,collections:readonly CharacterCollection[]=CHARACTER_COLLECTIONS){this.gateway=gateway;this.collections=collections;}
   private async world(waitUntil?:WaitUntil){
@@ -156,25 +203,37 @@ export class Ownership{
    *  Multicall3 ownerOf read proves them. The index is asked at most every CANDIDATES_TTL_MS per address (INT-1: an owner
    *  tab re-checking every minute costs one eth_call, not an NFT API call as well); `fresh` (the owner's "Check again")
    *  lowers that to 30 s, and a stored proof built on an older index answer is rebuilt for it. Every index read spends
-   *  req.budget first (H1: any throwaway key can sign in); refused, the roster and any stored answer are the candidates,
-   *  so an address neither names (every throwaway one) causes no keyed read at all. */
-  private proof(address:string,owners:unknown[],req:OwnershipRequest,fresh:boolean):Promise<Proof>{
+   *  req.budget first (H1: any throwaway key can sign in) and keeps its answer in D1 too (KEEP_INDEX); refused, or failed
+   *  with an answer kept, the roster and the last stored answer (this isolate's or D1's, whichever is newer; however old:
+   *  it only names candidates, and ownerOf proves them now) are the candidates, so an address neither names (every
+   *  throwaway one) causes no keyed read at all. A failed index read with no answer kept is 503, as before. */
+  private proof(address:string,owners:unknown[],agents:Map<string,Agent>,req:OwnershipRequest,fresh:boolean):Promise<Proof>{
     const young=(at:number)=>!fresh||at+OWNERSHIP_TTL_MS>req.now;
+    const order=(id:string)=>rank(agents.get(id)),best=(ids:Iterable<string>)=>[...ids].sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,CANDIDATE_CAP);
     return this.proofs.get(address,req.now,OWNERSHIP_TTL_MS,async()=>{
       const candidates=new Set<string>();
       owners.forEach((o,i)=>{if(typeof o==='string'&&o.toLowerCase()===address)candidates.add(String(i));});
-      let indexed:{ids:string[];at:number}|undefined,limited=false;
+      let indexed:Indexed|undefined,limited=false;
       try{
         indexed=await this.candidates.get(address,req.now,CANDIDATES_TTL_MS,async()=>{
           if(!req.budget||!await req.budget())throw new Limited();
-          return {ids:(await indexedNfts(req.chain,address,[SEAT_COLLECTION],false)).nfts.map(n=>n.tokenId),at:req.now};
+          const at=req.clock?.()??req.now;                                          // the index read begins now (A2-R1)
+          const {nfts,complete}=await indexedNfts(req.chain,address,[SEAT_COLLECTION],false),ids=[...new Set(nfts.map(n=>n.tokenId))];
+          keepIndex(address,best(ids),at,req);return {ids,at,complete};
         },v=>young(v.at));
-      }catch(e){if(!(e instanceof Limited))throw e;limited=true;indexed=this.candidates.peek(address);}
+      }catch(e){
+        if(!(e instanceof Limited||e instanceof OwnershipUnavailable))throw e;
+        const mine=this.candidates.peek(address),kept=await keptIndex(address,req.db);
+        indexed=kept&&(!mine||kept.at>mine.at)?kept:mine;
+        if(!(e instanceof Limited)&&!indexed?.ids.length)throw e;                   // failed, nothing kept to re-prove: 503
+        limited=true;
+      }
       for(const id of indexed?.ids??[])candidates.add(id);
-      const ids=[...candidates].sort(compareIds).slice(0,CANDIDATE_CAP),indexedAt=indexed?.at??0;
-      if(!ids.length)return {ids,block:null,checkedAt:req.now,indexedAt,limited};
+      const partial=candidates.size>CANDIDATE_CAP||indexed?.complete===false,indexedAt=indexed?.at??0;
+      const ids=best(candidates).sort(compareIds);
+      if(!ids.length)return {ids,block:null,checkedAt:req.now,indexedAt,limited,partial};
       const {owners:onChain,block}=await ownersOf(req.chain,ids);
-      return {ids:ids.filter(id=>onChain.get(id)===address),block,checkedAt:req.now,indexedAt,limited};
+      return {ids:ids.filter(id=>onChain.get(id)===address),block,checkedAt:req.now,indexedAt,limited,partial};
     },p=>young(p.indexedAt));
   }
   /** Last recorded sighting per seat under `owner` (cron; the owner is IMD's swarm view at the time), one query. A
@@ -192,14 +251,15 @@ export class Ownership{
     return {tokenId:id,agentId,online,lastOnlineAt,counts:agentId!==null&&recent,...reason?{reason}:{}};
   }
   /** The session address's household: verified seats, each with agent status and whether it counts toward the house.
-   *  When the chain budget refused a due index read, the view says recheck 'limited' (for as long as that proof lives). */
+   *  When the chain budget refused a due index read, or the cap left candidates unchecked, the view says so in `recheck`
+   *  (for as long as that proof lives), never as a complete answer. */
   async home(address:string,req:OwnershipRequest,fresh=false):Promise<HomeView>{
     const a=address.toLowerCase(),world=await this.world(req.waitUntil);
-    const proof=await this.proof(a,world.owners,req,fresh);
+    const proof=await this.proof(a,world.owners,world.agents,req,fresh);
     const seen=await this.sightings(proof.ids,a,req.db);
     const seats=proof.ids.map(id=>this.status(id,world.agents.get(id),seen.get(id),req.now)),eligible=seats.filter(s=>s.counts).length;
     return {address:getAddress(a),seats,eligible,size:eligible?houseSize(eligible):null,block:proof.block,checkedAt:proof.checkedAt,presence:world.presence,
-      ...proof.limited?{recheck:'limited' as const}:{}};
+      ...proof.limited?{recheck:'limited' as const}:proof.partial?{recheck:'partial' as const}:{}};
   }
   /** Public assets of any address: seats as IMD's roster lists them (no keyed read, no image), with agent status and
    *  home()'s counting rule, unverified. Character NFTs (none configured yet) need Alchemy's index: one keyed read per

@@ -1,8 +1,10 @@
 import type {SourceSample,FeedKey,OptionalFeedKey,Sources} from '../src/world/model.ts';
 import {MARKET_URL,SEAT_COLLECTION,selectMarket,selectFloor} from '../src/world/market.ts';
 // Clients read every 15 min (src/world/cadence.ts); upstream reads are cached for 5 min per isolate and at the edge.
-import {UPSTREAM_TTL_MS,FLOOR_TTL_MS,FLOOR_RETRY_MS,FLOOR_REFUSED_RETRY_MS} from '../src/world/cadence.ts';
-import {stageText} from '../src/world/status.ts';
+// Past those 5 min a reader is answered at once from what the isolate holds while one read refreshes it in the
+// background (stale-while-revalidate); a cold isolate starts from the per-colo shared copy (SharedCopy, below).
+import {UPSTREAM_TTL_MS,FLOOR_TTL_MS,FLOOR_RETRY_MS,FLOOR_REFUSED_RETRY_MS,FRESH_MS,UPSTREAM_SLOW} from '../src/world/cadence.ts';
+import {stageText,STAGE_TEXT} from '../src/world/status.ts';
 // Runtime-agnostic: used by the Vite dev server (server/vite-plugin.ts) and the Cloudflare Worker (worker/index.ts).
 export const API='https://api.imd.fun';
 /** Explorer's footer counts and 24 hourly step buckets. No CORS header, so only the Worker can read it. Optional: a
@@ -74,11 +76,42 @@ const routes:Record<FeedKey|OptionalFeedKey,Route>={
   activity:{url:ACTIVITY_URL,ttl:UPSTREAM_TTL_MS,field:'steps',select:selectActivity}
 };
 export const SNAPSHOT_ROUTES:Readonly<Record<string,{url:string;ttl:number}>>=routes;
+/** Bump when the snapshot data changes shape in a way sharedShape cannot see (a helper the selects call, say). */
+const SHARED_VERSION=1;
+/** A short hash of what decides the shape of the data the shared copy holds: every snapshot route's url, field and
+ *  select, the select functions and helpers themselves (their source text, as the running bundle has it) and their
+ *  limits. It goes into the shared copy's key and into every record, so right after a deploy that changes a select
+ *  no isolate answers with data the previous version shaped: that copy is simply not found. Pure; exported for tests. */
+export function sharedShape(parts:readonly unknown[]):string{
+  let h=0x811c9dc5;const text=JSON.stringify(parts.map(p=>typeof p==='function'||p instanceof RegExp?String(p):p));
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}
+  return h.toString(36);
+}
+export const SHARED_SHAPE_PARTS:readonly unknown[]=[SHARED_VERSION,...Object.entries(routes).flatMap(([k,r])=>[k,r.url,r.field,r.select??null]),
+  selectSwarm,selectJobs,selectActivity,trimEvent,cut,plain,stageText,STAGE_TEXT,EVENT_FIELDS,EVENT_TEXT_MAX,SWARM_FIELDS,JOBS_KEPT,ORACLE_TEMPLATE];
+export const SHARED_SHAPE=sharedShape(SHARED_SHAPE_PARTS);
 /** Keeps a shared upstream read alive after the request that started it has answered (Workers: ctx.waitUntil). */
 export type WaitUntil=(promise:Promise<unknown>)=>void;
+/** The last good sample of one snapshot source, as kept in the shared copy. Public data only: exactly what the snapshot
+ *  route answers with (after each route's select), never a header, key or seat detail. */
+export type SharedRecord={v:1;shape:string;key:string;data:unknown;fetchedAt:number};
+/** A copy of each snapshot source shared by every isolate of one Cloudflare location (worker/app.ts edgeCopy: the Cache
+ *  API under a synthetic same-origin key that no client request is ever answered from). A cold isolate answers from it
+ *  at once instead of waiting on api.imd.fun; every successful upstream read of a snapshot source writes it. */
+export type SharedCopy={get(key:string):Promise<unknown>;put(key:string,record:SharedRecord):Promise<unknown>};
 export type GatewayOptions={
-  /** Longest any request waits on an upstream read before answering with what the cache already holds (ms). */
+  /** Longest a request that must wait (the wallet routes' and the cron's reads) waits on an upstream read before
+   *  answering with what the cache already holds (ms). */
   waitMs?:number;
+  /** Longest a snapshot, market or seat request waits when there is nothing to answer with yet (a cold isolate with no
+   *  shared copy), before answering 'unavailable' while the read goes on in the background (ms). */
+  coldWaitMs?:number;
+  /** Longest a cold isolate waits on the shared copy before reading upstream itself (ms). */
+  sharedWaitMs?:number;
+  /** Data older than this is not answered at once as current data, from the shared copy or the isolate's own cache: a
+   *  reader waits for the refresh (up to coldWaitMs). A refresh that fails keeps the last good data, labelled stale,
+   *  whatever its age, as before (ms). */
+  staleMaxAgeMs?:number;
   /** A shared read older than this is presumed lost (its request context ended) and a new one replaces it (ms). */
   inflightMaxAgeMs?:number;
   /** Seat details kept per gateway; the least recently read are dropped first. */
@@ -88,7 +121,16 @@ export type GatewayOptions={
 export const UPSTREAM_TIMEOUT_MS=10000;
 // waitMs sits above the upstream timeout and below the client's 14 s (seat, market) and 18 s (snapshot) timeouts
 // (CLIENT_TIMEOUT_MS in src/world/bridge.ts); inflightMaxAgeMs above both. tests/gateway.test.mjs pins the order.
-export const GATEWAY_DEFAULTS:Required<GatewayOptions>={waitMs:12000,inflightMaxAgeMs:15000,seatLimit:256};
+// coldWaitMs: the live snapshot's first byte came after about 3.5 s in 3 of 5 cold samples (2026-09-29) and after
+// 7.2 s once. 4 s lets the usual slow read land; past that the page is better served by an honest 'unavailable' and
+// the client's quick retry (SOON_RETRY_MS, src/world/cadence.ts) than by a longer blank wait.
+export const GATEWAY_DEFAULTS:Required<GatewayOptions>={waitMs:12000,coldWaitMs:4000,sharedWaitMs:500,staleMaxAgeMs:60*60_000,inflightMaxAgeMs:15000,seatLimit:256};
+/** The keys the shared copy holds: the snapshot's sources. */
+const SHARED_KEYS:ReadonlySet<string>=new Set(Object.keys(routes));
+/** How a read may answer. `swr`: answer at once with data the isolate holds (up to staleMaxAgeMs old) while it is
+ *  refreshed in the background, and wait at most coldWaitMs when there is none. Without it (the wallet routes and the
+ *  cron) a read waits for the refresh, up to waitMs, as before. `shared`: the per-colo copy for a cold isolate. */
+type LoadMode={swr?:boolean;shared?:SharedCopy;warmed?:boolean};
 // Seat ids that can have details: the swarm's paired seats and every minted seat (owners[] is indexed by token id).
 // undefined until a swarm sample with seat data exists.
 function seatKnown(sample:SourceSample|undefined,id:string):boolean|undefined {
@@ -102,6 +144,8 @@ type ReadSpec={url:string;publicUrl?:string;ttl:number;field?:string;select?:(da
   /** Wait after an upstream 401/403 (the key was refused), instead of the usual retry schedule. */
   refusedRetryMs?:number;opaqueErrors?:string};
 type CacheEntry={sample:SourceSample;validUntil:number;failures:number;inflight?:Promise<SourceSample>;inflightStartedAt:number;generation:number;
+  /** The shared-copy lookup in progress for this key (a cold isolate's concurrent readers share it). */
+  warming?:Promise<void>;
   /** The HTTP status of the last settled read (0: no response). */
   status?:number};
 export class ReadGateway {
@@ -109,6 +153,8 @@ export class ReadGateway {
   private seats=new Map<string,CacheEntry>();
   private fetcher:typeof fetch;private now:()=>number;private options:Required<GatewayOptions>;
   private snapshotMemo?:{samples:SourceSample[];body:string};
+  /** The shared copy the latest request brought: a read started by a caller without one (the wallet routes) writes it too. */
+  private shared?:SharedCopy;
   constructor(fetcher:typeof fetch=fetch,now=Date.now,options:GatewayOptions={}){this.fetcher=fetcher;this.now=now;this.options={...GATEWAY_DEFAULTS,...options};}
   /** A read by key: a path on api.imd.fun (or a full https URL), the market, or a seat ('seat:<id>'). */
   read(key:string,path:string,ttl:number,field?:string,waitUntil?:WaitUntil):Promise<SourceSample> {
@@ -116,18 +162,36 @@ export class ReadGateway {
     const url=key==='market'?MARKET_URL:path.startsWith('https://')?path:API+path;
     const select:ReadSpec['select']=key==='market'?undefined:route?.select??(key.startsWith('seat:')?
       d=>{const {collaborators,devices,reviews,...publicDetail}=d;void collaborators;void devices;void reviews;return publicDetail;}:undefined);
-    return this.load(key,{url,ttl,field,select},waitUntil);
+    return this.load(key,{url,ttl,field,select},waitUntil,{swr:true});
   }
-  private async load(key:string,spec:ReadSpec,waitUntil?:WaitUntil):Promise<SourceSample> {
-    const at=this.now(),map=key.startsWith('seat:')?this.seats:this.cache;let entry=map.get(key);
+  private async load(key:string,spec:ReadSpec,waitUntil?:WaitUntil,mode:LoadMode={}):Promise<SourceSample> {
+    if(mode.shared)this.shared=mode.shared;
+    const at=this.now(),map=key.startsWith('seat:')?this.seats:this.cache,swr=mode.swr===true;let entry=map.get(key);
     if(entry&&map===this.seats){map.delete(key);map.set(key,entry);}
-    if(entry?.inflight){if(at-entry.inflightStartedAt<=this.options.inflightMaxAgeMs)return this.bounded(entry,entry.inflight);}
-    else if(entry && entry.validUntil>at)return entry.sample;
-    if(!entry){
-      entry={sample:{state:'unavailable',data:null,url:spec.publicUrl??spec.url,fetchedAt:null},validUntil:0,failures:0,inflightStartedAt:0,generation:0};map.set(key,entry);
-      if(map===this.seats)while(map.size>this.options.seatLimit)map.delete(map.keys().next().value!);
+    // Nothing to answer with (a cold isolate, or one whose own reads have not landed yet): look in the location's shared
+    // copy first, one lookup shared by concurrent readers, then start over holding whatever it found. Another isolate's
+    // read may have filled it since this one started its own.
+    // The lookup is shared, so each reader bounds its own wait on its own timer (sharedWaitMs), and the lookup is kept
+    // alive by the waitUntil of the request that started it. A lookup still pending when a reader's own timer runs out
+    // outlived its own bound: its request context ended (workerd cancels that request's timers and I/O) and it may
+    // never settle, so that reader drops it and the next reader starts a new one. Without this one lost lookup would
+    // hold every later reader of the key on this isolate, and no upstream read would ever start.
+    if(swr&&mode.shared&&!mode.warmed&&SHARED_KEYS.has(key)&&!(entry&&this.servable(entry.sample,at))){
+      const cold=entry??this.blank(map,key,spec);
+      if(!cold.warming){const warming=this.warm(cold,key,spec,mode.shared).finally(()=>{if(cold.warming===warming)cold.warming=undefined;});cold.warming=warming;waitUntil?.(warming);}
+      const lookup=cold.warming;
+      if(!await this.settlesWithin(lookup,this.options.sharedWaitMs)&&cold.warming===lookup)cold.warming=undefined;
+      return this.load(key,spec,waitUntil,{...mode,warmed:true});
     }
-    const current=entry,generation=++current.generation;
+    if(entry?.inflight){
+      if(at-entry.inflightStartedAt<=this.options.inflightMaxAgeMs){
+        if(swr&&this.servable(entry.sample,at))return this.label(entry.sample,at);
+        return this.bounded(entry,entry.inflight,swr?this.options.coldWaitMs:this.options.waitMs);
+      }
+    }
+    else if(entry && entry.validUntil>at)return swr?this.label(entry.sample,at):entry.sample;
+    entry??=this.blank(map,key,spec);
+    const current=entry,generation=++current.generation,copy=SHARED_KEYS.has(key)?mode.shared??this.shared:undefined;
     const run=(async()=>{
       await undefined; // never settle synchronously: the finally below must run after `inflight` is assigned
       let status=0;
@@ -145,7 +209,10 @@ export class ReadGateway {
         const age=Number(r.headers.get('age')),ageMs=Number.isFinite(age)&&age>0?Math.min(age,300)*1000:0;
         if(current.generation!==generation)return current.sample;
         current.failures=0;current.status=status;current.validUntil=this.now()+spec.ttl;
-        current.sample={state:'fresh',data,url:current.sample.url,fetchedAt:this.now()-ageMs};
+        const fetchedAt=this.now()-ageMs;
+        current.sample={state:'fresh',data,url:current.sample.url,fetchedAt};
+        // Kept alive by the same waitUntil as this read; a failed write only means the next cold isolate reads upstream.
+        if(copy)waitUntil?.(Promise.resolve().then(()=>copy.put(key,{v:1,shape:SHARED_SHAPE,key,data,fetchedAt})).catch(()=>{}));
       } catch(error) {
         if(current.generation!==generation)return current.sample;
         current.failures++;current.status=status;
@@ -157,27 +224,69 @@ export class ReadGateway {
     })();
     current.inflight=run;current.inflightStartedAt=at;
     waitUntil?.(run);
-    return this.bounded(current,run);
+    if(swr&&this.servable(current.sample,at))return this.label(current.sample,at);
+    return this.bounded(current,run,swr?this.options.coldWaitMs:this.options.waitMs);
+  }
+  private blank(map:Map<string,CacheEntry>,key:string,spec:ReadSpec):CacheEntry{
+    const entry:CacheEntry={sample:{state:'unavailable',data:null,url:spec.publicUrl??spec.url,fetchedAt:null},validUntil:0,failures:0,inflightStartedAt:0,generation:0};map.set(key,entry);
+    if(map===this.seats)while(map.size>this.options.seatLimit)map.delete(map.keys().next().value!);
+    return entry;
+  }
+  /** Data a reader may be answered with at once: present and no older than staleMaxAgeMs. */
+  private servable(sample:SourceSample,at:number):boolean{return sample.data!==null&&sample.fetchedAt!==null&&at-sample.fetchedAt<=this.options.staleMaxAgeMs;}
+  /** 'fresh' only while the data is as current as the client counts as current (FRESH_MS, src/world/cadence.ts: one
+   *  cycle plus grace); older data answered at once is 'stale'. The data keeps its own fetchedAt either way. */
+  private label(sample:SourceSample,at:number):SourceSample{
+    return sample.state==='fresh'&&sample.fetchedAt!==null&&at-sample.fetchedAt>FRESH_MS?{...sample,state:'stale'}:sample;
+  }
+  /** Seed an entry from the shared copy, if the copy holds this key's data in this build's shape (SHARED_SHAPE), no
+   *  older than staleMaxAgeMs and newer than what the entry holds (none, data too old to answer with, or data an older
+   *  read left). The seeded data counts as read at its own fetchedAt: within the TTL no upstream read follows, past it
+   *  one refreshes it. Never throws, never waits past sharedWaitMs, and never replaces data at least as new, such as
+   *  an upstream read that landed during the lookup. */
+  private async warm(entry:CacheEntry,key:string,spec:ReadSpec,shared:SharedCopy):Promise<void>{
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    try {
+      const late=new Promise<undefined>(resolve=>{timer=setTimeout(()=>resolve(undefined),this.options.sharedWaitMs);});
+      const record=await Promise.race([Promise.resolve().then(()=>shared.get(key)),late]) as Partial<SharedRecord>|null|undefined;
+      if(!record||typeof record!=='object'||record.v!==1||record.shape!==SHARED_SHAPE||record.key!==key||!plain(record.data)||typeof record.fetchedAt!=='number')return;
+      const at=this.now(),age=at-record.fetchedAt;
+      if(!(age>=-60_000&&age<=this.options.staleMaxAgeMs))return;   // too old, or dated in the future
+      if(spec.field&&!(spec.field in record.data))return;
+      const fetchedAt=Math.min(record.fetchedAt,at);
+      if(entry.sample.data!==null&&(entry.sample.fetchedAt===null||entry.sample.fetchedAt>=fetchedAt))return;
+      entry.sample={state:'fresh',data:record.data,url:entry.sample.url,fetchedAt};
+      entry.failures=0;entry.validUntil=Math.max(entry.validUntil,fetchedAt+spec.ttl);
+    } catch {/* no usable shared copy: read upstream */} finally {clearTimeout(timer);}
+  }
+  /** Whether `promise` settles within `ms`, timed by the caller's own timer (never throws). */
+  private settlesWithin(promise:Promise<unknown>,ms:number):Promise<boolean>{
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    const late=new Promise<boolean>(resolve=>{timer=setTimeout(()=>resolve(false),ms);});
+    return Promise.race([promise.then(()=>true,()=>true),late]).finally(()=>clearTimeout(timer));
   }
   /** Every reader, the one that started the read included, answers within waitMs even if the upstream read never settles. */
-  private bounded(entry:CacheEntry,run:Promise<SourceSample>):Promise<SourceSample> {
+  private bounded(entry:CacheEntry,run:Promise<SourceSample>,ms:number):Promise<SourceSample> {
     let timer:ReturnType<typeof setTimeout>|undefined;
-    const overdue=new Promise<SourceSample>(resolve=>{timer=setTimeout(()=>resolve({...entry.sample,state:entry.sample.data?'stale':'unavailable',error:'IMD upstream slow'}),this.options.waitMs);});
+    const overdue=new Promise<SourceSample>(resolve=>{timer=setTimeout(()=>resolve({...entry.sample,state:entry.sample.data?'stale':'unavailable',error:UPSTREAM_SLOW}),ms);});
     return Promise.race([run,overdue]).finally(()=>clearTimeout(timer));
   }
-  async snapshot(waitUntil?:WaitUntil){
-    const pairs=await Promise.all(Object.entries(routes).map(async([key,r])=>[key,await this.load(key,r,waitUntil)]));
+  /** Every source answered at once when the isolate (or, cold, the shared copy) has data for it, refreshed in the
+   *  background past its TTL; only a source with no data anywhere waits, up to coldWaitMs. */
+  async snapshot(waitUntil?:WaitUntil,shared?:SharedCopy){
+    const pairs=await Promise.all(Object.entries(routes).map(async([key,r])=>[key,await this.load(key,r,waitUntil,{swr:true,shared})]));
     return {mode:'live',sources:Object.fromEntries(pairs)} as {mode:'live';sources:Sources};
   }
   /** JSON of snapshot(). Samples are replaced, never mutated, so unchanged sample objects mean an unchanged body. */
-  async snapshotBody(waitUntil?:WaitUntil):Promise<string>{
-    const snapshot=await this.snapshot(waitUntil),samples=Object.values(snapshot.sources),memo=this.snapshotMemo;
+  async snapshotBody(waitUntil?:WaitUntil,shared?:SharedCopy):Promise<string>{
+    const snapshot=await this.snapshot(waitUntil,shared),samples=Object.values(snapshot.sources),memo=this.snapshotMemo;
     if(memo&&memo.samples.length===samples.length&&memo.samples.every((s,i)=>s===samples[i]))return memo.body;
     const body=JSON.stringify(snapshot);this.snapshotMemo={samples,body};return body;
   }
   /** Seat detail. An id no minted seat has is answered here, without an upstream read or a cache entry, so arbitrary
    *  ids cannot fan out to api.imd.fun or push real seats out of the LRU. An id missing from the cached swarm refreshes
-   *  the swarm first (at most once per swarm TTL) so new seats are found; with no swarm data at all it goes upstream. */
+   *  the swarm first (at most once per swarm TTL) so new seats are found; with no swarm data at all it goes upstream.
+   *  That refresh is waited for (up to waitMs), not answered from the old swarm: the old one is what lacks the id. */
   async seat(id:string,waitUntil?:WaitUntil):Promise<SourceSample>{
     const path='/seats/'+id+'?work=5&reviews=0',swarm=routes.swarm;
     if(seatKnown(this.cache.get('swarm')?.sample,id)!==true&&seatKnown(await this.load('swarm',swarm,waitUntil),id)===false)
@@ -185,7 +294,9 @@ export class ReadGateway {
     return this.read('seat:'+id,path,UPSTREAM_TTL_MS,'tokenId',waitUntil);
   }
   market(waitUntil?:WaitUntil){return this.read('market','',UPSTREAM_TTL_MS,undefined,waitUntil);}
-  /** One snapshot source through the same cache (the wallet routes and the presence recorder read swarm and workers). */
+  /** One snapshot source through the same cache (the wallet routes and the presence recorder read swarm and workers).
+   *  These wait for an expired entry's refresh (up to waitMs), as they always have: ownership and presence are decided
+   *  on the newest roster the gateway can get, not on the one it happens to hold. */
   source(key:FeedKey|OptionalFeedKey,waitUntil?:WaitUntil):Promise<SourceSample>{return this.load(key,routes[key],waitUntil);}
   /** The seat NFT floor through Alchemy, or an 'unavailable' sample without any upstream read when no key is set. The
    *  key only ever travels in the Authorization header: samples carry FLOOR_URL (no key) and generic error text. */

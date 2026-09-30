@@ -1,0 +1,12 @@
+-- 2026-09-30, Swarm audit 519db624 A-2 across instances (server/ownership.ts). Additive only: one new table; no row of
+-- another table is changed or removed, and code from before this migration never reads it. Apply it BEFORE deploying the
+-- code that uses it: wrangler d1 migrations apply imd-world --remote, after a backup export. (Code deployed ahead of it
+-- keeps the answer per instance only, as before: its reads and writes of this table fail and are ignored.)
+-- index_candidates: the last NFT-index answer per address (lowercase), written by every successful index read of
+-- /api/me/home that named a seat (one upsert; an answer naming none deletes the row), and read only when a later index
+-- read is refused (chain:index) or fails. ids is a JSON array of at most CANDIDATE_CAP (256) decimal token ids, ranked
+-- like the candidates (A-4). It only names candidates: ownerOf proves every one, and nothing is granted from this table.
+-- read_at: when that index read began (epoch ms); an older answer never replaces a newer one. The cron deletes rows
+-- older than INDEX_KEEP_MS (8 days) by a scan: the table only holds addresses the index names a seat for, and an index on
+-- read_at would add a row written to every upsert.
+CREATE TABLE index_candidates(address TEXT PRIMARY KEY, ids TEXT NOT NULL, read_at INTEGER NOT NULL);

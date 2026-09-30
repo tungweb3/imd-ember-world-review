@@ -2,8 +2,8 @@
 // docs/security/deploy-evidence/<record>.md from the record `npm run deploy` left (scripts/deploy.mjs: manifest.json,
 // SHA256SUMS, wrangler.log, worker/). It states the source commit, the record/build id, the deploy time, the Cloudflare
 // Worker version id (when wrangler printed one), the Worker bundle's SHA-256, the frontend JS/CSS/HTML SHA-256, the
-// migration files at that commit with their SHA-256 (the remote applied list is filled in by hand), the limiter bindings
-// and the edge WAF rule's description.
+// migration files at that commit with their SHA-256 (the remote applied list is filled in by hand), the limiter bindings,
+// the limiter keys server/auth.ts uses at that commit (CHAIN_KEYS), and the edge WAF rule's description.
 // Nothing is copied from a log: every value is a structured field matched by a strict pattern (a 40-hex commit, a
 // 64-hex hash, a UUID, an ISO time, a path of plain characters), so an email, a local path or any other text in the
 // logs or in wrangler.jsonc's comments cannot reach the output. wrangler.jsonc is read with its comments stripped.
@@ -45,10 +45,16 @@ function sourceFiles(repo,commit){
   if(atCommit){
     const names=String(git(repo,['ls-tree','--name-only',commit,'migrations/'])??'').split('\n').map(s=>s.trim()).filter(Boolean).map(p=>p.replace(/^migrations\//,''));
     const read=p=>git(repo,['show',commit+':'+p]);
-    return {from:'commit',migrations:names.filter(n=>/\.sql$/.test(n)).sort().map(n=>({name:n,body:read('migrations/'+n)})),config:read('wrangler.jsonc')};
+    return {from:'commit',migrations:names.filter(n=>/\.sql$/.test(n)).sort().map(n=>({name:n,body:read('migrations/'+n)})),config:read('wrangler.jsonc'),auth:read('server/auth.ts')};
   }
-  const dir=join(repo,'migrations'),names=existsSync(dir)?readdirSync(dir).filter(n=>/\.sql$/.test(n)).sort():[];
-  return {from:'working tree',migrations:names.map(n=>({name:n,body:readFileSync(join(dir,n))})),config:existsSync(join(repo,'wrangler.jsonc'))?readFileSync(join(repo,'wrangler.jsonc')):null};
+  const dir=join(repo,'migrations'),names=existsSync(dir)?readdirSync(dir).filter(n=>/\.sql$/.test(n)).sort():[],file=p=>existsSync(join(repo,p))?readFileSync(join(repo,p)):null;
+  return {from:'working tree',migrations:names.map(n=>({name:n,body:readFileSync(join(dir,n))})),config:file('wrangler.jsonc'),auth:file('server/auth.ts')};
+}
+/** The constant rate-limit keys (CHAIN_KEYS) of server/auth.ts as of the source commit, so a page names the keys of the
+ *  build it describes: only values of the form 'chain:…'. */
+export function chainKeys(authText){
+  const m=/export const CHAIN_KEYS=\{([^}]*)\}/.exec(authText??'');
+  return m?[...m[1].matchAll(/:\s*'(chain:[a-z0-9:]{1,40})'/g)].map(x=>x[1]):[];
 }
 /** The limiter bindings of a wrangler config: names, namespace ids and limits only. */
 export function limiterSummary(configText){
@@ -75,7 +81,7 @@ export function evidence(recordDir,{repo=ROOT}={}){
   const fromManifest=pick(m.wrangler?.versionId??undefined,PATTERNS.uuid),log=existsSync(join(recordDir,'wrangler.log'))?readFileSync(join(recordDir,'wrangler.log'),'utf8'):'';
   const versionId=fromManifest??versionIdFromLog(log);
   const front=[...sums].filter(([p])=>/^dist\/(index\.html|assets\/[A-Za-z0-9._-]+\.(js|css))$/.test(p)).sort(([a],[b])=>a<b?-1:1);
-  const src=sourceFiles(repo,commit),limiters=src.config?limiterSummary(String(src.config)):[];
+  const src=sourceFiles(repo,commit),limiters=src.config?limiterSummary(String(src.config)):[],keys=chainKeys(src.auth?String(src.auth):'');
   const mode=m.mode==='deploy'?'deploy':'dry run (nothing uploaded)';
   const at=[pick(m.startedAt,PATTERNS.iso),pick(m.finishedAt,PATTERNS.iso)];
   const tools=Object.entries(m.tools??{}).filter(([k,v])=>/^[a-z]{2,12}$/.test(k)&&PATTERNS.version.test(String(v))).map(([k,v])=>`${k} ${v}`);
@@ -98,7 +104,9 @@ export function evidence(recordDir,{repo=ROOT}={}){
     'Applied on the remote database `imd-world` (fill in from `wrangler d1 migrations list imd-world --remote`, names only):','','- [ ] _pending — filled in at deploy_','');
   L.push('## Rate-limit bindings (wrangler.jsonc, comments stripped)','','| Binding | Namespace id | Limit | Period (s) |','|---|---|---|---|',
     ...limiters.map(r=>`| \`${r.name}\` | ${r.namespace??'?'} | ${r.limit??'?'} | ${r.period??'?'} |`),'',
-    'Keys inside them (server/auth.ts): per client IP (`ip:`, `ip6:`), verifies under `verify:`, sessions under `session:`, and the constant keys `chain:erc1271`, `chain:erc1271:known`, `chain:index`, `chain:assets` (CHAIN_LIMITER) and `chain:code` (API_LIMITER).','');
+    keys.length?'Keys inside them (server/auth.ts at the source commit): per client IP (`ip:`, `ip6:`), verifies under `verify:`, sessions under `session:`, and the constant keys '+
+      keys.filter(k=>k!=='chain:code').map(k=>'`'+k+'`').join(', ')+' (CHAIN_LIMITER)'+(keys.includes('chain:code')?' and `chain:code` (API_LIMITER)':'')+'.':
+      'Keys inside them: not listed (no CHAIN_KEYS in server/auth.ts at the source commit).','');
   L.push('## Edge WAF rule','','As configured in the Cloudflare dashboard (stated, not read by this script): '+WAF_RULE+'.','',
     'Rule id (fill in from Security → WAF → Rate limiting rules):','','- [ ] _pending — filled in at deploy_','');
   return {record,text:L.join('\n')};

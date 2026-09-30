@@ -39,32 +39,32 @@ export function readMoves(store:Store|null,mode:string):HomeMove[]{
   for(const m of MOVE_MODES)if(m!==mode)load(store,movesKey(m));
   return load(store,movesKey(mode));
 }
-/** Why a move is (not) allowed now. 'sign-in': no owner session (a wallet that is merely connected, an expired or
- *  mismatched session, seats not confirmed); 'not-yours': the house shown is another wallet's; 'no-house': the owner's
- *  house is not on the map yet. */
+/** Why a move is (not) allowed at `now` (this device's clock). 'sign-in': no owner session (a wallet that is merely
+ *  connected, a mismatched session, seats not confirmed, or a session whose expiresAt is not ahead of `now`, W-1);
+ *  'not-yours': the house shown is another wallet's; 'no-house': the owner's house is not on the map yet. */
 export type MoveGate='ok'|'sign-in'|'not-yours'|'no-house';
-export function moveGate(state:AuthState,home:{owner:string}|null):MoveGate{
-  const owner=ownerAddress(state);
+export function moveGate(state:AuthState,home:{owner:string}|null,now:number):MoveGate{
+  const owner=ownerAddress(state,now);
   if(!owner)return 'sign-in';
   if(!home)return 'no-house';
   return home.owner.toLowerCase()===owner?'ok':'not-yours';
 }
 /** What "My wallet" says under the connected account's own house when it cannot move it: 'sign-in' only when that
- *  account has no session; a signed-in account is told why its seats do not count now ('no-seat': none qualifies under
+ *  account has no live session (none, another address's, or one past its expiresAt at `now`); a signed-in account is told why its seats do not count now ('no-seat': none qualifies under
  *  the 24 h rule; 'unverified': the chain read failed). null: nothing to say (owner mode, another wallet's house, or a
  *  state such as verifying that resolves by itself). */
 export type MoveHint='sign-in'|'no-seat'|'unverified';
-export function moveHint(state:AuthState,home:{owner:string}|null):MoveHint|null{
-  if(!home||!state.account||home.owner.toLowerCase()!==state.account||ownerAddress(state))return null;
+export function moveHint(state:AuthState,home:{owner:string}|null,now:number):MoveHint|null{
+  if(!home||!state.account||home.owner.toLowerCase()!==state.account||ownerAddress(state,now))return null;
   if(state.session?.address!==state.account)return 'sign-in';
-  const st=statusOf(state);return st==='signedInNoHouse'?'no-seat':st==='ownershipUnavailable'?'unverified':null;
+  const st=statusOf(state,now);return st==='expired'?'sign-in':st==='signedInNoHouse'?'no-seat':st==='ownershipUnavailable'?'unverified':null;
 }
-/** Records the owner's move to `lot` in `moves` and the store; refuses (null) unless moveGate is 'ok' at this moment.
- *  The owner is the session's address, never the viewed or connected wallet. */
+/** Records the owner's move to `lot` in `moves` and the store; refuses (null) unless moveGate is 'ok' at `now` (the
+ *  moment of the click, on this device's clock). The owner is the session's address, never the viewed or connected wallet. */
 export function commitMove(store:Store|null,mode:string,moves:readonly HomeMove[],state:AuthState,home:{owner:string;size:HouseSize}|null,
-  lot:{x:number;z:number;rotation:number}):HomeMove[]|null{
-  if(moveGate(state,home)!=='ok')return null;
-  const move=cleanMove({owner:ownerAddress(state),x:lot.x,z:lot.z,rotation:lot.rotation,size:home!.size});if(!move)return null;
+  lot:{x:number;z:number;rotation:number},now:number):HomeMove[]|null{
+  if(moveGate(state,home,now)!=='ok')return null;
+  const move=cleanMove({owner:ownerAddress(state,now),x:lot.x,z:lot.z,rotation:lot.rotation,size:home!.size});if(!move)return null;
   const next=[...moves.filter(m=>m.owner!==move.owner),move];
   try{store?.setItem(movesKey(mode),JSON.stringify(next));}catch{/* kept for this session */}
   return next;

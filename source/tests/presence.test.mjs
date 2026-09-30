@@ -14,10 +14,10 @@ async function cron(w){const kept=[];await w.worker.scheduled({scheduledTime:w.c
 const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
 const owners=map=>Object.assign(Array(2000).fill(null),map);
 
-test('migrations: numbered files, applied in order, creating the three tables and the sign-in budget columns and indexes',()=>{
-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql']);
+test('migrations: numbered files, applied in order, creating the four tables and the sign-in budget columns and indexes',()=>{
+  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql']);
   const db=openD1(),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
-  assert.deepEqual(tables,['login_challenges','seat_presence','sessions']);
+  assert.deepEqual(tables,['index_candidates','login_challenges','seat_presence','sessions']);
   const indexes=t=>db.raw.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL ORDER BY name").all(t).map(r=>r.name);
   assert.deepEqual(indexes('login_challenges'),['login_challenges_address','login_challenges_called_address','login_challenges_called_net','login_challenges_flow','login_challenges_issued','login_challenges_net']);
   assert.deepEqual(indexes('sessions'),['sessions_address','sessions_erc1271','sessions_expires','sessions_live']);
@@ -49,6 +49,30 @@ test('0003 is additive: on a live 0002 database every row stays as it was, the n
   assert.deepEqual(dump(),before);assert.deepEqual({...db.prepare('SELECT wallet_type,verification_method FROM sessions').get()},{wallet_type:null,verification_method:null});
   assert.equal(db.prepare('SELECT called_at FROM login_challenges').get().called_at,null);
   db.prepare(oldSession).run('h2','n2');assert.equal(db.prepare('SELECT count(*) n FROM sessions').get().n,2,'the deployed code (before 0003) keeps inserting sessions');
+});
+
+test('0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty',()=>{
+  const db=new DatabaseSync(':memory:'),file=f=>readFileSync(new URL('../migrations/'+f,import.meta.url),'utf8');
+  for(const f of ['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql'])db.exec(file(f));
+  db.prepare("INSERT INTO login_challenges(nonce,address,origin,flow_hash,message,issued_at,accept_until,net,checked_at,called_at) VALUES('n','a','o','f','m',1,2,'net:x',1,1)").run();
+  db.prepare("INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES('h','a',1,1,2,'n','EOA','ECDSA')").run();
+  db.prepare('INSERT INTO seat_presence(token_id,owner,last_online_at,updated_at) VALUES(1,null,1,1)').run();
+  const dump=()=>['login_challenges','sessions','seat_presence'].map(t=>db.prepare('SELECT * FROM '+t).all().map(r=>({...r})));
+  const before=dump();db.exec(file('0004_index_candidates.sql'));
+  assert.deepEqual(dump(),before);assert.equal(db.prepare('SELECT count(*) n FROM index_candidates').get().n,0);
+});
+
+// A-2 (Swarm audit 519db624), across instances: the NFT-index answers kept in D1 (server/ownership.ts) are deleted by the
+// cron 8 days after the index read, whatever the roster's state; younger ones stay.
+test('A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not',async()=>{
+  const w=setup({imd:fakeImd({seats:{1:'10'},owners:owners({1:A}),online:[1]})});
+  const put=(address,at)=>w.db.raw.prepare('INSERT INTO index_candidates(address,ids,read_at) VALUES(?,?,?)').run(address,'["1"]',at);
+  const kept=()=>w.db.raw.prepare('SELECT address FROM index_candidates ORDER BY address').all().map(r=>r.address);
+  const C='0x'+'c'.repeat(40),now=w.clock.now();
+  put(A,now-8*DAY-1);put(B,now-8*DAY);put(C,now-MIN);
+  await cron(w);assert.deepEqual(kept(),[B,C]);assert.equal(rows(w.db).length,1,'the roster was recorded as well');
+  w.clock.advance(15*MIN);w.imd.state.fail.add('/workers');                   // no complete roster: housekeeping still runs
+  await cron(w);assert.deepEqual(kept(),[C]);
 });
 
 test('a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched',async()=>{

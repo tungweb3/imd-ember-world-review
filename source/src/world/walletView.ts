@@ -1,7 +1,7 @@
 // Pure view rules for "My wallet" (WalletPanel.tsx) and the 「我家」 marker (WorldApp.tsx), kept out of .tsx so the tests
 // run them on what the real Worker answers.
 import type {Home} from './households.ts';
-import type {AuthClient,MeHome,MeSeat} from './auth.ts';
+import type {AuthClient,AuthState,AuthStatus,MeHome,MeSeat} from './auth.ts';
 import type {SignInSummary} from './siwe.ts';
 
 type Say=(zh:string,en:string)=>string;
@@ -23,6 +23,35 @@ export function countsText(s:Pick<MeSeat,'counts'|'reason'>,say:Say):string{
     case 'not-seen':return say('尚未記錄上線','Not seen online yet');
     default:return say('不計入','Not counted');
   }
+}
+/** Why a signed-in house read is not the whole answer (MeHome.recheck), under the seats in owner mode and beside the
+ *  unfinished check otherwise. 'partial' has two causes (server/ownership.ts: past the 256-candidate cap, or the index
+ *  stopped at its page cap with pages left), and its note names both: a two-seat wallet can get it (R-3). */
+export const recheckNote=(r:NonNullable<MeHome['recheck']>,say:Say)=>r==='limited'?
+  say('鏈上索引查詢此刻太忙：IMD 名冊上的席位照常驗證，剛買的席位要等之後的查詢才會出現。','The NFT index is busy right now: seats on IMD’s roster are verified as usual; a seat bought just now appears on a later check.'):
+  say('這次查核可能沒有列出這個錢包的全部席位（候選超過 256 個，或鏈上索引的頁數超過一次查詢的範圍）：先查可能計入房子的席位，其餘沒有列出。',
+    'This check may not list every seat of this wallet (more than 256 candidates, or more NFT index pages than one read covers): seats that can count are checked first; the rest aren’t listed.');
+/** The 'ownershipUnavailable' paragraph: the chain read failed (503, no house read), or it answered but was not complete
+ *  and counted no seat (A-8: a refused or cut-off discovery is not "you own nothing"). */
+export const unavailableText=(me:MeHome|null,say:Say)=>me?
+  say('這次鏈上查核沒能完成（不是沒有持有），所以還沒有席位計入房子。登入仍有效，請稍後重試。','The on-chain check couldn’t be completed right now (this is not “you own nothing”), so no seat is counted yet. You are still signed in; try again later.'):
+  say('暫時無法向鏈上確認持有資格（不是沒有持有）。登入仍有效，請稍後重試。','Seat ownership can’t be checked on chain right now (this is not “you own nothing”). You are still signed in; try again later.');
+/** Under an empty seat list: IMD's roster for a wallet that is not signed in; for the signed-in one, "checked on chain"
+ *  only when the check was complete (A-8: a refused or cut-off discovery said so while nothing had been read). */
+export const emptySeatsText=(me:MeHome|null,say:Say)=>!me?say('IMD 公開名冊目前沒有列出此錢包的席位。','IMD’s public roster lists no seat for this wallet.'):
+  me.recheck?say('尚未在鏈上核實到席位：這次查核沒能完成，請稍後重試。','No seat proven on chain yet: the check couldn’t be completed right now. Try again later.'):
+  say('鏈上核實：這個錢包目前沒有 IMD 席位。','Checked on chain: this wallet holds no IMD seat right now.');
+/** The house read My wallet shows: the signed-in wallet's own, only while that wallet is the one in view (never another
+ *  wallet's, never a failed read). */
+export const panelHome=(state:Pick<AuthState,'session'|'home'>,view:string|null):MeHome|null=>
+  state.home&&state.home!=='unavailable'&&state.session?.address===view?state.home:null;
+/** What My wallet says about the house read in state `st`: `lead`, the paragraph of a signed-in wallet without owner mode;
+ *  `note`, why the read is not the whole answer (under owner mode's seats, and beside an unfinished check); `empty`, under
+ *  an empty seat list. The panel renders these and words none of it (A-8). */
+export function houseNotes(st:AuthStatus,me:MeHome|null,say:Say):{lead:string|null;note:string|null;empty:string}{
+  const lead=st==='ownershipUnavailable'?unavailableText(me,say):st==='signedInNoHouse'?say('已登入，目前沒有符合資格的席位：需要持有 IMD 席位，且它的 agent 在 24 小時內上線過。',
+    'Signed in, but no seat qualifies right now: a seat counts when you hold it and its agent was online in the last 24 hours.'):null;
+  return {lead,note:me?.recheck?recheckNote(me.recheck,say):null,empty:emptySeatsText(me,say)};
 }
 /** "n agents count toward the house" with the right number (CORR-08). */
 export const eligibleText=(n:number,say:Say)=>say(`${n} 位 agent 計入房子`,`${n} agent${n===1?' counts':'s count'} toward the house`);

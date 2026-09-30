@@ -37,7 +37,6 @@ export const EN:Record<string,string>={
   '資料來源':'Data sources','已更新':'Updated','快取':'Cached','無法取得':'Unavailable','讀取中…':'Loading…','重新整理公開資料':'Refresh public data',
   '位守印者已取得記錄。住處會隨著名冊擴展，已分配的位置保持固定。':'guardians have records. Homes grow with the roster, while assigned locations stay fixed.',
   '打開全體名冊':'Open full registry','守印者 #':'Guardian #','尚未開啟的記憶':'Memories yet to unfold','未來會從這裡延伸這款新遊戲的探索故事。':'Future exploration stories will begin here.',
-  '這是 IMD Ember World，一個獨立的探索世界。走動、相見、閱讀網路活動，是目前的核心體驗。':'IMD Ember World is an independent exploration world. Walk, meet guardians and discover network activity.',
   '如何探索':'How to explore','電腦移動':'Desktop movement','WASD / 方向鍵':'WASD / arrow keys','沿路行走':'Walk to a point','點地面':'Click the ground',
   '環繞鏡頭':'Orbit camera','拖曳畫面':'Drag the scene','拉近／拉遠':'Zoom','滾輪或 + / −':'Scroll wheel or + / −','查看附近':'Inspect nearby','E / 點建築與角色':'E / select a building or guardian',
   '手機移動':'Mobile movement','左下搖桿':'Bottom-left joystick','手機鏡頭':'Mobile camera','右側拖曳 / 雙指縮放':'Drag on the right / pinch to zoom',

@@ -1,8 +1,7 @@
 // The SIWE (EIP-4361) sign-in message, shared by the server that builds it (server/auth.ts) and the page that checks it
 // before any wallet is asked to sign (auth.ts, swarm review F-7a). No viem here: this module ships in the client bundle.
 // It names what signing does not grant: no transfers, no token or NFT approvals (ERC-20 approve, setApprovalForAll), no
-// transactions (swarm review F-1, 2026-09-29). The page accepts only this text; the server also verifies challenges it
-// issued with the previous wording (server/auth.ts SIWE_PREVIOUS_STATEMENTS).
+// transactions (swarm review F-1, 2026-09-29). The page accepts only this text, and so does the server's verify.
 export const SIWE_STATEMENT='Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers, token or NFT approvals, or transactions.';
 /** How far the message's Issued At may be from this device's clock (either way): a wrong clock of a few minutes still
  *  signs in; a message issued at another time than now is refused. Its Expiration Time may be at most MAX_WINDOW_MS

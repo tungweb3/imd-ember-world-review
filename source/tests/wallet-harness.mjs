@@ -16,7 +16,8 @@ const ERC1271=[{type:'function',name:'isValidSignature',stateMutability:'view',i
 /** Fake Alchemy. `owners`: on-chain ownerOf (id → lowercase address); `index`: what the NFT index claims per owner
  *  (defaults to the on-chain truth); `contracts`: address → (hash, signature) → bytes4 for ERC-1271 (these have code);
  *  `raw`: address → calldata → the eth_call result verbatim, with `code` (address → bytecode, default none);
- *  `characters`: owner → [{contract, tokenId}] for character collections. */
+ *  `characters`: owner → [{contract, tokenId}] for character collections; `intercept(method, params)`, if set, may answer
+ *  (a Response) or throw (a transport failure) for one RPC call before anything else. */
 export function fakeChain({owners={},block=21_000_000n}={}){
   const state={owners,block,index:null,contracts:new Map(),raw:new Map(),code:new Map(),characters:{},fail:null,calls:[],images:{}};
   const fetcher=async(input,init={})=>{
@@ -33,7 +34,7 @@ export function fakeChain({owners={},block=21_000_000n}={}){
         totalCount:rows.length+chars.length,pageKey:state.endlessPages?String(page+1):null});
     }
     if(url!==ALCHEMY_RPC_URL)return new Response('{}',{status:404});
-    const {method,params}=JSON.parse(init.body);
+    const {method,params}=JSON.parse(init.body),held=await state.intercept?.(method,params);if(held)return held;
     if(state.fail==='rpc-error')return Response.json({jsonrpc:'2.0',id:1,error:{code:-32000,message:'boom'}});
     if(method==='eth_getCode'){const at=params[0].toLowerCase();return Response.json({jsonrpc:'2.0',id:1,result:state.code.get(at)??(state.contracts.has(at)?'0x6080604052':'0x')});}
     if(method!=='eth_call')return Response.json({jsonrpc:'2.0',id:1,error:{code:-32601}});

@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {setup,newAccount,fakeImd,fakeChain,START} from './wallet-harness.mjs';
+import {setup,newAccount,fakeImd,fakeChain,Browser,START} from './wallet-harness.mjs';
+import {createWorker} from '../worker/app.ts';
+import {ReadGateway} from '../server/gateway.ts';
 import {ALCHEMY_RPC_URL,ALCHEMY_NFTS_URL,MULTICALL_CHUNK} from '../server/ownership.ts';
 import {houseSize} from '../src/world/households.ts';
 // Ownership and eligibility through GET /api/me/home and GET /api/wallet/:address/assets on the real Worker. The fake
@@ -122,6 +124,130 @@ test('home?fresh=1 and a refused budget: the stored index answer and IMD’s ros
   const ha=await body(await sa.get('/api/me/home'));assert.deepEqual([ha.seats.map(s=>s.tokenId),ha.size,ha.recheck,index()],[['361'],'s','limited',2]);
 });
 
+// A-2 (Swarm audit 519db624): a refused reload deleted the stored index answer, so a seat only the index named (bought
+// after IMD's roster last listed it) dropped out of the house while the budget was spent. The answer is kept and
+// re-proved; the proof itself is never reused.
+test('A-2: a refused index reload keeps the last index answer as candidates, and ownerOf re-proves them each time (fresh and after 5 min)',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),keys=[];let allowed=true;
+  const w=setup({imd:fakeImd({seats:{361:'51320'},owners:owners(2000,{}),online:[361]}),chain:fakeChain({owners:{361:a}}),
+    env:{CHAIN_LIMITER:{limit:async({key})=>{keys.push(key);return {success:allowed};}}}});
+  const index=()=>w.chain.state.calls.filter(c=>c.url.startsWith(ALCHEMY_NFTS_URL)).length,view=h=>[h.seats.map(s=>s.tokenId),h.eligible,h.size,h.recheck];
+  const sa=await signedIn(w,A);
+  assert.deepEqual(view(await body(await sa.get('/api/me/home?fresh=1'))),[['361'],1,'s',undefined],'only the index names #361');
+  assert.deepEqual([index(),rpcCalls(w)],[1,1]);
+  allowed=false;w.clock.advance(31_000);
+  assert.deepEqual(view(await body(await sa.get('/api/me/home?fresh=1'))),[['361'],1,'s','limited'],'fresh=1, refused: the stored answer still names it');
+  assert.deepEqual([index(),rpcCalls(w)],[1,2],'no index read; ownerOf read again');
+  w.chain.state.owners[361]='0x'+'9'.repeat(40);w.clock.advance(31_000);   // sold: the stored candidate is re-proved, not trusted
+  assert.deepEqual(view(await body(await sa.get('/api/me/home?fresh=1'))),[[],0,null,'limited']);assert.equal(rpcCalls(w),3);
+  w.chain.state.owners[361]=a;w.clock.advance(300_001);                     // bought back; the 5-minute path, no Check again
+  assert.deepEqual(view(await body(await sa.get('/api/me/home'))),[['361'],1,'s','limited']);
+  assert.deepEqual([index(),rpcCalls(w)],[1,4]);
+  // The kept answer keeps its own age: allowed again, the next plain re-check (no Check again) reads the index.
+  allowed=true;w.clock.advance(31_000);
+  assert.deepEqual(view(await body(await sa.get('/api/me/home'))),[['361'],1,'s',undefined],'allowed again: a new index read');
+  assert.deepEqual([index(),keys.filter(k=>k==='chain:index').length],[2,5]);
+});
+
+// A-2, across instances: the kept answer lived only in the isolate that read it, so a read another isolate (or location)
+// served with chain:index refused lost a seat only the index named. Every index read now keeps its answer in D1
+// (migrations/0004), read only when an index read is refused or fails; ownerOf still proves each seat it names.
+test('A-2: another server instance, with an empty cache and chain:index refused or the index failing, still proves a seat only the index named, from the answer kept in D1',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),other='0x'+'9'.repeat(40);
+  const w=setup({imd:fakeImd({seats:{361:'51320',921:'51311'},owners:owners(2000,{}),online:[361,921]}),chain:fakeChain({owners:{361:a}})});
+  const index=()=>w.chain.state.calls.filter(c=>c.url.startsWith(ALCHEMY_NFTS_URL)).length,view=h=>[h.seats.map(s=>s.tokenId),h.eligible,h.size,h.recheck];
+  // Another isolate: its own Worker (empty caches) over the same D1, upstreams and clock (`lag`: its requests began that much earlier).
+  const instance=(env={},lag=0)=>{const now=()=>w.clock.now()-lag,worker=createWorker(new ReadGateway(w.imd.fetcher,now),w.chain.fetcher,now);
+    const b=new Browser(r=>worker.fetch(r,{...w.env,...env},{waitUntil:p=>w.kept.push(p)}));b.jar=new Map(sa.jar);return b;};
+  const refused={CHAIN_LIMITER:{limit:async()=>({success:false})}},settle=()=>Promise.all(w.kept);
+  const sa=await signedIn(w,A);
+  assert.deepEqual(view(await body(await sa.get('/api/me/home?fresh=1'))),[['361'],1,'s',undefined],'only the index names #361');
+  await settle();assert.deepEqual([index(),rpcCalls(w)],[1,1]);
+  const two=instance(refused);
+  assert.deepEqual(view(await body(await two.get('/api/me/home'))),[['361'],1,'s','limited'],'another instance, refused: the kept answer names #361');
+  assert.deepEqual([index(),rpcCalls(w)],[1,2],'no index read there; ownerOf read again');
+  w.chain.state.fail='index';
+  assert.deepEqual(view(await body(await instance().get('/api/me/home'))),[['361'],1,'s','limited'],'another instance, the index failing: the same');
+  w.chain.state.fail=null;assert.deepEqual([index(),rpcCalls(w)],[2,3]);
+  w.chain.state.owners[361]=other;w.clock.advance(31_000);              // sold: the kept candidate is re-proved, not trusted
+  assert.deepEqual(view(await body(await two.get('/api/me/home'))),[[],0,null,'limited']);assert.equal(rpcCalls(w),4);
+  // An answer read earlier never replaces a newer one: the index lists #921 as well at t; an instance whose read began
+  // 10 s before t, answering only #361, finishes after it. Refused later, that instance takes the newer answer in D1
+  // over its own.
+  Object.assign(w.chain.state.owners,{361:a,921:a});w.clock.advance(31_000);
+  assert.deepEqual(view(await body(await sa.get('/api/me/home?fresh=1'))),[['361','921'],2,'ms',undefined]);await settle();
+  let lagAllowed=true;const lag=instance({CHAIN_LIMITER:{limit:async()=>({success:lagAllowed})}},10_000);
+  w.chain.state.index={[a]:['361']};
+  assert.deepEqual(view(await body(await lag.get('/api/me/home?fresh=1'))),[['361'],1,'s',undefined]);await settle();
+  w.chain.state.index=null;
+  assert.deepEqual(view(await body(await instance(refused).get('/api/me/home'))),[['361','921'],2,'ms','limited'],'the newer answer is the one kept');
+  lagAllowed=false;w.clock.advance(31_000);
+  assert.deepEqual(view(await body(await lag.get('/api/me/home?fresh=1'))),[['361','921'],2,'ms','limited'],'and preferred to the instance’s own older one');
+  // Sold both: the next index read answers nothing and removes the kept answer, so an instance with the index failing
+  // has nothing to re-prove (503, as before), and a refused one has only IMD's roster (nothing, limited, no chain read).
+  Object.assign(w.chain.state.owners,{361:other,921:other});w.clock.advance(31_000);
+  assert.deepEqual(view(await body(await sa.get('/api/me/home?fresh=1'))),[[],0,null,undefined]);await settle();
+  w.chain.state.fail='index';const r=await instance().get('/api/me/home');w.chain.state.fail=null;
+  assert.deepEqual([r.status,await body(r)],[503,{error:'OWNERSHIP_UNAVAILABLE'}]);
+  const calls=rpcCalls(w);
+  assert.deepEqual(view(await body(await instance(refused).get('/api/me/home'))),[[],0,null,'limited']);assert.equal(rpcCalls(w),calls);
+  // At most 256 ids are kept, chosen like the candidates themselves (A-4): 299 unregistered low ids and #1000, online.
+  const B=newAccount(),bAddr=B.address.toLowerCase(),mine=Object.fromEntries([...Array.from({length:299},(_,i)=>String(i)),'1000'].map(id=>[id,bAddr]));
+  const big=setup({imd:fakeImd({seats:{1000:'77777'},owners:owners(2000,{}),online:[1000]}),chain:fakeChain({owners:mine})});
+  const sb=await signedIn(big,B);assert.equal((await body(await sb.get('/api/me/home'))).eligible,1);await Promise.all(big.kept);
+  const far=createWorker(new ReadGateway(big.imd.fetcher,big.clock.now),big.chain.fetcher,big.clock.now),fb=new Browser(q=>far.fetch(q,{...big.env,...refused},{waitUntil:p=>big.kept.push(p)}));
+  fb.jar=new Map(sb.jar);const h=await body(await fb.get('/api/me/home'));
+  assert.deepEqual([h.seats.length,h.eligible,h.seats.filter(s=>s.counts).map(s=>s.tokenId),h.recheck],[256,1,['1000'],'limited']);
+});
+
+// A-2, the date of a kept answer (Codex crosscheck review A2-R1): it was when the request began, so a request held before
+// its index read (a slow IMD roster read, say) dated its later answer before one read meanwhile on another instance, the
+// guard kept that older answer, and a refused read anywhere lost a seat only the later one named.
+test('A-2: a kept index answer is dated when its index read began, not its request: a request held before the index keeps its later answer over one read meanwhile',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase();
+  const w=setup({imd:fakeImd({seats:{361:'51320',921:'51311'},owners:owners(2000,{}),online:[361,921]}),chain:fakeChain({owners:{361:a}})});
+  const view=h=>[h.seats.map(s=>s.tokenId),h.eligible,h.size,h.recheck],settle=()=>Promise.all(w.kept);
+  const sa=await signedIn(w,A);
+  // An instance: its own Worker (empty caches) over the same D1, chain and clock, with its own IMD fetch, chain:index
+  // answer and waitUntil list.
+  const instance=({imd=w.imd.fetcher,allowed=()=>true,kept=w.kept}={})=>{const worker=createWorker(new ReadGateway(imd,w.clock.now),w.chain.fetcher,w.clock.now);
+    const b=new Browser(r=>worker.fetch(r,{...w.env,CHAIN_LIMITER:{limit:async()=>({success:allowed()})}},{waitUntil:p=>kept.push(p)}));b.jar=new Map(sa.jar);return b;};
+  // X's request begins at t0 and waits for IMD's roster.
+  let open,reached,xAllowed=true;const gate=new Promise(r=>open=r),waiting=new Promise(r=>reached=r),xKept=[];
+  const x=instance({imd:async url=>{reached();await gate;return w.imd.fetcher(url);},allowed:()=>xAllowed,kept:xKept});
+  const t0=w.clock.now(),held=x.get('/api/me/home');await waiting;
+  // t0 + 3 s: Y reads the index, which names #361 only.
+  w.clock.advance(3_000);
+  assert.deepEqual(view(await body(await instance().get('/api/me/home'))),[['361'],1,'s',undefined]);await settle();
+  // t0 + 5 s: #921 is bought (IMD's roster does not list it). t0 + 6 s: X goes on and reads the index, which names both.
+  w.clock.advance(2_000);w.chain.state.owners[921]=a;w.clock.advance(1_000);open();
+  assert.deepEqual(view(await body(await held)),[['361','921'],2,'ms',undefined]);await Promise.all(xKept);
+  const row=w.db.raw.prepare('SELECT ids,read_at FROM index_candidates WHERE address=?').get(a);
+  assert.deepEqual([JSON.parse(row.ids),row.read_at],[['361','921'],t0+6_000],'X’s later answer is the one kept, dated when its index read began');
+  // Z, with chain:index refused: the kept answer names #921 too, and ownerOf proves it.
+  assert.deepEqual(view(await body(await instance({allowed:()=>false}).get('/api/me/home'))),[['361','921'],2,'ms','limited'],'another instance, refused');
+  // X itself, refused after 5 min: its own answer is that same one.
+  xAllowed=false;w.clock.advance(300_001);
+  assert.deepEqual(view(await body(await x.get('/api/me/home'))),[['361','921'],2,'ms','limited'],'X, refused');
+});
+
+// A deploy that ran ahead of migrations/0004 cannot keep index answers in D1: each instance keeps its own, as before,
+// and neither the house read nor the cron fails for it.
+test('deployed before migrations/0004: house reads, refused or failing index reads and the cron work as before the table',async()=>{
+  const {openD1}=await import('./d1-sqlite.mjs');
+  const A=newAccount(),a=A.address.toLowerCase(),old=openD1(['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql']);let allowed=true;
+  const w=setup({imd:fakeImd({seats:{361:'51320'},owners:owners(2000,{}),online:[361]}),chain:fakeChain({owners:{361:a}}),env:{DB:old,CHAIN_LIMITER:{limit:async()=>({success:allowed})}}});
+  const sa=await signedIn(w,A),home=async()=>{const r=await sa.get('/api/me/home?fresh=1'),h=await body(r);return [r.status,h.seats?.map(s=>s.tokenId),h.eligible,h.recheck];};
+  assert.deepEqual(await home(),[200,['361'],1,undefined]);await Promise.all(w.kept);
+  allowed=false;w.clock.advance(31_000);
+  assert.deepEqual(await home(),[200,['361'],1,'limited'],'refused: this instance’s own answer');
+  allowed=true;w.chain.state.fail='index';w.clock.advance(31_000);
+  assert.deepEqual(await home(),[200,['361'],1,'limited'],'failing: the same');
+  w.chain.state.fail=null;
+  await w.worker.scheduled({scheduledTime:w.clock.now(),cron:'*/15 * * * *'},w.env,{waitUntil:p=>w.kept.push(p)});await Promise.all(w.kept);
+  assert.equal(old.raw.prepare('SELECT count(*) n FROM seat_presence').get().n,1,'the roster is recorded; only the index prune fails');
+});
+
 // INT-1: an owner tab re-checks every 60 s; the ownership proof lives 30 s, so each re-check used to cost an NFT API call and
 // an eth_call. The index answer is now kept 5 min per address; ownerOf is still proven on every re-check.
 test('an hour of owner re-checks at 60 s costs 60 eth_calls but only 12 NFT index calls, and a sale still shows within one re-check',async()=>{
@@ -182,14 +308,17 @@ test('house size follows the eligible count (1 s, 2–3 ms, 4–6 m, 7–9 l, 10
 test('chain failures are 503 OWNERSHIP_UNAVAILABLE, never an empty house, and are not cached',async()=>{
   const a=newAccount(),me=a.address.toLowerCase(),w=world({online:[361],chain:{361:me}});
   const b=await signedIn(w,a);
-  for(const fail of ['network','http','rpc-error','index']){
+  for(const fail of ['network','http','rpc-error']){
     w.chain.state.fail=fail;
-    if(fail==='index')w.clock.advance(5*60_000);                     // the index answer from the rpc-error round has expired
     const r=await b.get('/api/me/home');
     assert.equal(r.status,503,fail);assert.deepEqual(await body(r),{error:'OWNERSHIP_UNAVAILABLE'});
   }
-  w.chain.state.fail=null;
-  const ok=await body(await b.get('/api/me/home'));assert.equal(ok.eligible,1,'the failure was not remembered');
+  // A failing index read with an answer kept from an earlier one (the rpc-error round's) is treated like a refused one
+  // (A-2): that answer, proven by ownerOf, marked limited. With none kept it is 503 (the A-2 test across instances).
+  w.chain.state.fail='index';w.clock.advance(5*60_000);                // the index answer from the rpc-error round has expired
+  const kept=await body(await b.get('/api/me/home'));assert.deepEqual([kept.eligible,kept.recheck],[1,'limited']);
+  w.chain.state.fail=null;w.clock.advance(30_001);
+  const ok=await body(await b.get('/api/me/home'));assert.deepEqual([ok.eligible,ok.recheck],[1,undefined],'the failure was not remembered');
   // No key (local runs, or a missing secret) is the same 503, with no request to Alchemy at all.
   const nokey=setup({key:null,imd:fakeImd({seats:{361:'1'},owners:owners(2000,{}),online:[361]}),chain:fakeChain({owners:{361:me}})});
   const r=await (await signedIn(nokey,a)).get('/api/me/home');
@@ -208,9 +337,64 @@ test('one address: ownership is read once per 30 s (in-flight shared); more than
   const many=newAccount(),m=many.address.toLowerCase(),ids=Array.from({length:MULTICALL_CHUNK+30},(_,i)=>String(1000+i));
   const big=setup({imd:fakeImd({seats:{},owners:owners(2000,{}),online:[]}),chain:fakeChain({owners:Object.fromEntries(ids.map(id=>[id,m]))})});
   const home=await body(await (await signedIn(big,many)).get('/api/me/home'));
-  assert.equal(home.seats.length,ids.length);
+  assert.equal(home.seats.length,ids.length);assert.equal(home.recheck,undefined,'230 candidates, all checked: a complete answer');
   const calls=big.chain.state.calls.filter(c=>c.url===ALCHEMY_RPC_URL).map(c=>JSON.parse(c.body).params[1]);
   assert.deepEqual(calls,['latest','0x'+(21_000_000).toString(16)]);
+});
+
+// A-4 (Swarm audit 519db624): the 256-candidate cap cut by token id before eligibility, so one more low-id seat sent to a
+// large holder pushed the only counting seat out, and the answer read as a complete "no house".
+const low=n=>Array.from({length:n},(_,i)=>String(i));
+/** A holder of `ids` (the roster and the index both name them; `seats`: id → agent id, `online` by default all of them):
+ *  its first house read and the eth_calls it cost. */
+const holder=async(ids,seats,online=Object.keys(seats),env)=>{const A=newAccount(),a=A.address.toLowerCase(),mine=Object.fromEntries(ids.map(id=>[id,a]));
+  const w=setup({imd:fakeImd({seats,owners:owners(2000,mine),online}),chain:fakeChain({owners:mine}),env});
+  const b=await signedIn(w,A),h=await body(await b.get('/api/me/home'));return {h,rpc:rpcCalls(w)};};
+test('A-4: past the 256-candidate cap, seats whose agent can count are checked first, and a cut list says partial, never a complete zero',async()=>{
+  // 255 unregistered low ids and #1000, the one registered seat, online: 256 candidates, all checked.
+  let {h,rpc}=await holder([...low(255),'1000'],{1000:'77777'});
+  assert.deepEqual([h.eligible,h.size,h.recheck,h.seats.length,h.seats.at(-1).tokenId,rpc],[1,'s',undefined,256,'1000',2]);
+  // One more unregistered low id (#255): 257 candidates. #1000 is still checked and counts; #255 is the one left out.
+  ({h,rpc}=await holder([...low(256),'1000'],{1000:'77777'}));
+  assert.deepEqual(h.seats.map(s=>s.tokenId),[...low(255),'1000'],'checked and listed by id');
+  assert.deepEqual([h.eligible,h.size,h.recheck,rpc],[1,'s','partial',2],'still two eth_calls');
+  // Registered seats that are offline (they can count through a recent sighting) outrank unregistered ones too.
+  ({h}=await holder([...low(256),'1500','1600'],{1500:'77778',1600:'77779'},[]));
+  assert.deepEqual([h.seats.slice(-2).map(s=>s.tokenId),h.seats.length,h.recheck],[['1500','1600'],256,'partial']);
+  // Nothing counts among 257 unregistered seats: eligible 0, but partial, not a complete zero.
+  ({h}=await holder(low(257),{}));
+  assert.deepEqual([h.eligible,h.size,h.recheck,h.seats.length],[0,null,'partial',256]);
+  // Online seats outrank registered offline ones: 256 registered seats, none seen online, and #1000, online, is kept.
+  const all=[...low(256),'1000'];
+  ({h}=await holder(all,Object.fromEntries(all.map((id,i)=>[id,String(50000+i)])),['1000']));
+  assert.deepEqual([h.eligible,h.recheck,h.seats.length,h.seats.filter(s=>s.counts).map(s=>s.tokenId)],[1,'partial',256,['1000']]);
+  // Both apply (the index refused, and the roster alone names 257): 'limited' is named.
+  ({h}=await holder(low(257),{},[],{CHAIN_LIMITER:{limit:async()=>({success:false})}}));
+  assert.deepEqual([h.recheck,h.seats.length],['limited',256]);
+  // The index stopped at its page cap (NFT_PAGE_CAP, 5 pages) with more pages left: under 256 ids, yet not the whole list,
+  // so partial too; the seats it did name are proven as always.
+  const E=newAccount(),e=E.address.toLowerCase(),we=setup({imd:fakeImd({seats:{1000:'77777'},owners:owners(2000,{}),online:[1000]}),chain:fakeChain({owners:{7:e,1000:e}})});
+  we.chain.state.endlessPages=true;
+  const he=await body(await (await signedIn(we,E)).get('/api/me/home'));
+  assert.deepEqual([he.seats.map(s=>s.tokenId),he.eligible,he.recheck,we.chain.state.calls.filter(c=>c.url.startsWith(ALCHEMY_NFTS_URL)).length],[['7','1000'],1,'partial',5]);
+  // Each page named the same two ids again: the answer kept in D1 names each once.
+  await Promise.all(we.kept);
+  assert.deepEqual(JSON.parse(we.db.raw.prepare('SELECT ids FROM index_candidates WHERE address=?').get(e).ids),['1000','7']);
+});
+
+// A-4, the other sizes (Codex plan, patch C): under the cap the answer is complete; far past it the seat that counts is
+// still found and the cost stays at most 256 ownerOf in two eth_calls.
+test('A-4: under the cap a read is complete; far past it (600 or 301 candidates) the seat that counts is still found and the cost stays two eth_calls',async()=>{
+  // 100 unregistered seats: every one checked in one eth_call, a complete answer (no recheck).
+  let {h,rpc}=await holder(low(100),{});
+  assert.deepEqual([h.eligible,h.size,h.recheck,h.seats.length,rpc],[0,null,undefined,100,1]);
+  // 599 unregistered low ids and #1999, the one registered seat, online: #1999 is checked and counts.
+  ({h,rpc}=await holder([...low(599),'1999'],{1999:'77777'}));
+  assert.deepEqual([h.eligible,h.size,h.recheck,h.seats.length,h.seats.filter(s=>s.counts).map(s=>s.tokenId),rpc],[1,'s','partial',256,['1999'],2]);
+  // 301 registered seats, all online: 256 of them are checked and count, the rest are not listed; still two eth_calls.
+  const all=[...low(300),'1999'];
+  ({h,rpc}=await holder(all,Object.fromEntries(all.map((id,i)=>[id,String(60000+i)]))));
+  assert.deepEqual([h.eligible,h.size,h.recheck,h.seats.length,rpc],[256,'xl','partial',256,2]);
 });
 
 // SEC-3 / INT-2: the public route made one keyed getNFTsForOwner(withMetadata) per distinct address, for anyone.

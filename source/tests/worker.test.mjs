@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as entry from '../worker/index.ts';
-import {createWorker,rateLimitKey,networkKey,USER_AGENT} from '../worker/app.ts';
+import {createWorker,rateLimitKey,networkKey,USER_AGENT,edgeCopy,SHARED_COPY_PATH} from '../worker/app.ts';
+import {SHARED_SHAPE} from '../server/gateway.ts';
 const worker=entry.default;
 import {ReadGateway,ACTIVITY_URL} from '../server/gateway.ts';
 import {HSTS} from '../server/world-api.ts';
@@ -126,18 +127,22 @@ test('the snapshot body is serialised once per data change and rebuilt when any 
   const original=JSON.stringify;let serialised=0;
   JSON.stringify=function(value,...rest){if(value&&typeof value==='object'&&value.mode==='live'&&value.sources)serialised++;return original.call(this,value,...rest);};
   try {
-    const read=async()=>{const r=await w.fetch(get('/api/world/snapshot'),env,ctx());assert.equal(r.status,200);return r.text();};
+    const kept=[],read=async()=>{const r=await w.fetch(get('/api/world/snapshot'),env,ctx(kept));assert.equal(r.status,200);return r.text();};
+    const settled=()=>Promise.all(kept.splice(0));
     const first=await read(),second=await read();
     assert.equal(serialised,1);assert.equal(second,first);
     const reads=path=>up.calls.filter(u=>u===API+path).length;
     at=TTL;assert.equal(await read(),first);assert.equal(serialised,1);assert.equal(reads('/swarm'),1,'nothing is re-read within the upstream TTL');
-    // Past the TTL every source is re-read (new fetchedAt) and the body rebuilt exactly once; the new job reaches it.
+    // Past the TTL the reader is answered at once with what the isolate holds (the same body), while every source is
+    // re-read in the background (new fetchedAt); the next reader gets the body rebuilt exactly once, with the new job.
     up.data['/jobs?limit=50']={count:1,jobs:[{id:'job-2',objective:'second objective',status:'open'}]};
-    at=1001+TTL;const changed=await read();assert.equal(serialised,2);assert.equal(reads('/swarm'),2);assert.equal(reads('/workers'),2);
+    at=1001+TTL;assert.equal(await read(),first);assert.equal(serialised,1);await settled();
+    const changed=await read();assert.equal(serialised,2);assert.equal(reads('/swarm'),2);assert.equal(reads('/workers'),2);
     assert.ok(changed.includes('second objective'));assert.ok(!changed.includes('first objective'));
     assert.equal(await read(),changed);assert.equal(serialised,2);
     // A failed refresh is a change too: the swarm source turns stale in the body.
-    up.fail.add('/swarm');at=2002+2*TTL;const failed=JSON.parse(await read());assert.equal(serialised,3);
+    up.fail.add('/swarm');at=2002+2*TTL;assert.equal(await read(),changed);await settled();
+    const failed=JSON.parse(await read());assert.equal(serialised,3);
     assert.equal(failed.sources.swarm.state,'stale');assert.equal(failed.sources.swarm.error,'IMD HTTP 502');
     assert.equal(failed.sources.jobs.data.jobs[0].id,'job-2');
   } finally {JSON.stringify=original;}
@@ -229,4 +234,50 @@ test('the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-
   assert.equal(networkKey('203.0.114.9'),'net:203.0.114.0/24');assert.equal(networkKey(null),'net:unknown');
   for(const ip of ['2001:db8:1:2::1','2001:db8:1:ffff::9','2001:0DB8:0001:0:0:0:0:1','2001:db8:1::'])assert.equal(networkKey(ip),'net6:2001:db8:1::/48',ip);
   assert.equal(networkKey('2001:db8:2::1'),'net6:2001:db8:2::/48');assert.equal(networkKey('::1'),'net6:0:0:0::/48');
+});
+
+// The Cache API as workerd has it, in miniature: one store per location, keyed by URL, honouring max-age.
+function fakeEdgeCache(clock){
+  const store=new Map(),log=[];
+  return {store,log,
+    match:async url=>{log.push('match '+url);const e=store.get(url);if(!e||clock()>e.expires)return undefined;return new Response(e.body,{headers:e.headers});},
+    put:async(url,response)=>{log.push('put '+url);const cc=response.headers.get('cache-control')??'',age=/max-age=(\d+)/.exec(cc);
+      if(!age||/no-store|private/.test(cc))return;store.set(url,{body:await response.text(),headers:[...response.headers],expires:clock()+Number(age[1])*1000});}};
+}
+test('the Worker keeps a per-location shared copy of the snapshot, and a cold isolate answers from it at once',async()=>{
+  let at=1_000_000;const cache=fakeEdgeCache(()=>at),up=upstream(),{seen,env}=assetsEnv();
+  const w1=createWorker(new ReadGateway(up.fetcher,()=>at),undefined,()=>at,undefined,()=>cache),kept=[];
+  const first=await w1.fetch(get('/api/world/snapshot'),env,ctx(kept));assert.equal(first.status,200);assertApiHeaders(first);
+  const body=await first.json();await Promise.all(kept);
+  const keys=['swarm','workers','jobs','oracle','publications','launches','activity'];
+  assert.deepEqual([...cache.store.keys()].sort(),keys.map(k=>'https://imdember.com'+SHARED_COPY_PATH+SHARED_SHAPE+'/'+k).sort(),'same-origin keys under /api/world/_shared/v1/<shape>/');
+  assert.match(SHARED_SHAPE,/^[0-9a-z]{1,7}$/);
+  for(const [url,e] of cache.store){
+    assert.equal(new Headers(e.headers).get('cache-control'),'public, max-age=3600');
+    const record=JSON.parse(e.body),key=url.split('/').pop();
+    assert.equal(record.fetchedAt,at);assert.equal(record.shape,SHARED_SHAPE);assert.equal(JSON.stringify(record.data),JSON.stringify(body.sources[key].data));
+  }
+  assert.equal(JSON.stringify([...cache.store.values()]).includes('secret-device-key'),false,'only the public, trimmed data');
+  // No client request is ever answered from the copy: its path is an unknown route of the Worker, and nothing is looked up.
+  const before=cache.log.length;
+  for(const path of [SHARED_COPY_PATH+'swarm',SHARED_COPY_PATH+SHARED_SHAPE+'/swarm',SHARED_COPY_PATH+'workers?x=1',SHARED_COPY_PATH]){
+    const r=await w1.fetch(get(path),env,ctx());assert.equal(r.status,404,path);assertApiHeaders(r);assert.deepEqual(await r.json(),{error:'unknown_route'});
+  }
+  assert.equal(cache.log.length,before);assert.equal(seen.length,0);
+  // Another isolate in the same location, 2 min later, with api.imd.fun hanging: the snapshot comes from the copy.
+  at+=120_000;const hung=createWorker(new ReadGateway(()=>new Promise(()=>{}),()=>at),undefined,()=>at,undefined,()=>cache),started=Date.now();
+  const second=await hung.fetch(get('/api/world/snapshot'),env,ctx());assert.equal(second.status,200);assertApiHeaders(second);
+  const served=await second.json();assert.ok(Date.now()-started<1000);
+  for(const key of keys){assert.equal(served.sources[key].state,'fresh',key);assert.equal(served.sources[key].fetchedAt,at-120_000,key);}
+  assert.equal(JSON.stringify(served.sources.swarm.data),JSON.stringify(body.sources.swarm.data));
+  // An hour and more later the Cache API has dropped it (max-age), and the gateway would ignore it anyway.
+  at+=3600_000;const later=createWorker(new ReadGateway(()=>new Promise(()=>{}),()=>at,{coldWaitMs:30}),undefined,()=>at,undefined,()=>cache);
+  const gone=await (await later.fetch(get('/api/world/snapshot'),env,ctx())).json();assert.equal(gone.sources.swarm.state,'unavailable');
+});
+test('edgeCopy keys by the request origin, and a copy the Cache API does not have is undefined',async()=>{
+  const cache=fakeEdgeCache(()=>0),copy=edgeCopy(cache,'http://127.0.0.1:8791');
+  assert.equal(await copy.get('swarm'),undefined);
+  await copy.put('swarm',{v:1,shape:SHARED_SHAPE,key:'swarm',data:{seats:{}},fetchedAt:5});
+  assert.deepEqual([...cache.store.keys()],['http://127.0.0.1:8791/api/world/_shared/v1/'+SHARED_SHAPE+'/swarm']);
+  assert.deepEqual(await copy.get('swarm'),{v:1,shape:SHARED_SHAPE,key:'swarm',data:{seats:{}},fetchedAt:5});
 });

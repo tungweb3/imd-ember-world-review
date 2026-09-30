@@ -1,4 +1,4 @@
-import type {ReadGateway} from '../server/gateway.ts';
+import {GATEWAY_DEFAULTS,SHARED_SHAPE,type ReadGateway,type SharedCopy} from '../server/gateway.ts';
 import {handleWorldApi,LimiterMissing,type Allow} from '../server/world-api.ts';
 import {UPSTREAM_TTL_MS} from '../src/world/cadence.ts';
 import {handleAccountApi} from '../server/auth.ts';
@@ -37,6 +37,25 @@ export const upstreamFetch:typeof fetch=(input,init)=>{
   const edge=url.protocol==='https:'&&EDGE_CACHED_HOSTS.includes(url.hostname)&&!headers.has('authorization');
   return fetch(input,edge?{...init,headers,cf:{cacheEverything:true,cacheTtlByStatus:EDGE_CACHE_TTL_BY_STATUS}} as RequestInit:{...init,headers});
 };
+/** Where the shared copy of the snapshot sources lives in the Cache API: under /api/world/, which only ever reaches this
+ *  Worker (run_worker_first), where it is an unknown route (404). No client request is answered from these entries;
+ *  only the gateway reads them, by this exact key. v1: the SharedRecord shape (server/gateway.ts). The full key adds
+ *  SHARED_SHAPE (a hash of the code that shapes the data) and the source: <origin>/api/world/_shared/v1/<shape>/<source>,
+ *  so a deploy that changes a select starts from an empty copy instead of the previous version's data. */
+export const SHARED_COPY_PATH='/api/world/_shared/v1/';
+/** The part of the Cache API (caches.default: one cache per Cloudflare location) the shared copy uses. */
+export type EdgeCache={match(request:string):Promise<Response|undefined>;put(request:string,response:Response):Promise<unknown>};
+/** The gateway's SharedCopy over the Cache API, keyed under the request's own origin. Entries expire after maxAgeMs
+ *  (Cache-Control), and the gateway ignores anything older anyway (GATEWAY_DEFAULTS.staleMaxAgeMs). The records are the
+ *  public snapshot data the route itself answers with; nothing secret is ever written. */
+export function edgeCopy(cache:EdgeCache,origin:string,maxAgeMs:number=GATEWAY_DEFAULTS.staleMaxAgeMs):SharedCopy{
+  const key=(name:string)=>origin+SHARED_COPY_PATH+SHARED_SHAPE+'/'+encodeURIComponent(name);
+  return {
+    async get(name){const r=await cache.match(key(name));return r?.ok?await r.json():undefined;},
+    put:(name,record)=>cache.put(key(name),new Response(JSON.stringify(record),{headers:{'content-type':'application/json','cache-control':'public, max-age='+Math.floor(maxAgeMs/1000)}}))
+  };
+}
+const defaultCache=():EdgeCache|undefined=>(globalThis as {caches?:{default?:EdgeCache}}).caches?.default;
 /** Rate-limit key for a client address: IPv4 as is; IPv6 by its /64 prefix, because one subscriber usually holds a
  *  whole /64 and could otherwise rotate host bits to get a fresh limit per request. IPv4 carried in an IPv6 form
  *  (::ffff:192.0.2.1) counts as that IPv4 address. */
@@ -81,8 +100,10 @@ export function chainAccess(request:Request,env:Env,chainFetch:typeof fetch):Cha
   return mock?{key:'local-mock',fetch:mockChainFetch(mock)}:{key:env.ALCHEMY_API_KEY||undefined,fetch:chainFetch};
 }
 type ScheduledController={scheduledTime:number;cron:string};
-/** chainFetch reaches Alchemy for the wallet routes (Authorization is set, so upstreamFetch never edge-caches it). */
-export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstreamFetch,now:()=>number=Date.now,collections=CHARACTER_COLLECTIONS) {
+/** chainFetch reaches Alchemy for the wallet routes (Authorization is set, so upstreamFetch never edge-caches it).
+ *  edgeCache: the location's Cache API for the gateway's shared copy (none outside workerd). */
+export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstreamFetch,now:()=>number=Date.now,collections=CHARACTER_COLLECTIONS,
+  edgeCache:()=>EdgeCache|undefined=defaultCache) {
   const ownership=new Ownership(gateway,collections),noCode=new Map<string,number>();   // per isolate (server/auth.ts NoCodeCache)
   return {
     async fetch(request:Request,env:Env,ctx:Context):Promise<Response> {
@@ -90,7 +111,8 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
       const account=await handleAccountApi(request,{db:env.DB,now,allow,chain:chainAccess(request,env,chainFetch),ownership,waitUntil,noCode,
         client:networkKey(request.headers.get('cf-connecting-ip')),colo:(request as {cf?:{colo?:string}}).cf?.colo});
       if(account)return account;
-      const api=await handleWorldApi(request,gateway,{waitUntil,allow,floorKey:env.ALCHEMY_API_KEY||undefined});
+      const cache=edgeCache(),shared=cache?edgeCopy(cache,new URL(request.url).origin):undefined;
+      const api=await handleWorldApi(request,gateway,{waitUntil,allow,floorKey:env.ALCHEMY_API_KEY||undefined,shared});
       return api??env.ASSETS.fetch(request);
     },
     /** Cron (every 15 min): record which seats IMD lists online. Nothing to do without a database. */

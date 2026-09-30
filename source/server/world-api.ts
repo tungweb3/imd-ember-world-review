@@ -1,4 +1,4 @@
-import type {ReadGateway,WaitUntil} from './gateway.ts';
+import type {ReadGateway,WaitUntil,SharedCopy} from './gateway.ts';
 import {withUsd,type MarketExtras,type MarketQuote,type SeatFloor} from '../src/world/market.ts';
 // The one implementation of GET /api/world/*, shared by the Vite dev server and the Cloudflare Worker so they cannot drift.
 export const WORLD_API_PREFIX='/api/world/';
@@ -22,7 +22,9 @@ export class LimiterMissing extends Error{binding:string;constructor(binding:str
 export type Allow=(bucket:'api'|'seat')=>boolean|Promise<boolean>;
 export type WorldApiOptions={waitUntil?:WaitUntil;allow?:Allow;
   /** The Worker secret ALCHEMY_API_KEY (production only). Without it the seat floor is simply absent. */
-  floorKey?:string};
+  floorKey?:string;
+  /** The Worker's per-location copy of the snapshot sources (worker/app.ts edgeCopy); none in the Vite dev server. */
+  shared?:SharedCopy};
 type FloorGateway=Pick<ReadGateway,'floor'|'floorNow'|'floorRefused'>;
 /** The Worker-only market extras. The floor is included only when there is one; floorEnabled tells the client whether
  *  asking again can ever return one (false: no key configured, or Alchemy refused it). `wait` false answers from the
@@ -46,7 +48,7 @@ export async function handleWorldApi(request:ApiRequest,gateway:Pick<ReadGateway
   if(request.method!=='GET')return error(405,'read_only',{Allow:'GET'});
   try {
     if(!await permitted(options.allow,'api'))return error(429,'rate_limited',{'Retry-After':'60'});
-    if(pathname==='/api/world/snapshot')return reply(200,await gateway.snapshotBody(options.waitUntil));
+    if(pathname==='/api/world/snapshot')return reply(200,await gateway.snapshotBody(options.waitUntil,options.shared));
     // ?only=extras: the Observatory drawer wants only what the Worker alone can read (the seat floor); the market is
     // not read upstream for it, and no old cached quote prices it. The full route is the quote fallback: its floor comes
     // from the cache as it is, so the quote never waits on Alchemy.

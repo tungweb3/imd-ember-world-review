@@ -43,8 +43,15 @@ test('deploy evidence from a real deploy record: commit, id, times, version id, 
       'Rule id (fill in from Security → WAF → Rate limiting rules):','- [ ] _pending — filled in at deploy_','Files in the repository at the source commit:'])
       assert.ok(md.includes(part),part);
     // The migrations of that commit, by name (their hashes are whatever the files hold; the next test pins the hashing).
-    assert.deepEqual([...md.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql']);
+    assert.deepEqual([...md.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql']);
     assert.ok(!md.includes('third-party-licenses'),'only JS, CSS and HTML are listed');
+    // The limiter keys come from server/auth.ts at the record's commit: HEAD has A-1's lane key, a build before it
+    // (3f661eb, the retest fixes) does not.
+    const keys=k=>'and the constant keys '+k.map(x=>'`'+x+'`').join(', ')+' (CHAIN_LIMITER) and `chain:code` (API_LIMITER).';
+    assert.ok(md.includes(keys(['chain:erc1271','chain:erc1271:known','chain:erc1271:lane','chain:index','chain:assets'])),'HEAD');
+    const old=git('rev-parse','3f661eb'),r2=run(record(base,old),out);assert.equal(r2.status,0,r2.stderr);
+    const md2=readFileSync(join(out,'20260929T101500Z-'+old.slice(0,7)+'.md'),'utf8');
+    assert.ok(md2.includes(keys(['chain:erc1271','chain:erc1271:known','chain:index','chain:assets'])),md2.split('\n').find(l=>l.startsWith('Keys'))??md2);
     // None of the logs' text: the email, both local paths, the account line, wrangler's own lines, the manifest's stray note;
     // and nothing of wrangler.jsonc's comments (the real file names the Cloudflare login's email in one).
     for(const bad of [EMAIL,'example.com',LOCAL,'someone','Logged in','Uploaded','custom domain','REDACTED-EMAIL-DOMAIN','account_id','REDACTED-ACCOUNT-ID-PREFIX'])assert.ok(!md.includes(bad),bad);
@@ -65,6 +72,7 @@ test('outside git the working tree is used and said so; migrations are hashed, c
     for(const part of ['Files in the repository at the working tree (the commit was not found in this checkout):','| `0001_a.sql` | `'+ABC+'` |','| `0002_b.sql` | `'+EMPTY+'` |',
       '| `AUTH_LIMITER` | 4103 | 20 | 60 |','| Cloudflare Worker version id | not in the record (a dry run uploads nothing) |','| Mode | dry run (nothing uploaded) |'])assert.ok(md.includes(part),part);
     assert.ok(!md.includes('notes.txt')&&!md.includes('bad name')&&!md.includes(EMAIL)&&!md.includes('someone'));
+    assert.ok(md.includes('Keys inside them: not listed (no CHAIN_KEYS in server/auth.ts at the source commit).')&&!md.includes('chain:'),'no key is named that the checkout lacks');
     assert.equal(versionIdFromLog('x\nCurrent Version ID: '+UUID+'\ny'),UUID);assert.equal(versionIdFromLog('Current Version ID: '+UUID+'x'),null);
     assert.deepEqual(parseJsonc('{"a":"//not a comment","b":[1,2,],/* c */"c":"\\"//\\""}//e'),{a:'//not a comment',b:[1,2],c:'"//"'});
     // A record whose manifest and SHA256SUMS disagree on the bundle, or whose folder names another commit, is refused.

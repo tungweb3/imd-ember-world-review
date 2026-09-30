@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setup,newAccount,fakeImd,fakeChain,START} from './wallet-harness.mjs';
 import {AuthClient,INITIAL,statusOf,ownerAddress} from '../src/world/auth.ts';
-import {enterGate,enterableHome,offersEnter,interiorPreview,doorPoint,atDoor,doorLanding,DOOR_REACH,nearOwnDoor,doorOffer,blockEnter} from '../src/world/homeEntry.ts';
+import {enterGate,enterableHome,enterAtPress,offersEnter,interiorPreview,doorPoint,atDoor,doorLanding,DOOR_REACH,nearOwnDoor,doorOffer,blockEnter} from '../src/world/homeEntry.ts';
 // Home interiors (DESIGN_v001 §1, §12 groups 5 and 8): who gets an Enter action. The owner states come from the real
 // AuthClient driven against the real Worker (createWorker → handleAccountApi over the migration on node:sqlite), as in
 // tests/wallet-client; the hand-built states below cover the ones a page can only reach through a wallet prompt.
@@ -12,14 +12,14 @@ const owner=(over={})=>({...INITIAL,restored:true,sessionKnown:true,session:{add
 const lot=(o,size='ms')=>({owner:o,x:10,z:20,rotation:.5,size,agents:['1']});
 
 test('group 5: enterGate is ok only in owner mode, for the session\'s own house',()=>{
-  assert.equal(statusOf(owner()),'owner');assert.equal(enterGate(owner(),lot(A),NOW),'ok');
+  assert.equal(statusOf(owner(),NOW),'owner');assert.equal(enterGate(owner(),lot(A),NOW),'ok');
   assert.equal(enterGate(owner(),lot(A.toUpperCase().replace('0X','0x')),NOW),'ok','mixed-case addresses of the same wallet');
   assert.equal(enterGate(owner(),lot(B),NOW),'not-yours','another wallet\'s lot');
   assert.equal(enterGate(owner(),null,NOW),'no-house','owner mode but the house is not on the map yet');
   // Owner mode off: every other state the chip can show.
   const off={visitor:{...INITIAL},connected:{...INITIAL,account:A},signedInNoHouse:owner({home:home(A,0)}),ownershipUnavailable:owner({home:'unavailable'}),
     mismatch:owner({account:B}),verifying:owner({home:null}),awaitingSignature:owner({phase:'awaitingSignature'}),expired:{...INITIAL,expired:true}};
-  for(const [name,s] of Object.entries(off)){assert.equal(statusOf(s),name,name);assert.notEqual(enterGate(s,lot(A),NOW),'ok',name);assert.equal(ownerAddress(s),null);}
+  for(const [name,s] of Object.entries(off)){assert.equal(statusOf(s,NOW),name,name);assert.notEqual(enterGate(s,lot(A),NOW),'ok',name);assert.equal(ownerAddress(s,NOW),null);}
   // A session that ran out here before the server said so, and a house read for another address (another tab's cookie).
   assert.equal(enterGate(owner({session:{address:A,expiresAt:NOW}}),lot(A),NOW),'expired','expiresAt ≤ now');
   assert.equal(enterGate(owner({session:{address:A,expiresAt:NOW-1}}),lot(A),NOW),'expired');
@@ -37,7 +37,7 @@ test('group 5: the real sign-in makes the gate ok for the owner\'s house only; a
   const w=setup({imd:fakeImd({seats:{361:'51320',921:'51311',77:'50001'},owners,online:[361,921,77]}),chain:fakeChain({owners:{361:a,921:a,77:other}})});
   const b=w.browser();assert.equal((await b.signIn(acct)).verify.status,200);
   const t=client(w,b);await settle();await settle();
-  assert.equal(statusOf(t.c.state),'owner');assert.equal(ownerAddress(t.c.state),a);
+  assert.equal(statusOf(t.c.state,w.clock.now()),'owner');assert.equal(ownerAddress(t.c.state,w.clock.now()),a);
   assert.equal(enterGate(t.c.state,lot(a),w.clock.now()),'ok');
   assert.equal(enterGate(t.c.state,lot(other),w.clock.now()),'not-yours','a neighbour\'s house');
   assert.equal(enterGate(t.c.state,lot(a),t.c.state.session.expiresAt),'expired','the session\'s own expiry');
@@ -103,4 +103,17 @@ test("TEST-1: the render rules for the Enter action (the door pill, the househol
   assert.equal(nearOwnDoor(d,null,false),false,'nothing enterable');
   const far={...lot(B,'m'),x:200,z:200},farDoor=doorPoint(far);assert.equal(nearOwnDoor(farDoor,mine,false),false,"at a neighbour's door");
   assert.equal(nearOwnDoor(nb,{...mine,x:mine.x+50},false),false);
+});
+
+// Swarm retest W-1 (e48d0a96), follow-up: the Enter press re-checks the gate at press time, as startMove/confirmMove do,
+// instead of trusting the enterable house memoised at the last render.
+test('W-1: an Enter press opens the offered house only while enterGate is still ok at that moment',()=>{
+  const s=owner({session:{address:A,expiresAt:NOW+1000}}),own=lot(A);
+  assert.equal(enterableHome(s,[own],NOW),own,'offered at the last render');
+  assert.equal(enterAtPress(s,own,NOW+999),own);
+  for(const t of [NOW+1000,NOW+5000])assert.equal(enterAtPress(s,own,t),null,'expired at the press, before any re-render: '+(t-NOW));
+  assert.equal(enterAtPress(s,null,NOW),null,'nothing offered');
+  assert.equal(enterAtPress(owner({home:home(B)}),own,NOW),null,'the house read changed under the offer');
+  assert.equal(enterAtPress(owner({session:null}),own,NOW),null,'signed out');
+  assert.equal(enterAtPress(s,lot(B),NOW),null,"another wallet's house");
 });

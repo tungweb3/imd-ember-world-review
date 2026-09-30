@@ -1,5 +1,5 @@
 // Scratch-only: calls the REAL server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage with a
-// synthetic key's address against the real migrations (0001 + 0002 + 0003) on node:sqlite, and the REAL page-side check
+// synthetic key's address against the real migrations (0001 to 0004) on node:sqlite, and the REAL page-side check
 // src/world/siwe.ts checkSignInMessage on the message it returns.
 // No network: the only "chain" is a local stub that answers eth_getCode with "0x" (no contract code). No production key;
 // the synthetic keys live only in memory and no signature is written out.
@@ -7,7 +7,10 @@
 import {writeFileSync} from 'node:fs';
 import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
 import {parseSiweMessage} from 'viem/siwe';
-import {handleAccountApi,FLOW_COOKIE,SESSION_COOKIE,NETWORK_CHALLENGE_BUDGET,WALLET_CHALLENGE_BUDGET} from './server/auth.ts';
+import {handleAccountApi,FLOW_COOKIE,SESSION_COOKIE,NETWORK_CHALLENGE_BUDGET} from './server/auth.ts';
+// The per-(address, network) cooldown the reviewed version had (5 challenges a minute) is gone since Swarm audit A-6;
+// ONE_ADDRESS asks one more than it allowed, to show that no challenge is refused for its address any more.
+const ONE_ADDRESS=6;
 import {checkSignInMessage,signInSummary} from './src/world/siwe.ts';
 import {openD1} from './tests/d1-sqlite.mjs';
 const out=process.argv[2];
@@ -55,13 +58,13 @@ const r4=await post('/api/auth/challenge',{address:acct.address});const b4=await
 const before4=rpcCalls.length;
 const wrong2=await post('/api/auth/verify',{nonce:b4.nonce,signature:await other.signMessage({message:b4.message})},{cookie:FLOW_COOKIE+'='+f4});
 const wrong2Rpc=rpcCalls.slice(before4);
-// the per-wallet cooldown (L2): one address from one network, WALLET_CHALLENGE_BUDGET a minute; the same address from
-// another network is not affected
+// one address from one network (L2 since A-6: no challenge is refused for its address; only the network's share, L1,
+// and the global valve, L5, apply); the same address from another network at the same moment
 NOW+=60_000;const w=key(),wallet=[];
-for(let i=0;i<=WALLET_CHALLENGE_BUDGET;i++)wallet.push(await show(await post('/api/auth/challenge',{address:w.address})));
+for(let i=0;i<ONE_ADDRESS;i++)wallet.push(await show(await post('/api/auth/challenge',{address:w.address})));
 const walletElsewhere=await post('/api/auth/challenge',{address:w.address},{},{...deps,client:'net:198.51.100.0/24'});
 // the per-network challenge budget (L1): one minute later, one network asks NETWORK_CHALLENGE_BUDGET + 1 times, each for
-// a different synthetic address (so the wallet cooldown never applies)
+// a different synthetic address
 NOW+=60_000;const burst=[];
 for(let i=0;i<NETWORK_CHALLENGE_BUDGET;i++)burst.push((await post('/api/auth/challenge',{address:key().address})).status);
 const refused=await post('/api/auth/challenge',{address:key().address});
@@ -79,12 +82,12 @@ const redact=s=>s.replace(/(__Host-imd_(?:flow|session)=)[^;,]+/g,'$1<REDACTED>'
 const p=parseSiweMessage(body.message);
 const count=a=>Object.entries(a.reduce((m,s)=>(m[s]=(m[s]??0)+1,m),{})).map(([s,n])=>n+' x '+s).join(', ');
 const lines=[
-'# De-sensitized SIWE sample, IMD Ember World (source commit 2da46cdafcf8ad3fb3571ea0273ecc5d1ab5be1d, the commit of live Worker version 50c688c9-1bcf-4b68-a0ab-b7a9dc6ec82f)',
-'# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:297-298)',
-'# on this snapshot\'s source/, against migrations/0001 + 0002 + 0003 on node:sqlite (in-memory, tests/d1-sqlite.mjs).',
+'# De-sensitized SIWE sample, IMD Ember World (source commit 4321bb4da3826276919ed60ecc2018139dcaeacc, the commit of live Worker version 1a0dd495-35e7-4052-ba84-332e787f864d)',
+'# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:346)',
+'# on this snapshot\'s source/, against migrations/0001 to 0004 on node:sqlite (in-memory, tests/d1-sqlite.mjs).',
 '# Address: a freshly generated SYNTHETIC local key (in memory only, discarded; controls no funds). Nonce: server-generated random (crypto.getRandomValues, 16 bytes hex), local DB only.',
 '# Clock fixed at '+new Date(T0).toISOString()+'. No request was made to imdember.com or any network (the chain is a local stub answering eth_getCode "0x"); no signature is included in this file.',
-'# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:203-207).',
+'# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:243-247).',
 '',
 '----- BEGIN EXACT MESSAGE (as returned in POST /api/auth/challenge .message) -----',
 body.message,
@@ -109,14 +112,14 @@ body.message,
 '#   then the right signature for the same nonce: '+await show(afterBurn)+'  (the failed verify burnt the challenge)',
 '#   that challenge row: '+JSON.stringify(row3),
 '# a fourth challenge, again signed by the wrong key: '+await show(wrong2)+'  chain calls: '+(wrong2Rpc.join(',')||'none')+' (the "no code" answer is cached per address for 60 s)',
-'# '+(WALLET_CHALLENGE_BUDGET+1)+' challenges for ONE address from one network within a minute: '+count(wallet),
+'# '+ONE_ADDRESS+' challenges for ONE address from one network within a minute (the reviewed version refused the 6th; A-6 removed that cooldown): '+count(wallet),
 '#   the same address from another network at the same moment: '+await show(walletElsewhere),
 '# '+(NETWORK_CHALLENGE_BUDGET)+' challenges for different addresses from one network within a minute: '+count(burst)+'; the next one: '+await show(refused),
 '#   a challenge from another network at the same moment: HTTP '+elsewhere.status,
 '# logout-all: a second browser of the same address signed in ('+JSON.stringify({signedIn:sessionB1.signedIn})+'); logout-all without a session: '+await show(noSession),
 '#   logout-all from the first browser: HTTP '+all.status+' '+JSON.stringify(allBody)+'; Set-Cookie: '+redact(all.headers.getSetCookie().join(', ')),
 '#   the second browser afterwards: GET /api/auth/session -> '+JSON.stringify(sessionB2),
-'# refusal log lines written by the handler (one JSON line per 429/503; no IP, address, cookie, token, signature or message):',
+'# refusal log lines written by the handler (one JSON line per 429/503; the client only as `net`, its /24; no full IP, full address, cookie, token, signature or message):',
 ...logs.map(l=>'#   '+l),
 '# sessions table after the run (token_hash is SHA-256 of the cookie token, 64 hex chars): '+JSON.stringify(rows.map(x=>({token_hash_len:String(x.token_hash).length,chain_id:x.chain_id,ttl_days:(x.expires_at-x.created_at)/86400000,revoked:x.revoked_at!==null,wallet_type:x.wallet_type,verification_method:x.verification_method}))),
 ];

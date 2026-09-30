@@ -47,7 +47,7 @@ No `Access-Control-*` header is ever sent (same-origin only; no CORS credentials
 | Route | Auth | Success | Errors |
 |---|---|---|---|
 | `POST /api/auth/challenge` body `{address}` | Origin allow-list | 200 `{nonce,message,acceptUntil}` + `Set-Cookie __Host-imd_flow` | 400 `BAD_REQUEST` (JSON, content-type, size > 2 KB, address), 403 `ORIGIN_NOT_ALLOWED`, 429 `RATE_LIMITED`, 503 `AUTH_UNAVAILABLE` (no DB) |
-| `POST /api/auth/verify` body `{nonce,signature}` | Origin + flow cookie | 200 `{address,expiresAt}` + `Set-Cookie __Host-imd_session`, flow cookie cleared | 400 `BAD_REQUEST` / `UNSUPPORTED_SIGNATURE` (ERC-6492 wrapper), 401 `SIGNATURE_INVALID`, 403 `ORIGIN_NOT_ALLOWED` / `FLOW_MISMATCH`, 409 `CHALLENGE_USED` (used, superseded or lost a concurrent race), 410 `CHALLENGE_EXPIRED`, 429, 503 `AUTH_UNAVAILABLE` / `VERIFY_UNAVAILABLE` (ERC-1271 needed but no RPC key) |
+| `POST /api/auth/verify` body `{nonce,signature}` | Origin + flow cookie | 200 `{address,expiresAt}` + `Set-Cookie __Host-imd_session`, flow cookie cleared | 400 `BAD_REQUEST` / `UNSUPPORTED_SIGNATURE` (ERC-6492 wrapper), 401 `SIGNATURE_INVALID`, 403 `ORIGIN_NOT_ALLOWED` / `FLOW_MISMATCH`, 409 `CHALLENGE_USED` (used, superseded or lost a concurrent race), 410 `CHALLENGE_EXPIRED`, 429, 503 `AUTH_UNAVAILABLE` / `VERIFY_UNAVAILABLE` (ERC-1271 needed but no RPC key, or the node could not answer: a transport or HTTP failure, a JSON-RPC error that is not a revert or an EVM halt, a malformed reply; Swarm retest W-3) |
 | `GET /api/auth/session` | cookie | 200 `{signedIn:false}` or `{signedIn:true,address,expiresAt}`; a dead cookie is also cleared | 503 `AUTH_UNAVAILABLE` |
 | `POST /api/auth/logout` | Origin | 204, session revoked, both cookies cleared, open challenges of this flow invalidated; idempotent | 403 `ORIGIN_NOT_ALLOWED`, 429 |
 | `POST /api/auth/logout-all` | Origin, JSON, a live session | 200 `{revoked}`: every live session of the session's address revoked, its open challenges (and this flow's) invalidated, both cookies cleared; never rate limited (added 2026-09-29, swarm review F-4) | 400 `BAD_REQUEST`, 401 `AUTH_REQUIRED`/`SESSION_EXPIRED` (ends nobody), 403 `ORIGIN_NOT_ALLOWED` |
@@ -60,7 +60,10 @@ read API, the auth bucket fails **closed** when the binding throws (429); an abs
 (on imdember.com it is 503). Hardening of 2026-09-28 (server/auth.ts): D1 challenge budgets per network (IPv4 /24, IPv6
 /48: 30/min) and a global valve (60 per 6 s), 429 `SIGN_IN_BUSY`; ERC-1271 checks claim the challenge first and spend a
 per-network share (3/min) and `CHAIN_LIMITER` (`chain:erc1271`, per location), 429 `CHAIN_BUSY` burns the challenge; every
-NFT index read of `/api/me/home` spends `chain:index` (refused: roster candidates only, `recheck:'limited'`).
+NFT index read of `/api/me/home` spends `chain:index` (refused: the roster and the last stored index answer are the
+candidates, ownerOf proves them, `recheck:'limited'`; Swarm audit 519db624 A-2: a refused reload used to drop that answer,
+and since 2026-09-30 the answer is kept in D1, `index_candidates`, so every instance has it; a failed index read with an
+answer kept is treated the same, one with none is still 503).
 2026-09-29 (swarm review F-3): the network share now gates the one `eth_getCode`, and only an address with code spends
 `chain:erc1271` before `eth_call`; a "no code" answer is cached per address for 60 s (per isolate), so garbage signatures for
 EOAs no longer close smart-wallet sign-in. Still open: garbage aimed at real contract addresses spends `chain:erc1271`.
@@ -126,7 +129,11 @@ Library: **viem** (exact pin 2.56.9, server only): `createSiweMessage`, `recover
 (ERC-6492 universal validator) and would put every login on Alchemy. Order:
 1. ECDSA: `recoverMessageAddress(message, signature) == address` → valid (EOAs, and 7702-delegated EOAs).
 2. Else ERC-1271: `eth_call` `isValidSignature(hashMessage(message), signature)` on mainnet at `latest` through Alchemy;
-   magic `0x1626ba7e` → valid; no code / revert / other → 401. No key → 503 `VERIFY_UNAVAILABLE`.
+   magic `0x1626ba7e` → valid; no code / revert / other → 401. No key → 503 `VERIFY_UNAVAILABLE`, and so is any
+   JSON-RPC error that is not the contract's own answer (a revert: code 3 or -32000 "execution reverted"; or an EVM halt
+   the contract's code causes: -32000 "out of gas", "invalid opcode", "invalid jump destination", "stack
+   underflow/overflow/limit reached", "write protection", "return data out of bounds" → 401), a transport or HTTP
+   failure, or a malformed reply: the node failing is not a bad signature (Swarm retest W-3; the challenge is burnt like every 503).
 3. ERC-6492 wrapped signatures (suffix `0x6492…6492`, undeployed smart accounts) → 400 `UNSUPPORTED_SIGNATURE`.
 
 Measured 2026-09-28 (scratch install viem 2.56.9 / @noble/curves 1.9.1, Node 24.19, fresh test key per run):
@@ -168,9 +175,21 @@ CREATE TABLE seat_presence(token_id INTEGER PRIMARY KEY, owner TEXT, last_online
   updated_at INTEGER NOT NULL);
 CREATE INDEX seat_presence_seen ON seat_presence(last_online_at);
 ```
-Housekeeping in the cron: delete challenges with `accept_until < now − 1 day`, sessions with `expires_at < now − 1 day`.
-`seat_presence` is never deleted ([REDACTED]). Tests run this exact file on `node:sqlite` through a small
-D1-shaped adapter (`prepare/bind/first/all/run/batch`, batch = one transaction).
+Housekeeping in the cron: delete challenges with `accept_until < now − 1 day`, sessions with `expires_at < now − 1 day`,
+and (since `0004`) stored index answers with `read_at < now − 8 days`. `seat_presence` is never deleted ([REDACTED]).
+Tests run this exact file on `node:sqlite` through a small D1-shaped adapter (`prepare/bind/first/all/run/batch`,
+batch = one transaction).
+
+`migrations/0004_index_candidates.sql` (2026-09-30, Swarm audit 519db624 A-2 across instances; additive, applied before
+the code that uses it): `index_candidates(address TEXT PRIMARY KEY, ids TEXT NOT NULL, read_at INTEGER NOT NULL)`, the
+last NFT-index answer per address (a JSON array of at most 256 ids), written by every successful index read of
+`/api/me/home` (an answer naming no seat deletes the row), read only when an index read is refused or fails; it only
+names candidates (§7); `read_at` is when that index read began, and an older answer never replaces a newer one. D1
+(measured on a local workerd D1): the upsert reads ≤ 1 row and writes 1 (2 for a new address: the row and its key), the
+delete writes none (1 when it removes a row), the read reads ≤ 1; upserts are bounded by `chain:index` (20/min per
+location, 864 k index reads a month: about 0.9 M rows written a month per location when the rows exist, at most about
+1.7 M if every read kept a new address, and only an address the index names a seat for is kept); the prune scans the
+table (a few thousand rows at most) every run and writes 1 per row it deletes.
 
 ## 7. Ownership and eligibility (`server/ownership.ts`)
 
@@ -179,7 +198,10 @@ Key only in `Authorization: Bearer`, never in a URL or an error text.
 
 1. **Candidates** for the session address: `swarm.owners[i] == address` (gateway cache, IMD's view) ∪ Alchemy
    `getNFTsForOwner(owner, contractAddresses[]=SEAT_COLLECTION)` (catches a second-hand buyer IMD has not indexed).
-   Capped at 256 ids (supply 2000; largest holder today 20).
+   Capped at 256 ids (supply 2000; largest holder today 20). Past the cap, seats whose agent the live roster shows
+   online come first, then other registered ones, then the rest (each by id), and the view says `recheck:'partial'`,
+   never a complete answer (Swarm audit 519db624 A-4: cutting by id alone could drop the only seat that counts); so does
+   an index read that stopped at its 5-page cap with pages left.
 2. **Verify**: one `eth_call` to Multicall3 `0xcA11bde05977b3631167028862bE2a173976CA11` `aggregate3` with
    `getBlockNumber()` + `ownerOf(id)` for each candidate (`allowFailure`), at `latest`, chunked by 200. A revert
    (burnt / nonexistent id) = not owned. Result: verified ids + the block number of the read (one atomic block).
@@ -187,8 +209,13 @@ Key only in `Authorization: Bearer`, never in a URL or an error text.
 3. **Eligible seat** = verified owner && `agentId` known (swarm seats or workers) && (listed in the fresh `/workers`
    read now || `seat_presence.last_online_at ≥ now − 24 h`). Size = `houseSize(eligible)`; 0 → no house.
 4. Cache: per address in the isolate, 30 s (LRU 512). No key, Alchemy error, or an unavailable swarm read → 503
-   `OWNERSHIP_UNAVAILABLE`; nothing is cached as "owns nothing". Revocation bound after a sale: ≤ 30 s (cache) + the
-   client re-read (panel open, focus, or every 60 s while owner mode is on).
+   `OWNERSHIP_UNAVAILABLE`; nothing is cached as "owns nothing". The isolate reuses the NFT index answer for 5 min per
+   address (30 s on "Check again"); the last answer is also kept in D1 (`index_candidates`, §6), dated when its index
+   read began, until the cron deletes it once that read is more than 8 days old. D1's copy is read only when an index
+   read is refused or fails: an index read the budget refuses, or one that fails while an answer is kept (the isolate's
+   or D1's, whichever is newer), proves the roster's and that answer's candidates instead, `recheck:'limited'` (Swarm
+   audit 519db624 A-2). Revocation bound after a sale: ≤ 30 s (cache) + the client re-read (panel open, focus, or
+   every 60 s while owner mode is on).
 
 **Assets** (`GET /api/wallet/:address/assets`, public): Alchemy `getNFTsForOwner` with `contractAddresses[]` =
 SEAT_COLLECTION + every `CHARACTER_COLLECTIONS` contract, `withMetadata=true`, `pageSize=100`, all pages (cap 5). Seats
@@ -219,8 +246,10 @@ INSERT INTO seat_presence(token_id,owner,last_online_at,updated_at)
  ON CONFLICT(token_id) DO UPDATE SET owner=excluded.owner,last_online_at=excluded.last_online_at,updated_at=excluded.updated_at;
 ```
 (one bound JSON parameter, so one D1 query instead of ~430). `owner` is IMD's `swarm.owners[id]`, informational only.
-A failed or partial read writes nothing (never "offline"). CPU: parsing a 459 KB workers body 0.4–0.9 ms, the 105 KB
-swarm 0.1–0.2 ms, the JSON parameter 0.1 ms (Node, measured) — a few ms per run. Writes ≈ 430 × 96/day ≈ 41 k rows/day
+A failed or partial read writes nothing (never "offline"). Every run also deletes stored index answers read more than
+8 days ago (`PRUNE_INDEX`, its own statement after the batch, so a deploy ahead of `0004` never stops the rest). CPU:
+parsing a 459 KB workers body 0.4–0.9 ms, the 105 KB swarm 0.1–0.2 ms, the JSON parameter 0.1 ms (Node, measured) — a
+few ms per run. Writes ≈ 430 × 96/day ≈ 41 k rows/day
 (IMD account's own D1).
 
 ## 9. Frontend
@@ -256,7 +285,17 @@ Rules:
 - Tabs: `BroadcastChannel('imd-ember-auth')` posts `signed-in` / `signed-out`; receivers re-read `/api/auth/session`
   (never trust the message's address).
 - Owner re-check: on panel open, window focus, and every 60 s while owner mode is on; 401 → `expired`, 503 →
-  `ownershipUnavailable` (owner mode suspended, house kept), zero eligible → `signedInNoHouse`.
+  `ownershipUnavailable` (owner mode suspended, house kept), zero eligible → `signedInNoHouse`; zero eligible from a
+  read that was not complete (`recheck` `limited` or `partial`) → `ownershipUnavailable` too, worded "the on-chain check
+  couldn't be completed", never "checked on chain: no seat" (Swarm audit 519db624 A-8).
+- Ownership is revalidated, not real-time. The server caches an `ownerOf` proof at most 30 s per address
+  (`OWNERSHIP_TTL_MS`) and the NFT index's answer 5 min (30 s on "Check again"). The page re-reads the house every 60 s
+  while owner mode is on and the tab is visible (`OWNER_RECHECK_MS`), on window focus, when My wallet opens, and when the
+  tab is shown again (the session and the house, at most once per 15 s, `HOME_MIN_GAP_MS`); it ends the session at its
+  `expiresAt` on this device's clock (W-1). While re-checks fail (429, a lost connection) the last house answer is kept at
+  most 3 min (`OWNER_STALE_MS`). So until the next successful re-check the page may briefly show a stale owner state: a
+  seat sold a moment ago, or a "Log out all devices" on another device; a hidden tab keeps its last state until it is
+  shown (tested: "visibility-refresh-clears-stale-owner").
 - Marker: `scene.setMyHome(home, label)` gets 「我家 / My home」 only in `owner` state for the household of the session
   address; a typed or merely connected address gets 「這個錢包的家 / This wallet's home」. The label is local to this
   browser, never sent or broadcast.
@@ -404,7 +443,7 @@ mutation-checked (the fix reverted → its test fails).
 | CORR-05 | low | A house answer older than 3 min (`OWNER_STALE_MS`, every re-check failed) no longer grants owner mode; it returns with the next success. |
 | CORR-06 | low | ERC-6492 (undeployed smart account) has its own notice; one verify only. |
 | CORR-07 | low | Never seen is its own reason (`not-seen`, 「尚未記錄上線」 / "Not seen online yet"), not "offline 24h+". |
-| INT-1 | med | The 60 s owner re-check pauses in hidden tabs and runs once when shown; the server keeps the NFT-index answer 5 min per address (30 s on "Check again") and still proves `ownerOf` every 30 s, so a sale shows within one re-check. An hour of re-checks = 60 `eth_call` + 12 index calls (was 60 + 60). |
+| INT-1 | med | The 60 s owner re-check pauses in hidden tabs and runs once when shown; the server keeps the NFT-index answer 5 min per address (30 s on "Check again") and still proves `ownerOf` every 30 s, so a sale shows within one successful re-check while the tab is visible. An hour of re-checks = 60 `eth_call` + 12 index calls (was 60 + 60). |
 | INT-3 | med | The cold/warm verify guards compare only with noble's window-8 table built under the same load (no absolute ceiling). Trial merge with main b3c19cb: 355/355 in 7 of 7 runs, although parallel load put cold verify at 42–65 ms wall (table alone 67–78 ms). |
 | INT-4 | low | `houseSize` lives in `src/world/houseSize.ts` (no imports; households.ts re-exports it); a test imports the Worker entry with a resolve hook and fails if layout.ts or households.ts load. |
 | INT-5 | low | A CPU guard for a cold `/api/me/home` (20 seats, the real swarm fixture, a 430-row roster, Alchemy's answers replayed): below 2× the window-8 table under the same load (idle: 17–19 ms vs 18 ms). |
@@ -478,7 +517,8 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   sessions visible in D1; it does not make them safer.
   Reminder for the Genesis Mint (not changed in this round): a World session is not consent to mint. If the Mint ever
   reuses this session, whether it needs its own explicit signature or transaction confirmation is decided by the Mint's
-  own specification and review.
+  own specification and review. The boundary a Mint page on this origin starts from (Swarm retest e48d0a96 G-1..G-3 and
+  the S-2 checklist) is `docs/security/MINT_BOUNDARY.md`; it reviews no Mint code.
 - **F-3, smart-wallet budget split (and round-1 R-3 closed).** The ERC-1271 path (`server/auth.ts verifySignature`)
   now asks, each before the read it pays for, with one check per challenge (the claim) and every refusal 429
   `CHAIN_BUSY` + burn: the claim (per /24 or /48: 10 a minute, one `eth_getCode` each); `chain:code` (180/min per
@@ -487,40 +527,56 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   minute over all networks; `login_challenges.called_at` and two partial indexes, `migrations/0003`); the per-location
   `CHAIN_LIMITER` key, `chain:erc1271:known` for an address that already signed in by ERC-1271 (a kept session with
   `verification_method='ERC1271'`, up to 8 days; it skips the code read and the claim's code share) else
-  `chain:erc1271` (20/min each); then one `eth_call`.
+  `chain:erc1271` (20/min each); once an address's 2 are spent, `CLAIM_LANE` (in the same batch) still gives each
+  network one check of it a minute, within the network's 3, on its own key `chain:erc1271:lane` (20/min per location;
+  Swarm audit 519db624 A-1); then one `eth_call`.
   Numbers, per location: closing first-time smart-wallet sign-in takes ≥ 7 /24s aimed at ≥ 10 distinct contracts
   (before: 7 /24s, any one contract); returning smart wallets have their own key (closing it takes ≥ 7 more /24s
   aimed at ≥ 10 addresses that signed in here by ERC-1271 — which can be contracts the attacker deploys itself, e.g. one
   that accepts any signature (F-2), at the cost of gas and one first-time sign-in each, and stay "known" for 8 days); closing `chain:code` takes ≥ 18 /24s and delays only first-time smart
   wallets. Garbage from one /24 leaves its neighbours: garbage for EOAs spends only its 10 code reads (a returning
-  Safe needs none), garbage at one contract only 2 of its 3 contract checks. Accepted trade-off: 2 garbage checks a
-  minute, from anywhere, hold that one contract's sign-in at 429 while they last (ECDSA and every other wallet
-  untouched). Alchemy: `eth_getCode` ≤ 10/min per /24, ≤ 180/min per location, ≤ the challenge valve (600/min) overall;
-  `eth_call` ≤ 3/min per /24, ≤ 2/min per contract, ≤ 40/min per location. Tests: `tests/auth.test.mjs` "ERC-1271
-  shares" and "F-3: …" (acceptance 1–4 of the remediation doc).
+  Safe needs none), garbage at one contract only 2 of its 3 contract checks. Garbage from a few other networks no longer
+  holds one contract (A-1; before, 2 garbage checks a minute from anywhere held it at 429): its owner's network keeps its
+  own check while the location's `chain:erc1271:lane` lasts. Improved, not fixed: garbage from the owner's own /24 (/48)
+  holds it (reason `address`), and so do ≥ 9 /24s aimed at ≥ 3 addresses every minute, which keep `chain:erc1271:lane`
+  closed at a location (reason `budget_lane`). Lane checks set
+  `called_at`, so the two shared keys still see ≤ 2 checks per address a minute and the numbers above hold. Alchemy:
+  `eth_getCode` ≤ 10/min per /24, ≤ 180/min per location, ≤ the challenge valve (600/min) overall; `eth_call` ≤ 3/min
+  per /24, ≤ 2/min per contract through the shared keys plus 1 per network through the lane, ≤ 60/min per location.
+  Tests: `tests/auth.test.mjs` "ERC-1271 shares", "F-3: …" (acceptance 1–4 of the remediation doc) and "A-1: …".
 - **F-5, sign-in limits in layers.** L1 per network (IPv4 /24, IPv6 /48): 30 challenges a minute, plus the ERC-1271
-  shares of F-3. L2 per wallet: 5 challenges a minute for one address from one network (a short cooldown; per (address,
-  network), so nobody elsewhere can lock the key holder out; ECDSA sign-in is never gated by any per-address limit). One
-  address asked for from many networks is not blocked: from its 20th challenge within a minute on, each challenge writes
-  an `auth_surge` line (one line alone would usually be lost to the 0.2 log sampling).
+  shares of F-3. L2 per wallet: no challenge is refused for its address (Swarm audit 519db624 A-6 removed the
+  5-a-minute per-(address, network) cooldown: a neighbour in the same /24 could use it up and keep the key holder from
+  asking); ECDSA sign-in is never gated by any per-address limit. One address asked for from many networks is not blocked: from its
+  20th challenge within a minute on, each challenge writes an `auth_surge` line (one line alone would usually be lost to
+  the 0.2 log sampling).
   L3 per challenge: one-time nonce, burnt on any failure, one ERC-1271 check (unchanged). L4 per location: `AUTH_LIMITER`
   20/min per IP for challenges and, under `verify:`+IP keys of the same binding, 20/min for verifies, so a challenge
   flood never starves verify (no new binding); `CHAIN_LIMITER` and `chain:code` for the ERC-1271 path. L5 global: the
-  challenge valve, 60 per 6 s (600/min), the emergency ceiling only (real traffic is a few a minute); keeping it shut
-  takes 20 /24s at their full share. Every 429/503 of the account routes writes one JSON line `{evt:'auth_refused',
-  route, status, error, reason, colo, net, walletType?}` (reason: the refusing layer or bucket: `auth`, `verify`,
-  `network`, `wallet`, `global`, `code_share`, `code_cap`, `network_contract`, `address`, `budget`, `budget_known`, `rpc`,
-  `home`, `api`, `missing:<BINDING>`, `error`), and a surge `{evt:'auth_surge', route, reason:'address_surge', addr
-  (first 4 hex digits), colo, net}`. `net` is the /24 or /48 key; no line carries an IP, a full address, a cookie,
-  token, signature or message. Workers Logs (observability, head sampling 0.2) keeps about one line in five, so
+  challenge valve, 60 per 6 s (600/min), the emergency ceiling only (real traffic is a few a minute), 20 of them only
+  for a network with no challenge in the last minute (A-7); keeping the rest shut takes 14 /24s at full share, and the
+  reserve 200 further networks a minute each asking once (≥ 214 networks and ≥ 220 IPs: 14 /24s at full share take
+  26 IPs, 20 one-IP /24s 20; before A-7, 20 /24s shut it for
+  everyone). Every D1 count is dated when the request body has arrived, and the contract check again after its code
+  read, so a body sent slowly cannot place its claims in an earlier minute (Swarm audit 519db624 A-5). Every 429/503 of
+  the account routes writes one JSON line `{evt:'auth_refused', route, status, error, reason, colo, net, walletType?}`
+  (reason: the refusing layer or bucket: `auth`, `verify`, `network`, `global`, `code_share`, `code_cap`,
+  `network_contract`, `address`, `budget`, `budget_known`, `budget_lane`, `rpc`, `home`, `api`, `missing:<BINDING>`,
+  `error`), and a surge `{evt:'auth_surge', route, reason:'address_surge', addr
+  (the address's first 6 characters: '0x' and 4 hex digits), colo, net}`. About the client a line carries exactly `net`,
+  a network key derived from its IP (IPv4 /24, IPv6 /48, `net:unknown` without one), and on surge lines `addr`; no line
+  carries a full IP, a full address, a cookie, token, signature, message or nonce (Swarm retest W-2 wording). These are
+  the lines this code writes; what Cloudflare records about an invocation on its own is not covered here. Workers Logs (observability, head sampling 0.2) keeps about one line in five, so
   monitoring reads counts as about 1/5 of the real number. D1 per
-  challenge: +1 index entry written (`login_challenges_address`), ≤ 5 + 21 more rows read (≤ 35 more on a refusal);
+  challenge: +1 index entry written (`login_challenges_address`), ≤ 1 + 21 more rows read (≤ 30 more on a refusal);
   worst-case monthly figures in `server/auth.ts`.
 - **F-1, the statement names approvals.** `SIWE_STATEMENT` (`src/world/siwe.ts`, shared by the server that builds the
   message and the page that checks it before `personal_sign`) now reads "…This does not authorize asset transfers, token
   or NFT approvals, or transactions." and keeps "for 7 days". The page accepts only this text. The server verifies the
-  message it stored, so a challenge issued by the previous build (the old wording, `SIWE_PREVIOUS_STATEMENTS`) still
-  verifies during the 5 minutes it can stay open across a deploy; any other statement is 401. The build live before this
+  message it stored; the F-1 release also verified a challenge issued by the previous build (the old wording) during
+  the 5 minutes it could stay open across that deploy. That allowance (`SIWE_PREVIOUS_STATEMENTS`) was removed in
+  `fc533e5` (2026-09-29; in Worker `c89f5915` as the team's deployment record lists it): verify accepts only
+  `SIWE_STATEMENT`; any other statement is 401 and burns the challenge. A later statement change needs such an allowance again for one release. The build live before this
   one has no page check, so its open pages sign the new statement as before; from now on a later statement change
   makes open pages refuse ("message-mismatch", nothing signed) until they are reloaded. This is defence in depth, not
   a cure for phishing: a phishing page can skip any check this page makes.
@@ -529,7 +585,9 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   link is replaced by a collapsed "Swarm Audit Record" / 「審查紀錄」 at the foot of My wallet in every state
   (`src/world/reviewRecord.ts` data, `src/world/auditRecord.ts` markup): scope, reviewed version and date, job and
   report, deployment match `partial`, "Previous review — current version has changed", each finding's severity and
-  status. F-6: wrangler 4.143.0 (`npm audit` 0; `compatibility_date` unchanged). Status of every finding, the limit
+  status. F-6: wrangler 4.143.0 (`compatibility_date` unchanged; `npm audit` 0 on 2026-09-28; the dated counts after,
+  including the 3 moderate dev-only advisories of 2026-09-29 before the undici 7.29.1 pin, are in
+  `docs/security/AUDIT_REMEDIATION_STATUS.md` F-6). Status of every finding, the limit
   table and the regression-test map: `docs/security/AUDIT_REMEDIATION_STATUS.md`; deployment evidence:
   `scripts/deploy-evidence.mjs`.
 - **Internal re-check of round 2 (2026-09-29).** The known-smart-wallet lookup (`KNOWN_ERC1271`) and logout-all's
@@ -537,4 +595,5 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   `sessions_live`), so an address's ECDSA or revoked sessions, however many, are never visited. A session write that
   fails for any reason but a UNIQUE race (a deploy ahead of 0003, D1 down) is a logged 503 `AUTH_UNAVAILABLE`, not a
   silent 409. The audit record says its statuses are the team's own account, not re-reviewed, and has a "Re-review:
-  none yet" row. The WAF rule on the evidence page is marked as stated (not read from Cloudflare), with a rule-id field.
+  none yet" row (on `backlog-0929` since 2026-09-30 the row links the two Swarm re-reviews of Worker 50c688c9, Report
+  e48d0a96 and Audit 519db624, whose findings follow with the team's statuses; this version was not re-reviewed). The WAF rule on the evidence page is marked as stated (not read from Cloudflare), with a rule-id field.

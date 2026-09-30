@@ -8,7 +8,7 @@ import {AuthClient,statusOf,statusText,chipText,noticeText,watchOwner,type AuthS
 import {wallets,unidentifiedNote,type WalletRegistry} from './wallet.ts';
 import {browserEnv} from './cadence.ts';
 import {moveGate,moveHint} from './moves.ts';
-import {seatRows,countsText,eligibleText,signingText,presignText,logoutView,logoutDeviceLabel,runLogout,confirmOpen,type SeatRow,type LogoutAct} from './walletView.ts';
+import {seatRows,countsText,eligibleText,panelHome,houseNotes,signingText,presignText,logoutView,logoutDeviceLabel,runLogout,confirmOpen,type SeatRow,type LogoutAct} from './walletView.ts';
 import {AuditRecord} from './auditRecord.ts';
 // "My wallet" (W1, DESIGN_W1 §9): the chip in the tools bar and the drawer body. Sign-in state comes from AuthClient
 // (auth.ts); the assets list is public data (GET /api/wallet/:address/assets: IMD's roster) and needs no signature. The
@@ -23,7 +23,7 @@ export function createAuth(registry:WalletRegistry){
  *  this browser). Icons are data: images checked by wallet.ts; names are text; an rdns that more than one provider claims
  *  is flagged, since any extension can announce any name. Disabled while a sign-in waits on a wallet. */
 function WalletChooser({registry,disabled}:{registry:WalletRegistry;disabled:boolean}){
-  const {text}=useWorldText(),w=useSyncExternalStore(registry.subscribe,()=>registry.state);
+  const {text}=useWorldText(),w=useSyncExternalStore(registry.subscribe,()=>registry.state,()=>registry.state);
   if(w.options.length<2&&!w.needsChoice)return null;
   return <section className="wallet-choose" aria-label={text('選擇錢包','Choose a wallet')}>
     <p className="small-note">{w.needsChoice?text('請選擇要使用的錢包：','Choose the wallet to use:'):text('使用中的錢包','Wallet in use')}</p>
@@ -38,7 +38,7 @@ function WalletChooser({registry,disabled}:{registry:WalletRegistry;disabled:boo
 export function useAuth(client:AuthClient,panelOpen:boolean):AuthState{
   const state=useSyncExternalStore(client.subscribe,()=>client.state);
   useEffect(()=>client.start(),[client]);
-  const owner=statusOf(state)==='owner',signedIn=!!state.session;
+  const owner=statusOf(state,Date.now())==='owner',signedIn=!!state.session;
   useEffect(()=>{if(panelOpen&&signedIn)void client.refreshHome();},[client,panelOpen,signedIn]);
   useEffect(()=>{if(!signedIn)return;const f=()=>void client.refreshHome();window.addEventListener('focus',f);return()=>window.removeEventListener('focus',f);},[client,signedIn]);
   useEffect(()=>owner?watchOwner(client,browserEnv()):undefined,[client,owner]);
@@ -47,7 +47,7 @@ export function useAuth(client:AuthClient,panelOpen:boolean):AuthState{
 const DOT:Record<AuthStatus,string>={visitor:'none',connected:'idle',awaitingSignature:'busy',verifying:'busy',owner:'ok',signedInNoHouse:'idle',expired:'warn',ownershipUnavailable:'warn',mismatch:'warn'};
 /** The 4th tools button: short state label on desktop, 「錢包 / Wallet」 on phones (CSS), a status dot, the gold star only for an owner. */
 export function WalletChip({state,onOpen}:{state:AuthState;onOpen:()=>void}){
-  const {text}=useWorldText(),st=statusOf(state),say=(zh:string,en:string)=>text(zh,en);
+  const {text}=useWorldText(),st=statusOf(state,Date.now()),say=(zh:string,en:string)=>text(zh,en);
   const full=text('我的錢包','My wallet')+' · '+statusText(st,state,say);
   return <button aria-label={full} title={full} className={'wallet-chip'+(st==='owner'?' has-home':'')} data-state={st} onClick={onOpen}>
     <span aria-hidden="true">★</span><b className="chip-long">{chipText(st,state,say)}</b><b className="chip-short">{text('錢包','Wallet')}</b><i className={'wallet-dot '+DOT[st]} aria-hidden="true"/></button>;
@@ -76,16 +76,17 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
   /** The household to show: the owner's (signed in and verified) or the viewed wallet's, from the client's placement. */
   home:Home|null;agents:Map<string,Agent>;error:string|null;
   onUseAddress:(a:string)=>void;onForget:()=>void;onTravel:()=>void;onMove:()=>void;onLocate:(id:string)=>void}){
-  const {text,zh,locale}=useWorldText(),say=(a:string,b:string)=>text(a,b),st=statusOf(state);
+  const {text,zh,locale}=useWorldText(),say=(a:string,b:string)=>text(a,b),now=Date.now(),st=statusOf(state,now);
   const session=state.session,view=session&&st!=='mismatch'?session.address:address;
   const [bump,setBump]=useState(0),[copied,setCopied]=useState(false),[everywhere,setEverywhere]=useState<object|null>(null),assets=useAssets(view,bump);
-  const me=state.home&&state.home!=='unavailable'&&session?.address===view?state.home:null;
+  const me=panelHome(state,view),notes=houseNotes(st,me,say);
   // Seat rows: the signed-in wallet's verified seats, or the public list (walletView.ts seatRows).
   const rows=useMemo(()=>seatRows(assets?.state==='ok'&&assets.address===view?assets.data!.seats:null,me),[assets,me,view]);
   const when=(n:number)=>new Date(n).toLocaleString(locale,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
   const copy=()=>{if(!view)return;void navigator.clipboard?.writeText(view).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),1500);},()=>{});};
   const busy=st==='awaitingSignature'||st==='verifying'&&!!state.session===false;
-  const registry=wallets(),found=useSyncExternalStore(registry.subscribe,()=>registry.state),hasProvider=found.any;
+  // The third argument (the same snapshot) lets tests/fixtures/wallet-panel.mjs render the panel with react-dom/server.
+  const registry=wallets(),found=useSyncExternalStore(registry.subscribe,()=>registry.state,()=>registry.state),hasProvider=found.any;
   const presign=(([what,where])=><p className="small-note presign">{what}<br/><b>{where}</b></p>)(presignText(location.host,say));
   // With several wallets and none chosen, the chooser comes first: no wallet is asked anything before the pick.
   const signButton=(label:string)=>found.needsChoice?null:<>{presign}<button className="primary" disabled={busy} onClick={()=>void client.signIn()}>{label}</button></>;
@@ -112,24 +113,23 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
     {st==='owner'&&me&&<section className="wallet-home">
       <h3>{text('我的家','My home')} · {me.size?(zh?SIZE_NAMES[me.size][0]+'屋':SIZE_NAMES[me.size][1]+' house'):''}</h3>
       <p className="small-note">{eligibleText(me.eligible,say)} · {text('確認於','checked')} {new Date(me.checkedAt).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'})}</p>
-      {me.recheck==='limited'&&<p className="small-note">{text('鏈上索引查詢此刻太忙：IMD 名冊上的席位照常驗證，剛買的席位要等之後的查詢才會出現。','The NFT index is busy right now: seats on IMD’s roster are verified as usual; a seat bought just now appears on a later check.')}</p>}
+      {notes.note&&<p className="small-note">{notes.note}</p>}
       {home?<><button className="primary" onClick={onTravel}>{text('回家','Go home')}</button>
-        {moveGate(state,home)==='ok'&&<button className="secondary" onClick={onMove}>{text('搬家…','Move…')}</button>}</>:
+        {moveGate(state,home,now)==='ok'&&<button className="secondary" onClick={onMove}>{text('搬家…','Move…')}</button>}</>:
         <p className="small-note">{text('你的房子會在 IMD 名冊記上這個錢包後出現在地圖上。','Your house appears on the map once IMD’s roster lists this wallet.')}</p>}
       {refresh}
     </section>}
-    {st==='signedInNoHouse'&&<><p className="empty-state">{text('已登入，目前沒有符合資格的席位：需要持有 IMD 席位，且它的 agent 在 24 小時內上線過。','Signed in, but no seat qualifies right now: a seat counts when you hold it and its agent was online in the last 24 hours.')}</p>{refresh}</>}
-    {st==='ownershipUnavailable'&&<><p className="empty-state">{text('暫時無法向鏈上確認持有資格（不是沒有持有）。登入仍有效，請稍後重試。','Seat ownership can’t be checked on chain right now (this is not “you own nothing”). You are still signed in; try again later.')}</p>{refresh}</>}
+    {notes.lead&&<><p className="empty-state">{notes.lead}</p>{notes.note&&<p className="small-note">{notes.note}</p>}{refresh}</>}
     {home&&st!=='owner'&&<><HouseholdBlock home={home} agents={agents} mine={false} onLocate={onLocate}/><button className="secondary" onClick={onTravel}>{text('前往這個錢包的家','Go to this wallet’s home')}</button>
       {canSign&&(hint=>hint&&<p className="small-note">{hint==='sign-in'?text('要搬家請先簽名登入：連接錢包不足以證明你是屋主。','Sign in first to move this house: a connected wallet alone doesn’t prove you own it.'):
         hint==='no-seat'?text('要搬家，需要一個此刻符合資格的席位（持有，且 agent 在 24 小時內上線過）。','Moving needs a seat that counts right now (held, with its agent online in the last 24 hours).'):
-        text('鏈上暫時無法確認你的席位，確認後才能搬家。','Moving waits until your seats can be checked on chain again.')}</p>)(moveHint(state,home))}</>}
+        text('鏈上暫時無法確認你的席位，確認後才能搬家。','Moving waits until your seats can be checked on chain again.')}</p>)(moveHint(state,home,now))}</>}
 
     {view&&<section className="wallet-assets">
       <h3>{text('資產 · IMD 席位','Assets · IMD seats')}</h3>
       {rows===null?(assets?.state==='loading'||!assets?<p className="small-note">{text('讀取席位資料…','Reading seats…')}</p>:
         <p className="empty-state">{assets.state==='unavailable'?text('暫時無法讀取席位資料，請稍後重試。','Seats can’t be read right now. Try again later.'):text('資產讀取失敗，請稍後重試。','Assets could not be read. Try again later.')}</p>):
-      rows.length===0?<p className="empty-state">{me?text('鏈上核實：這個錢包目前沒有 IMD 席位。','Checked on chain: this wallet holds no IMD seat right now.'):text('IMD 公開名冊目前沒有列出此錢包的席位。','IMD’s public roster lists no seat for this wallet.')}</p>:
+      rows.length===0?<p className="empty-state">{notes.empty}</p>:
       <ul className="seat-list">{rows.map(s=>{const img=CDN(s.image);return <li key={s.tokenId}><button onClick={()=>onLocate(s.tokenId)} aria-label={text('在世界中找到 #','Find #')+s.tokenId}>
         {img?<img src={img} alt="" width={36} height={36} loading="lazy" referrerPolicy="no-referrer"/>:<span className="seat-glyph" aria-hidden="true">◆</span>}
         <strong>#{s.tokenId}</strong>

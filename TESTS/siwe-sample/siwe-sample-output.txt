@@ -1,30 +1,30 @@
-# De-sensitized SIWE sample, IMD Ember World (source commit 2da46cdafcf8ad3fb3571ea0273ecc5d1ab5be1d, the commit of live Worker version 50c688c9-1bcf-4b68-a0ab-b7a9dc6ec82f)
-# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:297-298)
-# on this snapshot's source/, against migrations/0001 + 0002 + 0003 on node:sqlite (in-memory, tests/d1-sqlite.mjs).
+# De-sensitized SIWE sample, IMD Ember World (source commit 4321bb4da3826276919ed60ecc2018139dcaeacc, the commit of live Worker version 1a0dd495-35e7-4052-ba84-332e787f864d)
+# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:346)
+# on this snapshot's source/, against migrations/0001 to 0004 on node:sqlite (in-memory, tests/d1-sqlite.mjs).
 # Address: a freshly generated SYNTHETIC local key (in memory only, discarded; controls no funds). Nonce: server-generated random (crypto.getRandomValues, 16 bytes hex), local DB only.
 # Clock fixed at 2026-09-29T12:00:00.000Z. No request was made to imdember.com or any network (the chain is a local stub answering eth_getCode "0x"); no signature is included in this file.
-# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:203-207).
+# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:243-247).
 
 ----- BEGIN EXACT MESSAGE (as returned in POST /api/auth/challenge .message) -----
 imdember.com wants you to sign in with your Ethereum account:
-0xf8Bf960426e249f886f24A0a20519D3675aCE5e6
+0x070A585c47fdF2CeF8179c8F9B3530320097a4B2
 
 Sign in to IMD Ember World to access your home for 7 days. This does not authorize asset transfers, token or NFT approvals, or transactions.
 
 URI: https://imdember.com/
 Version: 1
 Chain ID: 1
-Nonce: 122ed2209ef36bf6fd3e9a1854fbd0d5
+Nonce: e60e1d84d064dccf678c05c61170c62b
 Issued At: 2026-09-29T12:00:00.000Z
 Expiration Time: 2026-09-29T12:05:00.000Z
 ----- END EXACT MESSAGE -----
 
 # Parsed fields (viem parseSiweMessage):
 #   domain: "imdember.com"
-#   address: "0xf8Bf960426e249f886f24A0a20519D3675aCE5e6"
+#   address: "0x070A585c47fdF2CeF8179c8F9B3530320097a4B2"
 #   uri: "https://imdember.com/"
 #   version: "1"
-#   nonce: "122ed2209ef36bf6fd3e9a1854fbd0d5"
+#   nonce: "e60e1d84d064dccf678c05c61170c62b"
 #   chainId: 1
 #   expirationTime: 2026-09-29T12:05:00.000Z
 #   issuedAt: 2026-09-29T12:00:00.000Z
@@ -46,14 +46,13 @@ Expiration Time: 2026-09-29T12:05:00.000Z
 #   then the right signature for the same nonce: HTTP 409 {"error":"CHALLENGE_USED"}  (the failed verify burnt the challenge)
 #   that challenge row: {"net":"net:203.0.113.0/24","checked":1,"burnt":1,"used_at":null}
 # a fourth challenge, again signed by the wrong key: HTTP 401 {"error":"SIGNATURE_INVALID"}  chain calls: none (the "no code" answer is cached per address for 60 s)
-# 6 challenges for ONE address from one network within a minute: 5 x HTTP 200 , 1 x HTTP 429 {"error":"SIGN_IN_BUSY"} Retry-After: 60
+# 6 challenges for ONE address from one network within a minute (the reviewed version refused the 6th; A-6 removed that cooldown): 6 x HTTP 200 
 #   the same address from another network at the same moment: HTTP 200 
 # 30 challenges for different addresses from one network within a minute: 30 x 200; the next one: HTTP 429 {"error":"SIGN_IN_BUSY"} Retry-After: 60
 #   a challenge from another network at the same moment: HTTP 200
 # logout-all: a second browser of the same address signed in ({"signedIn":true}); logout-all without a session: HTTP 401 {"error":"AUTH_REQUIRED"}
 #   logout-all from the first browser: HTTP 200 {"revoked":2}; Set-Cookie: __Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0, __Host-imd_flow=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0
 #   the second browser afterwards: GET /api/auth/session -> {"signedIn":false}
-# refusal log lines written by the handler (one JSON line per 429/503; no IP, address, cookie, token, signature or message):
-#   {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"wallet","colo":"TEST","net":"net:203.0.113.0/24"}
+# refusal log lines written by the handler (one JSON line per 429/503; the client only as `net`, its /24; no full IP, full address, cookie, token, signature or message):
 #   {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":"TEST","net":"net:203.0.113.0/24"}
 # sessions table after the run (token_hash is SHA-256 of the cookie token, 64 hex chars): [{"token_hash_len":64,"chain_id":1,"ttl_days":7,"revoked":true,"wallet_type":"EOA","verification_method":"ECDSA"},{"token_hash_len":64,"chain_id":1,"ttl_days":7,"revoked":true,"wallet_type":"EOA","verification_method":"ECDSA"}]

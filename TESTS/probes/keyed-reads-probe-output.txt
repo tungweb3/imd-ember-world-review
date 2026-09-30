@@ -1,4 +1,3 @@
-2026-09-29T06:00:12Z
 1) EOA, 5 bad verifies: 401 SIGNATURE_INVALID | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED | 409 CHALLENGE_USED || then the RIGHT signature on the same nonce: 409 CHALLENGE_USED
    keyed chain calls: 1 eth_getCode | Authorization header set: true | buckets: AUTH(verify:ip:203.0.113.7),API(chain:code)
    challenge row: {"net":"net:203.0.113.0/24","checked":1,"called":0,"burnt":1,"used_at":null}
