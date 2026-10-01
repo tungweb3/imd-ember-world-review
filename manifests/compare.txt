@@ -1,145 +1,144 @@
-IMD Ember World - deployment match (read-only), Wed, 30 Sep 2026 11:57:34 GMT to Wed, 30 Sep 2026 11:57:51 GMT (live GETs); rebuilds 2026-09-30T11:59:49Z and 2026-09-30T12:00:45Z
+IMD Ember World - deployment match (read-only), Thu, 01 Oct 2026 04:24:56 GMT to Thu, 01 Oct 2026 04:25:11 GMT (live GETs); rebuilds 2026-10-01T04:28:02Z and 2026-10-01T04:28:23Z
 ===========================================================================================================
-Commit   4321bb4da3826276919ed60ecc2018139dcaeacc  (committer date 2026-09-30T03:53:34+08:00)
-         the deployed source; tag v2026.09.30-1a0dd495 points at it. The snapshot's source/ is taken from
-         132228cf746cb41cd9e3a5124a5903e9ab2da386 (main, 2026-09-30T18:02:38+08:00), which differs from it only in
-         docs/security/AUDIT_REMEDIATION_STATUS.md and tests/review-record.test.mjs, and adds two deploy-evidence
-         pages (20260929T195417Z-4321bb4.md, 20260930T064805Z-df8ea90.md); none of them goes into the Worker or the
+Commit   2e4e830b367f651e3c880587c1a4b465d1bfcd91  (committer date 2026-10-01T12:07:32+08:00)
+         the deployed source; tag v2026.10.01-bbf24001 points at it. The snapshot's source/ is taken from
+         f4272c513e2052fb0bea6d2e8512180256a60919 (main, 2026-10-01T12:14:13+08:00), which differs from it only in
+         docs/security/AUDIT_REMEDIATION_STATUS.md, docs/wallet-login/DESIGN_W1_v001.md and tests/review-record.test.mjs,
+         and adds one deploy-evidence page (20261001T040934Z-2e4e830.md); none of them goes into the Worker or the
          front-end build.
-Live     Worker imd-world, version 1a0dd495-35e7-4052-ba84-332e787f864d: the Version ID wrangler returned for the
-         deploy below (manifest wrangler.versionId). Between 2026-09-30 06:48 and 09:27 UTC another version
-         (6e7e40cd, source df8ea90: a visual re-layout; the same Worker bundle 1018f02a..., its front-end changes
-         include the local-only move list key in moves.ts and the market screen's place in market.ts) was live; the
-         team rolled back to this version with `wrangler rollback`. df8ea90 is not in this snapshot. The deployment status was not queried with wrangler in this round;
-         that 1a0dd495 serves 100% of traffic is the team's statement.
-Record   deploy-records/20260929T195417Z-4321bb4/manifest.json (fields copied, nothing else): mode deploy,
-         startedAt 2026-09-29T19:54:17.306Z, finishedAt 2026-09-29T19:54:53.523Z, commit 4321bb4..., branch HEAD
+Live     Worker imd-world, version bbf24001-7eec-4f93-b312-a22e299ab275: the Version ID wrangler returned for the
+         deploy below (manifest wrangler.versionId). The deployment status was not queried with wrangler in this
+         round; that it serves 100% of traffic is the team's statement.
+Record   deploy-records/20261001T040934Z-2e4e830/manifest.json (fields copied, nothing else): mode deploy,
+         startedAt 2026-10-01T04:09:34.487Z, finishedAt 2026-10-01T04:10:24.205Z, commit 2e4e830..., branch audit3-fixes
          (a clean worktree of that commit), dirty=false, envFiles=[], tests "passed",
          node v24.19.0, wrangler 4.143.0, vite 8.3.1, typescript 5.9.3,
-         wrangler.exitCode 0, versionId 1a0dd495-35e7-4052-ba84-332e787f864d,
-         dist.unchangedDuringDeploy true, worker.main worker/index.js 274961 bytes
-         1018f02a98ccb7de5b91434613d5e38047925a463df8d892b6cd9439d9a2078c.
-         config hashes: wrangler.jsonc e94146c0... , package-lock.json 5098282c...,
+         wrangler.exitCode 0, versionId bbf24001-7eec-4f93-b312-a22e299ab275,
+         dist.unchangedDuringDeploy true, worker.main worker/index.js 280605 bytes
+         018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c.
+         config hashes: wrangler.jsonc 4c67da97... , package-lock.json 5098282c...,
          public/_headers da0b20c4... (the CRLF checkout of each).
-         D1 migration 0004_index_candidates was applied remotely before this deploy (team statement; evidence page
-         source/docs/security/deploy-evidence/20260929T195417Z-4321bb4.md).
-Previous Reviewed version: Worker 50c688c9 (source 2da46cd), bundle 14584fe4... (Swarm audit 519db624, Report e48d0a96).
-         Between them: c89f5915 (source 5398b90, 2026-09-29 17:25 UTC; the Report's fixes W-1..W-3), bundle bedef2a4...
+         D1 migration 0005_lanes_and_subnets was applied remotely at about 04:09 UTC, after a backup export, before
+         this deploy (team statement; evidence page source/docs/security/deploy-evidence/20261001T040934Z-2e4e830.md).
+Previous Reviewed version: Worker 1a0dd495 (source 4321bb4), bundle 1018f02a... (Swarm audit 8c3aea2e, on snapshot
+         ae1d41a). Between them, front-end-only deploys with that same Worker bundle (team's records): 6e7e40cd
+         (df8ea90, 2026-09-30 06:48-09:27 UTC, rolled back), cc5cddb3 (007ee80, 14:53 UTC), 3e0f4eb3 (a77f91b,
+         15:48 UTC), 5f9e6468 (41ae386, 18:58 UTC), f152cd66 (0d57791, 22:20 UTC). This version adds N-1..N-7.
 
-Rebuild  git -c core.autocrlf=true archive 4321bb4 -> npm ci -> npm run build (node v24.19.0, 2026-09-30T11:59:49Z):
+Rebuild  git -c core.autocrlf=true archive 2e4e830 -> npm ci -> npm run build (node v24.19.0, 2026-10-01T04:28:02Z):
          all 100 dist files are byte-identical to the deploy record (build-sha256.txt). A git -c core.autocrlf=false
          archive (LF) rebuild differs only in the 4 text files listed in build-sha256.lf-run.txt (CR bytes only).
-Worker   From the snapshot's source/ ALONE (72 files, no withheld file, redactions applied): npm ci -> wrangler deploy
-         --dry-run --outdir -> index.js 274961 bytes, SHA-256 1018f02a98ccb7de5b91434613d5e38047925a463df8d892b6cd9439d9a2078c
+Worker   From the snapshot's source/ ALONE (78 files, no withheld file, redactions applied): npm ci -> wrangler deploy
+         --dry-run --outdir -> index.js 280605 bytes, SHA-256 018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c
          == deploy record worker/index.js (manifest worker.main and SHA256SUMS). TESTS/worker-dry-run-output.txt.
-Live     index.html, assets/index-BFVt9xb_.js, assets/InteriorView-wZGOk4w6.js, assets/index-DkZ6U0YC.css fetched
+Live     index.html, assets/index-C1BrxBtd.js, assets/InteriorView-4LZmFcoq.js, assets/index-B1zoY2Mz.css fetched
          once each (live-sha256.txt): identical to the record and to the CRLF rebuild. Their response headers carry
          the six _headers security headers with the exact values of public/_headers.
 Not      The other 96 static files were NOT fetched in this round (RECORD-MATCH below). Against the record of the
-fetched  reviewed version (2da46cd): 42 files unchanged, 25 changed, 33 new; 3 of the reviewed
-         version's files are no longer in the record: assets/InteriorView-Xan3ABOQ.js, assets/index-5qjaKexX.css, assets/index-Bj4ribmm.js.
+fetched  reviewed version (4321bb4): 93 files unchanged, 2 changed, 5 new; 5 of the reviewed
+         version's files are no longer in the record: assets/InteriorView-wZGOk4w6.js, assets/index-BFVt9xb_.js, assets/index-DkZ6U0YC.css, assets/models/landmarks/landmark_guardian.e6b33e0bee.glb, assets/terrain-phone.14ece2ac35.bin.
 
 RESULT BY FILE (build = CRLF rebuild; record = deploy record SHA256SUMS; live = this round's GET)
-NOT-SERVED | record=match | _headers | build=da0b20c41097f419435a68e5ff5d668424ad79402565a1611a594e5ea07ec29e 3861 | lf-run=010ed5e5bec891e5a806b2d224ecc0d962fc585fa761c8a7285251e8ae03cc07 | CHANGED since the 2da46cd record
-VERIFIED | record=match | assets/InteriorView-wZGOk4w6.js | build=13616a8827bfa406b285833d404d5d4f3e49ca9649dd5d0e9adb11944677cbbd 93255 live=13616a8827bfa406b285833d404d5d4f3e49ca9649dd5d0e9adb11944677cbbd | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/cinzel-latin-400-normal-DnUIPmzd.woff2 | build=b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217 14128 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | assets/cinzel-latin-600-normal-Dd5YO2UX.woff2 | build=61efc27ceb7d08bb841652fa8979c0b6833b92548b7f9544c07968a6c02f28e4 15204 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | assets/decor/pepe/flags.b9ba8791e7.webp | build=b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669 41076 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/decor/pepe/murals.99dc8eaf72.webp | build=99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3 215970 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/decor/pepe/posters.fa83db53c5.webp | build=fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea 55390 | NEW since the 2da46cd record
-VERIFIED | record=match | assets/index-BFVt9xb_.js | build=ec1f3da36a0141f0308e384284e41cc97f344d7fbed594ede9071994c7ea58d2 1383354 live=ec1f3da36a0141f0308e384284e41cc97f344d7fbed594ede9071994c7ea58d2 | NEW since the 2da46cd record
-VERIFIED | record=match | assets/index-DkZ6U0YC.css | build=d14af57285213037ad12066e17763a2d2c00ad30369563c8eef90c1f8ab26c84 55902 live=d14af57285213037ad12066e17763a2d2c00ad30369563c8eef90c1f8ab26c84 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_lisbon_l.3f1df81bff.glb | build=3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3 408512 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_lisbon_m.8d013b5cae.glb | build=8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6 437756 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_lisbon_ms.a65c7fca14.glb | build=a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93 373904 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_lisbon_s.0682a56bf7.glb | build=0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6 279684 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_lisbon_xl.1468c9bfb9.glb | build=1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40 349400 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_timber_l.4f2196f581.glb | build=4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7 402080 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_timber_m.24dfd9c6f2.glb | build=24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8 355332 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_timber_ms.861238fe59.glb | build=861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee 342364 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_timber_s.16322451a4.glb | build=16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c 367040 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/houses/house_timber_xl.f4976ec185.glb | build=f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad 414408 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_arch.23639ff57a.glb | build=23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c 263160 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_archive.e9e8602c38.glb | build=e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91 324604 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_bellspire.2c86b3ed8e.glb | build=2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2 352944 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_chronicle.abf51338eb.glb | build=abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197 278160 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_equestrian.044d32540e.glb | build=044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89 263136 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_forge.5740310a11.glb | build=5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07 326884 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_guardian.e6b33e0bee.glb | build=e6b33e0bee1e7539fd2b7f62bcb5180402f11190b33fb347eb4674fcf7860555 254128 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_heart.4433d434b3.glb | build=4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213 350572 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_lift.a4634d273a.glb | build=a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6 381044 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_longhouse.8ae47cca0f.glb | build=8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385 399640 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_mill.a9a5afcd2b.glb | build=a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995 319388 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_oracle.649809a666.glb | build=649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5 382320 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/landmarks/landmark_pepe_statue.5b3f3acb36.glb | build=5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b 584400 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/models/props/boat.c19d20ecc1.glb | build=c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af 206196 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/references/imd/pepe-idle.93e67adf9a.webp | build=93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37 65974 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | assets/terrain-phone.14ece2ac35.bin | build=14ece2ac35f82416e1b340888f29f5869bfdb2923b9d437c943c59a2905bf3bd 698912 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/after_the_rain_a.5f942b7366.mp3 | build=5f942b7366c84cec00e5915b387b2d5df66f160110f3d7e1b03ee33933f8e7cf 2593017 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/ember_boats_a.a10b3caf55.mp3 | build=a10b3caf5520f005c7a0c7ac9b6b93880739702879c674e015d9a6011c666e82 2797817 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/frosthollow_lullaby_a.1e01e650cf.mp3 | build=1e01e650cf2e32b2ea56a44d7e20b8e67df03bb368e129ee64d76268990399bf 2411205 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/glass_glints.b8052094aa.mp3 | build=b8052094aa22d8fa67479b6867a63a5c0cbfc545629a897ca5ca29e2b097b149 2850898 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/glowing_window.bdccc2d0f2.mp3 | build=bdccc2d0f2aa6814e84d8ea450877b1f1b2778c43ff7d55afde74f0ae0448e42 2859257 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/good_morning_applause.2d6f477954.mp3 | build=2d6f477954c4e7440b089b1a7565fc0201d8e6042246d0cc4bad583da04c6942 1961481 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/light_remains_a.20c113d2a1.mp3 | build=20c113d2a13f8ceb6695bf4cb9af8f27c350283544c7917281bbde59a8de9f38 2433775 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/light_remains_b.3bc7aff7aa.mp3 | build=3bc7aff7aacde3fe2a73caaafdf36aa90b2f3c384c91841c3905d5786186af61 3008469 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/moonlit_canal_a.e30c7c37d0.mp3 | build=e30c7c37d0b964a6888ba254a2c538d381500ed173057ca354d66a91a94b2634 3408456 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/overcast_village.88dbd1f21a.mp3 | build=88dbd1f21aea01c0bc146c47c90bca922d5324a91d8b26748dbb7200473a1f6d 3011394 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/overcast_village_ii_a.24e3bb4b43.mp3 | build=24e3bb4b432dedbcc51fe296071f5a9861f5aec54df41c47b7341423c766095d 3092061 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/quiet_room.f47b8cbd0d.mp3 | build=f47b8cbd0d1ff60efa61631232a3488837bde982edb9460dadb3cc65aefeffaf 1671417 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/rain_window.1a05eeec3b.mp3 | build=1a05eeec3b42691cfa6906bf23a27c8b8073dc79250c9bbfe9f296c47e30d69a 3002617 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/riverside_morning.4132a9f094.mp3 | build=4132a9f094b44ff0a256157c7d5d9df9f3748c046aa2b771f0ccba03f84e900c 2920279 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/riverside_morning_ii_b.702e117f18.mp3 | build=702e117f18a2c70b86eea1c8cd613d8bd2770596374d9576151b51ca20bd95a6 2917354 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/storm_lantern.33e309f219.mp3 | build=33e309f2192f5d66c265394ed510db52edab848730f2122e40df222e729acae0 3092061 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/storm_lantern_ii_a.d627a6f8eb.mp3 | build=d627a6f8eb2c105226fc3aed85284ae4d01d9b68ef05b7be644020cf8eb3e7c1 3085373 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/the_spark.cc3a5958b2.mp3 | build=cc3a5958b25fa5de4a4571321b35ae8c6787375cfc75620a7a8b49d89ff35bcb 2319254 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/thunder_emberford_a.a221003eef.mp3 | build=a221003eefc3010827d1ea97ce2de8b4b095335173c55d3d44ddc09f30d2f65a 2880573 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | audio/music/window_rain_ii_a.f59833d724.mp3 | build=f59833d724f13b596eef2b882e3c9114054ff0cc9426214250eb8de7c770fc9d 3265096 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | decor/pepe/flags.webp | build=b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669 41076 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | decor/pepe/murals.webp | build=99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3 215970 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | decor/pepe/posters.webp | build=fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea 55390 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | favicon.svg | build=104dcbb66bf8987bec7e1b606d962a0adc409c23dd78496d1d4cb9b83560a909 513 | lf-run=873b25043a02365ade8685b695f6340b06cb8c4171d6e72eef7a72ef32c0406e | unchanged since the 2da46cd record
-VERIFIED | record=match | index.html | build=b3ee4f225fd60f7c5118284471cd2f05779c4a110d1d8518113e08b0e97ddab8 2634 live=b3ee4f225fd60f7c5118284471cd2f05779c4a110d1d8518113e08b0e97ddab8 | lf-run=0f27608b8e0900168a201b1f7609da08467863490dcca169798f861903f37f1a | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | licenses/cinzel-OFL.txt | build=e7440e690fe3f0671e13dfc72980d0387e304e3e2673486be0369b4e65323c38 4475 | lf-run=f5a242cf68ad6ebd0603b3359a74c593ca080318a681035be5296ba2c6b04ae6 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_lisbon_l.glb | build=3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3 408512 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_lisbon_m.glb | build=8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6 437756 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_lisbon_ms.glb | build=a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93 373904 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_lisbon_s.glb | build=0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6 279684 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_lisbon_xl.glb | build=1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40 349400 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_timber_l.glb | build=4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7 402080 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_timber_m.glb | build=24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8 355332 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_timber_ms.glb | build=861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee 342364 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_timber_s.glb | build=16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c 367040 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/houses/house_timber_xl.glb | build=f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad 414408 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/armchair.glb | build=b6eb4e9f86035951fc60f88070ed4379191b4be274b9f88f13ed7c979a4ba7f4 124100 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/bookshelf.glb | build=b67ada20a9c8df8e6ea58857473c006e89f5c584b9b01e4f448b7e39750a3538 301888 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/desk-chair.glb | build=39727898a3e32e2f923cd217bd37ce1851918955851a0534f2abf0823a35dd4b 102728 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/dining-table.glb | build=6d786c5ffd4491428a948c19eb55b75554908edc99885c4af4a0bf3afab62a76 163384 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/floor-lantern.glb | build=d6b607f84df405f09a438a63c1ab8d94d22def6413c635220e66d715f4439df8 115132 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/hearth.glb | build=a349fedd9cf74fd4f1aaeb9fe655dcd09295ed9bda602cf9affa757d5061555f 192152 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/lemon-tree.glb | build=27c978105c0de11f1a5ba313e80f3d5a89156aaf2bc89a3fc26cd319c0826571 136548 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/pepe-cabinet.glb | build=855d2a2843dfca8a9318f46c20e069c91f92ed5e57739c76c8773d55c646b49e 242212 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/sideboard.glb | build=439ac1eda5db0fd19d4295c5e0118ec1ab63abbd158b64bd6db1fa2abffa7382 159280 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/wall-sconce.glb | build=a74dffec89a59a48c5592c64b270d8fa952341e99c4829c000a01bf1cb254e43 119780 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/wardrobe.glb | build=70b86640021e907f81f358f12176646cbf48f88bcc74db33fd484d728856e5ee 141496 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/interior/writing-desk.glb | build=1c4d03be8e5ffa9795e7fc8a0d4c90ed2902d65c669fd1be85fef8bbef9f8c33 154384 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_arch.glb | build=23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c 263160 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_archive.glb | build=e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91 324604 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_bellspire.glb | build=2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2 352944 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_chronicle.glb | build=abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197 278160 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_equestrian.glb | build=044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89 263136 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_forge.glb | build=5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07 326884 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_guardian.glb | build=e6b33e0bee1e7539fd2b7f62bcb5180402f11190b33fb347eb4674fcf7860555 254128 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_heart.glb | build=4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213 350572 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_lift.glb | build=a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6 381044 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_longhouse.glb | build=8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385 399640 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_mill.glb | build=a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995 319388 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_oracle.glb | build=649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5 382320 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | models/landmarks/landmark_pepe_statue.glb | build=5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b 584400 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | models/props/boat.glb | build=c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af 206196 | CHANGED since the 2da46cd record
-RECORD-MATCH | record=match | references/imd/pepe-idle.webp | build=93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37 65974 | NEW since the 2da46cd record
-RECORD-MATCH | record=match | references/imd/pepe.webp | build=e142d6d788cb5f80ad2dbbbee6c010c420fd247e19d7b6b5c561c7d84f03d856 394498 | unchanged since the 2da46cd record
-RECORD-MATCH | record=match | third-party-licenses.txt | build=55ae744d250b53fe9de705688a62072224628bd8b00785dad642ebce276f8b63 4537 | unchanged since the 2da46cd record
+NOT-SERVED | record=match | _headers | build=da0b20c41097f419435a68e5ff5d668424ad79402565a1611a594e5ea07ec29e 3861 | lf-run=010ed5e5bec891e5a806b2d224ecc0d962fc585fa761c8a7285251e8ae03cc07 | unchanged since the 4321bb4 record
+VERIFIED | record=match | assets/InteriorView-4LZmFcoq.js | build=5077095b0b0fee5b68ad02328bc5d2304de7822f90ed933f54780c8880041630 93255 live=5077095b0b0fee5b68ad02328bc5d2304de7822f90ed933f54780c8880041630 | NEW since the 4321bb4 record
+RECORD-MATCH | record=match | assets/cinzel-latin-400-normal-DnUIPmzd.woff2 | build=b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217 14128 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/cinzel-latin-600-normal-Dd5YO2UX.woff2 | build=61efc27ceb7d08bb841652fa8979c0b6833b92548b7f9544c07968a6c02f28e4 15204 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/decor/pepe/flags.b9ba8791e7.webp | build=b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669 41076 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/decor/pepe/murals.99dc8eaf72.webp | build=99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3 215970 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/decor/pepe/posters.fa83db53c5.webp | build=fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea 55390 | unchanged since the 4321bb4 record
+VERIFIED | record=match | assets/index-B1zoY2Mz.css | build=4d1e832e229e0ea91b5af4b907c915489babf94db21f015c8eb72bf1510e0b32 57205 live=4d1e832e229e0ea91b5af4b907c915489babf94db21f015c8eb72bf1510e0b32 | NEW since the 4321bb4 record
+VERIFIED | record=match | assets/index-C1BrxBtd.js | build=b6d39838089b2707778990485570b6069054bdea22298bc2062b41a17f198d3d 1432648 live=b6d39838089b2707778990485570b6069054bdea22298bc2062b41a17f198d3d | NEW since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_lisbon_l.3f1df81bff.glb | build=3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3 408512 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_lisbon_m.8d013b5cae.glb | build=8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6 437756 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_lisbon_ms.a65c7fca14.glb | build=a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93 373904 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_lisbon_s.0682a56bf7.glb | build=0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6 279684 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_lisbon_xl.1468c9bfb9.glb | build=1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40 349400 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_timber_l.4f2196f581.glb | build=4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7 402080 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_timber_m.24dfd9c6f2.glb | build=24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8 355332 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_timber_ms.861238fe59.glb | build=861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee 342364 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_timber_s.16322451a4.glb | build=16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c 367040 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/houses/house_timber_xl.f4976ec185.glb | build=f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad 414408 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_arch.23639ff57a.glb | build=23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c 263160 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_archive.e9e8602c38.glb | build=e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91 324604 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_bellspire.2c86b3ed8e.glb | build=2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2 352944 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_chronicle.abf51338eb.glb | build=abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197 278160 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_equestrian.044d32540e.glb | build=044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89 263136 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_forge.5740310a11.glb | build=5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07 326884 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_guardian.0ed4a14deb.glb | build=0ed4a14deb5a0b297c206c52ec2b9a3c4f4836f8f79d69d0e3e0c1e5b6170765 269160 | NEW since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_heart.4433d434b3.glb | build=4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213 350572 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_lift.a4634d273a.glb | build=a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6 381044 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_longhouse.8ae47cca0f.glb | build=8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385 399640 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_mill.a9a5afcd2b.glb | build=a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995 319388 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_oracle.649809a666.glb | build=649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5 382320 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/landmarks/landmark_pepe_statue.5b3f3acb36.glb | build=5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b 584400 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/models/props/boat.c19d20ecc1.glb | build=c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af 206196 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/references/imd/pepe-idle.93e67adf9a.webp | build=93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37 65974 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | assets/terrain-phone.b79d0a4b5a.bin | build=b79d0a4b5aaf65e626e6097beb5c71b2fbc0ff3586ab96dff19707770b6a3e7a 698912 | NEW since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/after_the_rain_a.5f942b7366.mp3 | build=5f942b7366c84cec00e5915b387b2d5df66f160110f3d7e1b03ee33933f8e7cf 2593017 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/ember_boats_a.a10b3caf55.mp3 | build=a10b3caf5520f005c7a0c7ac9b6b93880739702879c674e015d9a6011c666e82 2797817 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/frosthollow_lullaby_a.1e01e650cf.mp3 | build=1e01e650cf2e32b2ea56a44d7e20b8e67df03bb368e129ee64d76268990399bf 2411205 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/glass_glints.b8052094aa.mp3 | build=b8052094aa22d8fa67479b6867a63a5c0cbfc545629a897ca5ca29e2b097b149 2850898 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/glowing_window.bdccc2d0f2.mp3 | build=bdccc2d0f2aa6814e84d8ea450877b1f1b2778c43ff7d55afde74f0ae0448e42 2859257 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/good_morning_applause.2d6f477954.mp3 | build=2d6f477954c4e7440b089b1a7565fc0201d8e6042246d0cc4bad583da04c6942 1961481 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/light_remains_a.20c113d2a1.mp3 | build=20c113d2a13f8ceb6695bf4cb9af8f27c350283544c7917281bbde59a8de9f38 2433775 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/light_remains_b.3bc7aff7aa.mp3 | build=3bc7aff7aacde3fe2a73caaafdf36aa90b2f3c384c91841c3905d5786186af61 3008469 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/moonlit_canal_a.e30c7c37d0.mp3 | build=e30c7c37d0b964a6888ba254a2c538d381500ed173057ca354d66a91a94b2634 3408456 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/overcast_village.88dbd1f21a.mp3 | build=88dbd1f21aea01c0bc146c47c90bca922d5324a91d8b26748dbb7200473a1f6d 3011394 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/overcast_village_ii_a.24e3bb4b43.mp3 | build=24e3bb4b432dedbcc51fe296071f5a9861f5aec54df41c47b7341423c766095d 3092061 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/quiet_room.f47b8cbd0d.mp3 | build=f47b8cbd0d1ff60efa61631232a3488837bde982edb9460dadb3cc65aefeffaf 1671417 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/rain_window.1a05eeec3b.mp3 | build=1a05eeec3b42691cfa6906bf23a27c8b8073dc79250c9bbfe9f296c47e30d69a 3002617 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/riverside_morning.4132a9f094.mp3 | build=4132a9f094b44ff0a256157c7d5d9df9f3748c046aa2b771f0ccba03f84e900c 2920279 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/riverside_morning_ii_b.702e117f18.mp3 | build=702e117f18a2c70b86eea1c8cd613d8bd2770596374d9576151b51ca20bd95a6 2917354 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/storm_lantern.33e309f219.mp3 | build=33e309f2192f5d66c265394ed510db52edab848730f2122e40df222e729acae0 3092061 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/storm_lantern_ii_a.d627a6f8eb.mp3 | build=d627a6f8eb2c105226fc3aed85284ae4d01d9b68ef05b7be644020cf8eb3e7c1 3085373 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/the_spark.cc3a5958b2.mp3 | build=cc3a5958b25fa5de4a4571321b35ae8c6787375cfc75620a7a8b49d89ff35bcb 2319254 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/thunder_emberford_a.a221003eef.mp3 | build=a221003eefc3010827d1ea97ce2de8b4b095335173c55d3d44ddc09f30d2f65a 2880573 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | audio/music/window_rain_ii_a.f59833d724.mp3 | build=f59833d724f13b596eef2b882e3c9114054ff0cc9426214250eb8de7c770fc9d 3265096 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | decor/pepe/flags.webp | build=b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669 41076 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | decor/pepe/murals.webp | build=99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3 215970 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | decor/pepe/posters.webp | build=fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea 55390 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | favicon.svg | build=104dcbb66bf8987bec7e1b606d962a0adc409c23dd78496d1d4cb9b83560a909 513 | lf-run=873b25043a02365ade8685b695f6340b06cb8c4171d6e72eef7a72ef32c0406e | unchanged since the 4321bb4 record
+VERIFIED | record=match | index.html | build=62af24a41f3825ffd8b8c68b8d2032205b58a82cbb92618fed599609163e49c9 2634 live=62af24a41f3825ffd8b8c68b8d2032205b58a82cbb92618fed599609163e49c9 | lf-run=475e6f41022185a94df56c7c2b39260cbf09191f5b301e08339cb70667765df0 | CHANGED since the 4321bb4 record
+RECORD-MATCH | record=match | licenses/cinzel-OFL.txt | build=e7440e690fe3f0671e13dfc72980d0387e304e3e2673486be0369b4e65323c38 4475 | lf-run=f5a242cf68ad6ebd0603b3359a74c593ca080318a681035be5296ba2c6b04ae6 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_lisbon_l.glb | build=3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3 408512 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_lisbon_m.glb | build=8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6 437756 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_lisbon_ms.glb | build=a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93 373904 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_lisbon_s.glb | build=0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6 279684 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_lisbon_xl.glb | build=1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40 349400 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_timber_l.glb | build=4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7 402080 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_timber_m.glb | build=24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8 355332 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_timber_ms.glb | build=861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee 342364 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_timber_s.glb | build=16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c 367040 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/houses/house_timber_xl.glb | build=f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad 414408 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/armchair.glb | build=b6eb4e9f86035951fc60f88070ed4379191b4be274b9f88f13ed7c979a4ba7f4 124100 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/bookshelf.glb | build=b67ada20a9c8df8e6ea58857473c006e89f5c584b9b01e4f448b7e39750a3538 301888 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/desk-chair.glb | build=39727898a3e32e2f923cd217bd37ce1851918955851a0534f2abf0823a35dd4b 102728 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/dining-table.glb | build=6d786c5ffd4491428a948c19eb55b75554908edc99885c4af4a0bf3afab62a76 163384 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/floor-lantern.glb | build=d6b607f84df405f09a438a63c1ab8d94d22def6413c635220e66d715f4439df8 115132 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/hearth.glb | build=a349fedd9cf74fd4f1aaeb9fe655dcd09295ed9bda602cf9affa757d5061555f 192152 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/lemon-tree.glb | build=27c978105c0de11f1a5ba313e80f3d5a89156aaf2bc89a3fc26cd319c0826571 136548 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/pepe-cabinet.glb | build=855d2a2843dfca8a9318f46c20e069c91f92ed5e57739c76c8773d55c646b49e 242212 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/sideboard.glb | build=439ac1eda5db0fd19d4295c5e0118ec1ab63abbd158b64bd6db1fa2abffa7382 159280 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/wall-sconce.glb | build=a74dffec89a59a48c5592c64b270d8fa952341e99c4829c000a01bf1cb254e43 119780 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/wardrobe.glb | build=70b86640021e907f81f358f12176646cbf48f88bcc74db33fd484d728856e5ee 141496 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/interior/writing-desk.glb | build=1c4d03be8e5ffa9795e7fc8a0d4c90ed2902d65c669fd1be85fef8bbef9f8c33 154384 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_arch.glb | build=23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c 263160 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_archive.glb | build=e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91 324604 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_bellspire.glb | build=2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2 352944 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_chronicle.glb | build=abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197 278160 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_equestrian.glb | build=044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89 263136 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_forge.glb | build=5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07 326884 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_guardian.glb | build=0ed4a14deb5a0b297c206c52ec2b9a3c4f4836f8f79d69d0e3e0c1e5b6170765 269160 | CHANGED since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_heart.glb | build=4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213 350572 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_lift.glb | build=a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6 381044 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_longhouse.glb | build=8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385 399640 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_mill.glb | build=a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995 319388 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_oracle.glb | build=649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5 382320 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/landmarks/landmark_pepe_statue.glb | build=5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b 584400 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | models/props/boat.glb | build=c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af 206196 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | references/imd/pepe-idle.webp | build=93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37 65974 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | references/imd/pepe.webp | build=e142d6d788cb5f80ad2dbbbee6c010c420fd247e19d7b6b5c561c7d84f03d856 394498 | unchanged since the 4321bb4 record
+RECORD-MATCH | record=match | third-party-licenses.txt | build=55ae744d250b53fe9de705688a62072224628bd8b00785dad642ebce276f8b63 4537 | unchanged since the 4321bb4 record
 
 TALLY {"NOT-SERVED": 1, "VERIFIED": 4, "RECORD-MATCH": 95}
 build files 100, record dist files 100

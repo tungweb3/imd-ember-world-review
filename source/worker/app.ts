@@ -76,6 +76,13 @@ export function networkKey(ip:string|null):string{
   if(v4)return 'net:'+v4[1]+'.0/24';
   return k.startsWith('ip6:')?'net6:'+k.slice(4).split(':').slice(0,3).join(':')+'::/48':'net:'+k.slice(3);
 }
+/** The IPv6 subscriber inside that network (Swarm audit 8c3aea2e N-5): its /64, as rateLimitKey has it ('net6:<prefix>::/64';
+ *  a mobile device's connection or a home line gets its own /64, and privacy addresses rotate only the low 64 bits).
+ *  Null for IPv4, IPv4-mapped and unknown clients, whose network is one level. Never the host bits. */
+export function subnetKey(ip:string|null):string|null{
+  const k=rateLimitKey(ip);
+  return k.startsWith('ip6:')?'net6:'+k.slice(4):null;
+}
 const LOOPBACK=new Set(['localhost','127.0.0.1','[::1]']);
 /** The binding each bucket spends ('verify' shares AUTH_LIMITER's namespace under 'verify:'+IP keys, so challenges and
  *  verifies of one IP each get 20/min; 'home' shares it under session keys; 'code', the sign-in's
@@ -107,9 +114,9 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
   const ownership=new Ownership(gateway,collections),noCode=new Map<string,number>();   // per isolate (server/auth.ts NoCodeCache)
   return {
     async fetch(request:Request,env:Env,ctx:Context):Promise<Response> {
-      const waitUntil=(promise:Promise<unknown>)=>ctx.waitUntil(promise),allow=limiter(request,env);
+      const waitUntil=(promise:Promise<unknown>)=>ctx.waitUntil(promise),allow=limiter(request,env),ip=request.headers.get('cf-connecting-ip');
       const account=await handleAccountApi(request,{db:env.DB,now,allow,chain:chainAccess(request,env,chainFetch),ownership,waitUntil,noCode,
-        client:networkKey(request.headers.get('cf-connecting-ip')),colo:(request as {cf?:{colo?:string}}).cf?.colo});
+        client:networkKey(ip),sub:subnetKey(ip),colo:(request as {cf?:{colo?:string}}).cf?.colo});
       if(account)return account;
       const cache=edgeCache(),shared=cache?edgeCopy(cache,new URL(request.url).origin):undefined;
       const api=await handleWorldApi(request,gateway,{waitUntil,allow,floorKey:env.ALCHEMY_API_KEY||undefined,shared});

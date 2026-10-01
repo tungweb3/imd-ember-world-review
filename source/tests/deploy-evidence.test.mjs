@@ -43,12 +43,18 @@ test('deploy evidence from a real deploy record: commit, id, times, version id, 
       'Rule id (fill in from Security → WAF → Rate limiting rules):','- [ ] _pending — filled in at deploy_','Files in the repository at the source commit:'])
       assert.ok(md.includes(part),part);
     // The migrations of that commit, by name (their hashes are whatever the files hold; the next test pins the hashing).
-    assert.deepEqual([...md.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql']);
+    const migrations=text=>[...text.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]);
+    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql']);
     assert.ok(!md.includes('third-party-licenses'),'only JS, CSS and HTML are listed');
-    // The limiter keys come from server/auth.ts at the record's commit: HEAD has A-1's lane key, a build before it
-    // (3f661eb, the retest fixes) does not.
+    // The limiter keys come from server/auth.ts at the record's commit: HEAD has A-1's lane key and N-6's index-lane key
+    // (Swarm audit 8c3aea2e); 132228c (the code of Worker 1a0dd495) has the first but not the second, nor migration 0005;
+    // a build before both (3f661eb, the retest fixes) has neither.
     const keys=k=>'and the constant keys '+k.map(x=>'`'+x+'`').join(', ')+' (CHAIN_LIMITER) and `chain:code` (API_LIMITER).';
-    assert.ok(md.includes(keys(['chain:erc1271','chain:erc1271:known','chain:erc1271:lane','chain:index','chain:assets'])),'HEAD');
+    assert.ok(md.includes(keys(['chain:erc1271','chain:erc1271:known','chain:erc1271:lane','chain:index','chain:index:lane','chain:assets'])),'HEAD');
+    const live=git('rev-parse','132228c'),r1=run(record(base,live),out);assert.equal(r1.status,0,r1.stderr);
+    const md1=readFileSync(join(out,'20260929T101500Z-'+live.slice(0,7)+'.md'),'utf8');
+    assert.ok(md1.includes(keys(['chain:erc1271','chain:erc1271:known','chain:erc1271:lane','chain:index','chain:assets'])),md1.split('\n').find(l=>l.startsWith('Keys'))??md1);
+    assert.equal(migrations(md1).at(-1),'0004_index_candidates.sql');
     const old=git('rev-parse','3f661eb'),r2=run(record(base,old),out);assert.equal(r2.status,0,r2.stderr);
     const md2=readFileSync(join(out,'20260929T101500Z-'+old.slice(0,7)+'.md'),'utf8');
     assert.ok(md2.includes(keys(['chain:erc1271','chain:erc1271:known','chain:index','chain:assets'])),md2.split('\n').find(l=>l.startsWith('Keys'))??md2);

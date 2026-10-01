@@ -1,6 +1,7 @@
 // The Swarm Audit Record (remediation 2026-09-29 §6): the public record of the review of World's wallet sign-in and home
-// authorization (IMD Swarm job 4bd31cfb, Worker version beac62be, 2026-09-28 UTC) and of the two re-reviews of a later
-// version (Worker 50c688c9, 2026-09-29 UTC), shown collapsed in "My wallet" before and after sign-in. One data module for
+// authorization (IMD Swarm job 4bd31cfb, Worker version beac62be, 2026-09-28 UTC), of the two re-reviews of a later
+// version (Worker 50c688c9, 2026-09-29 UTC) and of the Swarm audit of a later one still (Worker 1a0dd495, 2026-09-30
+// UTC), shown collapsed in "My wallet" before and after sign-in. One data module for
 // the page and docs/security/AUDIT_REMEDIATION_STATUS.md (tests/review-record checks the doc against it). It says what was
 // reviewed and what changed since; each record is of its version only, so no badge and none of the words the
 // remediation forbids (tests/review-record lists them).
@@ -12,6 +13,7 @@ type Text={zh:string;en:string};
 export type Finding={id:string;severity:'Medium'|'Low'|'Low/Info'|'Info';area:Text|null;title:Text;status:Text};
 
 const JOB='4bd31cfb-1151-497f-9b27-40e668dea372',RETEST='e48d0a96-d3a5-42bb-859f-e0b0707fd9ad',AUDIT='519db624-a82f-4dfe-91b9-1a519d1d3dd1';
+const AUDIT3='8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b';
 const reportOf=(job:string)=>`https://github.com/Identity-md/research/blob/main/jobs/${job}/files/artifacts/report.md`;
 const AVAILABILITY={zh:'可用性',en:'availability'};
 
@@ -36,8 +38,8 @@ export const REREVIEWS:readonly Rereview[]=[
         en:'Fixed in this version: a node failure is 503 (can’t check now); only a revert, an EVM halt the contract causes or a wrong answer is a bad signature (401). Either way the challenge is burnt and no session is made.'}}]},
   {job:AUDIT,kind:'Audit',jobUrl:jobUrl(AUDIT)!,reportUrl:null,match:null,findings:[
     {id:'A-1',severity:'Medium',area:AVAILABILITY,title:{zh:'每分鐘兩次垃圾驗證可讓指定的智慧錢包無法登入',en:'Two junk checks a minute could keep a chosen smart wallet from signing in'},
-      status:{zh:'此版本已改善：少數其他網段的垃圾請求不再能擋住智慧錢包——某錢包每分鐘 2 次共用查核用完後，只要該據點每分鐘 20 次這類查核還沒用完，每個網段每分鐘仍各有 1 次。仍存在：同一個 /24（或 /48）裡的垃圾請求仍可擋住它；在同一據點每分鐘至少 9 個 /24 打 3 個以上地址時也可以（未完全解決）。',
-        en:'Improved in this version: junk from a few other networks no longer holds a smart wallet — once its 2 shared checks a minute are spent, each network still gets one check of it a minute while the location’s 20 such checks a minute last. Still: junk from the wallet’s own /24 (or /48) can hold it, and so can at least 9 /24s aimed at 3 or more addresses every minute at one location (partly open).'}},
+      status:{zh:'此版本已改善：少數其他網段的垃圾請求不再能擋住智慧錢包——某錢包每分鐘 2 次共用查核用完後，只要該據點每分鐘 20 次這類查核還沒用完，每個網段每分鐘仍各有 1 次（IPv6 /48 為 2 次，來自其中兩個 /64），屋主自己先前的嘗試不會用掉它。仍存在：同一個 /24（或 /48）裡的垃圾請求仍可擋住它；在同一據點每分鐘至少 9 個 /24 打 3 個以上地址時也可以（未完全解決）。',
+        en:'Improved in this version: junk from a few other networks no longer holds a smart wallet — once its 2 shared checks a minute are spent, each network still gets one check of it a minute (an IPv6 /48 two, from two of its /64s), which the owner’s own earlier attempt doesn’t use up, while the location’s 20 such checks a minute last. Still: junk from the wallet’s own /24 (or /48) can hold it, and so can at least 9 /24s aimed at 3 or more addresses every minute at one location (partly open).'}},
     {id:'A-2',severity:'Low',area:AVAILABILITY,title:{zh:'索引查詢被拒時刪掉已存的席位清單，剛買的席位因此從家裡消失',en:'A refused index read dropped the stored seat list, so a newly bought seat left the house'},
       status:{zh:'此版本已修正：索引查詢被拒或失敗時，改用上一次的索引答案；這份答案現在存在資料庫裡，每個伺服器執行個體都讀得到，並再用 ownerOf 確認這些席位。仍存在：IMD 名冊與索引都還沒列出的新買席位，要等之後的查詢才會出現；答案保留 8 天。',
         en:'Fixed in this version: a refused or failed index read falls back to the last index answer, now kept in the database so every server instance has it, and ownerOf proves those seats again. Still: a seat bought after both IMD’s roster and the index last listed it appears on a later check, and an answer is kept for 8 days.'}},
@@ -51,8 +53,8 @@ export const REREVIEWS:readonly Rereview[]=[
       status:{zh:'此版本已修正：登入的各項名額都以請求內容收完的時間計算。仍存在：每個 IP 的限流在請求一開始就檢查，所以單一 IP 可以把好幾分鐘份的慢請求一起完成；成本仍受每個網段的名額限制。',
         en:'Fixed in this version: sign-in counts are dated when the request body has arrived. Still: the per-IP limit is asked when a request starts, so one IP can finish several minutes’ worth of slow requests together; what they cost stays within the per-network shares.'}},
     {id:'A-6',severity:'Low',area:AVAILABILITY,title:{zh:'同網段的鄰居可以用掉某位玩家的登入名額',en:'A network neighbour could spend a player’s sign-in allowance'},
-      status:{zh:'此版本部分修正：取消每個錢包的冷卻，鄰居的 challenge 不會再擋到持有人。仍存在：同一個 /24（或 /48）裡兩個 IP 就能用完該網段每分鐘 30 個 challenge，網段內的玩家要等一分鐘；只影響登入（未完全解決）。',
-        en:'Partly fixed in this version: there is no per-wallet cooldown, so a neighbour’s challenges never refuse a player’s own. Still: two IPs in one /24 (or /48) can spend that network’s 30 challenges a minute, and every player there waits the minute; sign-in only (partly open).'}},
+      status:{zh:'此版本部分修正：取消每個錢包的冷卻，鄰居的 challenge 不會再擋到持有人。仍存在：同一個 /24 裡兩個 IP 就能用完該網段每分鐘 30 個 challenge（IPv6 /48 每分鐘 60 個，其中三個 /64 就能用完），網段內的玩家要等一分鐘；只影響登入（未完全解決）。',
+        en:'Partly fixed in this version: there is no per-wallet cooldown, so a neighbour’s challenges never refuse a player’s own. Still: two IPs in one /24 can spend that network’s 30 challenges a minute (an IPv6 /48 has 60, which three of its /64s can spend), and every player there waits the minute; sign-in only (partly open).'}},
     {id:'A-7',severity:'Low',area:AVAILABILITY,title:{zh:'約 20 個網段可一直佔滿全站登入上限',en:'About 20 networks could keep the site-wide sign-in ceiling full'},
       status:{zh:'此版本已改善：全站每 6 秒 60 個 challenge 中，保留 20 個給最近一分鐘沒發過的網段。仍存在：14 個 /24 持續滿額、再加上每分鐘約 200 個其他網段時，仍可暫停新登入；瀏覽不受影響（未完全解決）。',
         en:'Improved in this version: 20 of every 60 challenges per 6 s are kept for networks that have not asked in the last minute. Still: 14 /24s at full rate plus about 200 other networks a minute can close new sign-ins while they keep going; browsing is unaffected (partly open).'}},
@@ -60,12 +62,46 @@ export const REREVIEWS:readonly Rereview[]=[
       status:{zh:'此版本已修正：查核沒能完成時，畫面會說明這次查核沒完成、請稍後重試，不再說已在鏈上核實、這個錢包沒有席位。',
         en:'Fixed in this version: when the check could not be completed, the page says so and asks to try again later; it no longer says the chain was checked and the wallet holds no seat.'}}]}];
 
+/** The version the Swarm audit of 2026-09-30 examined: Worker 1a0dd495 (source 4321bb4), read through the public snapshot
+ *  ae1d41a of that source, and the SHA-256 of the Worker bundle one of its reviewers rebuilt from the snapshot (equal to
+ *  the team's deploy record; the judge's report gives no deployment-match verdict). Not this version: REVIEW_CHANGED
+ *  says so, and so does the page. */
+export const REVIEWED_LATER={worker:'1a0dd495',commit:'4321bb4',snapshot:'ae1d41a',bundle:'1018f02a98ccb7de5b91434613d5e38047925a463df8d892b6cd9439d9a2078c',date:'2026-09-30'} as const;
+/** The Swarm reviews of REVIEWED_LATER, oldest first (the Rereview shape): Audit 8c3aea2e (four specialists and a judge,
+ *  report AUDIT.md) and its findings N-1..N-7 with the severities it gives; each status is the site maintainer's
+ *  account of this version. Only from actual review jobs. */
+export const LATER_REVIEWS:readonly Rereview[]=[
+  {job:AUDIT3,kind:'Audit',jobUrl:jobUrl(AUDIT3)!,reportUrl:`https://github.com/Identity-md/research/blob/main/jobs/${AUDIT3}/files/AUDIT.md`,match:null,findings:[
+    {id:'N-1',severity:'Low',area:null,title:{zh:'較舊的登入狀態查詢可能清掉較新查詢建立的屋主狀態',en:'An older session read could erase the owner state a newer one had set'},
+      status:{zh:'此版本已修正：只採用最新一次的登入狀態查詢（含內容與錯誤），較舊的回應不會蓋掉較新的結果；按登入時會等最新一次查詢完成。',
+        en:'Fixed in this version: only the newest session read is applied, its body and errors included, so an older answer can’t undo a newer one; a sign-in click waits for the newest read.'}},
+    {id:'N-2',severity:'Low',area:null,title:{zh:'已取消的登入仍可能要求舊帳號簽名',en:'A cancelled sign-in could still ask the old account to sign'},
+      status:{zh:'此版本已修正：收到登入訊息後，頁面會先確認登入流程、錢包與帳號都沒變，才請錢包簽名；已取消的流程不會再跳出簽名。仍存在：已經開啟的錢包視窗，頁面無法替你關閉；它的回覆會被捨棄。',
+        en:'Fixed in this version: once the sign-in message arrives, the page checks that the flow, the wallet and the account are unchanged before asking the wallet; a cancelled flow asks nothing. Still: a wallet window already open can’t be closed by the page; its answer is dropped.'}},
+    {id:'N-3',severity:'Low',area:AVAILABILITY,title:{zh:'候選席位超過 256 個時，靠 24 小時內上線紀錄計入房子的席位可能沒被檢查',en:'Past 256 candidate seats, a seat that counts through a recent sighting could be left unchecked'},
+      status:{zh:'此版本已修正：候選席位超過 256 個時，先檢查會計入房子的席位（目前在線，或 24 小時內以這個持有人身分上線過），沒查完的清單仍標示為未查完。仍存在：超過上限的席位不會列出。',
+        en:'Fixed in this version: past the 256-candidate cap, seats that count (online now, or seen under this owner in the last 24 hours) are checked first, and a cut list is still marked as incomplete. Still: seats past the cap are not listed.'}},
+    {id:'N-4',severity:'Low',area:AVAILABILITY,title:{zh:'屋主自己前一次的查核會用掉 A-1 的備用查核，一次垃圾驗證就能擋住重試',en:'The owner’s own earlier check used up A-1’s fallback check, so one junk verify could block a retry'},
+      status:{zh:'此版本已修正：備用查核只計算備用查核本身，屋主自己前一次的嘗試不再用掉它，重試或第二台裝置都能通過。仍存在：同一個網段裡的垃圾請求仍可擋住它（同 A-1）。',
+        en:'Fixed in this version: the fallback check counts only fallback checks, so the owner’s own earlier attempt no longer uses it up, and a retry or a second device gets through. Still: junk from the wallet’s own network can hold it, as for A-1.'}},
+    {id:'N-5',severity:'Low',area:AVAILABILITY,title:{zh:'同一個 IPv6 /48 裡的不同用戶共用一份智慧錢包登入名額',en:'Separate IPv6 subscribers in one /48 shared one set of smart-wallet sign-in shares'},
+      status:{zh:'此版本已改善：IPv6 /48 的登入名額是 /24 的兩倍，其中每個 /64 最多用一個 /24 份的智慧錢包查核，以要求 challenge 的那個 /64 計算。仍存在：握有同一個 /48 裡兩個以上 /64 的人，仍可用光它的名額，那裡的登入要等一分鐘（未完全解決）。',
+        en:'Improved in this version: an IPv6 /48 gets twice a /24’s sign-in shares, and each /64 in it at most one /24’s share of smart-wallet checks, counted by the /64 that asked for the challenge. Still: someone holding two or more /64s of a shared /48 can spend its shares, and sign-in there waits the minute (partly open).'}},
+    {id:'N-6',severity:'Low',area:AVAILABILITY,title:{zh:'單一 IP 可用光某據點的 NFT 索引查詢額度，讓新買家的席位查不到',en:'One IP could use up NFT-index discovery at a location and keep a new buyer’s seat from being found'},
+      status:{zh:'此版本已改善：索引查詢被拒、又沒有席位計入時，發出請求的網段每分鐘仍有一次自己的索引查詢，單一 IP 不再能讓新買家的席位查不到；每個席位照樣用 ownerOf 確認。仍存在：同一據點每分鐘另有 20 個網段持續搶用時，仍可讓它這次查不到（未完全解決）。',
+        en:'Improved in this version: when an index read is refused and no seat counts yet, the requester’s network still gets one index read a minute of its own, so one IP no longer keeps a new buyer’s seat from being found; ownerOf still proves every seat. Still: 20 other networks at one location every minute can keep it refused while they go on (partly open).'}},
+    {id:'N-7',severity:'Info',area:null,title:{zh:'在別處被撤銷的登入，被顯示成登入已到期',en:'A sign-in revoked elsewhere was shown as an expired session'},
+      status:{zh:'此版本已修正：伺服器已不承認的登入顯示「登入狀態已失效，請重新登入。」；只有登入真的到期時才顯示「登入已到期，請重新登入。」。仍存在：這台裝置的時鐘比伺服器慢時，在那段差距裡到期的登入可能顯示成已失效；兩種說法都請你重新登入。',
+        en:'Fixed in this version: a sign-in the server no longer accepts reads “You are no longer signed in. Please sign in again.”, and “Your sign-in has expired. Please sign in again.” only when it ran out. Still: when this device’s clock runs behind the server’s, a sign-in that ran out in that gap can read as no longer signed in; both ask you to sign in again.'}}]}];
+
 /** `commit` is the source the reviewers rebuilt; `worker` the Cloudflare version id the team gave them; `bundle` the
  *  SHA-256 of that Worker bundle, which they reproduced. `match`: the review's deployment-match verdict. */
 export const REVIEW_RECORD={job:JOB,commit:'0def8cb',worker:'beac62be',bundle:'4ec73351afbcc9af133fd487d7e2d33c1df6713bfa1aced881f412d38e0eccf3',
   date:'2026-09-28',match:'partial',
   /** The Swarm re-reviews of a later version (REREVIEWED), oldest first. Only from actual re-review jobs. */
   rereviews:REREVIEWS,
+  /** The Swarm reviews of a later version still (REVIEWED_LATER), oldest first. */
+  later:LATER_REVIEWS,
   scope:{zh:'錢包登入與我家權限（僅 World）',en:'Wallet sign-in & home authorization (World-only)'},
   jobUrl:jobUrl(JOB)!,
   reportUrl:reportOf(JOB)} as const;
@@ -95,25 +131,32 @@ export const FINDINGS:readonly Finding[]=[
     status:{zh:'未解決：World 本輪沒有改動；日後同網域的頁面會與 World 共用這些設定，需各自審查。',en:'Open: nothing changed in World; later pages on this origin share these with World and need their own review.'}}
 ];
 
-/** This build changed sign-in after the reviewed version and after the re-reviewed one, so the record is labelled as a
- *  previous review and the re-reviews as of Worker 50c688c9. */
+/** This build changed sign-in after the reviewed version, after the re-reviewed one and after Worker 1a0dd495 (Swarm audit
+ *  8c3aea2e's N-1..N-7 fixes), so the record is labelled as a previous review, the re-reviews as of Worker 50c688c9 and
+ *  the later review as of Worker 1a0dd495. */
 export const REVIEW_CHANGED=true;
 export const recordLabels=(say:Say)=>({
   title:say('審查紀錄','Swarm Audit Record'),
   changed:say('先前的審查 — 目前版本已變更','Previous review — current version has changed'),
   scope:say('審查範圍','Reviewed scope'),version:say('審查版本','Reviewed version'),date:say('審查日期','Review date'),
   match:say('部署對照','Deployment match'),job:say('審查任務','Review job'),report:say('報告','Report'),rereview:say('重新審查','Re-review'),
+  laterRow:say('之後的審查','Later review'),
   findings:say('發現（出自審查）· 修正狀態為 本站維護者自行說明，尚未重新審查','Findings (from the review) · fix status as reported by the site maintainer, not re-reviewed'),
   only:say('此紀錄只適用於受審查的版本。','This record applies to the reviewed version only.'),
   rereviews:say(`重新審查（${REREVIEWED.date}，UTC）`,`Re-reviews (${REREVIEWED.date}, UTC)`),
   rereviewOnly:say(`兩次重新審查看的是 Worker ${REREVIEWED.worker}，不是目前版本；目前版本的變更沒有經過重新審查。下列發現出自重新審查，修正狀態為 本站維護者自行說明。`,
-    `Both re-reviews examined Worker ${REREVIEWED.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the re-reviews’; their fix status is as reported by the site maintainer.`)});
+    `Both re-reviews examined Worker ${REREVIEWED.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the re-reviews’; their fix status is as reported by the site maintainer.`),
+  later:say(`之後的審查（${REVIEWED_LATER.date}，UTC）`,`Later review (${REVIEWED_LATER.date}, UTC)`),
+  laterOnly:say(`這次審查看的是 Worker ${REVIEWED_LATER.worker}，不是目前版本；目前版本的變更沒有經過重新審查。下列發現出自這次審查，修正狀態為 本站維護者自行說明。`,
+    `This review examined Worker ${REVIEWED_LATER.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the review’s; their fix status is as reported by the site maintainer.`)});
 export const versionText=(say:Say)=>{const r=REVIEW_RECORD,b=r.bundle.slice(0,8);return say(`Worker ${r.worker}（原始碼 ${r.commit}，bundle ${b}…）`,`Worker ${r.worker} (source ${r.commit}, bundle ${b}…)`);};
 export const matchText=(say:Say)=>say(REVIEW_RECORD.match==='partial'?'partial（部分驗證）':REVIEW_RECORD.match,REVIEW_RECORD.match);
 /** A re-review as the page names it: its template and its job's short id. */
 export const rereviewName=(r:Rereview,say:Say)=>say(r.kind==='Report'?'Report（重測）':'Audit（審查）',r.kind)+' '+r.job.slice(0,8)+'…';
 export const rereviewVersionText=(say:Say)=>{const r=REREVIEWED,b=r.bundle.slice(0,8);
   return say(`Worker ${r.worker}（原始碼 ${r.commit}，公開快照 ${r.snapshot}，bundle ${b}…，由 Report 重建）`,`Worker ${r.worker} (source ${r.commit}, public snapshot ${r.snapshot}, bundle ${b}… as the Report rebuilt it)`);};
+export const laterVersionText=(say:Say)=>{const r=REVIEWED_LATER,b=r.bundle.slice(0,8);
+  return say(`Worker ${r.worker}（原始碼 ${r.commit}，公開快照 ${r.snapshot}，bundle ${b}…，由審查者重建）`,`Worker ${r.worker} (source ${r.commit}, public snapshot ${r.snapshot}, bundle ${b}… as a reviewer rebuilt it)`);};
 export const rereviewMatchText=(r:Rereview,say:Say)=>r.match==='partial'?say('部署對照：partial（部分驗證）','Deployment match: partial'):say('部署對照：此審查未評估','Deployment match: not assessed by the audit');
 export const dateText=(say:Say)=>say(`${REVIEW_RECORD.date}（UTC）`,`${REVIEW_RECORD.date} (UTC)`);
 export const findingLine=(f:Finding,say:Say)=>`${f.id} · ${f.severity}${f.area?say('（'+f.area.zh+'）',' ('+f.area.en+')'):''} — ${say(f.title.zh,f.title.en)}${say('。','. ')}${say(f.status.zh,f.status.en)}`;

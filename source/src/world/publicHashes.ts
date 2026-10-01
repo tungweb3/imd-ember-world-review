@@ -20,7 +20,7 @@ export const PUBLIC_HASHES:Readonly<Record<string,string>>={
  "models/landmarks/landmark_chronicle.glb": "abf51338eb",
  "models/landmarks/landmark_equestrian.glb": "044d32540e",
  "models/landmarks/landmark_forge.glb": "5740310a11",
- "models/landmarks/landmark_guardian.glb": "e6b33e0bee",
+ "models/landmarks/landmark_guardian.glb": "0ed4a14deb",
  "models/landmarks/landmark_heart.glb": "4433d434b3",
  "models/landmarks/landmark_lift.glb": "a4634d273a",
  "models/landmarks/landmark_longhouse.glb": "8ae47cca0f",

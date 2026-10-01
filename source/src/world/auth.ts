@@ -6,6 +6,7 @@
 import type {HouseSize} from './houseSize.ts';
 import type {PollEnv} from './cadence.ts';
 import {checkSignInMessage,signInSummary,type SignInSummary} from './siwe.ts';
+import {endedText} from './walletView.ts';                                          // walletView imports only types from here: no cycle
 
 export type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,fn:(v:unknown)=>void)=>void;removeListener?:(event:string,fn:(v:unknown)=>void)=>void};
 export type MeSeat={tokenId:string;agentId:string|null;online:boolean;lastOnlineAt:number|null;counts:boolean;reason?:'not-agent'|'offline-24h'|'not-seen'};
@@ -21,6 +22,10 @@ export type AuthStatus='visitor'|'connected'|'awaitingSignature'|'verifying'|'ow
 /** Why the last click did not end signed in, or signed out (shown once, never retried by itself). */
 export type Notice='message-mismatch'|'no-wallet'|'connect-rejected'|'sign-rejected'|'rate-limited'|'busy'|'auth-unavailable'|'verify-unavailable'|'challenge-lost'|
   'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed'|'signout-all-stale';
+/** Why the page's last session ended (N-7): 'expired' it ran out (a SESSION_EXPIRED, or its expiresAt reached on this
+ *  clock); 'revoked' the server no longer knows it (AUTH_REQUIRED, or a session read says signed out: a logout-all or a
+ *  logout elsewhere, a cookie the server dropped; which one, the page cannot tell); 'signed-out' this page's own sign-out. */
+export type SessionEnd='expired'|'revoked'|'signed-out';
 export type AuthState={
   /** The wallet account this page is connected to (lowercase), from eth_accounts / eth_requestAccounts. */
   account:string|null;
@@ -30,8 +35,11 @@ export type AuthState={
   phase:'idle'|'awaitingSignature'|'verifying';
   /** /api/me/home for the session: null not read yet; 'unavailable' a 503 (never "owns nothing"). */
   home:MeHome|'unavailable'|null;
-  /** The session ran out (a 401 SESSION_EXPIRED, or the hint of this browser's last session is past its expiry). */
+  /** The session ran out: a 401 SESSION_EXPIRED or a session read saying so, the held session's expiresAt reached on this
+   *  clock, or the hint of this browser's last session past its expiry. A revoked session is not expired (N-7). */
   expired:boolean;
+  /** Why the last session ended (N-7, SessionEnd); null while signed in, on a fresh page and once a sign-in begins. */
+  ended:SessionEnd|null;
   /** GET /api/auth/session has answered once (before that the chip shows nothing signed-in-ish). */
   restored:boolean;
   /** The last GET /api/auth/session was answered (200). After a failed read (network, 429, 503) nobody knows whether a
@@ -44,7 +52,7 @@ export type AuthState={
   signing:SignInSummary|null;
   checking:boolean;notice:Notice|null;
 };
-export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,restored:false,sessionKnown:false,leaving:false,signing:null,checking:false,notice:null};
+export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,ended:null,restored:false,sessionKnown:false,leaving:false,signing:null,checking:false,notice:null};
 
 /** The state the chip shows, derived from the facts only (so no two fields can disagree). Owner = the server read the
  *  session's seats and at least one counts, the connected wallet (if any) is the session's, and the session's expiresAt
@@ -105,8 +113,12 @@ export class AuthClient{
   private gen=0;private busy=false;private homeAt=0;private homeOkAt=0;private homeGen=0;private channel:Channel|null=null;private unsub:()=>void=()=>{};
   /** The provider whose accountsChanged this client follows, and a counter that drops a replaced provider's eth_accounts. */
   private bound:Provider|null=null;private binds=0;
-  /** The load's session read: a click waits for it, so a reload with a live cookie never asks for a signature. */
+  /** The newest session read: a click waits until none is running, so a reload with a live cookie never asks for a signature. */
   private restoring:Promise<void>|null=null;private deps:AuthDeps;
+  /** N-1: numbers every session read; only the newest one's answer, failure or body is applied (one overtaken by a newer
+   *  read, or by a new flow: gen, is dropped after every await, as house reads are by homeGen, A-3). A read that applies
+   *  "signed out" or another session drops the replaced session's house read (homeGen), as expireIfDue does. */
+  private sessionReads=0;
   /** W-1: the timer that ends the session here at its expiresAt, and when the last session read began. */
   private expiry:{session:Session;timer:unknown}|null=null;private sessionAt=-Infinity;
   constructor(deps:AuthDeps){this.deps=deps;}
@@ -125,7 +137,7 @@ export class AuthClient{
    *  (it says expired on the next visit too) and any in-flight house read dropped. The server refuses it anyway. */
   private expireIfDue(){
     if(!this.s.session||this.s.session.expiresAt>this.now())return false;
-    this.homeGen++;this.set({session:null,home:null,expired:true,checking:false});return true;
+    this.homeGen++;this.set({session:null,home:null,expired:true,ended:'expired',checking:false});return true;
   }
   /** The tab is visible again (W-1): a session that ran out while hidden ends at once, and a page that had a session
    *  re-reads it (and so its house) from the server, at most once per HOME_MIN_GAP_MS; visitors ask nothing. */
@@ -138,7 +150,9 @@ export class AuthClient{
   private broadcast(kind:'signed-in'|'signed-out'){try{this.channel?.postMessage(kind);}catch{/* closed */}}
 
   /** Page load: the session from the cookie (no signature, ever), the wallet's already-granted account (no prompt), the
-   *  account switches, and the other tabs. Returns the teardown. */
+   *  account switches, and the other tabs. Returns the teardown, which first ends an in-flight sign-in (N-2: the page's
+   *  own cancel, a click still waiting for a session read included; nothing prompts after it, and a client started again
+   *  is not left in "Confirm in wallet"). */
   start(){
     try{this.channel=this.deps.channel?.()??null;}catch{this.channel=null;}
     this.channel?.addEventListener('message',()=>{void this.restore();});      // re-read the server; never trust the message
@@ -146,7 +160,8 @@ export class AuthClient{
     const off=this.deps.onProviderChange?.(()=>this.providerChanged())??(()=>{});
     const offVisible=this.env.onVisible(()=>this.visible());
     void this.restore();
-    return ()=>{off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
+    return ()=>{this.gen++;this.busy=false;if(this.s.phase!=='idle')this.set({phase:'idle'});
+      off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
       if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
   }
   /** Follows `p`: its already-granted account (eth_accounts, never a prompt) and its accountsChanged. chainChanged is not
@@ -171,27 +186,30 @@ export class AuthClient{
   /** GET /api/auth/session; a signed-in answer is followed by the home read. */
   restore(){const r=this.readSession().finally(()=>{if(this.restoring===r)this.restoring=null;});this.restoring=r;return r;}
   private async readSession(){
-    const g=this.gen;this.sessionAt=this.now();
+    const g=this.gen,q=++this.sessionReads,stale=()=>g!==this.gen||q!==this.sessionReads;this.sessionAt=this.now();
     try{
-      const r=await this.deps.fetch('/api/auth/session',{credentials:'same-origin'});if(g!==this.gen)return;
+      const r=await this.deps.fetch('/api/auth/session',{credentials:'same-origin'});if(stale())return;
       if(!r.ok){this.set({restored:true,sessionKnown:false,notice:r.status===503?'auth-unavailable':r.status===429?'rate-limited':this.s.notice});return;}
-      const v=await r.json() as {signedIn:boolean;address?:string;expiresAt?:number};if(g!==this.gen)return;
+      const v=await r.json() as {signedIn:boolean;address?:string;expiresAt?:number;expired?:boolean};if(stale())return;
       if(v.signedIn&&isAddress(v.address)&&typeof v.expiresAt==='number'){
-        const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},same=this.s.session?.address===session.address;
-        this.hint.set(session);this.set({session,expired:false,restored:true,sessionKnown:true,home:same?this.s.home:null});
+        const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},held=this.s.session,same=held?.address===session.address;
+        const renew=!same||held!.expiresAt!==session.expiresAt;if(renew)this.homeGen++;       // another session: its predecessor's house read is dropped
+        this.hint.set(session);this.set({session,expired:false,ended:null,restored:true,sessionKnown:true,home:same?this.s.home:null,...renew?{checking:false}:{}});
         await this.refreshHome(!same,!same);return;                                    // a page load is a refresh too (spec B08)
       }
-      // Expired only when this browser's own last session ran out; one revoked elsewhere (another tab's sign-out) is not.
-      const hint=this.hint.get(),expired=this.s.expired||!!hint&&hint.expiresAt<=this.now();if(hint&&!expired)this.hint.set(null);
-      this.set({session:null,home:null,restored:true,sessionKnown:true,expired});
-    }catch{if(g===this.gen)this.set({restored:true,sessionKnown:false});}
+      // Expired only when a session ran out: the server says so, or the held session's or this browser's hint's expiresAt
+      // has passed here (N-7: read before the session is cleared); one revoked elsewhere (another tab's sign-out) is not.
+      const held=this.s.session,now=this.now(),hint=this.hint.get();
+      const expired=this.s.expired||v.expired===true||!!held&&held.expiresAt<=now||!!hint&&hint.expiresAt<=now;if(hint&&!expired)this.hint.set(null);
+      this.homeGen++;this.set({session:null,home:null,restored:true,sessionKnown:true,expired,ended:expired?'expired':held?'revoked':this.s.ended,checking:false});
+    }catch{if(!stale())this.set({restored:true,sessionKnown:false});}
   }
   /** GET /api/me/home for the session. force skips the 15 s gap (the refresh button, a new session); fresh (the refresh
    *  button) also has the server re-ask the NFT index if its answer is older than 30 s. Only the latest read is kept:
    *  one overtaken by a newer read (homeGen) or a new flow (gen) is dropped after every await, the body's too (A-3: an
    *  older answer whose body came last restored owner mode after a newer one had ended it). */
   async refreshHome(force=false,fresh=false){
-    if(!this.s.session)return;
+    const held=this.s.session;if(!held)return;
     if(!force&&this.now()-this.homeAt<HOME_MIN_GAP_MS&&this.s.home)return;
     const g=this.gen,hg=++this.homeGen;this.homeAt=this.now();this.set({checking:true});
     const stale=()=>g!==this.gen||hg!==this.homeGen;
@@ -202,7 +220,11 @@ export class AuthClient{
         if(this.s.session&&home.address.toLowerCase()!==this.s.session.address){await this.restore();return;}  // another tab switched the cookie
         this.homeOkAt=this.now();this.set({home,checking:false});return;}
       const c=await code(r);if(stale())return;
-      if(r.status===401){this.hint.set(null);this.set({session:null,home:null,expired:c==='SESSION_EXPIRED'||!!this.s.session,checking:false});return;}
+      // N-7: expired only when the session ran out (SESSION_EXPIRED, or the held session's expiresAt reached here); any
+      // other 401 (AUTH_REQUIRED: revoked, unknown) is a revocation, and a 401 with no session held says nothing (N-1).
+      if(r.status===401){if(!this.s.session){this.set({checking:false});return;}
+        const ran=c==='SESSION_EXPIRED'||held.expiresAt<=this.now();
+        this.hint.set(null);this.set({session:null,home:null,expired:ran,ended:ran?'expired':'revoked',checking:false});return;}
       if(r.status===503)this.set({home:'unavailable',checking:false});
       else{const h=this.s.home,kept=h&&h!=='unavailable'&&this.now()-this.homeOkAt<=OWNER_STALE_MS?h:'unavailable';   // CORR-05
         this.set({checking:false,notice:r.status===429?'rate-limited':'failed',home:kept});}
@@ -211,14 +233,20 @@ export class AuthClient{
   /** The one sign-in click. One flow at a time (a second click while one runs does nothing); the wallet is asked to
    *  connect only if no account is known, and to sign only when the server has said no valid session for that account
    *  exists: after a failed session read the click reads it again first, and signs nothing while it stays unknown
-   *  (CORR-02). A rejected signature ends the flow as `connected` with a notice: nothing is retried by itself. */
+   *  (CORR-02). A rejected signature ends the flow as `connected` with a notice: nothing is retried by itself. After every
+   *  await the flow writes state or opens a wallet prompt only while it is the live flow (gen), with the same wallet and
+   *  the same account (N-2: a challenge body that arrives after a switch, a sign-out or the page's teardown asks nothing,
+   *  and a click still waiting for a session read when one of them happens is ended by it too). */
   async signIn(){
     if(this.busy)return;
     const p=this.deps.provider();if(!p){this.set({notice:'no-wallet'});return;}
-    this.busy=true;
-    if(this.restoring)await this.restoring;
-    if(!this.s.sessionKnown)await this.restore();
-    const g=++this.gen;
+    this.busy=true;const epoch=this.gen,live=()=>epoch===this.gen;                   // no session read bumps gen
+    while(this.restoring)await this.restoring;                                         // N-1: the newest read, however many began meanwhile
+    if(live()&&!this.s.sessionKnown){await this.restore();while(this.restoring)await this.restoring;}
+    // N-2: a sign-out, an account or wallet switch or the page's teardown while the click waited ended it too (each bumps
+    // gen and clears busy, so busy is left alone here: a newer click may hold it). It asks nothing, reads nothing more.
+    if(!live())return;
+    const g=++this.gen;                                                                // no await since the loop: no read can start in between
     if(this.deps.provider()!==p){this.busy=false;return;}                               // the wallet changed while waiting
     if(!this.s.sessionKnown){const n=this.s.notice;this.busy=false;this.set({notice:n==='rate-limited'||n==='auth-unavailable'?n:'session-unknown'});return;}
     this.set({notice:null});
@@ -233,11 +261,14 @@ export class AuthClient{
       if(this.s.session&&!await this.logoutRequest()){                                 // another address's session ends first
         if(g===this.gen)this.set({notice:'signout-failed'});return;}
       if(g!==this.gen)return;
-      this.set({session:null,home:null,phase:'awaitingSignature',signing:null});
+      this.homeGen++;this.set({session:null,home:null,ended:null,phase:'awaitingSignature',signing:null,checking:false});   // N-1: the old session's house read is dropped
       const c=await this.deps.fetch('/api/auth/challenge',JSON_POST({address:account}));
       if(g!==this.gen)return;
-      if(!c.ok){this.set({phase:'idle',notice:failure(c.status,await code(c))});return;}
+      if(!c.ok){const n=failure(c.status,await code(c));if(g===this.gen)this.set({phase:'idle',notice:n});return;}
       const {nonce,message}=await c.json() as {nonce:string;message:string};
+      // N-2: the body came after an await; a dead flow, another wallet or a locked/switched account (accountChanged(null)
+      // does not bump gen) prompts nothing. No await from here to personal_sign, so this is the check before the prompt.
+      if(g!==this.gen)return;if(this.deps.provider()!==p||this.s.account!==account){this.set({phase:'idle'});return;}
       // F-7a: the wallet sees only this site's own sign-in message for this account, now; anything else ends the flow here.
       const origin=this.deps.origin??globalThis.location?.origin??'';
       const signing=typeof message==='string'&&typeof nonce==='string'&&checkSignInMessage(message,{origin,account,nonce,now:this.now()})?signInSummary(message):null;
@@ -250,12 +281,12 @@ export class AuthClient{
       this.set({phase:'verifying'});
       const v=await this.deps.fetch('/api/auth/verify',JSON_POST({nonce,signature}));
       if(g!==this.gen){if(v.ok)this.revokeAbandoned();return;}                          // a late success of an abandoned flow is revoked
-      if(!v.ok){this.set({phase:'idle',notice:failure(v.status,await code(v))});return;}
+      if(!v.ok){const n=failure(v.status,await code(v));if(g===this.gen)this.set({phase:'idle',notice:n});return;}   // a dead flow's late refusal is not the new flow's
       const s=await v.json() as {address:string;expiresAt:number},session={address:String(s.address).toLowerCase(),expiresAt:s.expiresAt};
       if(g!==this.gen){this.revokeAbandoned();return;}
       if(session.address!==account){this.revokeAbandoned();this.set({phase:'idle',notice:'failed'});return;}   // only the address that asked
       this.gen++;this.busy=false;                                                      // a session read begun before this is stale now
-      this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,sessionKnown:true});this.broadcast('signed-in');
+      this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});this.broadcast('signed-in');
       await this.refreshHome(true);
     }catch{if(g===this.gen)this.set({phase:'idle',notice:'failed'});}
     finally{if(g===this.gen)this.busy=false;}
@@ -273,7 +304,7 @@ export class AuthClient{
     if(!ok){this.set({leaving:false,notice:'signout-failed'});return;}
     // R-1: a 401 means this browser's own sign-in had already ended, so the server could not act for the address and
     // other devices are still signed in; this page is signed out, and says so instead of looking like a success.
-    this.hint.set(null);this.set({session:null,home:null,expired:false,checking:false,leaving:false,sessionKnown:true,notice:ok==='stale'?'signout-all-stale':null});
+    this.hint.set(null);this.set({session:null,home:null,expired:false,checking:false,leaving:false,sessionKnown:true,notice:ok==='stale'?'signout-all-stale':null,ended:ok==='stale'?null:'signed-out'});
     this.broadcast('signed-out');
   }
   /** The wallet switched account (A → B): owner mode off at once, A's in-flight flow dropped here and at the server, A's
@@ -327,7 +358,7 @@ export function statusText(st:AuthStatus,s:AuthState,say:Say):string{
     case 'verifying':return say('正在確認身分與 IMD 持有資格','Checking identity and IMD seats');
     case 'owner':{const n=(s.home as MeHome).eligible;return say(`我的家 · ${n} 位 agent`,`My home · ${n} agent${n===1?'':'s'}`);}
     case 'signedInNoHouse':return say('已登入，目前沒有符合資格的席位','Signed in, no eligible seat right now');
-    case 'expired':return say('登入已到期，重新驗證後即可回家','Session expired, sign in again to go home');
+    case 'expired':return endedText('expired',say);                                  // N-7: one source for the expiry sentence (walletView.ts)
     case 'ownershipUnavailable':return say('暫時無法確認持有資格，請稍後重試','Can’t confirm seats right now, try again later');
     case 'mismatch':return say(`錢包已切換到 ${short(s.account!)}；請重新簽名或登出`,`Wallet switched to ${short(s.account!)}; sign in again or log out`);
   }

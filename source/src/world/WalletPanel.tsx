@@ -8,7 +8,7 @@ import {AuthClient,statusOf,statusText,chipText,noticeText,watchOwner,type AuthS
 import {wallets,unidentifiedNote,type WalletRegistry} from './wallet.ts';
 import {browserEnv} from './cadence.ts';
 import {moveGate,moveHint} from './moves.ts';
-import {seatRows,countsText,eligibleText,panelHome,houseNotes,signingText,presignText,logoutView,logoutDeviceLabel,runLogout,confirmOpen,type SeatRow,type LogoutAct} from './walletView.ts';
+import {seatRows,countsText,eligibleText,panelHome,houseNotes,signingText,presignText,logoutView,logoutDeviceLabel,runLogout,confirmOpen,endedText,type SeatRow,type LogoutAct} from './walletView.ts';
 import {AuditRecord} from './auditRecord.ts';
 // "My wallet" (W1, DESIGN_W1 §9): the chip in the tools bar and the drawer body. Sign-in state comes from AuthClient
 // (auth.ts); the assets list is public data (GET /api/wallet/:address/assets: IMD's roster) and needs no signature. The
@@ -101,6 +101,8 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
       <span className={'wallet-badge '+(session?'in':canSign?'connected':'view')}>{session?(st==='mismatch'?text('登入身分 ','Signed in as ')+shortAddr(session.address):text('已登入 · 有效至 ','Signed in · until ')+when(session.expiresAt)):canSign?text('已連接 · 未登入','Connected · not signed in'):view?text('只看','View only'):text('未登入','Not signed in')}</span>
     </div>
     <p className={'wallet-status '+DOT[st]} role="status"><i/>{statusText(st,state,say)}</p>
+    {/* N-7: why the last session ended, under the status line; an expiry is the status line itself */}
+    {!state.session&&state.ended&&state.ended!=='expired'&&<p className="small-note" role="status">{endedText(state.ended,say)}</p>}
     {state.notice&&<p className="empty-state wallet-notice">{noticeText(state.notice,say)}</p>}
     <WalletChooser registry={registry} disabled={busy}/>
     {found.unidentified&&<p className="small-note">{unidentifiedNote(say)}</p>}

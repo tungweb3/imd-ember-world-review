@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as entry from '../worker/index.ts';
-import {createWorker,rateLimitKey,networkKey,USER_AGENT,edgeCopy,SHARED_COPY_PATH} from '../worker/app.ts';
+import {createWorker,rateLimitKey,networkKey,subnetKey,USER_AGENT,edgeCopy,SHARED_COPY_PATH} from '../worker/app.ts';
 import {SHARED_SHAPE} from '../server/gateway.ts';
 const worker=entry.default;
 import {ReadGateway,ACTIVITY_URL} from '../server/gateway.ts';
@@ -234,6 +234,14 @@ test('the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-
   assert.equal(networkKey('203.0.114.9'),'net:203.0.114.0/24');assert.equal(networkKey(null),'net:unknown');
   for(const ip of ['2001:db8:1:2::1','2001:db8:1:ffff::9','2001:0DB8:0001:0:0:0:0:1','2001:db8:1::'])assert.equal(networkKey(ip),'net6:2001:db8:1::/48',ip);
   assert.equal(networkKey('2001:db8:2::1'),'net6:2001:db8:2::/48');assert.equal(networkKey('::1'),'net6:0:0:0::/48');
+});
+// N-5 (Swarm audit 8c3aea2e): inside an IPv6 /48 network key, the subscriber is its /64 (the per-IP limiter's unit);
+// the sign-in budgets give each /64 at most one /24's share (server/auth.ts). IPv4 has one level.
+test('N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, IPv4-mapped and unknown clients have none',()=>{
+  for(const ip of ['2001:db8:1:a::1','2001:DB8:1:A:0:0:0:1f4','2001:db8:1:a::','2001:0db8:0001:000a:ffff:ffff:ffff:ffff'])assert.equal(subnetKey(ip),'net6:2001:db8:1:a::/64',ip);
+  assert.equal(subnetKey('2001:db8:1:b::2'),'net6:2001:db8:1:b::/64');
+  for(const ip of ['203.0.113.9','::ffff:192.0.2.1',null])assert.equal(subnetKey(ip),null,String(ip));
+  for(const ip of ['2001:db8:1:a::1','2001:db8:1:b::2'])assert.equal(networkKey(ip),'net6:2001:db8:1::/48','the network key is unchanged: '+ip);
 });
 
 // The Cache API as workerd has it, in miniature: one store per location, keyed by URL, honouring max-age.

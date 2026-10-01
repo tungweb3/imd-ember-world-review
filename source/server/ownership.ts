@@ -112,11 +112,13 @@ export type SeatStatus={tokenId:string;agentId:string|null;online:boolean;lastOn
 export type HomeView={address:string;seats:SeatStatus[];eligible:number;size:HouseSize|null;block:number|null;checkedAt:number;
   /** The /workers read behind `online`: 'fresh' is the live roster; otherwise only recorded presence decides. */
   presence:'fresh'|'stale'|'unavailable';
-  /** Not a complete answer. 'limited': the NFT index was due but the chain budget refused it (or the read failed, with
-   *  an answer kept), so the candidates are IMD's roster plus the last stored index answer (this isolate's or D1's,
-   *  whichever is newer), and ownerOf proves them as always (a seat bought after both last listings may be missing).
-   *  'partial': more candidates than CANDIDATE_CAP, so some were not checked (A-4: seats whose agent can count come
-   *  first), or the index stopped at NFT_PAGE_CAP pages with more left. 'limited' is named when both apply. */
+  /** Not a complete answer. 'limited': the NFT index was due but the chain budget refused it (and, when that answer counted
+   *  no seat, its network's index lane too: N-6), or the read failed with an answer kept, so the candidates are IMD's
+   *  roster plus the last stored index answer (this isolate's or D1's, whichever is newer), and ownerOf proves them as
+   *  always (a seat bought after both last listings may be missing). 'partial': more candidates than CANDIDATE_CAP, so
+   *  some were not checked (A-4, N-3: seats that count, online now or seen under this owner in the last 24 h, come first,
+   *  then other registered ones), or the index stopped at NFT_PAGE_CAP pages with more left. 'limited' is named when both
+   *  apply. */
   recheck?:'limited'|'partial'};
 /** The public view of a wallet: its seats as IMD's public roster (swarm.owners) lists them, with no keyed chain read at
  *  all (SEC-3: anyone can ask about any address); owner rights and on-chain proof come only from home(). */
@@ -126,28 +128,37 @@ export type OwnershipRequest={chain:ChainAccess;db?:D1Database;now:number;waitUn
   /** The chain budget (per Cloudflare location) every NFT index read spends first: home()'s candidates and the public
    *  character list. Absent or refusing means no such Alchemy call. */
   budget?:()=>Promise<boolean>;
+  /** N-6: the requesting network's discovery lane (server/auth.ts INDEX_LANE, then 'chain:index:lane'), asked by home()
+   *  only after `budget` refused an index read whose answer counts no seat; true lets that one read through. Absent: no lane. */
+  lane?:()=>Promise<boolean>;
   /** The clock, read again when an NFT index read begins (absent: `now`). Its answer is dated then, not when the request
    *  began: a request held before its index read (a slow roster read) must not date a later answer before one read
    *  meanwhile, or the newer-answer rule keeps the older one (Codex crosscheck review A2-R1). */
   clock?:()=>number};
-/** indexedAt: when the index answer behind these candidates was read (0: none); limited: the index was due but refused;
- *  partial: CANDIDATE_CAP left candidates unchecked, or the index left pages unread. */
-type Proof={ids:string[];block:number|null;checkedAt:number;indexedAt:number;limited:boolean;partial:boolean};
-/** Which candidates the cap keeps (A-4): seats whose agent the live roster shows online, then other registered ones (both
- *  can count), then the rest, each by id; the ones kept are checked and listed by id. */
-const rank=(agent:Agent|undefined)=>agent?.agentId==null?2:agent.presence==='online'?0:1;
+/** indexedAt: when the index answer behind these candidates was read (0: none); limited: the index was due but refused,
+ *  or failed with an answer kept; refused: the budget refused it (N-6's lane is only for those); partial: CANDIDATE_CAP
+ *  left candidates unchecked, or the index left pages unread. */
+type Proof={ids:string[];block:number|null;checkedAt:number;indexedAt:number;limited:boolean;refused:boolean;partial:boolean};
+/** The counting rule (DESIGN_W1 §7): a registered IMD agent the live roster shows online now, or last seen online under
+ *  this owner (seat_presence: CORR-03) within ONLINE_WINDOW_MS. One predicate for status(), the cap's rank (N-3) and the
+ *  index lane (N-6), so no second copy of the 24 h rule exists. */
+const counts=(agent:Agent|undefined,seen:number|undefined,now:number)=>agent?.agentId!=null&&(agent.presence==='online'||seen!==undefined&&seen>=now-ONLINE_WINDOW_MS);
+/** Which candidates the cap keeps (A-4, N-3): seats that count (by that rule: online now, or seen under this owner in the
+ *  last 24 h), then other registered ones, then the rest, each by id; the ones kept are checked and listed by id. */
+const rank=(agent:Agent|undefined,seen:number|undefined,now:number)=>agent?.agentId==null?2:counts(agent,seen,now)?0:1;
 /** The budget refused an index read (never cached; the caller falls back to the roster). */
 class Limited extends Error{}
 /** A-2 across instances: the last NFT-index answer per address, kept in D1 (migrations/0004) so every isolate and
  *  location has it, not only the one that read it. Every successful index read keeps its answer with one statement, run
- *  after the reply (waitUntil): an answer naming seats is upserted (at most CANDIDATE_CAP ids, ranked like the
- *  candidates), never over a newer one (read_at: when the index read began); an answer naming none deletes the row, so a
- *  throwaway address writes nothing. It is read only when an index read is refused or fails, and it only names
- *  candidates: ownerOf proves each one.
+ *  after the reply (waitUntil): an answer naming seats is upserted (at most CANDIDATE_CAP ids, ranked and cut like the
+ *  candidates, N-3 included), never over a newer one (read_at: when the index read began); an answer naming none
+ *  deletes the row, so a throwaway address writes nothing. It is read only when an index read is refused or fails, and
+ *  it only names candidates: ownerOf proves each one.
  *  D1 (measured on workerd's D1): the upsert reads ≤ 1 row and writes 1 (2 for an address not kept yet: the row and its
  *  key); the delete writes none (1 when it removes a row); the read reads ≤ 1. Upserts are bounded by chain:index
- *  (20/min per location), reads by the proof cache (30 s per address and isolate) and the 'home' limit; the table holds
- *  only addresses the index names a seat for, and the cron deletes rows older than INDEX_KEEP_MS (server/presence.ts).
+ *  (20/min per location) and the index lanes (N-6: one read a minute per network, 600 a minute site-wide), reads by the
+ *  proof cache (30 s per address and isolate) and the 'home' limit; the table holds only addresses the index names a
+ *  seat for, and the cron deletes rows older than INDEX_KEEP_MS (server/presence.ts).
  *  Without a database (the Vite dev server) nothing is read or written; before the migration both fail and are ignored:
  *  this isolate's answer alone, as before. */
 export const KEEP_INDEX=`INSERT INTO index_candidates(address,ids,read_at) VALUES(?1,?2,?3)
@@ -206,35 +217,47 @@ export class Ownership{
    *  req.budget first (H1: any throwaway key can sign in) and keeps its answer in D1 too (KEEP_INDEX); refused, or failed
    *  with an answer kept, the roster and the last stored answer (this isolate's or D1's, whichever is newer; however old:
    *  it only names candidates, and ownerOf proves them now) are the candidates, so an address neither names (every
-   *  throwaway one) causes no keyed read at all. A failed index read with no answer kept is 503, as before. */
-  private proof(address:string,owners:unknown[],agents:Map<string,Agent>,req:OwnershipRequest,fresh:boolean):Promise<Proof>{
+   *  throwaway one) causes no keyed read beyond its network's index lane (home(), N-6: one index read a minute per
+   *  network, 600 a minute site-wide, and nothing to prove). A failed index read with no answer kept is 503, as before.
+   *  `again` (the lane's rebuild): a stored proof the budget refused is built again, with the caller's budget. */
+  private proof(address:string,owners:unknown[],agents:Map<string,Agent>,req:OwnershipRequest,fresh:boolean,again=false):Promise<Proof>{
     const young=(at:number)=>!fresh||at+OWNERSHIP_TTL_MS>req.now;
-    const order=(id:string)=>rank(agents.get(id)),best=(ids:Iterable<string>)=>[...ids].sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,CANDIDATE_CAP);
     return this.proofs.get(address,req.now,OWNERSHIP_TTL_MS,async()=>{
       const candidates=new Set<string>();
       owners.forEach((o,i)=>{if(typeof o==='string'&&o.toLowerCase()===address)candidates.add(String(i));});
-      let indexed:Indexed|undefined,limited=false;
+      // N-3: past the cap, the cut ranks by the counting rule itself, so a seat that counts through a recent sighting is
+      // never cut for seats that cannot count. Only a cut needs sightings: one seat_presence read per build, of the
+      // registered seats of roster and index not online now (the only ones a sighting can promote; PK lookups, at most
+      // the candidates), shared by both cuts (the one kept in D1 and the one proven). No database, or the read failing:
+      // the live roster alone ranks, as before (A-4).
+      let seen:Promise<Map<string,number>>|undefined;
+      const best=async(ids:Iterable<string>)=>{const list=[...ids];
+        const sightings=list.length<=CANDIDATE_CAP?new Map<string,number>():await(seen??=this.sightings([...new Set([...candidates,...list])]
+          .filter(id=>rank(agents.get(id),undefined,req.now)===1),address,req.db).catch(()=>new Map<string,number>()));
+        const order=(id:string)=>rank(agents.get(id),sightings.get(id),req.now);
+        return list.sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,CANDIDATE_CAP);};
+      let indexed:Indexed|undefined,limited=false,refused=false;
       try{
         indexed=await this.candidates.get(address,req.now,CANDIDATES_TTL_MS,async()=>{
           if(!req.budget||!await req.budget())throw new Limited();
           const at=req.clock?.()??req.now;                                          // the index read begins now (A2-R1)
           const {nfts,complete}=await indexedNfts(req.chain,address,[SEAT_COLLECTION],false),ids=[...new Set(nfts.map(n=>n.tokenId))];
-          keepIndex(address,best(ids),at,req);return {ids,at,complete};
+          keepIndex(address,await best(ids),at,req);return {ids,at,complete};
         },v=>young(v.at));
       }catch(e){
         if(!(e instanceof Limited||e instanceof OwnershipUnavailable))throw e;
         const mine=this.candidates.peek(address),kept=await keptIndex(address,req.db);
         indexed=kept&&(!mine||kept.at>mine.at)?kept:mine;
         if(!(e instanceof Limited)&&!indexed?.ids.length)throw e;                   // failed, nothing kept to re-prove: 503
-        limited=true;
+        limited=true;refused=e instanceof Limited;
       }
       for(const id of indexed?.ids??[])candidates.add(id);
       const partial=candidates.size>CANDIDATE_CAP||indexed?.complete===false,indexedAt=indexed?.at??0;
-      const ids=best(candidates).sort(compareIds);
-      if(!ids.length)return {ids,block:null,checkedAt:req.now,indexedAt,limited,partial};
+      const ids=(await best(candidates)).sort(compareIds);
+      if(!ids.length)return {ids,block:null,checkedAt:req.now,indexedAt,limited,refused,partial};
       const {owners:onChain,block}=await ownersOf(req.chain,ids);
-      return {ids:ids.filter(id=>onChain.get(id)===address),block,checkedAt:req.now,indexedAt,limited,partial};
-    },p=>young(p.indexedAt));
+      return {ids:ids.filter(id=>onChain.get(id)===address),block,checkedAt:req.now,indexedAt,limited,refused,partial};
+    },p=>young(p.indexedAt)&&!(again&&p.refused));
   }
   /** Last recorded sighting per seat under `owner` (cron; the owner is IMD's swarm view at the time), one query. A
    *  sighting made under a previous owner never counts for a buyer (CORR-03). Without a database only the live roster counts. */
@@ -245,18 +268,24 @@ export class Ownership{
     return new Map(results.map(r=>[String(r.token_id),r.last_online_at]));
   }
   private status(id:string,agent:Agent|undefined,seen:number|undefined,now:number):SeatStatus{
-    const online=agent?.presence==='online',agentId=agent?.agentId??null,lastOnlineAt=online?now:seen??null;
-    const recent=online||lastOnlineAt!==null&&lastOnlineAt>=now-ONLINE_WINDOW_MS;
-    const reason=agentId===null?'not-agent' as const:recent?null:lastOnlineAt===null?'not-seen' as const:'offline-24h' as const;
-    return {tokenId:id,agentId,online,lastOnlineAt,counts:agentId!==null&&recent,...reason?{reason}:{}};
+    const online=agent?.presence==='online',agentId=agent?.agentId??null,lastOnlineAt=online?now:seen??null,count=counts(agent,seen,now);
+    const reason=agentId===null?'not-agent' as const:count?null:lastOnlineAt===null?'not-seen' as const:'offline-24h' as const;
+    return {tokenId:id,agentId,online,lastOnlineAt,counts:count,...reason?{reason}:{}};
   }
   /** The session address's household: verified seats, each with agent status and whether it counts toward the house.
    *  When the chain budget refused a due index read, or the cap left candidates unchecked, the view says so in `recheck`
    *  (for as long as that proof lives), never as a complete answer. */
   async home(address:string,req:OwnershipRequest,fresh=false):Promise<HomeView>{
     const a=address.toLowerCase(),world=await this.world(req.waitUntil);
-    const proof=await this.proof(a,world.owners,world.agents,req,fresh);
-    const seen=await this.sightings(proof.ids,a,req.db);
+    let proof=await this.proof(a,world.owners,world.agents,req,fresh),seen=await this.sightings(proof.ids,a,req.db);
+    // N-6: a read the budget refused whose answer counts no seat may be hiding a seat only the index names (a new buyer,
+    // or one whose kept answer names only seats sold since, or none that count). Its network's lane (server/auth.ts
+    // INDEX_LANE: one read a minute, IPv6 one per /64 and two per /48, at most INDEX_LANE_BUDGET per 6 s site-wide, then
+    // 'chain:index:lane') reads the index once, keeping the answer (KEEP_INDEX) so that owner needs no lane again; ownerOf
+    // proves it as always, and nothing the client sends is a candidate. The lane is asked before the rebuild, so a
+    // refused one costs no second ownerOf; refused, the view stays 'limited' (could not check, never "owns nothing").
+    if(proof.refused&&req.lane&&!proof.ids.some(id=>counts(world.agents.get(id),seen.get(id),req.now))&&await req.lane()){
+      proof=await this.proof(a,world.owners,world.agents,{...req,budget:async()=>true},fresh,true);seen=await this.sightings(proof.ids,a,req.db);}
     const seats=proof.ids.map(id=>this.status(id,world.agents.get(id),seen.get(id),req.now)),eligible=seats.filter(s=>s.counts).length;
     return {address:getAddress(a),seats,eligible,size:eligible?houseSize(eligible):null,block:proof.block,checkedAt:proof.checkedAt,presence:world.presence,
       ...proof.limited?{recheck:'limited' as const}:proof.partial?{recheck:'partial' as const}:{}};

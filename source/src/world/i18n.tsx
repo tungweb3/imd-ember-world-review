@@ -45,7 +45,7 @@ export const EN:Record<string,string>={
   '建築與角色使用可替換的程序化模型。接下來會依參考圖製作 Tripo 模型，經 Blender 整理後逐件放入世界。':'The world combines authored architecture with generated 3D assets. Scene props are added individually as they are ready.',
   'IMD Town 參考 ↗':'IMD Town reference ↗','IMD 官方文件 ↗':'Official IMD documentation ↗',
   // Hover and tap feedback (onboarding 06): the chip's kind word, verb and names, and the once-a-session tap note.
-  '點擊查看':'Click to open','點擊前往':'Click to go','地標':'Landmark','觀測站':'Observatory','住家':'Home','守印者':'Guardian','空地':'Free lot',
+  '點擊查看':'Click to open','點擊前往':'Click to go','點擊搭乘':'Click to ride','纜車':'Cable car','地標':'Landmark','觀測站':'Observatory','住家':'Home','守印者':'Guardian','空地':'Free lot',
   '蜂群觀測站':'Swarm Observatory','這塊空地':'This lot','這裡沒有東西可看 · 找發光的東西':'Nothing to open here · look for things that glow',
   // The Explore checklist (onboarding 10): the pill, its list, the Map's checks and the 7-of-7 toast.
   '探索':'Explore','探索清單':'Explore checklist','燼渡探索':'Explore Emberford','點一列就帶你過去，到了自動打開介紹':'Pick one to go there · it opens when you arrive',

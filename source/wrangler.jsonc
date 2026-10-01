@@ -50,9 +50,10 @@
     // Constant keys (server/auth.ts CHAIN_KEYS), one budget each: the keyed Alchemy reads a throwaway-key session can
     // cause. The ERC-1271 check of a non-ECDSA sign-in (a first-time contract 'chain:erc1271', one that signed in that
     // way before 'chain:erc1271:known' and, once a contract address's shared checks of the minute are spent, one check
-    // of it per network 'chain:erc1271:lane', server/auth.ts CLAIM_LANE), every NFT index read of /api/me/home, and the
-    // public assets route's character list (once collections.ts lists one). Per Cloudflare location, not global (the global sign-in
-    // budgets are counted in D1, server/auth.ts); fails closed.
+    // of it per network 'chain:erc1271:lane', server/auth.ts CLAIM_LANE), every NFT index read of /api/me/home (and, once
+    // 'chain:index' refused a read that counts no seat, one a minute per network on 'chain:index:lane', server/auth.ts
+    // INDEX_LANE, counted in D1 first), and the public assets route's character list (once collections.ts lists one).
+    // Per Cloudflare location, not global (the global sign-in budgets are counted in D1, server/auth.ts); fails closed.
     { "name": "CHAIN_LIMITER", "namespace_id": "4104", "simple": { "limit": 20, "period": 60 } }
   ],
   // Wallet login (docs/wallet-login/DESIGN_W1_v001.md): challenges, sessions and seat presence, in the imd-world

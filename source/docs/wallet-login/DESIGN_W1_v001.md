@@ -48,7 +48,7 @@ No `Access-Control-*` header is ever sent (same-origin only; no CORS credentials
 |---|---|---|---|
 | `POST /api/auth/challenge` body `{address}` | Origin allow-list | 200 `{nonce,message,acceptUntil}` + `Set-Cookie __Host-imd_flow` | 400 `BAD_REQUEST` (JSON, content-type, size > 2 KB, address), 403 `ORIGIN_NOT_ALLOWED`, 429 `RATE_LIMITED`, 503 `AUTH_UNAVAILABLE` (no DB) |
 | `POST /api/auth/verify` body `{nonce,signature}` | Origin + flow cookie | 200 `{address,expiresAt}` + `Set-Cookie __Host-imd_session`, flow cookie cleared | 400 `BAD_REQUEST` / `UNSUPPORTED_SIGNATURE` (ERC-6492 wrapper), 401 `SIGNATURE_INVALID`, 403 `ORIGIN_NOT_ALLOWED` / `FLOW_MISMATCH`, 409 `CHALLENGE_USED` (used, superseded or lost a concurrent race), 410 `CHALLENGE_EXPIRED`, 429, 503 `AUTH_UNAVAILABLE` / `VERIFY_UNAVAILABLE` (ERC-1271 needed but no RPC key, or the node could not answer: a transport or HTTP failure, a JSON-RPC error that is not a revert or an EVM halt, a malformed reply; Swarm retest W-3) |
-| `GET /api/auth/session` | cookie | 200 `{signedIn:false}` or `{signedIn:true,address,expiresAt}`; a dead cookie is also cleared | 503 `AUTH_UNAVAILABLE` |
+| `GET /api/auth/session` | cookie | 200 `{signedIn:false}` (plus `expired:true` when the cookie's session ran out; a revoked, unknown or malformed cookie gets no reason: Swarm audit 8c3aea2e N-7) or `{signedIn:true,address,expiresAt}`; a dead cookie is also cleared | 503 `AUTH_UNAVAILABLE` |
 | `POST /api/auth/logout` | Origin | 204, session revoked, both cookies cleared, open challenges of this flow invalidated; idempotent | 403 `ORIGIN_NOT_ALLOWED`, 429 |
 | `POST /api/auth/logout-all` | Origin, JSON, a live session | 200 `{revoked}`: every live session of the session's address revoked, its open challenges (and this flow's) invalidated, both cookies cleared; never rate limited (added 2026-09-29, swarm review F-4) | 400 `BAD_REQUEST`, 401 `AUTH_REQUIRED`/`SESSION_EXPIRED` (ends nobody), 403 `ORIGIN_NOT_ALLOWED` |
 | `GET /api/me/home` | session | 200 `{address,seats:[{tokenId,agentId,online,lastOnlineAt,counts}],eligible,size|null,block,checkedAt}` | 401 `AUTH_REQUIRED` / `SESSION_EXPIRED`, 429, 503 `OWNERSHIP_UNAVAILABLE` (never "you own nothing") |
@@ -58,12 +58,13 @@ Rate limits (per client key, `rateLimitKey`): `AUTH_LIMITER` (id 4103, 20/60 s) 
 `/api/me/home`; `API_LIMITER` + `SEAT_LIMITER` on `/api/wallet/*` (it spends Alchemy compute per new address). Unlike the
 read API, the auth bucket fails **closed** when the binding throws (429); an absent binding allows only on a loopback URL
 (on imdember.com it is 503). Hardening of 2026-09-28 (server/auth.ts): D1 challenge budgets per network (IPv4 /24, IPv6
-/48: 30/min) and a global valve (60 per 6 s), 429 `SIGN_IN_BUSY`; ERC-1271 checks claim the challenge first and spend a
+/48: 30/min; since Swarm audit 8c3aea2e N-5 a /48 has 60, §16) and a global valve (60 per 6 s), 429 `SIGN_IN_BUSY`; ERC-1271 checks claim the challenge first and spend a
 per-network share (3/min) and `CHAIN_LIMITER` (`chain:erc1271`, per location), 429 `CHAIN_BUSY` burns the challenge; every
 NFT index read of `/api/me/home` spends `chain:index` (refused: the roster and the last stored index answer are the
 candidates, ownerOf proves them, `recheck:'limited'`; Swarm audit 519db624 A-2: a refused reload used to drop that answer,
 and since 2026-09-30 the answer is kept in D1, `index_candidates`, so every instance has it; a failed index read with an
-answer kept is treated the same, one with none is still 503).
+answer kept is treated the same, one with none is still 503; since Swarm audit 8c3aea2e N-6 a refused read whose answer
+counts no seat may take its network's discovery lane, `chain:index:lane`, §16).
 2026-09-29 (swarm review F-3): the network share now gates the one `eth_getCode`, and only an address with code spends
 `chain:erc1271` before `eth_call`; a "no code" answer is cached per address for 60 s (per isolate), so garbage signatures for
 EOAs no longer close smart-wallet sign-in. Still open: garbage aimed at real contract addresses spends `chain:erc1271`.
@@ -191,6 +192,15 @@ location, 864 k index reads a month: about 0.9 M rows written a month per locati
 1.7 M if every read kept a new address, and only an address the index names a seat for is kept); the prune scans the
 table (a few thousand rows at most) every run and writes 1 per row it deletes.
 
+`migrations/0005_lanes_and_subnets.sql` (2026-09-30, Swarm audit 8c3aea2e N-4..N-6; additive, to be applied before the
+code that uses it): `login_challenges.sub` (the IPv6 /64 that asked for the challenge, `net6:<prefix>::/64`, NULL for
+IPv4; never the host bits; it lives as long as its row), `login_challenges.called_via` (`pool` or `lane` for a claimed
+contract check), and `index_lanes(net TEXT NOT NULL, sub TEXT, at INTEGER NOT NULL)` with `index_lanes_net(net, at, sub)`
+and `index_lanes_at(at)`: one row per NFT-index read taken on a network's discovery lane, deleted by the cron once older
+than a minute (its next run, every 15 minutes, so a row lives at most about 16 minutes). Code deployed ahead of it keeps the 0004 statements (`SCHEMA_0004`), takes no lane and never answers 503
+for it. Costs: `sub` and `called_via` ride in writes that already happen (unindexed); a lane writes 3 rows and its prune
+3 (§16).
+
 ## 7. Ownership and eligibility (`server/ownership.ts`)
 
 Chain reads go through an injected `chainFetch` (default `upstreamFetch`; Authorization is set, so never edge cached).
@@ -198,10 +208,12 @@ Key only in `Authorization: Bearer`, never in a URL or an error text.
 
 1. **Candidates** for the session address: `swarm.owners[i] == address` (gateway cache, IMD's view) ∪ Alchemy
    `getNFTsForOwner(owner, contractAddresses[]=SEAT_COLLECTION)` (catches a second-hand buyer IMD has not indexed).
-   Capped at 256 ids (supply 2000; largest holder today 20). Past the cap, seats whose agent the live roster shows
-   online come first, then other registered ones, then the rest (each by id), and the view says `recheck:'partial'`,
-   never a complete answer (Swarm audit 519db624 A-4: cutting by id alone could drop the only seat that counts); so does
-   an index read that stopped at its 5-page cap with pages left.
+   Capped at 256 ids (supply 2000; largest holder today 20). Past the cap, seats that count by rule 3 (online now, or
+   seen under this owner in the last 24 h: one `seat_presence` read, made only when there is a cut) come first, then
+   other registered ones, then the rest (each by id), and the view says `recheck:'partial'`, never a complete answer
+   (Swarm audit 519db624 A-4: cutting by id alone could drop the only seat that counts; Swarm audit 8c3aea2e N-3: ranking
+   by the roster alone could drop one that counts through its sighting); so does an index read that stopped at its
+   5-page cap with pages left.
 2. **Verify**: one `eth_call` to Multicall3 `0xcA11bde05977b3631167028862bE2a173976CA11` `aggregate3` with
    `getBlockNumber()` + `ownerOf(id)` for each candidate (`allowFailure`), at `latest`, chunked by 200. A revert
    (burnt / nonexistent id) = not owned. Result: verified ids + the block number of the read (one atomic block).
@@ -247,7 +259,8 @@ INSERT INTO seat_presence(token_id,owner,last_online_at,updated_at)
 ```
 (one bound JSON parameter, so one D1 query instead of ~430). `owner` is IMD's `swarm.owners[id]`, informational only.
 A failed or partial read writes nothing (never "offline"). Every run also deletes stored index answers read more than
-8 days ago (`PRUNE_INDEX`, its own statement after the batch, so a deploy ahead of `0004` never stops the rest). CPU:
+8 days ago (`PRUNE_INDEX`, its own statement after the batch, so a deploy ahead of `0004` never stops the rest) and
+index-lane rows older than a minute (`PRUNE_INDEX_LANES`, a range of `index_lanes_at`, likewise after the batch). CPU:
 parsing a 459 KB workers body 0.4–0.9 ms, the 105 KB swarm 0.1–0.2 ms, the JSON parameter 0.1 ms (Node, measured) — a
 few ms per run. Writes ≈ 430 × 96/day ≈ 41 k rows/day
 (IMD account's own D1).
@@ -269,7 +282,7 @@ State machine (spec 7.1):
 | verifying | 正在確認身分與 IMD 持有資格 / Checking identity and IMD seats |
 | owner | 我的家 · N 位 agent / My home · N agents |
 | signedInNoHouse | 已登入，目前沒有符合資格的席位 / Signed in, no eligible seat right now |
-| expired | 登入已到期，重新驗證後即可回家 / Session expired, sign in again to go home |
+| expired | 登入已到期，請重新登入。 / Your sign-in has expired. Please sign in again. (chip: 登入已到期 / Session expired; Swarm audit 8c3aea2e N-7) |
 | ownershipUnavailable | 暫時無法確認持有資格，請稍後重試 / Can't confirm seats right now, try again later |
 | mismatch | 錢包已切換到 0x…；請重新簽名或登出 / Wallet switched to 0x…; sign in again or sign out |
 
@@ -284,7 +297,9 @@ Rules:
   while the session is valid: stay signed in.
 - Tabs: `BroadcastChannel('imd-ember-auth')` posts `signed-in` / `signed-out`; receivers re-read `/api/auth/session`
   (never trust the message's address).
-- Owner re-check: on panel open, window focus, and every 60 s while owner mode is on; 401 → `expired`, 503 →
+- Owner re-check: on panel open, window focus, and every 60 s while owner mode is on; 401 → `expired` only when the
+  session ran out (`SESSION_EXPIRED`, or its `expiresAt` reached on this clock), any other 401 → signed out, worded
+  「登入狀態已失效，請重新登入。」 / "You are no longer signed in. Please sign in again." (N-7, §16), 503 →
   `ownershipUnavailable` (owner mode suspended, house kept), zero eligible → `signedInNoHouse`; zero eligible from a
   read that was not complete (`recheck` `limited` or `partial`) → `ownershipUnavailable` too, worded "the on-chain check
   couldn't be completed", never "checked on chain: no seat" (Swarm audit 519db624 A-8).
@@ -597,3 +612,40 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   silent 409. The audit record says its statuses are the team's own account, not re-reviewed, and has a "Re-review:
   none yet" row (on `backlog-0929` since 2026-09-30 the row links the two Swarm re-reviews of Worker 50c688c9, Report
   e48d0a96 and Audit 519db624, whose findings follow with the team's statuses; this version was not re-reviewed). The WAF rule on the evidence page is marked as stated (not read from Cloudflare), with a rule-id field.
+
+## 16. Swarm audit 8c3aea2e follow-ups (2026-09-30; deployed in Worker `bbf24001` on 2026-10-01, after migration 0005)
+
+Swarm audit 8c3aea2e reviewed the code of Worker `1a0dd495` (snapshot `ae1d41a`) and reported N-1..N-7 (6 Low, 1 Info;
+no transfer, forged sign-in or ownership-forgery path). Status, tests and residuals of each:
+`docs/security/AUDIT_REMEDIATION_STATUS.md` "Swarm audit 8c3aea2e".
+
+- **N-1, session reads in order** (`src/world/auth.ts`). Every `GET /api/auth/session` read takes a number
+  (`sessionReads`, apart from `gen` and `homeGen`); only the newest one's answer, body or failure is applied. A read that
+  applies "signed out" or another session drops the replaced session's house read (`homeGen`), and so does a sign-in as
+  it begins; a 401 on the house route with no session held changes nothing; a sign-in click waits until no session read
+  is running. No wallet prompt is added.
+- **N-2, no prompt from a dead sign-in** (`src/world/auth.ts`). After the challenge body, the flow asks the wallet only
+  while it is the live flow (`gen`) with the same provider and account; late refusals change only the live flow; the
+  client's teardown ends an in-flight flow and resets its phase. A click still waiting for a session read is ended by a
+  sign-out, a switch or the teardown in that wait (`5261844`). A wallet window already open cannot be closed; its answer
+  is dropped.
+- **N-3, the cap ranks by the counting rule** (`server/ownership.ts`, §7 item 1). One predicate, `counts()`, for the seat
+  status, the cap's rank and the N-6 lane; one sighting read per proof build, only past the cap.
+- **N-4, lane checks counted apart** (`server/auth.ts` `CLAIM_LANE`, `login_challenges.called_via`). Only lane checks use
+  up a network's lane of an address, so the owner's own earlier shared check leaves it; a subscriber (/24, IPv6 /64) that
+  made both of the address's shared checks itself takes none (F-3's "2 of its 3" holds).
+- **N-5, nested IPv6 shares** (`worker/app.ts` `subnetKey`, `server/auth.ts` `NET6_SCALE`, `login_challenges.sub`). A
+  /48 has twice each /24 share (60 challenges, 20 code claims, 6 contract checks, 2 lanes per address a minute) and each
+  /64 in it at most one /24's ERC-1271 claims and contract checks, counted by the /64 that asked for the challenge, never
+  by the verifier's address. IPv4 is unchanged; logs still carry only the /48.
+- **N-6, a discovery lane** (`server/ownership.ts` `home`, `server/auth.ts` `INDEX_LANE`, `CHAIN_KEYS.indexLane`). When
+  `chain:index` refused a read whose answer counts no seat, the requester's network gets one index read a minute (IPv6:
+  two per /48, one per /64; at most 60 per 6 s site-wide), counted in D1 first, then on `chain:index:lane` (20/min per
+  location, fails closed; no new binding). `ownerOf` proves every candidate; a refused lane stays `limited`.
+- **N-7, a revocation is not an expiry** (`src/world/auth.ts`, `walletView.ts` `endedText`, `WalletPanel.tsx`, the session
+  route). `AuthState.ended` (`expired` | `revoked` | `signed-out`) says why the last session ended: 「登入已到期，請重新登入。」 /
+  "Your sign-in has expired. Please sign in again." only when it ran out, 「登入狀態已失效，請重新登入。」 / "You are no
+  longer signed in. Please sign in again." for any other sign-out the page learns of, 「已登出。」 / "Signed out." after its
+  own; never "another device" from `AUTH_REQUIRED` alone.
+- **Page and docs.** The Swarm Audit Record lists this audit under "Later review" / 「之後的審查」 (Worker 1a0dd495, not
+  this version) with N-1..N-7 and the team's statuses; A-1's and A-6's lines name what N-4 and N-5 change.

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setup,newAccount,fakeImd,fakeChain,windowLimiter,openLimiter,START} from './wallet-harness.mjs';
 import {AuthClient,statusOf,ownerAddress,statusText,chipText,noticeText,watchOwner,OWNER_RECHECK_MS} from '../src/world/auth.ts';
-import {seatRows,countsText,eligibleText,recheckNote,emptySeatsText,panelHome,houseNotes,markedHome,markerLabel,signingText,presignText,logoutView,runLogout,confirmOpen} from '../src/world/walletView.ts';
+import {seatRows,countsText,eligibleText,recheckNote,emptySeatsText,panelHome,houseNotes,markedHome,markerLabel,signingText,presignText,logoutView,runLogout,confirmOpen,endedText} from '../src/world/walletView.ts';
 import {ERC6492_SUFFIX} from '../server/auth.ts';
 import {readMoves,commitMove,moveGate,moveHint,movesKey} from '../src/world/moves.ts';
 import {enterGate} from '../src/world/homeEntry.ts';
@@ -34,13 +34,14 @@ function fakeWallet(account){
 }
 const memoryHint=()=>{let v=null;return {get:()=>v,set:x=>{v=x;}};};
 /** One tab: the client wired to the Worker through a browser profile `b`; `calls` lists every request path it made.
- *  `drop(path)` true makes that request fail like a lost connection (fetch throws before it reaches the Worker). */
-function tab(w,b,wallet,{hint=memoryHint(),channel=null,hold=null,holdReply=null,drop=null,registry=null,rewrite=null,env}={}){
+ *  `drop(path)` true makes that request fail like a lost connection (fetch throws before it reaches the Worker); `now` is
+ *  the page's clock (default the Worker's). */
+function tab(w,b,wallet,{hint=memoryHint(),channel=null,hold=null,holdReply=null,drop=null,registry=null,rewrite=null,env,now=w.clock.now}={}){
   const calls=[];
   const fetch=async(path,init={})=>{calls.push((init.method??'GET')+' '+path);if(hold)await hold(path);if(drop?.(path))throw new TypeError('Failed to fetch');
     const r=await b.send(b.request(path,{method:init.method??'GET',body:init.body,headers:init.headers}));if(holdReply)await holdReply(path);b.keep(r);return rewrite?rewrite(path,r):r;};
   const client=new AuthClient({fetch,provider:registry?()=>registry.current():()=>wallet,onProviderChange:registry?fn=>registry.subscribe(fn):undefined,
-    hint,now:w.clock.now,origin:b.origin,channel:channel&&(()=>new BroadcastChannel(channel)),env});
+    hint,now,origin:b.origin,channel:channel&&(()=>new BroadcastChannel(channel)),env});
   const seen=[];client.subscribe(()=>{const s=statusOf(client.state,w.clock.now());if(seen.at(-1)!==s)seen.push(s);});
   return {client,calls,seen,hint,stop:client.start()};
 }
@@ -217,9 +218,10 @@ test('Sign out on all devices: every browser of the address is signed out, the o
   assert.deepEqual([statusOf(one.client.state,w.clock.now()),one.client.state.notice,two.client.state.session],['connected',null,null],'this tab and its sibling (on the channel) are signed out');
   assert.equal(posts(one.calls,'/api/auth/logout-all'),2);assert.equal(posts(one.calls,'/api/auth/logout'),0);
   assert.equal(statusOf(other.client.state,w.clock.now()),'owner','the phone has not asked yet');
+  // N-7: its next read finds the session revoked (AUTH_REQUIRED a week before its expiry): signed out, not "expired".
   await other.client.refreshHome(true);
-  assert.deepEqual([other.client.state.session,statusOf(other.client.state,w.clock.now())],[null,'expired'],'its next read finds the session ended: sign in again');
-  await other.client.restore();assert.deepEqual([other.client.state.session,statusOf(other.client.state,w.clock.now())],[null,'expired']);
+  assert.deepEqual([other.client.state.session,statusOf(other.client.state,w.clock.now()),other.client.state.ended],[null,'connected','revoked'],'its next read finds the session ended: sign in again');
+  await other.client.restore();assert.deepEqual([other.client.state.session,statusOf(other.client.state,w.clock.now()),other.client.state.ended],[null,'connected','revoked']);
   assert.deepEqual([...new Set([...wallet.asked,...phoneWallet.asked])].sort(),['eth_accounts','eth_requestAccounts','personal_sign']);
   assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL').get().n,0);
   one.stop();two.stop();other.stop();
@@ -257,7 +259,7 @@ test('My wallet: “Log out this device” ends only this browser; “Log out al
   assert.deepEqual([open,statusOf(one.client.state,w.clock.now()),posts(one.calls,'/api/auth/logout-all')],[false,'connected',1]);
   await until(()=>two.client.state.session===null);assert.equal(two.client.state.session,null,'the other tab follows at once');
   assert.equal(statusOf(p.client.state,w.clock.now()),'owner','the phone has not asked yet');
-  await p.client.refreshHome(true);assert.deepEqual([p.client.state.session,statusOf(p.client.state,w.clock.now())],[null,'expired'],'its next signed-in request is refused');
+  await p.client.refreshHome(true);assert.deepEqual([p.client.state.session,statusOf(p.client.state,w.clock.now()),p.client.state.ended],[null,'connected','revoked'],'its next signed-in request is refused (revoked, not expired: N-7)');
   assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL').get().n,0);
   assert.equal(w.db.raw.prepare('SELECT count(*) n FROM sessions').get().n,3,'revoked, never deleted');
   // L8: a confirm left open belongs to the session it was opened for. The sibling tab opens it; the laptop logs out and
@@ -606,12 +608,18 @@ test('A-3: an older house read whose body arrives after a newer answer is droppe
 // roster not listing a buyer's seat yet, the house read answered no seats and recheck 'limited' with no chain read at all,
 // and My wallet said "Checked on chain: this wallet holds no IMD seat right now". The texts are walletView.ts's, which
 // the panel renders; the states are the real AuthClient's on the real Worker's answers.
+// Since N-6 (Swarm audit 8c3aea2e) one IP no longer keeps a buyer's first discovery out: a refused read that counts no
+// seat takes its network's index lane. The refused state is now N-6's residual at its stated cost: one IP spends
+// chain:index and 20 other /24s take the location's 20 lanes (chain:index:lane) before V's read.
 test('A-8: a house read that was refused or cut off is “the check couldn’t be completed”, never “checked on chain: no seat”',async()=>{
   const V=newAccount(),v=V.address.toLowerCase(),en=(zh,e)=>e,zh=z=>z;
   const w=setup({imd:fakeImd({seats:{361:'51320'},owners:owners(2000,{}),online:[361]}),chain:fakeChain({owners:{361:v}})});
   w.env.AUTH_LIMITER=windowLimiter(20,w.clock.now);w.env.CHAIN_LIMITER=windowLimiter(20,w.clock.now);
   for(let i=0;i<20;i++){const b=w.browser(undefined,undefined,'203.0.113.9');
     assert.equal((await b.signIn(newAccount())).verify.status,200);assert.equal((await b.get('/api/me/home')).status,200);w.clock.advance(2_500);}
+  for(let k=0;k<20;k++){const b=w.browser(undefined,undefined,'100.64.'+k+'.1');
+    assert.equal((await b.signIn(newAccount())).verify.status,200);assert.equal((await b.get('/api/me/home')).status,200);}
+  assert.equal(w.db.raw.prepare('SELECT count(*) n FROM index_lanes').get().n,20,'the 20 other /24s took the lanes');
   const index=()=>w.chain.state.calls.filter(c=>c.url.includes('getNFTsForOwner')).length,rpc=()=>w.chain.state.calls.filter(c=>c.body).length,before=[index(),rpc()];
   const t=tab(w,w.browser(undefined,undefined,'198.51.100.20'),fakeWallet(V));await t.client.signIn();
   const me=t.client.state.home,now=w.clock.now(),house={owner:v},limitedAt={state:structuredClone(t.client.state),now};
@@ -981,4 +989,343 @@ test('under one’s own house, only an account without a session is told to sign
   const B=newAccount();wallet2.switchTo(B);
   assert.equal(moveHint(u.client.state,{owner:B.address.toLowerCase()},w.clock.now()),'sign-in','a switched-to account with no session of its own');
   u.stop();
+});
+
+// Swarm audit 8c3aea2e (2026-09-30) N-1, N-2, N-7: the order of the page's own session reads and sign-in flows, and why a
+// session ended. The real AuthClient on the real Worker; what is held (a body, a reply, a prompt) is the Worker's own
+// answer, released in the order the finding needs.
+/** Holds response bodies as A-3's rewrite does: `next()` arms the next response `match` picks and resolves, once the page
+ *  reads that body, with {status, open(), fail()}: open hands over the Worker's own bytes, fail cuts the body off. */
+function heldBodies(match){
+  const armed=[];
+  return {next:()=>new Promise(resolve=>armed.push(resolve)),
+    rewrite:async(p,r)=>{if(!armed.length||!match(p))return r;const got=armed.shift(),bytes=new Uint8Array(await r.arrayBuffer());let asked=false;
+      const body=new ReadableStream({pull(c){if(asked)return;asked=true;got({status:r.status,open:()=>{c.enqueue(bytes);c.close();},fail:()=>c.error(new TypeError('network error'))});}},{highWaterMark:0});
+      return new Response(body,{status:r.status,headers:r.headers});}};
+}
+/** The accounts `wallet` was asked to personal_sign for (params[1], lowercase), in order. */
+const prompts=wallet=>{const seen=[],request=wallet.request;wallet.request=async q=>{if(q.method==='personal_sign')seen.push(String(q.params[1]).toLowerCase());return request(q);};return seen;};
+const SESSION=p=>p==='/api/auth/session',CHALLENGE=p=>p==='/api/auth/challenge',VERIFY=p=>p==='/api/auth/verify',HOME=p=>p.startsWith('/api/me/home');
+
+test('N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped: owner mode stays and nothing asks the wallet',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(SESSION);
+  let r1=h.next();const t=tab(w,b,wallet,{rewrite:h.rewrite});r1=await r1;              // R1, the load read: signed out, its body on its way
+  assert.equal((await b.signIn(A)).verify.status,200);                                    // another tab of this browser profile signs in
+  await t.client.restore();                                                               // R2 (that tab's channel message): signed in
+  assert.deepEqual([statusOf(t.client.state,w.clock.now()),t.client.state.home.eligible],['owner',1]);
+  r1.open();await settle();await settle();
+  const s=t.client.state;
+  assert.deepEqual([statusOf(s,w.clock.now()),s.session?.address,s.home?.eligible,s.sessionKnown],['owner',a,1,true],'the older “signed out” is dropped');
+  assert.deepEqual(wallet.asked,['eth_accounts'],'the wallet was asked for nothing');
+  t.stop();
+});
+
+test('N-1: and the reverse: an older “signed in” read that arrives after a newer “signed out” revives nothing and reads no house',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(SESSION);wallet.granted=true;
+  assert.equal((await b.signIn(A)).verify.status,200);
+  let r1=h.next();const t=tab(w,b,wallet,{rewrite:h.rewrite});r1=await r1;              // R1, the load read: signed in, its body on its way
+  assert.equal((await b.post('/api/auth/logout')).status,204);                            // another tab of this browser profile signs out
+  await t.client.restore();const n=t.calls.length;                                        // R2: signed out
+  assert.deepEqual([t.client.state.session,statusOf(t.client.state,w.clock.now())],[null,'connected']);
+  r1.open();await settle();await settle();
+  assert.deepEqual([t.client.state.session,t.client.state.expired,statusOf(t.client.state,w.clock.now()),t.calls.slice(n)],[null,false,'connected',[]],'no session revived, no house read');
+  assert.deepEqual(wallet.asked,['eth_accounts']);
+  t.stop();
+});
+
+test('N-1: an older read that fails late (a lost connection, or a body cut off) after a newer answer changes nothing',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const how of ['lost','cut']){
+    const b=w.browser(),wallet=fakeWallet(A),h=heldBodies(SESSION);let gate=null,lose=false,r1=how==='cut'?h.next():null;
+    const t=tab(w,b,wallet,{hold:async p=>{if(how==='lost'&&SESSION(p)&&!gate)await new Promise(r=>gate=r);},drop:p=>SESSION(p)&&lose,rewrite:h.rewrite});
+    if(r1)r1=await r1;else await until(()=>gate);                                         // R1, the load read, on its way
+    assert.equal((await b.signIn(A)).verify.status,200);await t.client.restore();         // R2: signed in
+    assert.equal(statusOf(t.client.state,w.clock.now()),'owner',how);
+    if(r1)r1.fail();else{lose=true;gate();}await settle();await settle();lose=false;       // R1 fails: the connection, or its body
+    const s=t.client.state;
+    assert.deepEqual([statusOf(s,w.clock.now()),s.sessionKnown,s.restored,s.notice],['owner',true,true,null],how+': the older failure is dropped');
+    t.stop();
+  }
+});
+
+// Guard: passes on the unmodified code through `gen`; fails with `g!==this.gen` taken out of readSession's stale().
+test('N-1: a switch of account or a sign-out while a session read is on its way still drops it',async()=>{
+  for(const leave of ['switch','sign out']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(SESSION);wallet.granted=true;
+    assert.equal((await b.signIn(A)).verify.status,200);
+    const t=tab(w,b,wallet,{rewrite:h.rewrite});await until(()=>statusOf(t.client.state,w.clock.now())==='owner'&&!t.client.state.checking);
+    let r1=h.next();const read=t.client.restore();r1=await r1;                             // R1: signed in, its body on its way
+    if(leave==='switch'){wallet.switchTo(B);await until(()=>!b.jar.has('__Host-imd_session'));}else await t.client.signOut();
+    const n=t.calls.length;r1.open();await read;await settle();
+    assert.deepEqual([t.client.state.session,statusOf(t.client.state,w.clock.now()),t.calls.slice(n)],[null,'connected',[]],leave);
+    assert.deepEqual(wallet.asked,['eth_accounts'],leave+': no wallet prompt');
+    t.stop();
+  }
+});
+
+// Guard: passes on the unmodified code (R1 is applied there); fails with the sequence guard kept and the click waiting
+// only for the read in flight when it was made, or only for its own read after a failed one (R1 is dropped, the click's
+// new flow kills R2, and the wallet signs, or the click says the session is unknown).
+test('N-1: a sign-in click waits for the newest session read, so a live session in the cookie jar is found and nothing is signed',async ctx=>{
+  for(const known of [true,false]){
+    const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(SESSION),name='imd-auth-test-'+Math.random();
+    let lose=!known;wallet.granted=true;                                                  // unknown: the load read is lost (CORR-02)
+    const t=tab(w,b,wallet,{channel:name,rewrite:h.rewrite,drop:p=>SESSION(p)&&lose}),other=new BroadcastChannel(name);
+    ctx.after(()=>{other.close();t.stop();});                                             // a failed assertion must not leave a channel open
+    await until(()=>t.client.state.restored&&t.client.state.account);lose=false;
+    assert.deepEqual([t.client.state.session,t.client.state.sessionKnown,statusOf(t.client.state,w.clock.now())],[null,known,'connected']);
+    assert.equal((await b.signIn(A)).verify.status,200);                                  // another tab signs in and says so on the channel
+    let r1=h.next(),click;                                                                // R1: signed in, its body on its way
+    if(known){other.postMessage('signed-in');r1=await r1;click=t.client.signIn();}        // the channel's read; the click waits on it
+    else{click=t.client.signIn();r1=await r1;}                                            // the click's own read, the session being unknown
+    let r2=h.next();other.postMessage('signed-in');r2=await r2;                           // R2 begins while the click waits
+    r1.open();await settle();await settle();r2.open();await click;await settle();
+    assert.deepEqual([wallet.asked.filter(m=>m!=='eth_accounts'),posts(t.calls,'/api/auth/challenge'),statusOf(t.client.state,w.clock.now()),t.client.state.session?.address,t.client.state.notice],
+      [[],0,'owner',a,null],known?'session known':'session unknown');
+  }
+});
+
+// Guard (the mutation check found it unpinned): the sequence check right after the fetch. An older read the Worker
+// answered with an error status, released after a newer “signed in”, must not mark the session unknown; fails with that
+// check reduced to `g!==this.gen` (sessionKnown false and the error's notice over the owner state).
+test('N-1: an older read answered late with an error status (503 or 429) after a newer “signed in” changes nothing',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const status of [503,429]){
+    const b=w.browser(),wallet=fakeWallet(A);let first=true,release=null,late=false;
+    const t=tab(w,b,wallet,{holdReply:async p=>{if(SESSION(p)&&first){first=false;await new Promise(r=>release=r);late=true;}},
+      rewrite:(p,r)=>{if(!SESSION(p)||!late)return r;late=false;return Response.json({error:status===503?'AUTH_UNAVAILABLE':'RATE_LIMITED'},{status});}});
+    await until(()=>release);                                                             // R1, the load read: answered by the Worker, held
+    assert.equal((await b.signIn(A)).verify.status,200);await t.client.restore();         // R2 (another tab's channel message): signed in
+    assert.equal(statusOf(t.client.state,w.clock.now()),'owner',String(status));
+    release();await settle();await settle();                                              // R1 lands as a 503 (429)
+    const s=t.client.state;
+    assert.deepEqual([statusOf(s,w.clock.now()),s.sessionKnown,s.restored,s.notice],['owner',true,true,null],status+': the older error is dropped');
+    t.stop();
+  }
+});
+
+// Guard (the mutation check found it unpinned): a sign-in drops the replaced session's house read as it begins. A house
+// read that starts after the click took its generation (the owner re-check, a visibility re-read) is not stale by gen;
+// fails with that homeGen++ removed (A's house in the state while B's prompt is open).
+test('N-1: a house read of the replaced session that lands while another address signs in changes nothing',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A);
+  let lose=false,holdLogout=false,gateLogout=null,holdHome=false,releaseHome=null;
+  const t=tab(w,b,wallet,{drop:p=>p==='/api/auth/logout'&&lose,hold:async p=>{if(p==='/api/auth/logout'&&holdLogout){holdLogout=false;await new Promise(r=>gateLogout=r);}},
+    holdReply:async p=>{if(HOME(p)&&holdHome){holdHome=false;await new Promise(r=>releaseHome=r);}}});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  lose=true;wallet.switchTo(B);                                                          // the switch's logout is lost: A's session shows as a mismatch
+  await until(()=>t.client.state.session?.address===a&&!t.client.state.checking);lose=false;
+  assert.equal(statusOf(t.client.state,w.clock.now()),'mismatch');
+  holdLogout=true;let sign;wallet.gate=new Promise(r=>sign=r);
+  const flow=t.client.signIn();await until(()=>gateLogout);                              // B's click: A's logout on its way
+  holdHome=true;const h=t.client.refreshHome(true);await until(()=>releaseHome);          // a house read for A meanwhile, answered by the Worker, held
+  gateLogout();await until(()=>wallet.asked.filter(m=>m==='personal_sign').length===2);  // A's session ended, B's prompt open
+  assert.deepEqual([t.client.state.session,t.client.state.phase,t.client.state.home],[null,'awaitingSignature',null]);
+  releaseHome();await h;await settle();
+  assert.deepEqual([t.client.state.phase,t.client.state.home,t.client.state.checking],['awaitingSignature',null,false],'A’s house does not land in B’s sign-in');
+  sign();await flow;
+  assert.deepEqual([statusOf(t.client.state,w.clock.now()),t.client.state.session?.address],['signedInNoHouse',B.address.toLowerCase()]);
+  t.stop();
+});
+
+test('N-1: a house read begun for a session that a newer read then ends changes nothing when it lands (200, 429 or 401)',async()=>{
+  for(const how of [200,429,401]){
+    const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),mem=memoryHint(),writes=[];wallet.granted=true;
+    const hint={get:mem.get,set:v=>{writes.push(v);mem.set(v);}};
+    // H1 is held after the Worker answered (200, and the 429 it is rewritten to), or before it reaches the Worker (401: sent after the logout).
+    let armed=false,release=null,late=false;const wait=async p=>{if(!armed||!HOME(p))return;armed=false;await new Promise(r=>release=r);late=true;};
+    const t=tab(w,b,wallet,{hint,...how===401?{hold:wait}:{holdReply:wait},rewrite:(p,r)=>{if(!late||!HOME(p))return r;late=false;return how===429?Response.json({error:'RATE_LIMITED'},{status:429}):r;}});
+    assert.equal((await b.signIn(A)).verify.status,200);await t.client.restore();
+    await until(()=>statusOf(t.client.state,w.clock.now())==='owner'&&!t.client.state.checking);
+    armed=true;const h1=t.client.refreshHome(true);await until(()=>release);
+    assert.equal((await b.post('/api/auth/logout')).status,204);await t.client.restore(); // another tab signs out; this tab's channel read
+    assert.deepEqual([t.client.state.session,statusOf(t.client.state,w.clock.now())],[null,'connected'],String(how));
+    const n=writes.length;release();await h1;await settle();
+    const s=t.client.state;
+    assert.deepEqual([s.notice,s.home,s.expired,s.ended,s.checking,writes.length-n,statusOf(s,w.clock.now())],[null,null,false,'revoked',false,0,'connected'],how+': the ended session’s house read changes nothing');
+    t.stop();
+  }
+});
+
+test('N-2: a challenge whose body arrives after the switch to another account asks the wallet nothing and verifies nothing',async()=>{
+  const A=newAccount(),B=newAccount(),w=world(),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(CHALLENGE),signs=prompts(wallet);
+  const t=tab(w,b,wallet,{rewrite:h.rewrite});await settle();
+  let body=h.next();const flow=t.client.signIn();body=await body;                        // A's challenge is answered, its body on its way
+  assert.equal(t.client.state.phase,'awaitingSignature');
+  wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();
+  body.open();await flow;await settle();
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/verify'),t.client.state.account,t.client.state.phase,statusOf(t.client.state,w.clock.now())],[[],0,B.address.toLowerCase(),'idle','connected']);
+  t.stop();
+});
+
+test('N-2: the same after a switch to another wallet with the same account, a sign-out, or the page closing: no prompt from the dead flow',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const cancel of ['wallet','sign out','close']){
+    const b=w.browser(),wa=fakeWallet(A),wb=fakeWallet(A),h=heldBodies(CHALLENGE),signs=[prompts(wa),prompts(wb)],p=page(null);
+    install(p,wa,infoOf('One','com.one'));install(p,wb,infoOf('Two','io.two'));
+    const registry=new WalletRegistry(p,memoryStore());registry.start();pick(registry,'com.one');
+    const t=tab(w,b,null,{registry,rewrite:h.rewrite});await settle();
+    let body=h.next();const flow=t.client.signIn();body=await body;
+    if(cancel==='wallet')pick(registry,'io.two');else if(cancel==='sign out')await t.client.signOut();
+    else{t.stop();assert.deepEqual([t.client.state.phase,t.client.state.signing],['idle',null],'the page’s teardown ends the flow');}
+    body.open();await flow;await settle();
+    assert.deepEqual([...signs,posts(t.calls,'/api/auth/verify')],[[],[],0],cancel);
+    if(cancel!=='close'){t.stop();continue;}
+    const stop=t.client.start();await t.client.signIn();stop();                           // mounted again (React Refresh, StrictMode): one flow, one signature
+    assert.deepEqual([statusOf(t.client.state,w.clock.now()),wa.signed,signs[0],posts(t.calls,'/api/auth/verify')],['owner',1,[a],1]);
+  }
+});
+
+test('N-2: a new sign-in started at once is untouched by the old flow’s late body or late refusal',async()=>{
+  const A=newAccount(),B=newAccount(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:bAddr},chain:{361:bAddr}});
+  for(const late of ['body','429']){
+    const b=w.browser(),wallet=fakeWallet(A),h=heldBodies(CHALLENGE),signs=prompts(wallet);let refuse=late==='429',open;
+    const t=tab(w,b,wallet,{rewrite:(p,r)=>{if(refuse&&CHALLENGE(p)){refuse=false;r=Response.json({error:'RATE_LIMITED'},{status:429});}return h.rewrite(p,r);}});await settle();
+    let body=h.next();const flow1=t.client.signIn();body=await body;                     // flow 1 (A): its challenge answer is back (429 in the second run), the body on its way
+    wallet.switchTo(B);wallet.gate=new Promise(r=>open=r);
+    const flow2=t.client.signIn();await until(()=>signs.length===1);                     // flow 2 (B), at once: its wallet prompt is open
+    body.open();await flow1;await settle();
+    assert.deepEqual([t.client.state.phase,t.client.state.notice,t.client.state.signing?.address.toLowerCase(),signs],['awaitingSignature',null,bAddr,[bAddr]],late+': flow 2 as it was');
+    open();await flow2;
+    assert.deepEqual([statusOf(t.client.state,w.clock.now()),t.client.state.session?.address,t.client.state.notice,wallet.signed,signs],['owner',bAddr,null,1,[bAddr]],late);
+    t.stop();
+  }
+});
+
+test('N-2: a wallet that locks while the challenge body is on its way is not asked to sign',async()=>{
+  const A=newAccount(),w=world(),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(CHALLENGE),signs=prompts(wallet);
+  const t=tab(w,b,wallet,{rewrite:h.rewrite});await settle();
+  let body=h.next();const flow=t.client.signIn();body=await body;
+  wallet.emit('accountsChanged',[]);assert.equal(t.client.state.account,null,'locked');
+  body.open();await flow;await settle();
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/verify'),t.client.state.phase,t.client.state.session,statusOf(t.client.state,w.clock.now())],[[],0,'idle',null,'visitor']);
+  t.stop();
+});
+
+// Guard: passes on the unmodified code; fails with the check after personal_sign (`if(g!==this.gen)return;`) deleted.
+test('N-2: a prompt already open when the flow is cancelled by a sign-out is answered into nothing',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A);let open;wallet.gate=new Promise(r=>open=r);
+  const t=tab(w,b,wallet),flow=t.client.signIn();await until(()=>wallet.asked.includes('personal_sign'));
+  await t.client.signOut();open();await flow;await settle();
+  assert.deepEqual([wallet.signed,posts(t.calls,'/api/auth/verify'),t.client.state.session,statusOf(t.client.state,w.clock.now())],[1,0,null,'connected']);
+  assert.equal((await b.get('/api/auth/session').then(r=>r.json())).signedIn,false);
+  t.stop();
+});
+
+// Guard (the mutation check found it unpinned): a verify refusal read after the flow was cancelled and a new one began;
+// fails with the refusal applied whatever the generation (flow 2 left idle with 'signature-invalid' while its prompt is open).
+test('N-2: a dead flow’s verify refusal whose body lands after a new flow began leaves the new flow alone',async()=>{
+  const A=newAccount(),B=newAccount(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:bAddr},chain:{361:bAddr}}),b=w.browser(),wallet=fakeWallet(A),h=heldBodies(VERIFY),signs=prompts(wallet);
+  wallet.signAs=newAccount();                                                            // flow 1 (A) signs with another key: 401 SIGNATURE_INVALID
+  const t=tab(w,b,wallet,{rewrite:h.rewrite});await settle();
+  let body=h.next();const flow1=t.client.signIn();body=await body;                      // flow 1's refusal is back, its body on its way
+  assert.deepEqual([t.client.state.phase,body.status],['verifying',401]);
+  wallet.signAs=undefined;let open;wallet.gate=new Promise(r=>open=r);wallet.switchTo(B);
+  const flow2=t.client.signIn();await until(()=>signs.length===2);                      // flow 2 (B): its prompt is open
+  body.open();await flow1;await settle();
+  assert.deepEqual([t.client.state.phase,t.client.state.notice,t.client.state.signing?.address.toLowerCase()],['awaitingSignature',null,bAddr],'flow 2 as it was');
+  open();await flow2;
+  assert.deepEqual([statusOf(t.client.state,w.clock.now()),t.client.state.session?.address,t.client.state.notice,signs],['owner',bAddr,null,[A.address.toLowerCase(),bAddr]]);
+  t.stop();
+});
+
+// A click waiting for a session read (the load's, another tab's, or its own re-read after a failed one) had taken no
+// generation yet, so the page closing or a sign-out in that wait did not end it: once the read landed it asked the wallet
+// (to connect, and to sign) and verified. Now the wait itself is ended by them.
+test('N-2: a click still waiting for a session read is ended by the page closing or a sign-out: no prompt, no challenge, no verify',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const cancel of ['close','sign out']){
+    const b=w.browser(),wallet=fakeWallet(A),signs=prompts(wallet);let hold=cancel==='close',release=null,lose=false;
+    const t=tab(w,b,wallet,{holdReply:async p=>{if(hold&&SESSION(p)){hold=false;await new Promise(r=>release=r);}},drop:p=>p==='/api/auth/logout'&&lose});
+    if(cancel==='sign out'){                                                             // A signed in, the wallet switched to B and that logout lost: a mismatch
+      await t.client.signIn();lose=true;wallet.switchTo(B);await until(()=>t.client.state.session?.address===a&&!t.client.state.checking);lose=false;
+      assert.equal(statusOf(t.client.state,w.clock.now()),'mismatch');hold=true;void t.client.restore();   // a re-read (visibility, another tab) on its way
+    }
+    await until(()=>release);const n=t.calls.length,asked=wallet.asked.length,signed=signs.length;   // the read: answered by the Worker, held
+    const click=t.client.signIn();await settle();                                       // the click waits for it
+    if(cancel==='close')t.stop();else await t.client.signOut();
+    release();await click;await settle();await settle();
+    assert.deepEqual([signs.slice(signed),wallet.asked.slice(asked).filter(m=>m!=='eth_accounts'),t.calls.slice(n)],[[],[],cancel==='close'?[]:['POST /api/auth/logout']],cancel);
+    assert.deepEqual([t.client.state.phase,t.client.state.session,(await b.get('/api/auth/session').then(r=>r.json())).signedIn],['idle',null,false],cancel);
+    if(cancel==='sign out'){assert.deepEqual([t.client.state.ended,statusOf(t.client.state,w.clock.now())],['signed-out','connected']);t.stop();}
+  }
+});
+
+test('N-7: a session revoked elsewhere (AUTH_REQUIRED) a day before its expiry is signed out, not expired (the reproduction)',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),t=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv()});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  w.clock.advance(6*DAY);                                                                 // a day before the session's expiresAt
+  const other=w.browser();assert.equal((await other.signIn(A)).verify.status,200);
+  const all=await other.post('/api/auth/logout-all');assert.deepEqual([all.status,await all.json()],[200,{revoked:2}]);
+  await t.client.refreshHome(true);
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.expired,s.ended,statusOf(s,w.clock.now())],[null,null,false,'revoked','connected']);
+  assert.deepEqual([endedText(s.ended,(zh,en)=>en),endedText(s.ended,zh=>zh)],['You are no longer signed in. Please sign in again.','登入狀態已失效，請重新登入。']);
+  for(const say of [(zh,en)=>en,zh=>zh])assert.doesNotMatch(endedText(s.ended,say),/another device|其他裝置/);
+  await t.client.restore();
+  assert.deepEqual([t.client.state.session,t.client.state.expired,t.client.state.ended,statusOf(t.client.state,w.clock.now())],[null,false,'revoked','connected']);
+  t.stop();
+});
+
+test('N-7: a real expiry still reads as expired: SESSION_EXPIRED, a 401 at the held session’s expiresAt, and the W-1 timer',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),en=(zh,e)=>e,zh=z=>z;
+  const signedIn=async(o={})=>{w.clock.set(START);const env=fakeEnv(),t=tab(w,w.browser(),fakeWallet(A),{env,...o});await t.client.signIn();
+    assert.equal(statusOf(t.client.state,w.clock.now()),'owner');return {t,env,exp:t.client.state.session.expiresAt};};
+  const ended=t=>[t.client.state.session,t.client.state.expired,t.client.state.ended,statusOf(t.client.state,w.clock.now())];
+  // (a) The server says SESSION_EXPIRED while the page's clock runs 5 s behind the Worker's, so the held session's
+  // expiresAt is not reached here: only the server's word makes it an expiry (it read 'revoked' with that term dropped).
+  const pageNow=()=>w.clock.now()-5_000,x=await signedIn({now:pageNow});w.clock.advance(7*DAY);
+  assert.ok(x.exp>pageNow()&&x.exp<=w.clock.now(),'past its expiresAt on the Worker’s clock only');await x.t.client.refreshHome(true);
+  assert.deepEqual(ended(x.t),[null,true,'expired','expired'],'SESSION_EXPIRED');x.t.stop();
+  // (b) A 401 AUTH_REQUIRED at the held session's expiresAt: expired, from the expiry kept before the session is cleared.
+  let refuse=false;const y=await signedIn({rewrite:(p,r)=>refuse&&HOME(p)?Response.json({error:'AUTH_REQUIRED'},{status:401}):r});
+  w.clock.set(y.exp);refuse=true;await y.t.client.refreshHome(true);
+  assert.deepEqual(ended(y.t),[null,true,'expired','expired'],'AUTH_REQUIRED at expiresAt');y.t.stop();
+  // (c) The W-1 timer at expiresAt, and the status line's sentence.
+  const z=await signedIn(),[timer]=z.env.live();w.clock.set(z.exp);z.env.fire(timer);
+  assert.deepEqual(ended(z.t),[null,true,'expired','expired'],'the W-1 timer');
+  assert.deepEqual([statusText('expired',z.t.client.state,en),statusText('expired',z.t.client.state,zh)],['Your sign-in has expired. Please sign in again.','登入已到期，請重新登入。']);
+  z.t.stop();
+});
+
+test('N-7: an expiry seen through a session read is still expired: with no hint, and when the server’s clock is ahead of the page’s',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  // (a) No hint (blocked storage, or one another tab cleared); the browser drops the cookie at its Max-Age; another tab's
+  // channel message makes this tab read the session: {signedIn:false}.
+  const b=w.browser(),t=tab(w,b,fakeWallet(A),{env:fakeEnv(),hint:{get:()=>null,set:()=>{}}});await t.client.signIn();
+  w.clock.set(t.client.state.session.expiresAt);b.jar.delete('__Host-imd_session');await t.client.restore();
+  assert.deepEqual([t.client.state.session,t.client.state.expired,t.client.state.ended,statusOf(t.client.state,w.clock.now())],[null,true,'expired','expired'],'no hint');
+  t.stop();
+  // (b) The page's clock runs 5 s behind the Worker's: at the Worker's expiresAt the cookie is still sent, and the session
+  // route says the session ran out.
+  w.clock.set(START);const pageNow=()=>w.clock.now()-5_000,u=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv(),now:pageNow});await u.client.signIn();
+  assert.equal(statusOf(u.client.state,pageNow()),'owner');
+  w.clock.set(u.client.state.session.expiresAt);await u.client.restore();
+  assert.deepEqual([u.client.state.session,u.client.state.expired,u.client.state.ended,statusOf(u.client.state,pageNow())],[null,true,'expired','expired'],'the server’s clock ahead');
+  u.stop();
+});
+
+test('N-7: My wallet says “Signed out.” after this page’s own sign-out and “You are no longer signed in” after a revocation, never why it cannot know',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),en=(zh,e)=>e,zh=z=>z,at=t=>({state:structuredClone(t.client.state),now:w.clock.now()});
+  // Revoked: another browser logs out every device; this page's next house read is a 401 AUTH_REQUIRED.
+  const r=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv()});await r.client.signIn();
+  const other=w.browser();assert.equal((await other.signIn(A)).verify.status,200);assert.equal((await other.post('/api/auth/logout-all')).status,200);
+  await r.client.refreshHome(true);const revoked=at(r);r.stop();
+  // This page's own sign-out.
+  const o=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv()});await o.client.signIn();await o.client.signOut();const out=at(o);o.stop();
+  // Expired: the W-1 timer at expiresAt.
+  const env=fakeEnv(),x=tab(w,w.browser(),fakeWallet(A),{env});await x.client.signIn();const [timer]=env.live();
+  w.clock.set(x.client.state.session.expiresAt);env.fire(timer);const expired=at(x);x.stop();
+  assert.deepEqual([revoked,out,expired].map(c=>[c.state.session,c.state.ended,statusOf(c.state,c.now)]),[[null,'revoked','connected'],[null,'signed-out','connected'],[null,'expired','expired']]);
+  assert.deepEqual([endedText('revoked',en),endedText('signed-out',en),endedText('expired',en)],['You are no longer signed in. Please sign in again.','Signed out.','Your sign-in has expired. Please sign in again.']);
+  assert.deepEqual([endedText('revoked',zh),endedText('signed-out',zh),endedText('expired',zh)],['登入狀態已失效，請重新登入。','已登出。','登入已到期，請重新登入。']);
+  // The panel as the page renders it (the Swarm Audit Record at its foot is left out, as in A-8).
+  const html=(await panels([revoked,out,expired].flatMap(c=>[{...c,lang:'en'},{...c,lang:'zh'}])))
+    .map(h=>{const i=h.indexOf('<details class="audit-record">');assert.ok(i>0);return h.slice(0,i);});
+  const [revokedEn,revokedZh,outEn,outZh,expiredEn,expiredZh]=html;
+  for(const [h,end,say] of [[revokedEn,'revoked',en],[revokedZh,'revoked',zh],[outEn,'signed-out',en],[outZh,'signed-out',zh]])
+    assert.ok(h.includes(`<p class="small-note" role="status">${endedText(end,say)}</p>`),end+': '+h.slice(0,600));
+  for(const [h,say] of [[expiredEn,en],[expiredZh,zh]]){const line=endedText('expired',say);
+    assert.ok(h.includes(`<p class="wallet-status warn" role="status"><i></i>${line}</p>`),h.slice(0,600));assert.equal(h.split(line).length,2,'said once, as the status line');}
+  for(const h of html)assert.doesNotMatch(h,/another device|其他裝置/);
 });

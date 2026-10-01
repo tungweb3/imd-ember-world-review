@@ -5,7 +5,7 @@
 1b) contract, 3 bad verifies: 401 SIGNATURE_INVALID | 409 CHALLENGE_USED | 409 CHALLENGE_USED | keyed chain calls: eth_getCode,eth_call 2 | buckets: AUTH(verify:ip:203.0.113.8),API(chain:code),CHAIN(chain:erc1271) | row: {"checked":1,"called":1,"burnt":1}
 1c) chain:code refused: verify 429 CHAIN_BUSY | keyed chain calls: 0 | log line: {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:203.0.113.0/24"}
 2) sign-in 200 (buckets: AUTH(ip:198.51.100.7),AUTH(verify:ip:198.51.100.7)) | home 200 recheck=- | keyed chain calls: getNFTsForOwner | buckets: API(ip:198.51.100.7),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
-3) chain:index refused: home 200 recheck=limited seats=0 | keyed chain calls: 0 | buckets: API(ip:198.51.100.8),AUTH(session:<token-hash prefix>),CHAIN(chain:index)
+3) chain:index refused: home 200 recheck=- seats=0 | keyed chain calls: 1 | buckets: API(ip:198.51.100.8),AUTH(session:<token-hash prefix>),CHAIN(chain:index),CHAIN(chain:index:lane)
 4) assets 200 | keyed chain calls: 0 | buckets: API(ip:unknown),SEAT(ip:unknown)
 5) AUTH_LIMITER missing: challenge on https://imdember.com -> 503 LIMITER_UNAVAILABLE | on http://127.0.0.1:8792 -> 200 || API_LIMITER missing: /api/world/snapshot -> 503 limiter_unavailable
    log line: {"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}

@@ -24,10 +24,14 @@ export const FLOW_COOKIE='__Host-imd_flow',SESSION_COOKIE='__Host-imd_session';
  *  session lives SESSION_TTL_MS from the challenge's issue (absolute, no renewal), which the statement states in words. */
 export const CHALLENGE_TTL_MS=5*60_000,SESSION_TTL_MS=7*86_400_000;
 export const BODY_LIMIT=2048;
-/** Sign-in limits in layers (review F-5, 2026-09-29; Swarm audit 519db624 A-1, A-5–A-7), each a share of the one
- *  below it, so no single place can close sign-in for everyone; availability first: a few networks must never lock
- *  ordinary players out of sign-in.
- *   L1 per network: NETWORK_CHALLENGE_BUDGET challenges and the ERC-1271 shares below per /24 (IPv6 /48).
+/** Sign-in limits in layers (review F-5, 2026-09-29; Swarm audit 519db624 A-1, A-5–A-7; Swarm audit 8c3aea2e N-4, N-5),
+ *  each a share of the one below it, so no single place can close sign-in for everyone; availability first: a few
+ *  networks must never lock ordinary players out of sign-in.
+ *   L1 per network: NETWORK_CHALLENGE_BUDGET challenges and the ERC-1271 shares below per /24. An IPv6 /48 (the unit an
+ *     operator or a tunnel broker hands out) gets NET6_SCALE (2) times each, and each /64 in it (a subscriber: the /64
+ *     that asked for the challenge, `sub`, recorded at issue, N-5) at most one /24's ERC-1271 claims and contract checks
+ *     (its challenges: L4's 20 a minute). Every ERC-1271 count is the challenge's network and /64, whoever sends the
+ *     verify, so rotating host bits gains nothing and rotating /64s stays within the /48's two shares.
  *   L2 per wallet: no challenge is refused for its address (A-6: a per-(address, network) cooldown let a neighbour in the
  *     /24 use up the key holder's challenges). One address asked for from many networks is logged: from the ADDRESS_SURGE-th
  *     challenge for it within a minute on, each writes an audit line (Workers Logs keep a 0.2 sample of invocations, so a
@@ -41,119 +45,195 @@ export const BODY_LIMIT=2048;
  *  Every 429/503 of these routes, and every challenge of a surge, writes one JSON line (handleAccountApi: evt, route, status,
  *  error, reason, colo, net, walletType when known). About the client they carry exactly: `net`, a key derived from its IP
  *  (IPv4 /24, IPv6 /48, 'net:unknown' without one), and on auth_surge lines `addr`, the address's first 6 characters
- *  ('0x' and 4 hex digits). Never a full IP, a full address, a cookie, token, signature, message or nonce.
- *   NETWORK_CHALLENGE_BUDGET challenges per NETWORK_WINDOW_MS from one client network (IPv4 /24, IPv6 /48; worker/app.ts
- *     networkKey), the first check, so one network gets a small share and its refused requests read at most that many rows.
+ *  ('0x' and 4 hex digits). Never a full IP, a full address, a cookie, token, signature, message or nonce. IPv6 challenge
+ *  rows also keep the /64 prefix that asked (`sub`: never the host bits, never logged), as long as the row lives (about
+ *  25 min unused, about a day used).
+ *   NETWORK_CHALLENGE_BUDGET challenges per NETWORK_WINDOW_MS from one client network (IPv4 /24, IPv6 /48 twice that;
+ *     worker/app.ts networkKey), the first check, so one network gets a small share and its refused requests read at most
+ *     that many rows.
  *   CHALLENGE_BUDGET per CHALLENGE_BUDGET_WINDOW_MS across all clients (600/min in 6 s slices, so each count reads at most
  *     60 index entries): the runaway valve. A network that asked within the last NETWORK_WINDOW_MS is admitted only below
- *     CHALLENGE_BUDGET - FRESH_NETWORK_RESERVE (40), which CHALLENGE_BUDGET_NETWORKS (14) /24s at their full share keep
- *     closed; a network that has not asked is admitted below CHALLENGE_BUDGET, so keeping its first challenge out also
+ *     CHALLENGE_BUDGET - FRESH_NETWORK_RESERVE (40), which CHALLENGE_BUDGET_NETWORKS (14) /24s (7 IPv6 /48s) at their full
+ *     share keep closed; a network that has not asked is admitted below CHALLENGE_BUDGET, so keeping its first challenge out also
  *     takes FRESH_NETWORKS (200) further networks every minute, each asking once and timed to refill the slice. Fewer can
  *     close it only for the seconds their bursts overlap, and otherwise a refusal lands only on the networks that spent
  *     their share. A refusal writes nothing, so a refused network stays fresh. Real traffic is a few challenges a minute.
  *   The ERC-1271 path (a signature ECDSA cannot prove; verifySignature), each step before the keyed read it pays for, one
  *   check per challenge (the claim), any refusal 429 CHAIN_BUSY and the challenge burnt:
- *   - ERC1271_CODE_SHARE claims per NETWORK_WINDOW_MS from one network, each at most one eth_getCode, and then
+ *   - ERC1271_CODE_SHARE claims per NETWORK_WINDOW_MS from one network (L1: 20 per /48, 10 per /64), each at most one
+ *     eth_getCode, and then
  *     'chain:code' (CODE_CAP per minute per Cloudflare location, the API_LIMITER namespace, fails closed; a missing
  *     binding is 503): the cheap read that tells an EOA from a contract. "No code" is 401 and cached per address for
  *     NO_CODE_TTL_MS, and never reaches the two steps below, so garbage for EOAs or made-up addresses costs nothing there.
- *   - ERC1271_NETWORK_SHARE contract checks per minute from one network and ERC1271_ADDRESS_SHARE per contract address
- *     (all networks; CLAIM_CONTRACT), then the per-location CHAIN_LIMITER key: 'chain:erc1271:known' for an address that
- *     already signed in by ERC-1271 (a session of it is still kept: up to 8 days; it skips the code read and its share,
- *     since it had code), else 'chain:erc1271'. Once the address's share is spent, the network may still make one check
- *     of that address a minute (CLAIM_LANE, A-1), within its ERC1271_NETWORK_SHARE and on its own key
- *     'chain:erc1271:lane', never the two above. Then one eth_call.
- *   What that buys, per Cloudflare location (review F-3 and round-1 R-3, 2026-09-29): closing first-time smart-wallet
- *   sign-in through 'chain:erc1271' (20/min) takes >= 7 /24s at their full contract share aimed at >= 10 distinct contract
- *   addresses (before: 7 /24s, any one address); lane checks leave that unchanged, since they spend the address's share
- *   too (called_at), so the two keys above still see <= 2 checks per address a minute. Garbage aimed at one address from
- *   a few other networks no longer holds it (A-1): its owner's network keeps a check of its own. It is still held by
- *   garbage from the owner's own /24 (/48) (logged: 'address'), or where >= 9 /24s every minute keep
- *   'chain:erc1271:lane' (20/min) closed: 20 lane checks need their addresses' shares spent too, 20 + 2 x 3 checks at 3
- *   per /24 (logged: 'budget_lane'; each more address held costs 2 more checks a minute). Returning smart wallets have a
- *   budget of their own: closing 'chain:erc1271:known' takes >= 7 /24s aimed at >= 10 addresses that signed in here by
- *   ERC-1271 in the last 8 days. Those can be the attacker's own: a contract that accepts any signature (F-2) costs its
- *   gas and one first-time sign-in, and stays "known" for 8 days; the quantity of /24s and the limits above still apply.
- *   Closing 'chain:code' (180/min) takes >= 18 /24s of garbage and delays only first-time smart wallets. One /24's own
- *   garbage leaves its neighbours in it: garbage for EOAs spends only its 10 code reads, garbage at one contract only 2 of
- *   its 3 contract checks. Alchemy cost stays bounded: eth_getCode <= 10/min per /24, <= 180/min per location and never
- *   more than the challenge valve (600/min in all); eth_call <= 3/min per /24, <= 2/min per contract address through the
- *   first two keys plus 1 per network through the lane, and <= 60/min per location (three keys).
+ *   - ERC1271_NETWORK_SHARE contract checks per minute from one network (L1: 6 per /48, 3 per /64) and
+ *     ERC1271_ADDRESS_SHARE per contract address (all networks; CLAIM_CONTRACT), then the per-location CHAIN_LIMITER key:
+ *     'chain:erc1271:known' for an address that already signed in by ERC-1271 (a session of it is still kept: up to 8
+ *     days; it skips the code read and its share, since it had code), else 'chain:erc1271'. Once the address's share is
+ *     spent, the network may still make lane checks of that address (CLAIM_LANE, A-1, N-4): one a minute per /24, two
+ *     per /48 from two of its /64s. Only lane checks use them up (called_via), so the network's own shared check, such
+ *     as its owner's first attempt, leaves the lane; a /24 (IPv6: /64) that made both of the address's shared checks
+ *     itself takes none. Within its contract share and on its own key 'chain:erc1271:lane', never the two above. Then
+ *     one eth_call.
+ *   What that buys, per Cloudflare location (review F-3 and round-1 R-3, 2026-09-29; for IPv6, N-5: a /48 is worth two
+ *   /24s, a /64 one): closing first-time smart-wallet sign-in through 'chain:erc1271' (20/min) takes >= 7 /24s (IPv6:
+ *   >= 7 /64s over >= 4 /48s) at their full contract share aimed at >= 10 distinct contract addresses (before: 7 /24s,
+ *   any one address); lane checks leave that unchanged, since they spend the address's share too (called_at), so the two
+ *   keys above still see <= 2 checks per address a minute. Garbage aimed at one address from a few other networks no
+ *   longer holds it (A-1): its owner's network keeps a check of its own, which the owner's own earlier attempt no longer
+ *   spends (N-4: a retry, or a second device after its sign-in). It is still held by garbage from the owner's own /24
+ *   (two verifies that spend the address's shared checks, or one that takes the lane; IPv6: from its /64, or from two
+ *   other /64s of its /48; logged: 'address'), or where >= 9 /24s (IPv6: >= 5 /48s using two /64s each, at >= 2
+ *   addresses) every minute keep 'chain:erc1271:lane' (20/min) closed: 20 lane checks need their addresses' shares spent
+ *   too, 20 + 2 x 3 checks at 3 per /24 (logged: 'budget_lane'; each more address held costs 2 more checks a minute).
+ *   Returning smart wallets have a budget of their own: closing 'chain:erc1271:known' takes >= 7 /24s (IPv6 as above)
+ *   aimed at >= 10 addresses that signed in here by ERC-1271 in the last 8 days. Those can be the attacker's own: a
+ *   contract that accepts any signature (F-2) costs its gas and one first-time sign-in, and stays "known" for 8 days; the
+ *   quantity of networks and the limits above still apply. Closing 'chain:code' (180/min) takes >= 18 /24s (9 /48s) of
+ *   garbage and delays only first-time smart wallets. One /24's own garbage (IPv6: one /64's) leaves its neighbours in
+ *   it: garbage for EOAs spends only its 10 code reads, garbage at one contract only 2 of its 3 contract checks. Alchemy
+ *   cost stays bounded: eth_getCode <= 10/min per /24 (20 per /48, 10 per /64), <= 180/min per location and never more
+ *   than the challenge valve (600/min in all); eth_call <= 3/min per /24 (6 per /48, 3 per /64), <= 2/min per contract
+ *   address through the first two keys plus 1 per /24 (2 per /48) through the lane, and <= 60/min per location (three
+ *   keys).
  *  Every count is dated when the request body has arrived (A-5), and the contract check again after its code read.
  *  Refusals are 429 SIGN_IN_BUSY (challenge) and 429 CHAIN_BUSY (ERC-1271), both Retry-After 60. The first flood guard is
  *  the zone's Cloudflare WAF rate-limiting rule "IMD API anti-flood" (URI path starts with /api/, 20 per 10 s per IP; set in
  *  the dashboard, not in this repository); these are the backstop behind it.
  *  D1 cost (rows as D1 bills them: every index entry a write changes is one more row written):
- *   challenge: 1 batch. INSERT…SELECT reads at most NETWORK_CHALLENGE_BUDGET + CHALLENGE_BUDGET + 1 index entries (≤ 91:
- *     the network's count, the valve's count and one entry to tell whether the network is fresh) and writes 1 row + 5 index
- *     entries (nonce, flow, issued, net, address) = 6; the surge count reads ≤ 21. A refusal also reads ≤ 30 to name its
- *     reason. A browser that brings an earlier flow also supersedes its open challenges (reads its flow entries, writes 1
- *     per open one, usually 0–1).
+ *   challenge: 1 batch. INSERT…SELECT reads at most the network's limit + CHALLENGE_BUDGET + 1 index entries (≤ 91, an
+ *     IPv6 /48 ≤ 121: the network's count, the valve's count and one entry to tell whether the network is fresh) and
+ *     writes 1 row + 5 index entries (nonce, flow, issued, net, address) = 6 (`sub` is in the row, unindexed); the surge
+ *     count reads ≤ 21. A refusal also reads ≤ 30 (IPv6 ≤ 60) to name its reason. A browser that brings an earlier flow
+ *     also supersedes its open challenges (reads its flow entries, writes 1 per open one, usually 0–1). Before
+ *     migrations/0005 the batch fails at once (D1 rolls it back: nothing read or written) and INSERT_CHALLENGE_0004 runs
+ *     at the 0004 limit (an IPv6 /48 as one /24: 30).
  *   verify (ECDSA): 1 SELECT by nonce (1 read); success is 1 batch: the challenge UPDATE (1 row + the flow entry, used_at
  *     is in it = 2) and the session INSERT…SELECT (reads 1, writes 1 row + 5 index entries = 6: token_hash, nonce, address,
  *     expires, live; an ERC-1271 session + sessions_erc1271 = 7). A failure writes 1 (burn).
  *   verify (ERC-1271): + at most 1 read (KNOWN_ERC1271: the partial index sessions_erc1271 holds only ERC-1271 sessions,
  *     so an address's ECDSA sessions, however many, are never read), the claim (1 write;
- *     reads the network's challenges of the last 6 min, ≤ 180), for a contract CLAIM_CONTRACT and CLAIM_LANE in one batch
- *     (whichever claims writes 1 row + up to 2 partial index entries = 3; reads ≤ 5 and ≤ 9: the lane reads the network's
- *     ≤ 3 checks and their rows), and on failure the burn (1).
+ *     reads the network's challenges of the last 6 min, ≤ 180, IPv6 ≤ 360, and counts the /64's on those same rows), for a
+ *     contract CLAIM_CONTRACT and CLAIM_LANE in one batch (whichever claims writes 1 row + up to 2 partial index entries = 3,
+ *     called_via in that row; reads ≤ 5 and ≤ 9, IPv6 ≤ 20 and ≤ 30: the lane and /64 terms read the network's ≤ 3 (6)
+ *     checks and their rows), and on failure the burn (1). Before migrations/0005 the claim fails once (rolled back:
+ *     nothing read or written) and the request keeps the 0004 statements.
  *   home (/api/me/home): the session (1 read) and the proven seats' sightings; each chain:index read keeps its answer
  *     (server/ownership.ts KEEP_INDEX: reads ≤ 1, writes 1, 2 for a new address; an answer naming no seat deletes, which
  *     writes none, 1 when it removes a row), and a refused or failed one reads it (≤ 1). At chain:index’s 20 a minute
  *     per location (864 k index reads a month) that is about 0.9 M rows written a month per location when the rows
  *     exist, at most about 1.7 M if every read kept a new address (only an address the index names a seat for is kept,
- *     so each new one takes a seat); the cron's prune scans that small table and writes 1 per row it deletes.
+ *     so each new one takes a seat); the cron's prune scans that small table and writes 1 per row it deletes. A refused
+ *     read whose answer counts no seat claims its network's index lane (N-6, INDEX_LANE: reads ≤ 2 covering entries of
+ *     index_lanes_net and ≤ 60 of index_lanes_at; writes 3 when it takes the lane, the row and its 2 index entries, none
+ *     when refused); a lane taken adds one index read (its KEEP_INDEX as above) and one sightings read, and the next
+ *     cron run (every 15 min) deletes its row once older than a minute (3 more), so the table holds at most about 16
+ *     minutes of lanes, ≤ INDEX_LANE_BUDGET x 10 x 16, about 9.6 k rows at the ceiling (the counts above read only
+ *     the last minute's and 6 s's entries, so its size adds no read). A network taking its lane every minute of a month
+ *     writes about 259 k rows (about $0.26; an IPv6 /48 twice that): one long-lived throwaway session can cause that
+ *     from each network it reads from. The site-wide ceiling (INDEX_LANE_BUDGET per 6 s, 600 a minute) bounds lanes
+ *     at 25.9 M a month, about 155 M rows written (about $105 past the included 50 M if nothing else used them);
+ *     refused claims read ≤ 62 and write none (20,000 a minute all month: about 54 bn read, about $54). Lane reads
+ *     raise chain:index's 20 a minute per location to at most 40, and only while 20 other networks a minute take
+ *     lanes there.
  *   So a successful sign-in writes about 13 rows and reads about 5–91; the cron later deletes the challenge (5) and the
  *   expired session (6; 5 if it was revoked), and each cron run (96 a day) reads the challenges older than 10 min still kept (used ones, 1 day).
  *  Worst case at the valve, sustained for a whole 30-day month (600/min = 25.9 M challenges), on Workers Paid (50 M rows
  *  written included, then $1.00 per million; 25 bn rows read included, then $0.001 per million): challenges left unused
  *  cost 12 rows written each (issue + prune) = 311 M, about $261/month; if every one became a throwaway ECDSA session, 26
- *  each = 673 M, about $623/month. Revoking a session writes 1 row + 1 index entry (it leaves sessions_live). Reads stay within the included 25 bn: ≤ 113 per accepted challenge (2.9 bn) plus the
+ *  each = 673 M, about $623/month. Revoking a session writes 1 row + 1 index entry (it leaves sessions_live). Reads stay within the included 25 bn: ≤ 113 per accepted challenge (2.9 bn; IPv6 ≤ 143, 3.7 bn) plus the
  *  cron's reads of a day of used challenges (≤ 864 k per run, 96 runs a day: 2.5 bn); a refused request reads ≤ 142
- *  (20,000 refused a minute all month would add about 123 bn: with the two above, about $103 past the included reads).
+ *  (IPv6 ≤ 202; 20,000 refused a minute all month would add about 123 bn, IPv6 175 bn: with the two above, about $103,
+ *  IPv6 about $156, past the included reads). Were every challenge at the valve an IPv6 one whose verify claims an
+ *  ERC-1271 check, the claims would read 600/min x 360 rows, about 9.3 bn a month (IPv4 4.7 bn).
  *  Sessions kept at that rate (8 days) are about 6.9 M rows, about 2 GB (5 GB included). None of this is reachable
- *  without CHALLENGE_BUDGET_NETWORKS /24s at their full share plus FRESH_NETWORKS other networks asking once a minute
- *  each (at least 214 networks and 220 IPs at AUTH_LIMITER's rate, which also covers the sessions' verifies: 14 /24s at
- *  30 a minute take 26 IPs, 20 one-IP /24s at 20 take 20). */
+ *  without CHALLENGE_BUDGET_NETWORKS /24s (7 IPv6 /48s) at their full share plus FRESH_NETWORKS other networks asking once
+ *  a minute each (at least 214 networks and 220 IPs at AUTH_LIMITER's rate, which also covers the sessions' verifies: 14
+ *  /24s at 30 a minute take 26 IPs, 20 one-IP /24s at 20 take 20). */
 export const NETWORK_CHALLENGE_BUDGET=30,NETWORK_WINDOW_MS=60_000,CHALLENGE_BUDGET=60,CHALLENGE_BUDGET_WINDOW_MS=6_000,FRESH_NETWORK_RESERVE=20;
 export const ADDRESS_SURGE=20;
 export const ERC1271_CODE_SHARE=10,ERC1271_NETWORK_SHARE=3,ERC1271_ADDRESS_SHARE=2,CODE_CAP=180;
+/** Swarm audit 8c3aea2e N-5: an IPv6 network key (/48) holds many subscribers (/64s), so every per-network share above is
+ *  NET6_SCALE times the /24's for a /48, and each /64 in it (the challenge's `sub`) gets at most one /24's share of the
+ *  ERC-1271 claims and contract checks (its challenges: AUTH_LIMITER's 20 a minute, below a /24's 30). IPv4: scale 1. */
+export const NET6_SCALE=2;
+export const netScale=(net:string|null|undefined)=>net?.startsWith('net6:')?NET6_SCALE:1;
 /** /24s at full share that keep the valve's regular part (all but the reserve) closed: 14. */
 export const CHALLENGE_BUDGET_NETWORKS=Math.ceil((CHALLENGE_BUDGET-FRESH_NETWORK_RESERVE)*NETWORK_WINDOW_MS/CHALLENGE_BUDGET_WINDOW_MS/NETWORK_CHALLENGE_BUDGET);
 /** Networks a minute, each asking once, that keep the reserve closed as well: 200. */
 export const FRESH_NETWORKS=FRESH_NETWORK_RESERVE*NETWORK_WINDOW_MS/CHALLENGE_BUDGET_WINDOW_MS;
 /** The challenge row, written only within both budgets: one statement, so the counts and the insert are one atomic
- *  step. ?9/?11 are the window starts; each inner LIMIT caps its matches at its budget. Network (L1) first, then the
- *  valve (L5), of which ?13 (FRESH_NETWORK_RESERVE) is kept for a network with no challenge since ?9 (A-7; the EXISTS
- *  reads at most one entry). Not a derived table: SQLite pushed the valve term into it and counted the valve twice. */
-export const INSERT_CHALLENGE=`INSERT INTO login_challenges(nonce,address,origin,flow_hash,message,issued_at,accept_until,net)
+ *  step. ?9/?11 are the window starts; each inner LIMIT caps its matches at its budget. Network (L1: ?10, the /24's
+ *  share times netScale) first, then the valve (L5), of which ?13 (FRESH_NETWORK_RESERVE) is kept for a network with no
+ *  challenge since ?9 (A-7; the EXISTS reads at most one entry). ?14 is the IPv6 /64 that asked (N-5; null otherwise),
+ *  stored for the ERC-1271 counts. Not a derived table: SQLite pushed the valve term into it and counted the valve twice. */
+export const INSERT_CHALLENGE=`INSERT INTO login_challenges(nonce,address,origin,flow_hash,message,issued_at,accept_until,net,sub)
+ SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?14 WHERE (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?8 AND issued_at>?9 LIMIT ?10))<?10
+ AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE issued_at>?11 LIMIT ?12))<?12-?13*EXISTS(SELECT 1 FROM login_challenges WHERE net=?8 AND issued_at>?9)`;
+/** Code deployed ahead of migrations/0005 (no `sub` column: SCHEMA_0004) writes the challenge with this, the 0004 text. */
+export const INSERT_CHALLENGE_0004=`INSERT INTO login_challenges(nonce,address,origin,flow_hash,message,issued_at,accept_until,net)
  SELECT ?1,?2,?3,?4,?5,?6,?7,?8 WHERE (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?8 AND issued_at>?9 LIMIT ?10))<?10
  AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE issued_at>?11 LIMIT ?12))<?12-?13*EXISTS(SELECT 1 FROM login_challenges WHERE net=?8 AND issued_at>?9)`;
-/** After a refusal: was it the network (L1)? Otherwise the valve (L5). For the log line only. */
+/** The error a statement naming migrations/0005's columns gets from a database before it; the request then runs the
+ *  0004 statements (the rules before 0005). Any other error is rethrown. */
+export const SCHEMA_0004=/(?:no such column: |has no column named )(?:sub|called_via)\b/i;
+const errorText=(e:unknown)=>String((e as {message?:unknown})?.message);
+/** After a refusal: was it the network (L1, ?3 its limit)? Otherwise the valve (L5). For the log line only. */
 const REFUSAL_REASON='SELECT count(*)>=?3 net FROM (SELECT 1 FROM login_challenges WHERE net=?1 AND issued_at>?2 LIMIT ?3)';
 /** How many challenges this address got in the last minute, from any network (at most ?3). */
 const ADDRESS_COUNT='SELECT count(*) n FROM (SELECT 1 FROM login_challenges WHERE address=?1 AND issued_at>?2 LIMIT ?3)';
 /** A verify that needs ERC-1271 claims its challenge before any keyed read (checked_at: at most one check per challenge,
  *  also when verifies race), only while the challenge's network made fewer than ?6 claims since ?5 (?4 bounds the index
- *  range: a challenge checked since ?5 was issued at most CHALLENGE_TTL_MS before), unless ?7 is 1 (a known smart wallet,
- *  which makes no code read). BURN_UNCLAIMED, in the same batch, burns it when the share refused, so a busy budget never
- *  leaves an open challenge behind. */
+ *  range: a challenge checked since ?5 was issued at most CHALLENGE_TTL_MS before) and, for IPv6, the challenge's /64
+ *  (?8, row.sub) fewer than ?9 (N-5: counted on the same rows, in one pass; with LIMIT ?6 at the /48's limit, exact
+ *  whenever the /48 is under it), unless ?7 is 1 (a known smart wallet, which makes no code read). BURN_UNCLAIMED, in
+ *  the same batch, burns it when the share refused, so a busy budget never leaves an open challenge behind. */
 export const CLAIM_ERC1271=`UPDATE login_challenges SET checked_at=?1 WHERE nonce=?2 AND used_at IS NULL AND invalidated_at IS NULL AND checked_at IS NULL
- AND (?7=1 OR (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND issued_at>?4 AND checked_at>?5 LIMIT ?6))<?6)`;
+ AND (?7=1 OR (SELECT count(*)<?6 AND (?8 IS NULL OR total(sub=?8)<?9) FROM (SELECT sub FROM login_challenges WHERE net=?3 AND issued_at>?4 AND checked_at>?5 LIMIT ?6)))`;
 /** A claimed challenge whose address has code (or is a known smart wallet) takes one contract check (called_at), only
- *  while its network made fewer than ?5 and its address fewer than ?7 since ?4 (partial indexes on called_at,
- *  migrations/0003, so each count reads at most its share). */
-export const CLAIM_CONTRACT=`UPDATE login_challenges SET called_at=?1 WHERE nonce=?2 AND called_at IS NULL
+ *  while its network made fewer than ?5 (the /24's share times netScale), for IPv6 its /64 (?8, row.sub) fewer than ?9,
+ *  and its address fewer than ?7 since ?4 (partial indexes on called_at, migrations/0003, so each count reads at most
+ *  its share; the /64 term is a separate count on the network's entries, so the first stays a covering read).
+ *  called_via='pool' says how it was admitted (N-4). */
+export const CLAIM_CONTRACT=`UPDATE login_challenges SET called_at=?1,called_via='pool' WHERE nonce=?2 AND called_at IS NULL
+ AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 LIMIT ?5))<?5
+ AND (?8 IS NULL OR (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 AND +sub=?8 LIMIT ?9))<?9)
+ AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE address=?6 AND called_at>?4 LIMIT ?7))<?7`;
+/** A-1, N-4: when CLAIM_CONTRACT refused, the challenge's own network may still make lane checks of that address, ?9 a
+ *  minute (netScale: one per /24; two per /48, never two from one /64, the challenge's ?7), within its shares ?5 and
+ *  (IPv6) ?8, charged to 'chain:erc1271:lane' and never to the shared keys, so garbage from a few other networks cannot
+ *  hold a chosen contract (many can: the NETWORK_CHALLENGE_BUDGET comment). Only lane checks use up the lane (called_via
+ *  not 'pool'; NULL, from before migrations/0005, counts as a lane), so one earlier shared check of the address from the
+ *  network, such as its owner's first attempt, leaves it (N-4). But a subscriber (the /24; for IPv6 the challenge's /64)
+ *  that made ?10 (ERC1271_ADDRESS_SHARE) checks of the address this minute, its whole shared allowance, takes no lane of
+ *  it: garbage at one contract still spends only 2 of that subscriber's 3 contract checks (F-3), and two garbage checks
+ *  from the owner's own /24 still hold it (the residual). In CLAIM_CONTRACT's batch, so it claims only what that left
+ *  (called_at IS NULL). +address keeps the lane term on login_challenges_called_net: the network's checks (at most ?5
+ *  entries) and their rows, read once for all three counts. */
+export const CLAIM_LANE=`UPDATE login_challenges SET called_at=?1,called_via='lane' WHERE nonce=?2 AND called_at IS NULL
+ AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 LIMIT ?5))<?5
+ AND (?7 IS NULL OR (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 AND +sub=?7 LIMIT ?8))<?8)
+ AND (SELECT total(lane)<?9 AND total(lane AND own)=0 AND total(own)<?10 FROM
+  (SELECT called_via IS NOT 'pool' lane,sub IS ?7 own FROM login_challenges WHERE net=?3 AND called_at>?4 AND +address=?6 LIMIT ?5))`;
+/** The three claims as they were before migrations/0005 (no sub, no called_via), for code deployed ahead of it: the
+ *  request switches to these on SCHEMA_0004 and binds them as before (scale 1: a /48 is one /24's share). */
+export const CLAIM_ERC1271_0004=`UPDATE login_challenges SET checked_at=?1 WHERE nonce=?2 AND used_at IS NULL AND invalidated_at IS NULL AND checked_at IS NULL
+ AND (?7=1 OR (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND issued_at>?4 AND checked_at>?5 LIMIT ?6))<?6)`;
+export const CLAIM_CONTRACT_0004=`UPDATE login_challenges SET called_at=?1 WHERE nonce=?2 AND called_at IS NULL
  AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 LIMIT ?5))<?5
  AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE address=?6 AND called_at>?4 LIMIT ?7))<?7`;
-/** A-1: when CLAIM_CONTRACT refused, the challenge's own network may still make one check of that address a minute
- *  (none since ?4), within its share ?5, charged to 'chain:erc1271:lane' and never to the shared keys, so garbage
- *  from a few other networks cannot hold a chosen contract (many can: the NETWORK_CHALLENGE_BUDGET comment). In
- *  CLAIM_CONTRACT's batch, so it claims only what that left (called_at IS NULL). +address keeps the NOT EXISTS on
- *  login_challenges_called_net: at most ?5 entries and their rows. */
-export const CLAIM_LANE=`UPDATE login_challenges SET called_at=?1 WHERE nonce=?2 AND called_at IS NULL
+export const CLAIM_LANE_0004=`UPDATE login_challenges SET called_at=?1 WHERE nonce=?2 AND called_at IS NULL
  AND (SELECT count(*) FROM (SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 LIMIT ?5))<?5
  AND NOT EXISTS(SELECT 1 FROM login_challenges WHERE net=?3 AND called_at>?4 AND +address=?6)`;
+/** N-6: the index lanes' site-wide ceiling, INDEX_LANE_BUDGET per INDEX_LANE_WINDOW_MS (600 a minute, counted in 6 s
+ *  slices like the challenge valve, so a refused claim reads at most 60 entries of index_lanes_at). */
+export const INDEX_LANE_BUDGET=60,INDEX_LANE_WINDOW_MS=6_000;
+/** N-6 (server/ownership.ts home): an NFT-index read the location's chain:index budget refused, whose answer counts no
+ *  seat, may take its network's lane: ?5 a minute (netScale: one per /24; two per /48, never two from one /64 ?2), and at
+ *  most ?7 site-wide since ?6; the row is written only then (one atomic statement), and only then is the
+ *  'chain:index:lane' key asked. Reads at most ?5 covering entries of index_lanes_net and ?7 of index_lanes_at. */
+export const INDEX_LANE=`INSERT INTO index_lanes(net,sub,at) SELECT ?1,?2,?3
+ WHERE (SELECT count(*)<?5 AND total(sub IS ?2)=0 FROM (SELECT sub FROM index_lanes WHERE net=?1 AND at>?4 LIMIT ?5))
+ AND (SELECT count(*) FROM (SELECT 1 FROM index_lanes WHERE at>?6 LIMIT ?7))<?7`;
 /** After CLAIM_CONTRACT and CLAIM_LANE refused: was it the address's share (and this network's check of it)? (Else the
  *  network's.) For the log line only. */
 const ADDRESS_CONTRACT_CHECKS='SELECT count(*) n FROM (SELECT 1 FROM login_challenges WHERE address=?1 AND called_at>?2 LIMIT ?3)';
@@ -185,9 +265,10 @@ export type Bucket='auth'|'verify'|'api'|'seat'|'home'|'chain'|'code';
  *  non-ECDSA signature needs for an address that has code (erc1271) or already signed in that way (erc1271Known), a lane
  *  check once the address's shared checks are spent (erc1271Lane, CLAIM_LANE), every
  *  NFT index read /api/me/home makes (any throwaway key can sign in, so a session proves nothing about ownership; ownerOf
- *  is read only for candidates IMD's roster or the index named, which a throwaway address has none of), and the public
- *  assets route's character list. `code` is the 'code' bucket's key (API_LIMITER namespace, CODE_CAP). */
-export const CHAIN_KEYS={erc1271:'chain:erc1271',erc1271Known:'chain:erc1271:known',erc1271Lane:'chain:erc1271:lane',index:'chain:index',assets:'chain:assets',code:'chain:code'} as const;
+ *  is read only for candidates IMD's roster or the index named, which a throwaway address has none of), an index read
+ *  taken on a network's lane once that is refused (indexLane, INDEX_LANE, N-6), and the public assets route's character
+ *  list. `code` is the 'code' bucket's key (API_LIMITER namespace, CODE_CAP). */
+export const CHAIN_KEYS={erc1271:'chain:erc1271',erc1271Known:'chain:erc1271:known',erc1271Lane:'chain:erc1271:lane',index:'chain:index',indexLane:'chain:index:lane',assets:'chain:assets',code:'chain:code'} as const;
 export type AccountDeps={
   /** D1 (absent in the Vite dev server: every auth and /api/me route answers 503 AUTH_UNAVAILABLE). */
   db?:D1Database;now?:()=>number;
@@ -197,6 +278,9 @@ export type AccountDeps={
   chain:ChainAccess;ownership:Ownership;waitUntil?:WaitUntil;
   /** The client's network (worker/app.ts networkKey) the D1 sign-in budgets count by; absent: 'net:unknown'. */
   client?:string;
+  /** Its IPv6 /64 (worker/app.ts subnetKey; null for IPv4 and unknown), N-5: written on the challenge row it asks for,
+   *  and counted by the home route's index lane (N-6). verify never reads it: the row's own is the one that counts. */
+  sub?:string|null;
   /** This isolate's "no code here" answers (verifySignature); absent: none are kept. */
   noCode?:NoCodeCache;
   /** The Cloudflare location (request.cf.colo) for the log lines, and where they go (default console.log). */
@@ -265,8 +349,8 @@ export type SignatureGate={
   share:(known:boolean)=>Promise<'ok'|'busy'|'used'>;
   /** The per-location 'chain:code' cap, asked before eth_getCode (not for a known address). */
   code:()=>Promise<boolean>;
-  /** The contract check, for an address with code: CLAIM_CONTRACT (the network's and the address's shares), else
-   *  CLAIM_LANE (one per network and address a minute). */
+  /** The contract check, for an address with code: CLAIM_CONTRACT (the network's, its /64's and the address's shares),
+   *  else CLAIM_LANE (per network and address a minute: one per /24, two per /48 from two /64s). */
   contract:()=>Promise<'pool'|'lane'|false>;
   /** The per-location chain:erc1271 budget (known: chain:erc1271:known; a lane check: chain:erc1271:lane), asked last,
    *  before eth_call. */
@@ -346,15 +430,18 @@ async function challenge({request,deps,db,origin}:Ctx):Promise<Response>{
   const message=createSiweMessage({domain:new URL(origin).host,address,statement:SIWE_STATEMENT,uri:origin+'/',version:'1',chainId:1,
     nonce,issuedAt:new Date(now),expirationTime:new Date(acceptUntil)});
   // The earlier challenges of this flow are superseded only when this one was written (a refused request changes nothing).
-  const net=deps.client??'net:unknown',lower=address.toLowerCase();
-  const [insert,surge]=await db.batch([
-    db.prepare(INSERT_CHALLENGE).bind(nonce,lower,origin,flowHash,message,now,acceptUntil,net,
-      now-NETWORK_WINDOW_MS,NETWORK_CHALLENGE_BUDGET,now-CHALLENGE_BUDGET_WINDOW_MS,CHALLENGE_BUDGET,FRESH_NETWORK_RESERVE),
-    db.prepare(ADDRESS_COUNT).bind(lower,now-NETWORK_WINDOW_MS,ADDRESS_SURGE+1),
-    ...kept&&/^[\da-f]{32}$/.test(kept)?[db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE flow_hash=?2 AND used_at IS NULL AND invalidated_at IS NULL AND EXISTS(SELECT 1 FROM login_challenges WHERE nonce=?3)')
-      .bind(now,await sha256(kept),nonce)]:[]]);
+  const net=deps.client??'net:unknown',lower=address.toLowerCase();let limit=NETWORK_CHALLENGE_BUDGET*netScale(net);
+  const supersede=kept&&/^[\da-f]{32}$/.test(kept)?[db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE flow_hash=?2 AND used_at IS NULL AND invalidated_at IS NULL AND EXISTS(SELECT 1 FROM login_challenges WHERE nonce=?3)')
+    .bind(now,await sha256(kept),nonce)]:[];
+  const write=(sql:string,...sub:unknown[])=>db.batch([
+    db.prepare(sql).bind(nonce,lower,origin,flowHash,message,now,acceptUntil,net,now-NETWORK_WINDOW_MS,limit,now-CHALLENGE_BUDGET_WINDOW_MS,CHALLENGE_BUDGET,FRESH_NETWORK_RESERVE,...sub),
+    db.prepare(ADDRESS_COUNT).bind(lower,now-NETWORK_WINDOW_MS,ADDRESS_SURGE+1),...supersede]);
+  // N-5: the row records the /64 that asked (sub). Before migrations/0005 that column is missing, the batch rolled back
+  // (nothing read or written), and the 0004 INSERT writes the challenge instead, at the 0004 limit (scale 1: a /48 is
+  // one /24's 30, like the ERC-1271 claims then), which the refusal's reason below counts by too.
+  const [insert,surge]=await write(INSERT_CHALLENGE,deps.sub??null).catch(e=>{if(!SCHEMA_0004.test(errorText(e)))throw e;limit=NETWORK_CHALLENGE_BUDGET;return write(INSERT_CHALLENGE_0004);});
   if(insert.meta.changes!==1){
-    const why=await db.prepare(REFUSAL_REASON).bind(net,now-NETWORK_WINDOW_MS,NETWORK_CHALLENGE_BUDGET).first<{net:number}>();
+    const why=await db.prepare(REFUSAL_REASON).bind(net,now-NETWORK_WINDOW_MS,limit).first<{net:number}>();
     return noted(fail(429,'SIGN_IN_BUSY',[],{'Retry-After':'60'}),{reason:why?.net?'network':'global'});
   }
   // One address asked for from many networks (no challenge is refused for its address, A-6, so this is only logged):
@@ -366,7 +453,7 @@ async function verify({request,deps,db,origin}:Ctx):Promise<Response>{
   const body=await readJson(request),now=clock(deps),nonce=body?.nonce,signature=body?.signature;
   if(typeof nonce!=='string'||!/^[\da-f]{32}$/.test(nonce)||typeof signature!=='string'||!/^0x(?:[\da-fA-F]{2})+$/.test(signature))return fail(400,'BAD_REQUEST');
   const row=await db.prepare('SELECT * FROM login_challenges WHERE nonce=?1').bind(nonce).first<{nonce:string;address:string;origin:string;flow_hash:string;message:string;
-    issued_at:number;accept_until:number;used_at:number|null;invalidated_at:number|null;net:string|null}>();
+    issued_at:number;accept_until:number;used_at:number|null;invalidated_at:number|null;net:string|null;sub?:string|null}>();
   if(!row)return fail(409,'CHALLENGE_USED');
   const flow=readCookie(request,FLOW_COOKIE);
   if(!flow||await sha256(flow)!==row.flow_hash||row.origin!==origin)return fail(403,'FLOW_MISMATCH');
@@ -387,18 +474,26 @@ async function verify({request,deps,db,origin}:Ctx):Promise<Response>{
   if(!validateSiweMessage({message:parsed,address,domain:new URL(row.origin).host,nonce:row.nonce,time:new Date(now)})||
     parsed.uri!==row.origin+'/'||parsed.chainId!==1||parsed.version!=='1'||parsed.statement!==SIWE_STATEMENT||
     parsed.issuedAt?.getTime()!==row.issued_at||parsed.expirationTime?.getTime()!==row.accept_until)return burn(401,'SIGNATURE_INVALID');
+  // Every ERC-1271 count is the challenge's: its network and, for IPv6, the /64 that asked for it (row.sub, N-5), never
+  // the verifying request's address (only the flow cookie ties a verify to its challenge). Before migrations/0005 the
+  // first claim fails with SCHEMA_0004 and this request keeps the 0004 statements (scale 1): the rules before 0005.
+  const sub=row.sub??null,scale=netScale(row.net);let before0005=false;
   const gate:SignatureGate={now,noCode:deps.noCode,
     known:async()=>!!await db.prepare(KNOWN_ERC1271).bind(row.address).first(),
     share:async known=>{
-      const [claimed,burnt]=await db.batch([db.prepare(CLAIM_ERC1271).bind(now,nonce,row.net,now-NETWORK_WINDOW_MS-CHALLENGE_TTL_MS,now-NETWORK_WINDOW_MS,ERC1271_CODE_SHARE,known?1:0),
+      const claim=(sql:string,...shares:unknown[])=>db.batch([db.prepare(sql).bind(now,nonce,row.net,now-NETWORK_WINDOW_MS-CHALLENGE_TTL_MS,now-NETWORK_WINDOW_MS,...shares),
         db.prepare(BURN_UNCLAIMED).bind(now,nonce)]);
+      const [claimed,burnt]=await claim(CLAIM_ERC1271,ERC1271_CODE_SHARE*scale,known?1:0,sub,ERC1271_CODE_SHARE)
+        .catch(e=>{if(!SCHEMA_0004.test(errorText(e)))throw e;before0005=true;return claim(CLAIM_ERC1271_0004,ERC1271_CODE_SHARE,known?1:0);});
       why.reason='code_share';return claimed.meta.changes===1?'ok':burnt.meta.changes===1?'busy':'used';},
     code:async()=>{why.reason='code_cap';return permit(deps,'code',CHAIN_KEYS.code);},
     contract:async()=>{
       const t=clock(deps);why.walletType='CONTRACT';
-      const [pool,lane]=await db.batch([
-        db.prepare(CLAIM_CONTRACT).bind(t,nonce,row.net,t-NETWORK_WINDOW_MS,ERC1271_NETWORK_SHARE,row.address,ERC1271_ADDRESS_SHARE),
-        db.prepare(CLAIM_LANE).bind(t,nonce,row.net,t-NETWORK_WINDOW_MS,ERC1271_NETWORK_SHARE,row.address)]);
+      const [pool,lane]=await db.batch(before0005?[
+        db.prepare(CLAIM_CONTRACT_0004).bind(t,nonce,row.net,t-NETWORK_WINDOW_MS,ERC1271_NETWORK_SHARE,row.address,ERC1271_ADDRESS_SHARE),
+        db.prepare(CLAIM_LANE_0004).bind(t,nonce,row.net,t-NETWORK_WINDOW_MS,ERC1271_NETWORK_SHARE,row.address)]:[
+        db.prepare(CLAIM_CONTRACT).bind(t,nonce,row.net,t-NETWORK_WINDOW_MS,ERC1271_NETWORK_SHARE*scale,row.address,ERC1271_ADDRESS_SHARE,sub,ERC1271_NETWORK_SHARE),
+        db.prepare(CLAIM_LANE).bind(t,nonce,row.net,t-NETWORK_WINDOW_MS,ERC1271_NETWORK_SHARE*scale,row.address,sub,ERC1271_NETWORK_SHARE,scale,ERC1271_ADDRESS_SHARE)]);
       if(pool.meta.changes===1)return 'pool';if(lane.meta.changes===1)return 'lane';
       const held=await db.prepare(ADDRESS_CONTRACT_CHECKS).bind(row.address,t-NETWORK_WINDOW_MS,ERC1271_ADDRESS_SHARE).first<{n:number}>();
       why.reason=(held?.n??0)>=ERC1271_ADDRESS_SHARE?'address':'network_contract';return false;},
@@ -428,10 +523,13 @@ async function verify({request,deps,db,origin}:Ctx):Promise<Response>{
   if(!taken)return fail(409,'CHALLENGE_USED');
   return reply(200,{address,expiresAt},[setCookie(SESSION_COOKIE,token,(expiresAt-at)/1000,'Lax'),clearFlow()]);
 }
+/** The caller's own session. A cookie whose session ran out says so (expired: true; Swarm audit 8c3aea2e N-7: the page
+ *  tells an expiry from a revocation by this, not by its own clock alone); a revoked, unknown, malformed or missing one
+ *  gets no reason. Nothing new is revealed: /api/me/home and logout-all answer SESSION_EXPIRED for that same cookie. */
 async function session({request,db,now}:Omit<Ctx,'origin'>):Promise<Response>{
   const s=await readSession(request,db,now);
   if(s==='none')return reply(200,{signedIn:false});
-  if(typeof s==='string')return reply(200,{signedIn:false},[clearSession()]);
+  if(typeof s==='string')return reply(200,s==='SESSION_EXPIRED'?{signedIn:false,expired:true}:{signedIn:false},[clearSession()]);
   return reply(200,{signedIn:true,address:getAddress(s.address),expiresAt:s.expiresAt});
 }
 /** Revokes the session server-side and every open challenge of this browser flow; idempotent. */
@@ -517,7 +615,14 @@ async function accountRoute(request:Request,deps:AccountDeps,pathname:string):Pr
     if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s,s==='none'?[]:[clearSession()]);
     if(!await permit(deps,'home','session:'+s.tokenHash.slice(0,32)))return noted(fail(429,'RATE_LIMITED',[],{'Retry-After':'60'}),{reason:'home'});
     const fresh=new URL(request.url).searchParams.get('fresh')==='1',budget=()=>permit(deps,'chain',CHAIN_KEYS.index);
-    try{return reply(200,await deps.ownership.home(s.address,{chain:deps.chain,db,now,waitUntil:deps.waitUntil,budget,clock:()=>clock(deps)},fresh));}
+    // N-6: the lane of this request's own network (INDEX_LANE, counted in D1 first, so one network's refused claims never
+    // spend the key), then its key 'chain:index:lane' (fails closed; a missing binding is 503 as for the main key). Any
+    // error of the claim (a database before migrations/0005, D1 failing) is no lane: the read stays limited.
+    const lane=async()=>{const t=clock(deps),net=deps.client??'net:unknown';
+      try{if((await db.prepare(INDEX_LANE).bind(net,deps.sub??null,t,t-NETWORK_WINDOW_MS,netScale(net),t-INDEX_LANE_WINDOW_MS,INDEX_LANE_BUDGET).run()).meta.changes!==1)return false;}
+      catch{return false;}
+      return permit(deps,'chain',CHAIN_KEYS.indexLane);};
+    try{return reply(200,await deps.ownership.home(s.address,{chain:deps.chain,db,now,waitUntil:deps.waitUntil,budget,lane,clock:()=>clock(deps)},fresh));}
     catch(e){if(e instanceof LimiterMissing)throw e;return fail(503,'OWNERSHIP_UNAVAILABLE');}
   }catch(e){return e instanceof LimiterMissing?noted(fail(503,'LIMITER_UNAVAILABLE'),{reason:'missing:'+e.binding}):noted(fail(503,'AUTH_UNAVAILABLE'),{reason:'error'});}
 }

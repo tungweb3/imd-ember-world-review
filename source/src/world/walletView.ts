@@ -1,7 +1,7 @@
 // Pure view rules for "My wallet" (WalletPanel.tsx) and the 「我家」 marker (WorldApp.tsx), kept out of .tsx so the tests
 // run them on what the real Worker answers.
 import type {Home} from './households.ts';
-import type {AuthClient,AuthState,AuthStatus,MeHome,MeSeat} from './auth.ts';
+import type {AuthClient,AuthState,AuthStatus,MeHome,MeSeat,SessionEnd} from './auth.ts';
 import type {SignInSummary} from './siwe.ts';
 
 type Say=(zh:string,en:string)=>string;
@@ -53,6 +53,11 @@ export function houseNotes(st:AuthStatus,me:MeHome|null,say:Say):{lead:string|nu
     'Signed in, but no seat qualifies right now: a seat counts when you hold it and its agent was online in the last 24 hours.'):null;
   return {lead,note:me?.recheck?recheckNote(me.recheck,say):null,empty:emptySeatsText(me,say)};
 }
+/** N-7: why the page's last session ended, as the panel says it: expiry only when the session ran out (SESSION_EXPIRED, or
+ *  its expiresAt passed here); AUTH_REQUIRED alone names no cause, so it never says "another device". The expired one is
+ *  also the status line of the 'expired' state (auth.ts statusText). */
+export const endedText=(e:SessionEnd,say:Say)=>e==='expired'?say('登入已到期，請重新登入。','Your sign-in has expired. Please sign in again.'):
+  e==='revoked'?say('登入狀態已失效，請重新登入。','You are no longer signed in. Please sign in again.'):say('已登出。','Signed out.');
 /** "n agents count toward the house" with the right number (CORR-08). */
 export const eligibleText=(n:number,say:Say)=>say(`${n} 位 agent 計入房子`,`${n} agent${n===1?' counts':'s count'} toward the house`);
 

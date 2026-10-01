@@ -3,18 +3,20 @@ import assert from 'node:assert/strict';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {AuditRecord} from '../src/world/auditRecord.ts';
-import {REVIEW_RECORD,FINDINGS,REREVIEWED,REVIEW_CHANGED} from '../src/world/reviewRecord.ts';
+import {REVIEW_RECORD,FINDINGS,REREVIEWED,REVIEWED_LATER,REVIEW_CHANGED} from '../src/world/reviewRecord.ts';
 // The Swarm Audit Record in "My wallet" (remediation 2026-09-29 §6), rendered to the markup the page shows: collapsed,
 // the reviewed scope, version, date, job and report (new tab, no referrer, no opener), the deployment match, the
 // "previous review" label, that it applies to that version only, and every finding with its severity and status; then
-// the two re-reviews of Worker 50c688c9 with their own findings.
+// the two re-reviews of Worker 50c688c9 and the later review of Worker 1a0dd495, each with its own findings.
 const zh=(a)=>a,en=(a,b)=>b,render=say=>renderToStaticMarkup(createElement(AuditRecord,{say}));
 const JOB='https://explorer.imd.fun/jobs/4bd31cfb-1151-497f-9b27-40e668dea372';
 const REPORT='https://github.com/Identity-md/research/blob/main/jobs/4bd31cfb-1151-497f-9b27-40e668dea372/files/artifacts/report.md';
 const RETEST_JOB='https://explorer.imd.fun/jobs/e48d0a96-d3a5-42bb-859f-e0b0707fd9ad',AUDIT_JOB='https://explorer.imd.fun/jobs/519db624-a82f-4dfe-91b9-1a519d1d3dd1';
 const RETEST_REPORT='https://github.com/Identity-md/research/blob/main/jobs/e48d0a96-d3a5-42bb-859f-e0b0707fd9ad/files/artifacts/report.md';
+const AUDIT3_JOB='https://explorer.imd.fun/jobs/8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b';
+const AUDIT3_REPORT='https://github.com/Identity-md/research/blob/main/jobs/8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b/files/AUDIT.md';
 const link=href=>`<a href="${href}" target="_blank" rel="noreferrer noopener">`;
-/** The <li> texts of the n-th list: 0 the review's findings, 1 the Report's, 2 the audit's. */
+/** The <li> texts of the n-th list: 0 the review's findings, 1 the Report's, 2 the audit's, 3 the later audit's. */
 const lists=html=>[...html.matchAll(/<ul>(.*?)<\/ul>/g)].map(m=>[...m[1].matchAll(/<li>(.*?)<\/li>/g)].map(x=>text(x[1])));
 /** The words the remediation forbids in the UI and docs (§6), and "certified" / an audited-by badge in any form. */
 export const FORBIDDEN=/security certified|officially audited|100% safe|guaranteed secure|certif|audited[- ]by|badge|已認證|認證|保證安全|安全無虞|徽章/i;
@@ -25,12 +27,14 @@ test('the Swarm Audit Record is a collapsed block naming scope, reviewed version
   assert.match(html,/^<details class="audit-record"><summary>Swarm Audit Record<\/summary>/,'collapsed (no open attribute), titled as the remediation names it');
   for(const part of ['Previous review — current version has changed','Reviewed scope','Wallet sign-in &amp; home authorization (World-only)',
     'Worker beac62be (source 0def8cb, bundle 4ec73351…)','2026-09-28 (UTC)','Deployment match</dt><dd>partial</dd>','This record applies to the reviewed version only.',
-    `Re-review</dt><dd>${link(RETEST_JOB)}Report e48d0a96… ↗</a> · ${link(AUDIT_JOB)}Audit 519db624… ↗</a></dd>`,'Findings (from the review) · fix status as reported by the site maintainer, not re-reviewed'])
+    `Re-review</dt><dd>${link(RETEST_JOB)}Report e48d0a96… ↗</a> · ${link(AUDIT_JOB)}Audit 519db624… ↗</a></dd>`,'Findings (from the review) · fix status as reported by the site maintainer, not re-reviewed',
+    `Later review</dt><dd>${link(AUDIT3_JOB)}Audit 8c3aea2e… ↗</a></dd>`])
     assert.ok(html.includes(part),part);
   const z=render(zh);
   for(const part of ['<summary>審查紀錄</summary>','先前的審查 — 目前版本已變更','錢包登入與我家權限（僅 World）','2026-09-28（UTC）','此紀錄只適用於受審查的版本。',
     'Worker beac62be（原始碼 0def8cb，bundle 4ec73351…）','部署對照</dt><dd>partial（部分驗證）</dd>','審查任務','發現（出自審查）· 修正狀態為 本站維護者自行說明，尚未重新審查',
-    `重新審查</dt><dd>${link(RETEST_JOB)}Report（重測） e48d0a96… ↗</a> · ${link(AUDIT_JOB)}Audit（審查） 519db624… ↗</a></dd>`])assert.ok(z.includes(part),part);
+    `重新審查</dt><dd>${link(RETEST_JOB)}Report（重測） e48d0a96… ↗</a> · ${link(AUDIT_JOB)}Audit（審查） 519db624… ↗</a></dd>`,
+    `之後的審查</dt><dd>${link(AUDIT3_JOB)}Audit（審查） 8c3aea2e… ↗</a></dd>`])assert.ok(z.includes(part),part);
   // The statuses below are the team's own account: the heading says so, after the line that the record is of the reviewed version.
   assert.ok(html.indexOf('This record applies')<html.indexOf('as reported by the site maintainer, not re-reviewed')&&html.indexOf('not re-reviewed')<html.indexOf('<li>'));
   assert.equal(REVIEW_RECORD.rereview,undefined,'the one-field form is gone');
@@ -41,8 +45,8 @@ test('the Swarm Audit Record is a collapsed block naming scope, reviewed version
 
 test('its job and report links open the real pages in a new tab with no referrer and no opener',()=>{
   const links=[...render(en).matchAll(/<a ([^>]*)>/g)].map(m=>m[1]);
-  assert.deepEqual(links,[JOB,REPORT,RETEST_JOB,AUDIT_JOB,RETEST_REPORT].map(u=>`href="${u}" target="_blank" rel="noreferrer noopener"`),
-    'the review’s job and report, the two re-review jobs, and the one re-review report there is (the audit published none)');
+  assert.deepEqual(links,[JOB,REPORT,RETEST_JOB,AUDIT_JOB,AUDIT3_JOB,RETEST_REPORT,AUDIT3_REPORT].map(u=>`href="${u}" target="_blank" rel="noreferrer noopener"`),
+    'the review’s job and report, the two re-review jobs, the later audit’s job, the one re-review report there is (the audit published none), and the later audit’s report');
 });
 
 test('every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open',()=>{
@@ -100,7 +104,10 @@ test('the two re-reviews of Worker 50c688c9 are listed with their findings, and 
   assert.match(w[0],/^W-1 · Info — An expired session still counted as owner for a local move\. Fixed in this version: .*Still: a “Log out all devices” elsewhere reaches this page on its next read\.$/);
   assert.match(w[2],/^W-3 · Info — .*a node failure is 503 .*only a revert, an EVM halt the contract causes or a wrong answer is a bad signature \(401\)/);
   assert.match(a[0],/^A-1 · Medium \(availability\) — .*Improved in this version: junk from a few other networks no longer holds a smart wallet.*while the location’s 20 such checks a minute last\. Still: junk from the wallet’s own \/24 \(or \/48\) can hold it, and so can at least 9 \/24s aimed at 3 or more addresses every minute at one location \(partly open\)\.$/);
-  assert.match(a[5],/^A-6 · Low \(availability\) — .*Partly fixed in this version: .*Still: two IPs in one \/24 \(or \/48\) can spend that network’s 30 challenges a minute.*\(partly open\)\.$/);
+  // A-1 and A-6 after N-4 / N-5 (the later audit): an IPv6 /48 has two lanes per address and 60 challenges a minute.
+  assert.match(a[0],/each network still gets one check of it a minute \(an IPv6 \/48 two, from two of its \/64s\), which the owner’s own earlier attempt doesn’t use up/);
+  assert.match(a[5],/^A-6 · Low \(availability\) — .*Partly fixed in this version: .*Still: two IPs in one \/24 can spend that network’s 30 challenges a minute \(an IPv6 \/48 has 60, which three of its \/64s can spend\).*\(partly open\)\.$/);
+  assert.match(za[5],/仍存在：同一個 \/24 裡兩個 IP 就能用完該網段每分鐘 30 個 challenge（IPv6 \/48 每分鐘 60 個，其中三個 \/64 就能用完）/);
   assert.match(a[6],/^A-7 · Low \(availability\) — .*Improved in this version: 20 of every 60 challenges per 6 s .*Still: 14 \/24s at full rate plus about 200 other networks a minute can close new sign-ins while they keep going; browsing is unaffected \(partly open\)\.$/);
   // A-2: the kept index answer is in D1 now, so every instance has it (the cross-instance test in tests/ownership).
   assert.match(a[1],/^A-2 · Low \(availability\) — .*Fixed in this version: a refused or failed index read falls back to the last index answer, now kept in the database so every server instance has it, and ownerOf proves those seats again\. Still: a seat bought after both IMD’s roster and the index last listed it appears on a later check, and an answer is kept for 8 days\.$/);
@@ -116,9 +123,48 @@ test('the two re-reviews of Worker 50c688c9 are listed with their findings, and 
   for(const i of [0,5,6])assert.match(a[i],/\(partly open\)\.$/,'A-'+(i+1));
   // A status quotes only what the page really shows (「…」, “…”): every quoted piece is a string in the wallet UI.
   const {readFileSync}=await import('node:fs'),ui=['walletView.ts','auth.ts','WalletPanel.tsx'].map(f=>readFileSync(new URL('../src/world/'+f,import.meta.url),'utf8')).join('\n');
-  const quoted=[...FINDINGS,...REVIEW_RECORD.rereviews.flatMap(r=>r.findings)].flatMap(f=>[...f.status.zh.matchAll(/「([^」]+)」/g),...f.status.en.matchAll(/“([^”]+)”/g)].map(m=>[f.id,m[1]]));
+  const quoted=[...FINDINGS,...[...REVIEW_RECORD.rereviews,...REVIEW_RECORD.later].flatMap(r=>r.findings)].flatMap(f=>[...f.status.zh.matchAll(/「([^」]+)」/g),...f.status.en.matchAll(/“([^”]+)”/g)].map(m=>[f.id,m[1]]));
   assert.ok(quoted.length>0);
   for(const [id,q] of quoted)assert.ok(ui.includes(q),id+' quotes text the page does not show: '+q);
+  assert.doesNotMatch(text(html)+text(z),FORBIDDEN);
+});
+
+// The later review of Worker 1a0dd495 (Swarm audit 8c3aea2e, 2026-09-30 UTC; report AUDIT.md, no deployment-match verdict;
+// one of its reviewers rebuilt the bundle from snapshot ae1d41a): its findings N-1..N-7 as it rated them and the team's
+// status for this version, after the re-reviews, under a line saying plainly that this version was not re-reviewed.
+test('the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, and the page says this version was not re-reviewed',()=>{
+  assert.deepEqual({...REVIEWED_LATER},{worker:'1a0dd495',commit:'4321bb4',snapshot:'ae1d41a',bundle:'1018f02a98ccb7de5b91434613d5e38047925a463df8d892b6cd9439d9a2078c',date:'2026-09-30'});
+  assert.deepEqual(REVIEW_RECORD.later.map(r=>[r.job,r.kind,r.match,r.jobUrl,r.reportUrl]),[['8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b','Audit',null,AUDIT3_JOB,AUDIT3_REPORT]]);
+  assert.deepEqual(REVIEW_RECORD.later.map(r=>r.findings.map(f=>f.id+' '+f.severity)),[['N-1 Low','N-2 Low','N-3 Low','N-4 Low','N-5 Low','N-6 Low','N-7 Info']]);
+  assert.equal(REVIEW_CHANGED,true);
+  const html=render(en),z=render(zh);
+  for(const part of ['<p class="small-note audit-head">Later review (2026-09-30, UTC)</p>',
+    '<dt>Reviewed version</dt><dd>Worker 1a0dd495 (source 4321bb4, public snapshot ae1d41a, bundle 1018f02a… as a reviewer rebuilt it)</dd>',
+    '<p class="small-note audit-changed">This review examined Worker 1a0dd495, not this version; this version’s changes were not re-reviewed. The findings below are the review’s; their fix status is as reported by the site maintainer.</p>',
+    `Audit 8c3aea2e… · Deployment match: not assessed by the audit · ${link(AUDIT3_REPORT)}AUDIT.md ↗</a>`])assert.ok(html.includes(part),part);
+  for(const part of ['之後的審查（2026-09-30，UTC）','Worker 1a0dd495（原始碼 4321bb4，公開快照 ae1d41a，bundle 1018f02a…，由審查者重建）',
+    '這次審查看的是 Worker 1a0dd495，不是目前版本；目前版本的變更沒有經過重新審查。',`Audit（審查） 8c3aea2e… · 部署對照：此審查未評估 · ${link(AUDIT3_REPORT)}AUDIT.md ↗</a>`])
+    assert.ok(z.includes(part),part);
+  // After the re-reviews' findings, and still inside the collapsed block.
+  assert.ok(html.indexOf('Later review (')>html.indexOf('A-8 · Low')&&html.indexOf('N-7 · Info')<html.indexOf('</details>'));
+  assert.equal(lists(html).length,4);
+  const n=lists(html)[3],zn=lists(z)[3];assert.deepEqual([n.length,zn.length],[7,7]);
+  assert.match(n[0],/^N-1 · Low — An older session read could erase the owner state a newer one had set\. Fixed in this version: only the newest session read is applied, its body and errors included/);
+  assert.match(n[1],/^N-2 · Low — A cancelled sign-in could still ask the old account to sign\. Fixed in this version: .*a cancelled flow asks nothing\. Still: a wallet window already open can’t be closed by the page; its answer is dropped\.$/);
+  assert.match(n[2],/^N-3 · Low \(availability\) — .*seats that count \(online now, or seen under this owner in the last 24 hours\) are checked first, and a cut list is still marked as incomplete\. Still: seats past the cap are not listed\.$/);
+  assert.match(n[3],/^N-4 · Low \(availability\) — .*the owner’s own earlier attempt no longer uses it up, and a retry or a second device gets through\. Still: junk from the wallet’s own network can hold it, as for A-1\.$/);
+  assert.match(n[4],/^N-5 · Low \(availability\) — .*Improved in this version: an IPv6 \/48 gets twice a \/24’s sign-in shares, and each \/64 in it at most one \/24’s share of smart-wallet checks, counted by the \/64 that asked for the challenge\. Still: someone holding two or more \/64s of a shared \/48 can spend its shares.*\(partly open\)\.$/);
+  assert.match(n[5],/^N-6 · Low \(availability\) — .*Improved in this version: .*one IP no longer keeps a new buyer’s seat from being found; ownerOf still proves every seat\. Still: 20 other networks at one location every minute can keep it refused while they go on \(partly open\)\.$/);
+  // N-7 quotes the page's own two sentences (the quote check of the previous test holds it to that) and never names
+  // another device: AUTH_REQUIRED alone says nothing about where the sign-out came from.
+  assert.match(n[6],/^N-7 · Info — A sign-in revoked elsewhere was shown as an expired session\. Fixed in this version: a sign-in the server no longer accepts reads “You are no longer signed in\. Please sign in again\.”, and “Your sign-in has expired\. Please sign in again\.” only when it ran out\. Still: /);
+  assert.match(zn[6],/此版本已修正：伺服器已不承認的登入顯示「登入狀態已失效，請重新登入。」；只有登入真的到期時才顯示「登入已到期，請重新登入。」。仍存在：/);
+  assert.doesNotMatch(n[6]+zn[6],/another device|其他裝置/);
+  // Every status is the team's, for this version, with a residual where one stays; only N-5 and N-6 are partly open.
+  for(const s of n)assert.match(s.split(' — ')[1],/\. (Fixed|Improved) in this version: /,s);
+  for(const s of zn)assert.match(s,/。此版本(已修正|已改善)：/,s);
+  assert.deepEqual([n.map(s=>/ Still: /.test(s)),zn.map(s=>/仍存在：/.test(s))],[[false,true,true,true,true,true,true],[false,true,true,true,true,true,true]]);
+  assert.deepEqual([n.map(s=>/\(partly open\)\.$/.test(s)),zn.map(s=>/（未完全解決）。$/.test(s))],[[false,false,false,false,true,true,false],[false,false,false,false,true,true,false]]);
   assert.doesNotMatch(text(html)+text(z),FORBIDDEN);
 });
 
@@ -161,23 +207,47 @@ test('the remediation status doc agrees with the site’s record, names only rea
       for(const [,file,id] of m[5].matchAll(/`(tests\/[\w.-]+)` "([AW]-\d): …"/g)){assert.equal(id,f.id);assert.ok(read(file).includes("test('"+id+': '),`${f.id}: ${file}`);}
     }
   }
+  // The later review (Swarm audit 8c3aea2e of Worker 1a0dd495): the header row names it, the version it examined and that
+  // this branch was not re-reviewed; it has its section, job and report; every finding a row with the site's severity and
+  // status word for word, its fix commit, a test that exists under that id in the named file, and its state: PARTIAL
+  // where the site says partly open, else FIXED_LOCALLY, deployed in bbf24001 as the team's deployment record lists it.
+  const laterRow=doc.split(String.fromCharCode(10)).find(l=>l.startsWith('| Later review |'));assert.ok(laterRow,'a Later review row');
+  for(const v of [REVIEWED_LATER.worker,REVIEWED_LATER.commit,REVIEWED_LATER.snapshot,REVIEWED_LATER.bundle,REVIEWED_LATER.date,'`8c3aea2e`','these changes were not re-reviewed','`bbf24001`'])
+    assert.ok(laterRow.includes(v),'Later review row: '+v);
+  for(const r of REVIEW_RECORD.later){
+    assert.ok(doc.includes('## Swarm audit '+r.job.slice(0,8)+' ('+REVIEWED_LATER.date+')'),r.job);
+    for(const u of [r.jobUrl,r.reportUrl])assert.ok(doc.includes(u),u);
+    for(const f of r.findings){
+      const row=doc.split(String.fromCharCode(10)).find(l=>l.startsWith('| '+f.id+' |'));assert.ok(row,f.id+' has a row');
+      const m=row.match(/^\| (N-\d) \| ([^|]+) \| ([^|]+) \| (`[0-9a-f]{7}`(?:, `[0-9a-f]{7}`)*) \| ((?:`tests\/[\w.-]+` "N-\d: …"(?:, )?)+) \| ([^|]+) \|$/);
+      assert.ok(m,f.id+': '+row);
+      assert.deepEqual([m[2],m[3]],[f.severity+(f.area?' ('+f.area.en+')':''),f.status.en],f.id);
+      assert.equal(m[6],(/\(partly open\)\.$/.test(f.status.en)?'PARTIAL':'FIXED_LOCALLY')+": deployed in `bbf24001` (the team's deployment record)",f.id);
+      for(const [,file,id] of m[5].matchAll(/`(tests\/[\w.-]+)` "(N-\d): …"/g)){assert.equal(id,f.id);assert.ok(read(file).includes("test('"+id+': '),`${f.id}: ${file}`);}
+    }
+  }
   // Every audit finding has its own block (Codex remediation plan §14 A and D): a heading with the site's title and label,
   // then the old and the new behavior, the abuse that no longer works, what remains ("none known" where the site names no
   // residual), the files changed and the tests, each once; every test it names exists, by the start of its name, in the
-  // file named before it, and one of them carries the finding's id.
+  // file named before it, and one of them carries the finding's id. The later audit's blocks also say the deployment
+  // version: Worker bbf24001 (source 2e4e830), as the team's deployment record lists it.
   const named=text=>{let file=null;const out=[];
     for(const [,f,name] of text.matchAll(/`(tests\/[\w.-]+)`|"([^"]+?)…"/g)){if(f){file=f;continue;}
       assert.ok(file,'a test name before any file: '+name);assert.ok(read(file).replace(/\\'/g,"'").includes("test('"+name),file+': '+name);out.push(name);}
     return out;};
-  for(const f of REVIEW_RECORD.rereviews.find(r=>r.kind==='Audit').findings){
+  const blocks=(findings,pending)=>{for(const f of findings){
     const label=f.status.en.match(/^(Fixed|Partly fixed|Improved) in this version/)[1]+(/\(partly open\)\.$/.test(f.status.en)?' (partly open)':'');
     const head=`### ${f.id} — ${f.title.en} · ${label}`,at=doc.indexOf('\n'+head+'\n');assert.ok(at>0,head);
     const block=doc.slice(at+1,doc.indexOf('\n#',at+1)).replace(/\s+/g,' ');
-    for(const field of ['Old behavior','New behavior','Abuse prevented','Remaining trade-off','Files changed','Tests'])
+    for(const field of ['Old behavior','New behavior','Abuse prevented','Remaining trade-off','Files changed','Tests',...pending?['Deployment version']:[]])
       assert.equal(block.split('- **'+field+':** ').length-1,1,f.id+': '+field);
+    if(pending)assert.ok(block.includes('- **Deployment version:** '+pending+'.'),f.id+': '+pending);
     if(!/ Still: /.test(f.status.en))assert.ok(block.includes('- **Remaining trade-off:** none known.'),f.id+': none known');
-    const names=named(block.slice(block.indexOf('- **Tests:** ')));assert.ok(names.some(n=>n.startsWith(f.id+': ')),f.id+': its own test');
-  }
+    const tests=block.slice(block.indexOf('- **Tests:** '),pending?block.indexOf('- **Deployment version:** '):undefined);
+    assert.ok(named(tests).some(n=>n.startsWith(f.id+': ')),f.id+': its own test');
+  }};
+  blocks(REVIEW_RECORD.rereviews.find(r=>r.kind==='Audit').findings,false);
+  blocks(REVIEW_RECORD.later.flatMap(r=>r.findings),'bbf24001 (source 2e4e830, deployed 2026-10-01 04:10 UTC)');
   // The Codex plans' suggested test names map to tests that exist.
   const map=doc.slice(doc.indexOf("### The Codex plans' test names"),doc.indexOf('\n## ',doc.indexOf("### The Codex plans' test names")));
   assert.equal(named(map).length,15,'every suggested name is mapped');
@@ -189,7 +259,8 @@ test('the remediation status doc agrees with the site’s record, names only rea
   assert.ok(flat.includes("Production facts on this page (which Worker version runs and when it was deployed, the D1 migrations applied remotely, the limiter bindings and their namespaces, the WAF rule, the secrets such as `ALCHEMY_API_KEY`, and the log sampling) are the site maintainer's deployment record. No review could read them and this page does not verify them."));
   assert.ok(flat.includes('It found no asset-transfer path (no approval, no transaction) and no session-forgery or ownership-forgery path'));
   assert.ok(flat.includes('It did not verify the live deployment, the Cloudflare bindings, WAF or upload handling, real wallets or browsers, the production RPC, the front-end code not in the snapshot, or a Worker rebuild.'));
-  assert.equal(doc.match(/Deployment version:\*\* (pending — filled in at deploy|[0-9a-f]{8} \(source [0-9a-f]{7}, deployed \d{4}-\d\d-\d\d \d\d:\d\d UTC\))\./g).length,8,'every finding names its deployment version, or says it is pending');
+  assert.equal(doc.match(/Deployment version:\*\* (pending — filled in at deploy|[0-9a-f]{8} \(source [0-9a-f]{7}, deployed \d{4}-\d\d-\d\d \d\d:\d\d UTC\))\./g).length,15,
+    'every finding names its deployment version, or says it is pending: F-1..F-8 and N-1..N-7');
   for(const field of ['Finding','Old behavior','Fix','Files changed','Tests added','Test command','Result','Deployment version','Residual risk'])
     assert.ok(doc.split('**'+field).length-1>=7,field+' in every finding (F-8 folds some into one line)');
   assert.doesNotMatch(doc,FORBIDDEN);

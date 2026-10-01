@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {setup,newAccount,fakeImd,fakeChain,Browser,START} from './wallet-harness.mjs';
+import {setup,newAccount,fakeImd,fakeChain,windowLimiter,Browser,START} from './wallet-harness.mjs';
+import {openD1} from './d1-sqlite.mjs';
 import {createWorker} from '../worker/app.ts';
 import {ReadGateway} from '../server/gateway.ts';
 import {ALCHEMY_RPC_URL,ALCHEMY_NFTS_URL,MULTICALL_CHUNK} from '../server/ownership.ts';
+import {CHALLENGE_BUDGET_WINDOW_MS,NETWORK_WINDOW_MS} from '../server/auth.ts';
+import {AuthClient,statusOf} from '../src/world/auth.ts';
+import {enterGate} from '../src/world/homeEntry.ts';
 import {houseSize} from '../src/world/households.ts';
 // Ownership and eligibility through GET /api/me/home and GET /api/wallet/:address/assets on the real Worker. The fake
 // chain answers ownerOf from `owners` and the NFT index from `index` (which may lie or lag), so each case states what
@@ -92,7 +96,9 @@ test('/api/me/home: every NFT index read spends CHAIN_LIMITER (chain:index); ref
     assert.deepEqual([index(),rpcCalls(w)],[0,0],path+': refused, nothing is read');
   }
   allowed=null;await round('/api/me/home?fresh=1');assert.deepEqual([index(),rpcCalls(w)],[0,0],'limiter down: nothing is read');
-  assert.ok(keys.length>=40&&keys.every(k=>k==='chain:index'));
+  // Besides chain:index, a refused read that counts no seat asks its network's lane key (N-6): these ten share one
+  // network, so once a minute, and refused too.
+  assert.ok(keys.length>=40&&keys.every(k=>k==='chain:index'||k==='chain:index:lane'));assert.equal(keys.filter(k=>k==='chain:index:lane').length,3);
   // Allowed, each read spends exactly one unit and is then kept 5 min per address (INT-1): nothing more to spend.
   allowed=true;keys.length=0;w.clock.advance(31_000);
   for(const b of sessions)assert.equal((await body(await b.get('/api/me/home'))).recheck,undefined);
@@ -395,6 +401,177 @@ test('A-4: under the cap a read is complete; far past it (600 or 301 candidates)
   const all=[...low(300),'1999'];
   ({h,rpc}=await holder(all,Object.fromEntries(all.map((id,i)=>[id,String(60000+i)]))));
   assert.deepEqual([h.eligible,h.size,h.recheck,h.seats.length,rpc],[256,'xl','partial',256,2]);
+});
+
+/** A sighting of seat `id` under `owner` at `at` (what the cron records). */
+const sighting=(w,id,owner,at)=>w.db.raw.prepare('INSERT INTO seat_presence(token_id,owner,last_online_at,updated_at) VALUES(?,?,?,?)').run(id,owner,at,at);
+/** Another instance of the Worker (empty caches) over w's D1, upstreams, clock and limiters, with `from`'s cookies. */
+const another=(w,from,env={})=>{const worker=createWorker(new ReadGateway(w.imd.fetcher,w.clock.now),w.chain.fetcher,w.clock.now);
+  const b=new Browser(r=>worker.fetch(r,{...w.env,...env},{waitUntil:p=>w.kept.push(p)}));b.jar=new Map(from.jar);return b;};
+/** The page's AuthClient (src/world/auth.ts) over browser `b`: no wallet, no hint store, inert timers. */
+const page=(w,b)=>new AuthClient({fetch:async(path,init={})=>b.keep(await b.send(b.request(path,{method:init.method??'GET',body:init.body,headers:init.headers}))),
+  provider:()=>null,hint:{get:()=>null,set:()=>{}},now:w.clock.now,origin:b.origin,env:{set:()=>0,clear:()=>{},onVisible:()=>()=>{}}});
+/** N-3's world: A holds #0..#254 and #1000, each a registered agent, nobody online, and #1000 was seen under A an hour
+ *  ago; A's first house read (256 candidates, all checked); then #255 (registered, never seen online) is sent to A. */
+async function recentlySeen(){
+  const A=newAccount(),a=A.address.toLowerCase(),ids=[...low(256),'1000'],mine=Object.fromEntries([...low(255),'1000'].map(id=>[id,a]));
+  const w=setup({imd:fakeImd({seats:Object.fromEntries(ids.map((id,i)=>[id,String(50000+i)])),owners:owners(2000,mine),online:[]}),chain:fakeChain({owners:{...mine}})});
+  sighting(w,1000,a,START-HOUR);
+  const sa=await signedIn(w,A),first=await body(await sa.get('/api/me/home'));
+  w.imd.state.owners[255]=a;w.chain.state.owners[255]=a;await Promise.all(w.kept);
+  return {w,a,sa,first};
+}
+const cutView=h=>[h.seats.length,h.seats.some(s=>s.tokenId==='1000'),h.eligible,h.size,h.recheck];
+
+// N-3 (Swarm audit 8c3aea2e): the cap ranked candidates by registration and the live roster only; the owner-bound 24 h
+// sightings that decide counting were read after the cut, so 256 lower registered seats that cannot count pushed out
+// the one that counts through a recent sighting, and its owner lost owner mode.
+test('N-3: past the 256-candidate cap, a seat that counts through its owner’s sighting in the last 24 h is still checked (the reproduction)',async()=>{
+  const {w,sa,first}=await recentlySeen();
+  assert.deepEqual(cutView(first),[256,true,1,'s',undefined],'256 candidates: every one checked');
+  // Another instance at the same moment: 257 candidates now.
+  const v=page(w,another(w,sa));await v.restore();
+  assert.deepEqual(cutView(v.state.home),[256,true,1,'s','partial'],'257 candidates: #1000 is still checked, and the answer says partial');
+  assert.deepEqual([v.state.home.seats.filter(s=>s.counts).map(s=>s.tokenId),statusOf(v.state,w.clock.now())],[['1000'],'owner']);
+});
+
+test('N-3: the cut follows the counting rule exactly: a sighting at 24 h counts, one just over does not, nor one under another owner, nor none; online now does; a seat sold since is dropped by ownerOf',async()=>{
+  const other='0x'+'bb'.repeat(20),buyer='0x'+'cc'.repeat(20);
+  // 257 candidates: #0..#255 registered and never seen online, and #1000 (registered) as each world has it.
+  const cut=async({at,by,online=[],sold=false})=>{const A=newAccount(),a=A.address.toLowerCase(),ids=[...low(256),'1000'],mine=Object.fromEntries(ids.map(id=>[id,a]));
+    const w=setup({imd:fakeImd({seats:Object.fromEntries(ids.map((id,i)=>[id,String(50000+i)])),owners:owners(2000,mine),online}),
+      chain:fakeChain({owners:{...mine,...sold?{1000:buyer}:{}}})});
+    if(at!==undefined)sighting(w,1000,by??a,at);
+    const h=await body(await (await signedIn(w,A)).get('/api/me/home'));return [h.seats.length,h.seats.some(s=>s.tokenId==='1000'),h.eligible,h.recheck];};
+  assert.deepEqual({atDay:await cut({at:START-DAY}),justOver:await cut({at:START-DAY-1}),otherOwner:await cut({at:START-HOUR,by:other}),none:await cut({}),
+    online:await cut({online:[1000]}),sold:await cut({at:START-HOUR,sold:true})},
+  {atDay:[256,true,1,'partial'],justOver:[256,false,0,'partial'],otherOwner:[256,false,0,'partial'],none:[256,false,0,'partial'],
+    online:[256,true,1,'partial'],sold:[255,false,0,'partial']});
+});
+
+test('N-3: the ranking read happens only past the cap, once per check, and only for registered seats not online now',async()=>{
+  // #0..#99 not agents, #100..#199 registered and offline, #200 and up registered and online, #1000 registered and offline.
+  const run=async ids=>{const A=newAccount(),a=A.address.toLowerCase(),mine=Object.fromEntries(ids.map(id=>[id,a]));
+    const w=setup({imd:fakeImd({seats:Object.fromEntries(ids.filter(id=>Number(id)>=100).map(id=>[id,String(60000+Number(id))])),owners:owners(2000,mine),
+      online:ids.filter(id=>Number(id)>=200&&id!=='1000')}),chain:fakeChain({owners:mine})});
+    const b=await signedIn(w,A),asked=[],db=w.env.DB;
+    w.env.DB={...db,prepare:sql=>{const s=db.prepare(sql);return /FROM seat_presence/.test(sql)?{...s,bind:(...v)=>{asked.push(JSON.parse(v[0]));return s.bind(...v);}}:s;}};
+    const h=await body(await b.get('/api/me/home'));return [h.seats.length,h.recheck,asked];};
+  const [n,recheck,asked]=await run([...low(255),'1000']);
+  assert.deepEqual([n,recheck,asked.length],[256,undefined,1],'256 candidates: only the sightings of the seats proven');
+  const [m,cut,more]=await run([...low(256),'1000']);
+  assert.deepEqual([m,cut,more.length],[256,'partial',2],'257: one read more');
+  assert.deepEqual(more[0].sort((x,y)=>x-y),[...Array.from({length:100},(_,i)=>100+i),1000],'about the registered seats not online now only');
+});
+
+test('N-3: the answer kept in D1 is cut the same way: another instance with chain:index refused still proves the recently seen seat',async()=>{
+  const {w,a,sa}=await recentlySeen();
+  assert.deepEqual(cutView(await body(await another(w,sa).get('/api/me/home'))),[256,true,1,'s','partial']);await Promise.all(w.kept);
+  assert.ok(JSON.parse(w.db.raw.prepare('SELECT ids FROM index_candidates WHERE address=?').get(a).ids).includes('1000'),'the kept answer names #1000');
+  const refused=another(w,sa,{CHAIN_LIMITER:{limit:async()=>({success:false})}});
+  assert.deepEqual(cutView(await body(await refused.get('/api/me/home'))),[256,true,1,'s','limited']);
+});
+
+/** A CHAIN_LIMITER whose chain:index is spent at this location and whose other keys are open; `keys` lists every key asked. */
+const mainSpent=keys=>({limit:async({key})=>{keys.push(key);return {success:key!=='chain:index'};}});
+const laneRows=w=>w.db.raw.prepare('SELECT count(*) n FROM index_lanes').get().n;
+const indexReads=w=>w.chain.state.calls.filter(c=>c.url.startsWith(ALCHEMY_NFTS_URL)).length;
+async function signedInAt(w,account,ip){const b=w.browser(undefined,undefined,ip);const {verify}=await b.signIn(account);assert.equal(verify.status,200);return b;}
+/** V's #361 (registered, online) is on chain and in the NFT index, but IMD's roster still names its seller. */
+const newBuyer=(extra={})=>{const V=newAccount(),v=V.address.toLowerCase();
+  return {V,v,w:setup({imd:fakeImd({seats:{361:'51320'},owners:owners(2000,{361:'0x'+'22'.repeat(20)}),online:[361]}),chain:fakeChain({owners:{361:v}}),...extra})};};
+
+// N-6 (Swarm audit 8c3aea2e): any throwaway key signs in and spends one of chain:index's 20 a minute at its location, so
+// one IP's 20 sign-ins a minute kept a buyer whose seat only the index names (IMD's roster behind, nothing kept in D1)
+// at "could not check" for as long as they went on.
+test('N-6: one IP’s throwaway sign-ins no longer keep a new buyer from their first seat discovery (the reproduction)',async()=>{
+  const {V,v,w}=newBuyer(),chain=windowLimiter(20,w.clock.now);
+  Object.assign(w.env,{CHAIN_LIMITER:chain,API_LIMITER:windowLimiter(180,w.clock.now),AUTH_LIMITER:windowLimiter(20,w.clock.now),SEAT_LIMITER:windowLimiter(60,w.clock.now)});
+  const client=page(w,await signedInAt(w,V,'198.51.100.20')),now=()=>w.clock.now();
+  const flood=async minute=>{w.clock.set(START+minute*NETWORK_WINDOW_MS);
+    for(let i=0;i<20;i++){const b=await signedInAt(w,newAccount(),'203.0.113.7');assert.equal((await b.get('/api/me/home')).status,200);w.clock.advance(2_500);}};
+  const minutes=[];
+  for(let m=0;m<3;m++){await flood(m);if(m===0)await client.restore();else await client.refreshHome(true,true);
+    const h=client.state.home;minutes.push([statusOf(client.state,now()),enterGate(client.state,{owner:v},now()),h.eligible,h.recheck??null,chain.keys.filter(k=>k==='chain:index:lane').length]);}
+  // The first minute: the lane finds #361. Later ones: the answer then kept counts it, so the view is limited but owner, and no lane is taken.
+  assert.deepEqual(minutes,[['owner','ok',1,null,1],['owner','ok',1,'limited',1],['owner','ok',1,'limited',1]]);
+});
+
+test('N-6: the lane is for a refused read that counts no seat: none when the roster or a kept answer already shows a seat that counts; one for a new buyer, a stale kept answer, or seats that do not count',async()=>{
+  const seller='0x'+'22'.repeat(20),buyer='0x'+'cc'.repeat(20);
+  // V's #361 (registered, online) and #100 (registered; when seen, 30 h ago under V), with chain:index spent. 'V' names V.
+  const run=async({roster,chain,kept,seen100=false})=>{const V=newAccount(),v=V.address.toLowerCase(),keys=[],as=map=>Object.fromEntries(Object.entries(map).map(([id,o])=>[id,o==='V'?v:o]));
+    const w=setup({imd:fakeImd({seats:{361:'51320',100:'50100'},owners:owners(2000,as(roster)),online:[361]}),chain:fakeChain({owners:as(chain)}),env:{CHAIN_LIMITER:mainSpent(keys)}});
+    if(kept)w.db.raw.prepare('INSERT INTO index_candidates(address,ids,read_at) VALUES(?,?,?)').run(v,JSON.stringify(kept),START-DAY);
+    if(seen100)sighting(w,100,v,START-30*HOUR);
+    const b=await signedIn(w,V),calls=rpcCalls(w),h=await body(await b.get('/api/me/home'));
+    return {w,out:[keys.filter(k=>k==='chain:index:lane').length,h.seats.map(s=>s.tokenId),h.eligible,h.recheck??null,rpcCalls(w)-calls]};};
+  const cases={keptCounts:await run({roster:{361:seller},chain:{361:'V'},kept:['361']}),rosterCounts:await run({roster:{361:'V'},chain:{361:'V'}}),
+    rosterBehind:await run({roster:{361:seller},chain:{361:'V'}}),offlineOnRoster:await run({roster:{100:'V',361:seller},chain:{100:'V',361:'V'},seen100:true}),
+    keptSold:await run({roster:{100:seller,361:seller},chain:{100:buyer,361:'V'},kept:['100']}),keptOffline:await run({roster:{361:seller},chain:{100:'V',361:'V'},kept:['100'],seen100:true})};
+  // [lane keys, seats, eligible, recheck, ownerOf reads]
+  assert.deepEqual(Object.fromEntries(Object.entries(cases).map(([k,c])=>[k,c.out])),{keptCounts:[0,['361'],1,'limited',1],rosterCounts:[0,['361'],1,'limited',1],
+    rosterBehind:[1,['361'],1,null,1],offlineOnRoster:[1,['100','361'],1,null,2],keptSold:[1,['361'],1,null,2],keptOffline:[1,['100','361'],1,null,2]});
+  assert.deepEqual(Object.fromEntries(Object.entries(cases).map(([k,c])=>[k,laneRows(c.w)])),{keptCounts:0,rosterCounts:0,rosterBehind:1,offlineOnRoster:1,keptSold:1,keptOffline:1});
+});
+
+test('N-6: one lane per network a minute, even when claims race',async()=>{
+  const keys=[],w=setup({env:{CHAIN_LIMITER:mainSpent(keys)}}),sessions=[];
+  for(let i=1;i<=5;i++)sessions.push(await signedInAt(w,newAccount(),'203.0.113.'+i));
+  const views=await Promise.all(sessions.map(async b=>(await body(await b.get('/api/me/home'))).recheck??null));
+  assert.deepEqual([views.filter(v=>v===null).length,views.filter(v=>v==='limited').length,indexReads(w),laneRows(w),keys.filter(k=>k==='chain:index:lane').length,rpcCalls(w)],
+    [1,4,1,1,1,0],'one index read (a throwaway address: no ownerOf), the other four limited with no chain read');
+});
+
+test('N-6: twenty other networks can still keep a refused read out at one location, and it reopens the next minute (the residual at its stated cost)',async()=>{
+  const residual=async others=>{const {V,w}=newBuyer(),chain=windowLimiter(20,w.clock.now);w.env.CHAIN_LIMITER=chain;
+    // Everyone signs in first (over two of the valve's slices); then, in the next minute, one IP spends chain:index and
+    // `others` networks take the location's lane key.
+    const spend=[],take=[];for(let i=0;i<20;i++)spend.push(await signedInAt(w,newAccount(),'203.0.113.7'));w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);
+    for(let k=0;k<others;k++)take.push(await signedInAt(w,newAccount(),'100.64.'+k+'.1'));
+    const vb=await signedInAt(w,V,'198.51.100.20');w.clock.set(START+NETWORK_WINDOW_MS);
+    for(const b of [...spend,...take])assert.equal((await b.get('/api/me/home')).status,200);
+    const reads=indexReads(w),h=await body(await vb.get('/api/me/home'));
+    return {w,vb,view:[h.seats.map(s=>s.tokenId),h.recheck??null,indexReads(w)-reads,chain.keys.filter(k=>k==='chain:index:lane').length]};};
+  const held=await residual(20);
+  assert.deepEqual(held.view,[[],'limited',0,21],'20 lanes taken: V’s is admitted in D1, refused by the key, and nothing is read');
+  assert.equal(held.w.db.raw.prepare("SELECT count(*) n FROM index_lanes WHERE net='net:198.51.100.0/24'").get().n,1);
+  assert.deepEqual((await residual(19)).view,[['361'],null,1,20],'19 other networks do not');
+  held.w.clock.set(START+2*NETWORK_WINDOW_MS);const next=await body(await held.vb.get('/api/me/home'));
+  assert.deepEqual([next.seats.map(s=>s.tokenId),next.eligible,next.recheck],[['361'],1,undefined],'the next minute, nobody interfering');
+  // IPv6: one lane a minute per /64 and two per /48; a third /64 of that /48 is refused in D1 and asks no key.
+  const keys=[],x=setup({env:{CHAIN_LIMITER:mainSpent(keys)}});
+  const house=async ip=>{const b=await signedInAt(x,newAccount(),ip),before=keys.length;await b.get('/api/me/home');return [laneRows(x),keys.slice(before).filter(k=>k==='chain:index:lane').length];};
+  assert.deepEqual([await house('2001:db8:7:1::1'),await house('2001:db8:7:1::2'),await house('2001:db8:7:2::1'),await house('2001:db8:7:3::1'),await house('2001:db8:8:1::1')],
+    [[1,1],[1,0],[2,1],[2,0],[3,1]]);
+});
+
+test('N-6: the lanes have a site-wide ceiling: 60 in 6 s; the 61st is refused with nothing written and no key asked, and the next slice admits again',async()=>{
+  const keys=[],w=setup({env:{CHAIN_LIMITER:mainSpent(keys)}}),sessions=[],lanes=()=>keys.filter(k=>k==='chain:index:lane').length;
+  for(let k=0;k<62;k++){if(k===30)w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);sessions.push(await signedInAt(w,newAccount(),'100.64.'+k+'.1'));}
+  w.clock.advance(NETWORK_WINDOW_MS);const views=[];
+  for(const b of sessions.slice(0,61))views.push((await body(await b.get('/api/me/home'))).recheck??null);
+  assert.deepEqual([views.filter(v=>v===null).length,views[60],laneRows(w),indexReads(w),lanes()],[60,'limited',60,60,60]);
+  w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);
+  assert.deepEqual([(await body(await sessions[61].get('/api/me/home'))).recheck??null,laneRows(w),indexReads(w),lanes()],[null,61,61,61],'the next slice');
+});
+
+// Guard (the mutation check found it unpinned): the lane is for a read the budget refused, not one that failed (an
+// Alchemy 5xx); fails with `proof.refused` weakened to `proof.limited` (a lane row and a lane key for the failed read).
+test('N-6: an index read that failed (the budget allowed it) takes no lane: limited on the kept answer, with no lane row and no lane key',async()=>{
+  const V=newAccount(),v=V.address.toLowerCase(),seller='0x'+'22'.repeat(20),buyer='0x'+'cc'.repeat(20),keys=[];
+  const w=setup({imd:fakeImd({seats:{361:'51320',100:'50100'},owners:owners(2000,{361:seller,100:seller}),online:[361]}),chain:fakeChain({owners:{100:buyer,361:v}}),
+    env:{CHAIN_LIMITER:{limit:async({key})=>{keys.push(key);return {success:true};}}}});
+  w.db.raw.prepare('INSERT INTO index_candidates(address,ids,read_at) VALUES(?,?,?)').run(v,JSON.stringify(['100']),START-DAY);   // it names a seat sold since
+  const b=await signedIn(w,V);w.chain.state.fail='index';
+  const r=await b.get('/api/me/home'),h=await body(r);
+  assert.deepEqual([r.status,h.seats,h.eligible,h.recheck,keys.filter(k=>k==='chain:index').length,keys.filter(k=>k==='chain:index:lane').length,laneRows(w)],[200,[],0,'limited',1,0,0]);
+});
+
+test('N-6 (deployed ahead of 0005): no lane, and a refused read is limited as before, never 503',async()=>{
+  const keys=[],old=openD1(['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql']);
+  const {V,w}=newBuyer({env:{DB:old,CHAIN_LIMITER:mainSpent(keys)}}),r=await (await signedIn(w,V)).get('/api/me/home'),h=await body(r);
+  assert.deepEqual([r.status,h.seats,h.eligible,h.recheck,keys],[200,[],0,'limited',['chain:index']]);
 });
 
 // SEC-3 / INT-2: the public route made one keyed getNFTsForOwner(withMetadata) per distinct address, for anyone.
