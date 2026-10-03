@@ -97,8 +97,8 @@ test('/api/me/home: every NFT index read spends CHAIN_LIMITER (chain:index); ref
     assert.deepEqual([index(),rpcCalls(w)],[0,0],path+': refused, nothing is read');
   }
   allowed=null;await round('/api/me/home?fresh=1');assert.deepEqual([index(),rpcCalls(w)],[0,0],'limiter down: nothing is read');
-  // Besides chain:index, a refused read that counts no seat asks its network's lane key (N-6): these ten share one
-  // network, so once a minute, and refused too.
+  // AUD4-03: local refusals reserve no admitted rows, but retain a separate 30 s probe marker. These ten sessions
+  // share a network: only three probes across the three times above, not one key call per home read.
   assert.ok(keys.length>=40&&keys.every(k=>k==='chain:index'||k==='chain:index:lane'));assert.equal(keys.filter(k=>k==='chain:index:lane').length,3);
   // Allowed, each read spends exactly one unit and is then kept 5 min per address (INT-1): nothing more to spend.
   allowed=true;keys.length=0;w.clock.advance(31_000);
@@ -520,8 +520,9 @@ test('N-6: one lane per network a minute, even when claims race',async()=>{
   const keys=[],w=setup({env:{CHAIN_LIMITER:mainSpent(keys)}}),sessions=[];
   for(let i=1;i<=5;i++)sessions.push(await signedInAt(w,newAccount(),'203.0.113.'+i));
   const views=await Promise.all(sessions.map(async b=>(await body(await b.get('/api/me/home'))).recheck??null));
-  assert.deepEqual([views.filter(v=>v===null).length,views.filter(v=>v==='limited').length,indexReads(w),laneRows(w),keys.filter(k=>k==='chain:index:lane').length,rpcCalls(w)],
-    [1,4,1,1,1,0],'one index read (a throwaway address: no ownerOf), the other four limited with no chain read');
+  assert.deepEqual([views.filter(v=>v===null).length,views.filter(v=>v==='limited').length,indexReads(w),laneRows(w),rpcCalls(w)],
+    [1,4,1,1,0],'one atomic reservation/index read; the other four send no chain read');
+  assert.equal(keys.filter(k=>k==='chain:index:lane').length,1,'the atomic probe gate admits only one local key call for this network');
 });
 
 test('N-6: twenty other networks can still keep a refused read out at one location, and it reopens the next minute (the residual at its stated cost)',async()=>{
@@ -535,8 +536,8 @@ test('N-6: twenty other networks can still keep a refused read out at one locati
     const reads=indexReads(w),h=await body(await vb.get('/api/me/home'));
     return {w,vb,view:[h.seats.map(s=>s.tokenId),h.recheck??null,indexReads(w)-reads,chain.keys.filter(k=>k==='chain:index:lane').length]};};
   const held=await residual(20);
-  assert.deepEqual(held.view,[[],'limited',0,21],'20 lanes taken: V’s is admitted in D1, refused by the key, and nothing is read');
-  assert.equal(held.w.db.raw.prepare("SELECT count(*) n FROM index_lanes WHERE net='net:198.51.100.0/24'").get().n,1);
+  assert.deepEqual(held.view,[[],'limited',0,21],'20 lanes taken: V’s local key refuses, so no D1 lane is reserved and nothing is read');
+  assert.equal(held.w.db.raw.prepare("SELECT count(*) n FROM index_lanes WHERE net='net:198.51.100.0/24'").get().n,0);
   assert.deepEqual((await residual(19)).view,[['361'],null,1,20],'19 other networks do not');
   held.w.clock.set(START+2*NETWORK_WINDOW_MS);const next=await body(await held.vb.get('/api/me/home'));
   assert.deepEqual([next.seats.map(s=>s.tokenId),next.eligible,next.recheck],[['361'],1,undefined],'the next minute, nobody interfering');
@@ -639,123 +640,111 @@ test('AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuil
   assert.deepEqual([r.status,n],[503,2]);
 });
 
-/** index_lanes as [sub, at - t0], in insertion order; the index_lane_kept lines among logged ones. */
+/** index_lanes as [sub, at - t0], in insertion order. */
 const lanesAt=(w,t0)=>w.db.raw.prepare('SELECT sub,at FROM index_lanes ORDER BY rowid').all().map(r=>[r.sub,r.at-t0]);
-const keptLines=lines=>lines.map(l=>JSON.parse(l)).filter(l=>l.evt==='index_lane_kept');
 
 // AUD3-02 (Swarm audit 1ef8e8a6 #2, Low): INDEX_LANE wrote the row before 'chain:index:lane' was asked, so a refused (or
 // throwing) key left a row for a read never made: the network waited out the minute though the key had room seconds
 // later, and unread rows from one location counted toward the site-wide ceiling for every other location.
-test('AUD3-02: a lane claim the location key refused does not keep the network out: once the key has room (31 s later) the same network’s lane reads the index (the reproduction)',async()=>{
+test('AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s',async()=>{
   const {V,w}=newBuyer(),keys=[];let refuse=true;
   w.env.CHAIN_LIMITER={limit:async({key})=>{keys.push(key);return {success:key==='chain:index:lane'&&!refuse};}};
   const vb=await signedInAt(w,V,'198.51.100.20'),t0=w.clock.now(),h0=await body(await vb.get('/api/me/home'));
   const at0=[h0.seats,h0.recheck,indexReads(w),laneKeys(keys),lanesAt(w,t0)];
   refuse=false;w.clock.set(t0+31_000);const h1=await body(await vb.get('/api/me/home?fresh=1'));
   assert.deepEqual({at0,at31:[h1.seats.map(s=>s.tokenId),h1.recheck??null,indexReads(w),laneKeys(keys)]},
-    {at0:[[],'limited',0,1,[['released:',-30_000]]],at31:[['361'],null,1,2]});
+    {at0:[[],'limited',0,1,[]],at31:[['361'],null,1,2]});
 });
 
-test('AUD3-02: claims refused by one location’s key no longer fill the site-wide ceiling for a buyer at another location (the reproduction)',async t=>{
-  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+test('AUD3-02: 40 local refusals reserve nothing after 20 admitted reads; another location can admit a buyer',async()=>{
   const {V,w}=newBuyer(),used={A:0,B:0};let at='A';
   // Two Cloudflare locations, each with its own 'chain:index:lane' key (20 a minute); 'chain:index' is spent at both.
   w.env.CHAIN_LIMITER={limit:async({key})=>({success:key==='chain:index:lane'?++used[at]<=20:key!=='chain:index'})};
   const sessions=[];for(let k=0;k<60;k++){if(k===30)w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);sessions.push(await signedInAt(w,newAccount(),'100.64.'+k+'.1'));}
   w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);const vb=await signedInAt(w,V,'198.51.100.20');w.clock.advance(NETWORK_WINDOW_MS);
-  // 60 networks at A in one 6 s slice: 20 read, 40 are refused by A's key (20 released, then the release cap keeps 20).
+  // 60 networks at A in one 6 s slice: 20 read, 40 are refused by A's key without any D1 reservation.
   for(const b of sessions)assert.equal((await b.get('/api/me/home')).status,200);
-  const rows=w.db.raw.prepare("SELECT total(sub GLOB 'released:*') released,total(sub IS NULL) counted FROM index_lanes").get();
-  const atA=[used.A,indexReads(w),rows.released,rows.counted,keptLines(lines).map(l=>l.reason).join()];
+  const atA=[used.A,indexReads(w),laneRows(w)];
   at='B';const h=await body(await vb.get('/api/me/home'));
-  assert.deepEqual({atA,buyerAtB:[h.seats.map(s=>s.tokenId),h.recheck??null,used.B]},{atA:[60,20,20,40,Array(20).fill('release_cap').join()],buyerAtB:[['361'],null,1]});
+  assert.deepEqual({atA,buyerAtB:[h.seats.map(s=>s.tokenId),h.recheck??null,used.B]},{atA:[60,20,20],buyerAtB:[['361'],null,1]});
 });
 
-test('AUD3-02: a key that throws is a refusal: nothing read, the row released, the read limited',async()=>{
+test('AUD3-02: a key that throws makes no admitted reservation or index read and keeps the 30 s probe backoff',async()=>{
   const {V,w}=newBuyer(),keys=[];
   w.env.CHAIN_LIMITER={limit:async({key})=>{keys.push(key);if(key==='chain:index:lane')throw new Error('binding down');return {success:key!=='chain:index'};}};
   const vb=await signedInAt(w,V,'198.51.100.20'),t0=w.clock.now(),r=await vb.get('/api/me/home'),h=await body(r);
-  assert.deepEqual([r.status,h.seats,h.recheck,indexReads(w),laneKeys(keys),lanesAt(w,t0)],[200,[],'limited',0,1,[['released:',-30_000]]]);
+  assert.deepEqual([r.status,h.seats,h.recheck,indexReads(w),laneKeys(keys),lanesAt(w,t0)],[200,[],'limited',0,1,[]]);
+  w.clock.advance(1000);assert.equal((await body(await vb.get('/api/me/home?fresh=1'))).recheck,'limited');
+  assert.deepEqual([laneKeys(keys),indexReads(w),w.db.raw.prepare('SELECT count(*) n FROM index_lane_probes').get().n],[1,0,1]);
 });
 
-test('AUD3-02: two /64s of one /48 claim at once; the key admits one: only the refused row is released, the admitted one keeps its minute',async()=>{
+test('AUD3-02: two /64s race and the key admits one; only its admitted row counts for the minute',async()=>{
   const keys=[];let admit=1;
   const w=setup({env:{CHAIN_LIMITER:{limit:async({key})=>{keys.push(key);return {success:key==='chain:index:lane'&&admit-->0};}}}});
   const subs=['net6:2001:db8:7:1::/64','net6:2001:db8:7:2::/64'],tabs=[await signedInAt(w,newAccount(),'2001:db8:7:1::1'),await signedInAt(w,newAccount(),'2001:db8:7:2::1')],t0=w.clock.now();
   const views=path=>Promise.all(tabs.map(async b=>(await body(await b.get(path))).recheck??null));
   const first=await views('/api/me/home'),won=first.indexOf(null),lost=1-won,rows=lanesAt(w,t0).sort(),reads=indexReads(w);
-  // 31 s later, with the key open to all, both press "Check again" (the index is due for both): the released /64 reads;
+  // 31 s later, with the key open to all, both press "Check again" (the index is due for both): the refused /64 reads;
   // the admitted one is still inside its minute (refused in D1, no key asked), so its view is limited.
   admit=Infinity;w.clock.set(t0+31_000);const asked=laneKeys(keys),later=await views('/api/me/home?fresh=1');
   assert.deepEqual({first:[first.filter(v=>v===null).length,rows,reads],later:[later[won],later[lost],laneKeys(keys)-asked,indexReads(w)-reads]},
-    {first:[1,[[subs[won],0],['released:'+subs[lost],-30_000]].sort(),1],later:['limited',null,1,1]});
+    {first:[1,[[subs[won],0]],1],later:['limited',null,1,1]});
 });
 
-test('AUD3-02: a release that fails keeps the row for the minute (fail closed) and writes one index_lane_kept line (release_failed); nothing more is read',async t=>{
-  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
-  const {V,w}=newBuyer(),keys=[];w.env.CHAIN_LIMITER={limit:async({key})=>{keys.push(key);return {success:false};}};
-  const prepare=w.env.DB.prepare;w.env.DB.prepare=sql=>{if(sql===AUTH.INDEX_LANE_RELEASE)throw new Error('D1 down');return prepare(sql);};
-  const vb=await signedInAt(w,V,'198.51.100.20'),t0=w.clock.now();lines.length=0;
-  const h=await body(await vb.get('/api/me/home')),first=[h.recheck,lanesAt(w,t0),keptLines(lines)];
-  w.clock.set(t0+31_000);const later=await body(await vb.get('/api/me/home?fresh=1'));
-  assert.deepEqual({first,later:[later.recheck,indexReads(w),laneKeys(keys)]},
-    {first:['limited',[[null,0]],[{evt:'index_lane_kept',route:'/api/me/home',reason:'release_failed',colo:null,net:'net:198.51.100.0/24'}]],later:['limited',0,1]});
+test('AUD4-03: D1 reservation failure after local admission fails closed, without an index read or compensating release',async()=>{
+  const {V,w}=newBuyer(),keys=[];w.env.CHAIN_LIMITER=mainSpent(keys);
+  const prepare=w.env.DB.prepare;let fail=true;
+  w.env.DB.prepare=sql=>{if(fail&&sql===INDEX_LANE)throw new Error('D1 down');return prepare(sql);};
+  const vb=await signedInAt(w,V,'198.51.100.20'),t0=w.clock.now(),h=await body(await vb.get('/api/me/home'));
+  assert.deepEqual([h.recheck,lanesAt(w,t0),indexReads(w),laneKeys(keys)],['limited',[],0,1]);
+  fail=false;w.clock.advance(AUTH.INDEX_PROBE_BACKOFF_MS);const later=await body(await vb.get('/api/me/home?fresh=1'));
+  assert.deepEqual([later.seats.map(s=>s.tokenId),later.recheck??null,indexReads(w),laneKeys(keys),laneRows(w)],[['361'],null,1,2,1]);
 });
 
-test('AUD3-02: with a D1 that applies the claim but returns no RETURNING row (changes 1), the claim’s own net, sub and at release exactly that row; another /64’s row of the /48 is untouched',async()=>{
+test('AUD4-03: a D1 reservation that returns changes 1 without a RETURNING row still admits; a local refusal writes no admitted row',async()=>{
   const keys=[];let admit=1;const w=setup({env:{CHAIN_LIMITER:{limit:async({key})=>{keys.push(key);return {success:key==='chain:index:lane'&&admit-->0};}}}});
   // INDEX_LANE answers as a D1 that applied the insert but returned no row: results [], meta.changes 1.
   const prepare=w.env.DB.prepare,bare=s=>({...s,bind:(...v)=>bare(s.bind(...v)),run:async()=>{const r=await s.run();return {...r,results:[],meta:{...r.meta,changes:r.results.length||r.meta.changes}};}});
   w.env.DB.prepare=sql=>sql===INDEX_LANE?bare(prepare(sql)):prepare(sql);
   const a=await signedInAt(w,newAccount(),'2001:db8:7:1::1'),b=await signedInAt(w,newAccount(),'2001:db8:7:2::1'),t0=w.clock.now();
   const views=[(await body(await a.get('/api/me/home'))).recheck??null,(await body(await b.get('/api/me/home'))).recheck??null];
-  assert.deepEqual([views,lanesAt(w,t0)],[[null,'limited'],[['net6:2001:db8:7:1::/64',0],['released:net6:2001:db8:7:2::/64',-30_000]]]);
+  assert.deepEqual([views,lanesAt(w,t0)],[[null,'limited'],[['net6:2001:db8:7:1::/64',0]]]);
 });
 
-test('AUD3-02: while the key refuses, releases are capped site-wide: 100 /24s at once give 20 released, 60 kept (one release_cap line each) and 20 refused in D1 with no key asked; 30 s later 20 released, 20 kept, 60 refused in D1',async t=>{
-  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+test('AUD4-03: 100 refused /24s reserve zero admitted rows in both rounds, without a release/update refund workload',async()=>{
   const keys=[],w=setup({env:{CHAIN_LIMITER:{limit:async({key})=>{keys.push(key);return {success:false};}}}}),sessions=[];
   for(let k=0;k<100;k++){if(k&&k%30===0)w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);sessions.push(await signedInAt(w,newAccount(),'100.64.'+k+'.1'));}
   w.clock.advance(NETWORK_WINDOW_MS);
-  // [lane keys asked, rows released, rows kept, release_cap lines, claims refused in D1 (no key asked)], every read limited.
-  const round=async()=>{const t=w.clock.now(),asked=laneKeys(keys);lines.length=0;
+  const round=async()=>{const asked=laneKeys(keys);
     for(const b of sessions)assert.equal((await body(await b.get('/api/me/home'))).recheck,'limited');
-    const n=laneKeys(keys)-asked,count=where=>w.db.raw.prepare('SELECT count(*) n FROM index_lanes WHERE '+where).get().n;
-    return [n,count(`sub GLOB 'released:*' AND at=${t-30_000}`),count(`sub IS NULL AND at=${t}`),keptLines(lines).filter(l=>l.reason==='release_cap').length,sessions.length-n];};
+    return [laneKeys(keys)-asked,laneRows(w),indexReads(w)];};
   const first=await round();w.clock.advance(30_000);
-  assert.deepEqual({first,later:await round()},{first:[80,20,60,60,20],later:[40,20,20,20,60]});
+  assert.deepEqual({first,later:await round()},{first:[100,0,0],later:[100,0,0]});
 });
 
-// The reads the cost comment states (server/auth.ts "home"): the claim stays a covering read of index_lanes_net, the
-// release finds its one row on index_lanes_net (net, at, sub) and counts the 6 s slice on index_lanes_at.
-test('AUD3-02: the release finds its row on index_lanes_net and reads the 6 s slice on index_lanes_at; INDEX_LANE stays a covering read',()=>{
+// Both eligibility checks are indexed and LIMIT-bounded; there is no post-refusal UPDATE query.
+test('AUD4-03: preflight and atomic reservation both use covering network/global indexes',()=>{
   const db=openD1(),plan=(sql,...args)=>db.raw.prepare('EXPLAIN QUERY PLAN '+sql).all(...args).map(r=>r.detail).join(' | ');
   assert.match(plan(INDEX_LANE,'net:a',null,1,0,1,0,60),/SEARCH index_lanes USING COVERING INDEX index_lanes_net \(net=\? AND at>\?\)[\s\S]*SEARCH index_lanes USING COVERING INDEX index_lanes_at \(at>\?\)/);
-  assert.match(plan(AUTH.INDEX_LANE_RELEASE,1,'net:a',null,1,0,-6000,20),/^SEARCH index_lanes USING COVERING INDEX index_lanes_net \(net=\? AND at=\? AND sub=\?\)[\s\S]*SEARCH index_lanes USING INDEX index_lanes_at \(at>\? AND at<\?\)/);
+  assert.match(plan(AUTH.INDEX_LANE_READY,'net:a',null,1,0,1,0,60),/SEARCH index_lanes USING COVERING INDEX index_lanes_net \(net=\? AND at>\?\)[\s\S]*SEARCH index_lanes USING COVERING INDEX index_lanes_at \(at>\?\)/);
 });
 
-// Guard: a released claim waits INDEX_LANE_RETRY_MS (30 s) before its network may claim again, so a refusing key is asked
-// at most twice a minute per network slot (today once). Fails with the release dated out of the window at once
-// (t - NETWORK_WINDOW_MS - 1: asked on every read) or with the first draft's 6 s retry (ten a minute).
-test('AUD3-02 guard: a network whose claims the key keeps refusing asks it at most twice a minute when it reads every second',async()=>{
+// AUD4-03 keeps AUD3-02's 30 s network backoff in an independent probe table, without any admitted-capacity pollution.
+test('AUD4-03: a refusing key is asked at most twice/minute per network slot even if the home binding allows every read',async()=>{
   const {V,w}=newBuyer(),asked=[];let t0=0;
   w.env.CHAIN_LIMITER={limit:async({key})=>{if(key==='chain:index:lane')asked.push(w.clock.now()-t0);return {success:false};}};
   const vb=await signedInAt(w,V,'198.51.100.20');t0=w.clock.now();
-  for(let s=0;s<=120;s++){w.clock.set(t0+s*1000);assert.equal((await body(await vb.get('/api/me/home'))).recheck,'limited');}
-  const most=Math.max(...asked.map(x=>asked.filter(y=>y>x-NETWORK_WINDOW_MS&&y<=x).length));
-  assert.ok(asked.length>=3&&most<=2,JSON.stringify(asked));
+  for(let s=0;s<=120;s++){w.clock.set(t0+s*1000);const r=await vb.get('/api/me/home');assert.equal(r.status,200);assert.equal((await body(r)).recheck,'limited');}
+  assert.deepEqual([asked,laneRows(w),indexReads(w)],[[0,30_000,60_000,90_000,120_000],0,0]);
 });
 
-// Guard (T36, N-5's nesting): a released row still counts as its own /64's (INDEX_LANE's 'released:'||sub term), so a
-// /64 whose claim was just released cannot claim again before INDEX_LANE_RETRY_MS and never takes the slot of another
-// /64 of its /48. Fails with that term dropped (the first /64 asks the key twice in one second; its neighbour is refused
-// in D1 with no key asked).
-test('AUD3-02 guard: a /64 whose claim was released cannot claim again within 30 s, and never takes its /48 neighbour’s slot',async()=>{
+// Refusals use a probe slot for 30 s, not an admitted slot for a minute. A /64 cannot re-probe early or take both /48 slots.
+test('AUD4-03: a refused /64 waits 30 s before probing again and leaves its /48 neighbour’s other probe slot',async()=>{
   const asked=[],w=setup({env:{CHAIN_LIMITER:{limit:async({key})=>{if(key==='chain:index:lane')asked.push(w.clock.now());return {success:false};}}}});
   const one=await signedInAt(w,newAccount(),'2001:db8:7:1::1'),two=await signedInAt(w,newAccount(),'2001:db8:7:2::1'),t0=w.clock.now();
   await one.get('/api/me/home');w.clock.set(t0+1000);await one.get('/api/me/home?fresh=1');const byOne=asked.length;
   w.clock.set(t0+2000);await two.get('/api/me/home');
-  assert.deepEqual([byOne,asked.length-byOne],[1,1]);
+  assert.deepEqual([byOne,asked.length-byOne,laneRows(w)],[1,1,0]);
 });
 
 // Guard (T32, the Report's pagination control): one admitted lane operation reads at most 5 NFT index pages (NFT_PAGE_CAP:
@@ -766,15 +755,13 @@ test('AUD3-02 guard: one admitted lane operation is up to NFT_PAGE_CAP (5) index
   assert.deepEqual([h.seats.map(s=>s.tokenId),h.recheck,indexReads(w),laneKeys(keys),laneRows(w)],[['361'],'partial',5,1,1]);
 });
 
-/** A rate-limit binding that counts every call, refused ones too, in a sliding 60 s window: the pessimistic reading of
- *  Cloudflare's binding (windowLimiter is the repository's model: a fixed window where a refused call changes nothing). */
+/** A sliding-window model that counts every call, including refusal. The repository's windowLimiter also counts
+ *  every call, but resets at a fixed window boundary; neither proves Cloudflare's production accounting. */
 const slidingLimiter=(limit,now)=>{const calls=new Map(),keys=[];
   return {keys,async limit({key}){keys.push(key);const t=now(),l=(calls.get(key)??[]).filter(c=>c>t-60_000);l.push(t);calls.set(key,l);return {success:l.length<=limit};}};};
 
-// AUD3-02's limiter assumption (BLOCKED_EVIDENCE): if the binding counted refused calls, released claims re-asking a
-// closed lane key every 30 s would keep it closed with fewer networks than today's 20. Measured here, through the Worker:
-// 20 networks close the key; k /24s then read every second (each asks the key at most twice a minute), V every 15 s.
-test('AUD3-02 residual (a limiter that counts refused calls): after 20 networks close the lane key, 10 /24s re-asking every 30 s keep a buyer out for 3 minutes and 9 do not',async()=>{
+// Preserve the AUD3-02 residual's cost: each /24 gets at most two probes per minute, separately from admitted capacity.
+test('AUD4-03 residual (denials count): 10 /24s re-probing every 30 s keep a same-location buyer out for 3 minutes; 9 do not',async()=>{
   const firstRead=async k=>{const {V,w}=newBuyer(),lane=slidingLimiter(20,w.clock.now);
     w.env.CHAIN_LIMITER={limit:async({key})=>key==='chain:index:lane'?lane.limit({key}):{success:key!=='chain:index'}};
     const close=[],ask=[];for(let i=0;i<20;i++)close.push(await signedInAt(w,newAccount(),'100.64.'+i+'.1'));w.clock.advance(CHALLENGE_BUDGET_WINDOW_MS);

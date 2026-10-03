@@ -1,3 +1,5 @@
+> Historical fourth-snapshot evidence (public commit `6e307de`, source `c491ff3`, deployed Worker `acdbb2bd`). Current R4/AUD4 repair evidence is in the root README and R5/. Source has changed; old source counts, tests, algorithms and fingerprints are not current results.
+
 # DATA_SCHEMA：D1 資料結構
 
 本快照來源為 `c491ff3`；目前部署紀錄列出的 Worker 為 `acdbb2bd`、部署來源為 `ddb10e2`。以下以公開的 `source/migrations/0001`–`0006` 與 Worker 程式為準，沒有正式資料列。部署方自述六個 migration 已套用到正式 D1；本次未查詢正式 D1，無法確認執行中的 schema 或資料。見[部署證據](source/docs/security/deploy-evidence/20261003T005417Z-ddb10e2.md)第 26–40 行及 [DEPLOYMENT_MATCH.md](DEPLOYMENT_MATCH.md)。

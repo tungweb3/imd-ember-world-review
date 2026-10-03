@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 IMD Ember World - deployment match, Sat, 03 Oct 2026 13:01:17 GMT to Sat, 03 Oct 2026 13:01:36 GMT; rebuilds 2026-10-03T13:13:05Z and 2026-10-03T13:13:31Z
 Commit ddb10e28a867998323164e7585635efedfcf7788 (2026-10-03T08:54:17+08:00), deployed source; recorded tag v2026.10.03-acdbb2bd.
 Snapshot source c491ff3c9edf9d0eb39a9233ccfff101a7c8133c (2026-10-03T08:57:14+08:00): only AUDIT_REMEDIATION_STATUS.md differs and one evidence page 20261003T005417Z-ddb10e2.md is added; neither enters the Worker/frontend build.

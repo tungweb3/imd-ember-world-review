@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 da0b20c41097f419435a68e5ff5d668424ad79402565a1611a594e5ea07ec29e  dist/_headers
 4a64e1f3f47df59ea7f6e369691a78aab8791addbcb33d4d9f332de04e70e84c  dist/assets/InteriorView-DM8tQpsI.js
 b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217  dist/assets/cinzel-latin-400-normal-DnUIPmzd.woff2

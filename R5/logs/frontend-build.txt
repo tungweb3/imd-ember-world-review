@@ -1,0 +1,55 @@
+2026-10-03T16:51:25.9497866Z
+
+> stickember-imd-world@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 146 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                       2.63 kB │ gzip:   1.38 kB
+dist/third-party-licenses.txt                                         4.53 kB │ gzip:   0.84 kB
+dist/assets/cinzel-latin-400-normal-DnUIPmzd.woff2                   14.12 kB
+dist/assets/cinzel-latin-600-normal-Dd5YO2UX.woff2                   15.20 kB
+dist/assets/decor/pepe/flags.b9ba8791e7.webp                         41.07 kB
+dist/assets/decor/pepe/posters.fa83db53c5.webp                       55.39 kB
+dist/assets/references/imd/pepe-idle.93e67adf9a.webp                 65.97 kB
+dist/assets/models/props/boat.c19d20ecc1.glb                        206.19 kB
+dist/assets/models/props/boat_shelter.6b44d9d4d3.glb                207.58 kB
+dist/assets/decor/pepe/murals.99dc8eaf72.webp                       215.97 kB
+dist/assets/models/landmarks/landmark_equestrian.044d32540e.glb     263.13 kB
+dist/assets/models/landmarks/landmark_arch.23639ff57a.glb           263.16 kB
+dist/assets/models/landmarks/landmark_guardian.0ed4a14deb.glb       269.16 kB
+dist/assets/models/landmarks/landmark_chronicle.abf51338eb.glb      278.16 kB
+dist/assets/models/houses/house_lisbon_s.0682a56bf7.glb             279.68 kB
+dist/assets/models/landmarks/landmark_mill.a9a5afcd2b.glb           319.38 kB
+dist/assets/models/landmarks/landmark_archive.e9e8602c38.glb        324.60 kB
+dist/assets/models/landmarks/landmark_forge.5740310a11.glb          326.88 kB
+dist/assets/models/houses/house_timber_ms.861238fe59.glb            342.36 kB
+dist/assets/models/houses/house_lisbon_xl.1468c9bfb9.glb            349.40 kB
+dist/assets/models/landmarks/landmark_heart.4433d434b3.glb          350.57 kB
+dist/assets/models/landmarks/landmark_bellspire.2c86b3ed8e.glb      352.94 kB
+dist/assets/models/houses/house_timber_m.24dfd9c6f2.glb             355.33 kB
+dist/assets/models/houses/house_timber_s.16322451a4.glb             367.04 kB
+dist/assets/models/houses/house_lisbon_ms.a65c7fca14.glb            373.90 kB
+dist/assets/models/landmarks/landmark_lift.a4634d273a.glb           381.04 kB
+dist/assets/models/landmarks/landmark_oracle.649809a666.glb         382.32 kB
+dist/assets/models/landmarks/landmark_longhouse.8ae47cca0f.glb      399.64 kB
+dist/assets/models/houses/house_timber_l.4f2196f581.glb             402.08 kB
+dist/assets/models/houses/house_lisbon_l.3f1df81bff.glb             408.51 kB
+dist/assets/models/houses/house_timber_xl.f4976ec185.glb            414.40 kB
+dist/assets/models/houses/house_lisbon_m.8d013b5cae.glb             437.75 kB
+dist/assets/models/landmarks/landmark_pepe_statue.5b3f3acb36.glb    584.40 kB
+dist/assets/terrain-phone.489f67dc47.bin                            698.91 kB
+dist/assets/index-BZpalHf7.css                                       58.22 kB │ gzip:  12.70 kB
+dist/assets/InteriorView-B7dudNwf.js                                 93.24 kB │ gzip:  34.21 kB
+dist/assets/index-CIkdCwRI.js                                     1,488.64 kB │ gzip: 463.79 kB
+
+✓ built in 1.49s
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2026-10-03T16:51:41.9132783Z exit=0

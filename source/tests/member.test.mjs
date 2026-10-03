@@ -110,7 +110,7 @@ test('E4 N12: two first bootstraps racing make one member; the loser rolls back 
 
 test('a session row holding a mixed-case address (as an older row might) still resolves to the lowercase identity',async()=>{
   const w=setup(),a=newAccount(),token='T'.repeat(43);
-  w.db.raw.prepare("INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce) VALUES(?,?,1,?,?,'legacy')").run(await sha256(token),a.address,START,START+DAY);
+  w.db.raw.prepare("INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,1,?,?,'legacy','EOA','ECDSA')").run(await sha256(token),a.address,START,START+DAY);
   const b=w.browser();b.jar.set('__Host-imd_session',token);
   const me=await member(b);assert.equal(me.loginWallet.address,a.address);
   assert.equal((await b.get('/api/me/profile')).status,200,'GET finds it too');
@@ -344,7 +344,7 @@ test('E7 E49: logout and session expiry end nothing of the member: same member, 
 });
 
 test('503, not "new member": no database, or a database before migrations/0006; sign-in itself still works',async()=>{
-  const files=migrationFiles().filter(f=>!f.startsWith('0006'));
+  const files=migrationFiles().filter(f=>f<'0006');
   const w=setup();w.env.DB=openD1(files);
   const {b}=await signedIn(w);
   for(const r of [await b.post('/api/me/bootstrap'),await b.get('/api/me/profile'),await w.browser().get('/api/world/names/0x'+'1'.repeat(40))]){

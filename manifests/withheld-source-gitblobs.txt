@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 # git ls-tree -r c491ff3c9edf9d0eb39a9233ccfff101a7c8133c for the withheld files: <blob sha1><TAB><path>. Verify with: git ls-tree -r c491ff3c9edf9d0eb39a9233ccfff101a7c8133c
 a3f2b88f84710159d42dcf05e1dc28d2d8d7059a	DESIGN.md
 417733d9c8397104049fed7c11865db123082677	PLAN.md

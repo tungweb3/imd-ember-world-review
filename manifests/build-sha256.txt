@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 # SHA-256 of dist/ rebuilt from git -c core.autocrlf=true archive ddb10e28a867998323164e7585635efedfcf7788 (npm ci + npm run build = tsc --noEmit && vite build, node v24.19.0, npm 11.17.0; 2026-10-03T13:13:05Z). All 102 files are byte-identical to the deploy record (deploy-record-SHA256SUMS.txt).
 # sha256  size  path
 da0b20c41097f419435a68e5ff5d668424ad79402565a1611a594e5ea07ec29e  3861  _headers

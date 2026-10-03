@@ -1,0 +1,18 @@
+UTC_START=2026-10-03T17:06:32.6751703Z
+COMMAND=./node_modules/.bin/wrangler.cmd deploy --dry-run --outdir ../worker-public (same local dry-run; sandbox parent-read escalation)
+
+ ⛅️ wrangler 4.143.0 (update available 4.147.0)
+───────────────────────────────────────────────
+✨ Read 1 file from the assets directory <PUBLIC_SOURCE>\dist
+Total Upload: 302.34 KiB / gzip: 77.49 KiB
+Your Worker has access to the following bindings:
+Binding                                   Resource
+env.DB (imd-world)                        D1 Database
+env.API_LIMITER (180 requests/60s)        Rate Limit
+env.SEAT_LIMITER (60 requests/60s)        Rate Limit
+env.AUTH_LIMITER (20 requests/60s)        Rate Limit
+env.CHAIN_LIMITER (20 requests/60s)       Rate Limit
+env.ASSETS                                Assets
+
+--dry-run: exiting now.
+UTC_END=2026-10-03T17:06:34.3080940Z EXIT=0

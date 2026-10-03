@@ -11,7 +11,7 @@ import {parseJsonc,versionIdFromLog} from '../scripts/deploy-evidence.mjs';
 // Hashes are checked against the published SHA-256 vectors ("abc", ""), never recomputed here.
 const ABC='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',EMPTY='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 const UUID='2a5bf0b7-1c2d-4e5f-8a9b-0c1d2e3f4a5b',EMAIL='owner.person@example.com',LOCAL='C:\\Users\\someone\\Desktop\\imd-world\\dist',LOCAL2='/home/someone/imd-world';
-const git=(...a)=>spawnSync('git',a,{cwd:ROOT,encoding:'utf8'}).stdout.trim();
+const git=(...a)=>spawnSync('git',['-c','safe.directory='+ROOT,...a],{cwd:ROOT,encoding:'utf8'}).stdout.trim();
 function put(dir,files){for(const [p,body] of Object.entries(files)){mkdirSync(join(dir,p,'..'),{recursive:true});writeFileSync(join(dir,p),body);}}
 /** A record folder as scripts/deploy.mjs writes it, for `commit`, with the worker bundle "abc" and noisy logs. */
 function record(base,commit,{mode='deploy',versionId=null,name}={}){
@@ -44,7 +44,7 @@ test('deploy evidence from a real deploy record: commit, id, times, version id, 
       assert.ok(md.includes(part),part);
     // The migrations of that commit, by name (their hashes are whatever the files hold; the next test pins the hashing).
     const migrations=text=>[...text.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]);
-    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql']);
+    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql']);
     assert.ok(!md.includes('third-party-licenses'),'only JS, CSS and HTML are listed');
     // The limiter keys come from server/auth.ts at the record's commit: HEAD has A-1's lane key and N-6's index-lane key
     // (Swarm audit 8c3aea2e); 132228c (the code of Worker 1a0dd495) has the first but not the second, nor migration 0005;

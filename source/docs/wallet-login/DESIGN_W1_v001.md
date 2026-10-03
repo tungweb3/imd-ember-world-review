@@ -747,3 +747,19 @@ bbf24001". No migration, binding or limiter key is added.
   No status on the site changes. The Worker bundle: still `a7bb8087…` (283,716 bytes) at `901420a`.
 - **Page and docs.** The Swarm Audit Record lists both reviews under "Reviews of Worker bbf24001" / 「Worker bbf24001
   的審查」 (Worker bbf24001, not this version) with R3-R1, AUD3-01..AUD3-09 and the team's statuses.
+
+## R4 / AUD4 amendment (2026-10-04)
+
+Fourth-review fixes are documented in `../security/AUD4_REMEDIATION.md`; these details supersede older descriptions
+above where they differ. Logout-all now requires expectedAddress to match the live cookie before any revocation or
+cookie/flow change. A conflict reconciles the client and never claims a completed all-device logout.
+
+An uncertain verify result reconciles the server session before another signature can be requested. Abandoned
+verify cleanup sends the original challenge nonce as a consistency assertion against the current cookie; a newer
+session of the same or another address is not selected merely because that cookie is present. Explicit logout response
+arrival across tabs can still clear a newer cookie; client generation guards do not remove that browser-level boundary.
+
+The exact shared SIWE text and the three existing wallet methods are unchanged. EOA/ECDSA World sessions can write
+selected public M1 profile data without another signature; CONTRACT/ERC1271 and unknown types cannot perform those
+writes under the temporary policy. A permissive ERC-1271 contract still controls its own login validity, not its house
+proof. See `../security/MINT_BOUNDARY.md`: no World session is authorization for Mint or asset transactions.

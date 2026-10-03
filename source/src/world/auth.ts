@@ -22,7 +22,7 @@ export type AuthStatus='visitor'|'connected'|'awaitingSignature'|'verifying'|'ow
 /** Why the last click did not end signed in, or signed out (shown once, never retried by itself); 'logout-slow' when a
  *  click's wait for this page's own logout (ADV-3, AuthState.waiting) ran out. */
 export type Notice='message-mismatch'|'no-wallet'|'connect-rejected'|'sign-rejected'|'rate-limited'|'busy'|'auth-unavailable'|'verify-unavailable'|'challenge-lost'|
-  'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed'|'signout-all-stale'|'logout-slow';
+  'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed'|'signout-all-stale'|'signout-all-context-changed'|'logout-slow';
 /** Why the page's last session ended (N-7): 'expired' it ran out (a SESSION_EXPIRED, or its expiresAt reached on this
  *  clock); 'revoked' the server no longer knows it (AUTH_REQUIRED, or a session read says signed out: a logout-all or a
  *  logout elsewhere, a cookie the server dropped; which one, the page cannot tell); 'signed-out' this page's own sign-out. */
@@ -110,7 +110,7 @@ const JSON_POST=(body:unknown):RequestInit=>({method:'POST',headers:{'content-ty
 const code=async(r:Response)=>{try{const v=await r.clone().json();return typeof v?.error==='string'?v.error as string:null;}catch{return null;}};
 /** The session a verify's 2xx body names (lowercase address and expiresAt), or undefined if it names none. */
 const sessionIn=async(r:Response):Promise<Session|undefined>=>{try{const v=await r.json() as {address?:unknown;expiresAt?:unknown};
-  return isAddress(v?.address)&&typeof v.expiresAt==='number'?{address:v.address.toLowerCase(),expiresAt:v.expiresAt}:undefined;}catch{return undefined;}};
+  return isAddress(v?.address)&&typeof v.expiresAt==='number'&&Number.isFinite(v.expiresAt)?{address:v.address.toLowerCase(),expiresAt:v.expiresAt}:undefined;}catch{return undefined;}};
 /** Re-read /api/me/home no more often than this unless the click is the refresh button (20 per session per minute);
  *  owner mode re-checks this often while the tab is visible; a house older than OWNER_STALE_MS (every re-check since
  *  failed, e.g. 429) no longer grants owner mode (CORR-05, spec D07). */
@@ -168,7 +168,7 @@ export class AuthClient{
   /** Keeps `p` in `unsettled` until it settles (ADV-3); returns `p`. */
   private hold<T>(p:Promise<T>){const q=p.then(()=>{},()=>{});this.unsettled.add(q);void q.then(()=>{this.unsettled.delete(q);});return p;}
   /** A logout this page does not wait for, `then` run on its answer (both held in `unsettled`, ADV-3). */
-  private sendLogout(then:(ok:boolean)=>void){this.hold(this.logoutRequest().then(then));}
+  private sendLogout(then:(ok:boolean)=>void,expectedNonce?:string){this.hold(this.logoutRequest(expectedNonce).then(then));}
   /** N-1: no session read running; ADV-3: and, while `matters()`, nothing in `unsettled`. False when something there is
    *  still out after LOGOUT_WAIT_MS (a read is always waited for: it ends by itself). */
   private async quiet(matters:()=>boolean){
@@ -300,7 +300,7 @@ export class AuthClient{
     const g=++this.gen;                                                                // no await since the wait: no read or logout can start in between
     if(this.deps.provider()!==p){this.busy=false;return;}                               // the wallet changed while waiting
     if(!this.s.sessionKnown){const n=this.s.notice;this.busy=false;this.set({notice:n==='rate-limited'||n==='auth-unavailable'?n:'session-unknown'});return;}
-    this.set({notice:null});let decided=()=>{};
+    this.set({notice:null});let decided=()=>{},verifyUncertain=false,verifyAccount:string|null=null,verifyNonce:string|undefined;
     try{
       let account=this.s.account;
       if(!account){const seen=this.accountEvents;
@@ -342,20 +342,43 @@ export class AuthClient{
       if(this.deps.provider()!==p||this.s.account!==account){this.set({phase:'idle'});return;}
       this.set({phase:'verifying'});
       this.hold(new Promise<void>(r=>{decided=r;}));                                   // ADV-3: until this verify's cookie is kept, or logged out below
+      verifyUncertain=true;verifyAccount=account;verifyNonce=nonce;                    // fetch/body failure may still have installed the session cookie
       const v=await this.deps.fetch('/api/auth/verify',JSON_POST({nonce,signature}));
       // A late success of an abandoned flow is logged out on its headers, which brought its cookie (the review of 066d109,
       // RC-1: waiting for its body left that session live, and the click held, while the body stalled); the hold passes to
       // that logout, and the body, read on its own, names the session it ends.
-      if(g!==this.gen){if(v.ok)this.revokeAbandoned(sessionIn(v));return;}
-      if(!v.ok){decided();const n=failure(v.status,await code(v));if(g===this.gen)this.set({phase:'idle',notice:n});return;}   // a refusal sets no cookie; a dead flow's late refusal is not the new flow's
-      const s=await v.json() as {address:string;expiresAt:number},session={address:String(s.address).toLowerCase(),expiresAt:s.expiresAt};
-      if(g!==this.gen){this.revokeAbandoned(session);return;}
-      if(session.address!==account){this.revokeAbandoned(session);this.set({phase:'idle',notice:'failed'});return;}   // only the address that asked
+      if(g!==this.gen){if(v.ok)this.revokeAbandoned(sessionIn(v),nonce);return;}
+      if(!v.ok){verifyUncertain=false;decided();const n=failure(v.status,await code(v));if(g===this.gen)this.set({phase:'idle',notice:n});return;}   // a refusal sets no cookie; a dead flow's late refusal is not the new flow's
+      const session=await sessionIn(v);
+      if(g!==this.gen){this.revokeAbandoned(session,nonce);return;}
+      if(!session){await this.reconcileVerify(g,p,account,nonce);return;}
+      if(session.address!==account){this.revokeAbandoned(session,nonce);this.set({phase:'idle',notice:'failed'});return;} // only the address that asked
+      verifyUncertain=false;
       this.gen++;this.busy=false;                                                      // a session read begun before this is stale now
       this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});this.broadcast('signed-in');decided();
       await this.refreshHome(true);
-    }catch{if(g===this.gen)this.set({phase:'idle',notice:'failed'});}
+    }catch{
+      if(verifyUncertain){if(g===this.gen)await this.reconcileVerify(g,p,verifyAccount,verifyNonce);else this.revokeAbandoned(undefined,verifyNonce);}
+      else if(g===this.gen)this.set({phase:'idle',notice:'failed'});
+    }
     finally{decided();if(g===this.gen)this.busy=false;}
+  }
+  /** AUD4-06: a successful verify can set its cookie before its JSON becomes unreadable. Keep this flow verifying
+   *  while reading the server again: switches still abandon it, and no second signature is possible until that read
+   *  proves whether a session exists. A failed read leaves sessionKnown false for the next click to retry. */
+  private async reconcileVerify(g:number,p:Provider,account:string|null,nonce?:string){
+    if(g!==this.gen)return;
+    if(this.deps.provider()!==p||this.s.account!==account){
+      this.revokeAbandoned(undefined,nonce);this.set({phase:'idle',sessionKnown:false});return;
+    }
+    this.sessionReads++;this.homeGen++;this.set({sessionKnown:false,home:null,checking:false});
+    await this.restore();
+    if(g!==this.gen)return;
+    if(this.deps.provider()!==p||this.s.account!==account){
+      this.revokeAbandoned(undefined,nonce);this.set({phase:'idle',sessionKnown:false});return;
+    }
+    this.set({phase:'idle',notice:this.s.sessionKnown?this.s.session?null:'failed':'session-unknown'});
+    if(this.s.sessionKnown&&this.s.session)this.broadcast('signed-in');
   }
   /** Sign out: the server revokes the session and the flow's open challenges, and only then is this page signed out.
    *  A logout that did not reach the server (network, 5xx) leaves the page signed in with a notice, because the cookie
@@ -366,7 +389,7 @@ export class AuthClient{
     if(this.s.leaving)return;
     this.gen++;this.busy=false;const g=this.gen,held=this.s.session??undefined;       // ADV-1's rule: the session this logout ends
     this.set({phase:'idle',notice:null,leaving:true,waiting:false});
-    const ok=await this.hold(everywhere?this.logoutAllRequest():this.logoutRequest());
+    const ok=await this.hold(everywhere?this.logoutAllRequest(held?.address):this.logoutRequest());
     // Switched meanwhile: that path decides. But another wallet chosen while a click waited for this sign-out takes a
     // generation and clears nothing, so a confirmed sign-out still ends the very session it ended (says "Signed out.")
     // and tells the other tabs, as the click's own logout does (ADV-1, ADV-2; the re-check of 2f5d6c1). A logout-all the
@@ -386,7 +409,8 @@ export class AuthClient{
     const ran=ok==='expired';this.homeGen++;this.hint.set(null);
     this.set({session:null,home:null,expired:ran,ended:ran?'expired':null,checking:false,sessionKnown:false});
     await this.restore();if(g!==this.gen){this.set({leaving:false});return;}           // a newer flow began during the read: it decides
-    this.set({leaving:false,notice:'signout-all-stale'});this.broadcast('signed-out');
+    this.set({leaving:false,notice:ok==='context-changed'?'signout-all-context-changed':'signout-all-stale'});
+    if(ok!=='context-changed')this.broadcast('signed-out');
   }
   /** The wallet switched account (A → B): owner mode off at once, A's in-flight flow dropped here and at the server, A's
    *  session ended; B starts as merely connected. If that logout does not reach the server, the session is read again,
@@ -408,10 +432,10 @@ export class AuthClient{
    *  rule: a read may have shown it meanwhile). A dead flow's logout goes out on the verify's headers, its body still to
    *  come (`late` a promise, RC-1): if the body names the session only after the logout was confirmed, that very session
    *  (address and expiresAt) ends then, and nothing else: never the generation's clear of whatever the page holds by then. */
-  private revokeAbandoned(late?:Session|Promise<Session|undefined>){
+  private revokeAbandoned(late?:Session|Promise<Session|undefined>,nonce?:string){
     const g=this.gen;let named=late instanceof Promise?undefined:late,confirmed=false;
     if(late instanceof Promise)void late.then(s=>{named=s;if(confirmed&&s)this.loggedOut(null,s);});
-    this.sendLogout(ok=>{if(!ok){void this.restore();return;}confirmed=true;this.loggedOut(g,named);});
+    this.sendLogout(ok=>{if(!ok){void this.restore();return;}confirmed=true;this.loggedOut(g,named);},nonce);
   }
   /** AUD3-04: a logout this page sent was confirmed (2xx: revoked, cookie cleared). Unless a newer flow began since it was
    *  sent (g; that flow's own gen++ already dropped every older read, and later reads are the new session's), every
@@ -431,10 +455,15 @@ export class AuthClient{
    *  them (200); 'expired' when this browser's session had run out (401 SESSION_EXPIRED, AUD3-07) and 'stale' for any
    *  other 401 (AUTH_REQUIRED, or a body nobody can read): there was no live session to act for, so nobody else was
    *  signed out, and the cookie is dead (the server refuses it); false when it did not reach the server. */
-  private async logoutAllRequest():Promise<boolean|'stale'|'expired'>{try{const r=await this.deps.fetch('/api/auth/logout-all',JSON_POST({}));
-    if(r.ok)return true;if(r.status!==401)return false;return await code(r)==='SESSION_EXPIRED'?'expired':'stale';}catch{return false;}}
+  private async logoutAllRequest(expectedAddress?:string):Promise<boolean|'stale'|'expired'|'context-changed'>{
+    if(!expectedAddress)return 'context-changed';
+    try{const r=await this.deps.fetch('/api/auth/logout-all',JSON_POST({expectedAddress}));
+      if(r.ok)return true;
+      if(r.status===409)return 'context-changed';                                      // unreadable conflict bodies still require reconciliation
+      if(r.status!==401)return false;return await code(r)==='SESSION_EXPIRED'?'expired':'stale';}catch{return false;}}
   /** POST /api/auth/logout; true only when the server answered 2xx (the session is revoked and the cookies cleared). */
-  private async logoutRequest(){try{return (await this.deps.fetch('/api/auth/logout',JSON_POST({}))).ok;}catch{return false;}}
+  private async logoutRequest(expectedNonce?:string){
+    try{return (await this.deps.fetch('/api/auth/logout',JSON_POST(expectedNonce?{expectedNonce}:{}))).ok;}catch{return false;}}
 }
 /** A refused signature burns its challenge at the server (S1), so every notice here ends the flow; the next click asks
  *  for a new challenge and a new signature, and nothing is retried by itself. */
@@ -499,6 +528,7 @@ export function noticeText(n:Notice,say:Say):string{
     case 'unsupported-wallet':return say('這種智慧合約錢包（尚未部署到主網）目前不支援登入，請改用一般錢包帳戶。','This smart-account wallet isn’t supported for sign-in yet (it isn’t deployed on mainnet). Use a regular wallet account.');
     case 'session-unknown':return say('暫時無法確認你是否已登入，所以沒有要求簽名；請稍後再按一次。','Couldn’t check whether you’re already signed in, so no signature was requested. Try again in a moment.');
     case 'signout-all-stale':return say('這個瀏覽器的登入早已結束，所以沒有登出其他裝置。請重新簽名登入，再按「登出所有裝置」。','This browser’s sign-in had already ended, so other devices were not signed out. Sign in again, then use Log out all devices.');
+    case 'signout-all-context-changed':return say('目前登入帳戶與你選擇的帳戶無法核對，所以沒有登出任何裝置。請確認目前帳戶後再操作。','The signed-in account did not match the logout request, so no devices were signed out. Check the current account before trying again.');
     case 'signout-failed':return say('登出沒有送達伺服器，你仍是登入狀態；請再按一次「登出此裝置」（或「登出所有裝置」）。','Log-out didn’t reach the server, so you’re still signed in. Press Log out this device (or Log out all devices) again.');
     case 'logout-slow':return say('這個頁面先前送出的登出（或已取消的登入）還沒有得到回應，所以沒有要求簽名；請稍後再按一次。','A log-out (or a cancelled sign-in) this page sent earlier hasn’t been answered yet, so no signature was requested. Try again in a moment.');
   }

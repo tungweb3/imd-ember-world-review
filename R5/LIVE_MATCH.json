@@ -1,0 +1,128 @@
+{
+  "kind": "five-public-get-match",
+  "source_commit": "54410b2f8dece71bdb2fd999c94feea6454ecfcd",
+  "record": "20261003T174551Z-54410b2",
+  "worker_version": "e491cb71-60ec-4cfe-9db7-b88e52d78ce9",
+  "worker_bytes": 309594,
+  "worker_sha256": "c7d7c0fbe49ce601a187bafdf7480c40d64ceda7bcfde64b9aea3f63f809811c",
+  "started_at": "2026-10-03T17:49:09.683Z",
+  "requests": [
+    {
+      "id": "index",
+      "path": "/",
+      "started_at": "2026-10-03T17:49:09.684Z",
+      "finished_at": "2026-10-03T17:49:10.368Z",
+      "status": 200,
+      "bytes": 2634,
+      "sha256": "832a8a40366a5460796ed70b53b08c881c1c4a6a9f7d6ce3a1010e5c19500bef",
+      "content_type": "text/html",
+      "cache_control": "public, max-age=0, must-revalidate",
+      "set_cookie_present": false,
+      "security_headers": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expected_sha256": "832a8a40366a5460796ed70b53b08c881c1c4a6a9f7d6ce3a1010e5c19500bef",
+      "security_headers_match": true,
+      "expected_match": true
+    },
+    {
+      "id": "main_js",
+      "path": "/assets/index-CIkdCwRI.js",
+      "started_at": "2026-10-03T17:49:10.370Z",
+      "finished_at": "2026-10-03T17:49:11.621Z",
+      "status": 200,
+      "bytes": 1488648,
+      "sha256": "57b8ed7aced75b4dac039bcfd79806ce0da5ead5d4ff25ca68ccb29fdc2e5d35",
+      "content_type": "text/javascript",
+      "cache_control": "public, max-age=604800",
+      "set_cookie_present": false,
+      "security_headers": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expected_sha256": "57b8ed7aced75b4dac039bcfd79806ce0da5ead5d4ff25ca68ccb29fdc2e5d35",
+      "security_headers_match": true,
+      "expected_match": true
+    },
+    {
+      "id": "interior_js",
+      "path": "/assets/InteriorView-B7dudNwf.js",
+      "started_at": "2026-10-03T17:49:11.623Z",
+      "finished_at": "2026-10-03T17:49:12.395Z",
+      "status": 200,
+      "bytes": 93242,
+      "sha256": "cb5774c02d45c7074f1800d27b2e5e7d8860ab007b7b4656e09ef4545800e98c",
+      "content_type": "text/javascript",
+      "cache_control": "public, max-age=604800",
+      "set_cookie_present": false,
+      "security_headers": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expected_sha256": "cb5774c02d45c7074f1800d27b2e5e7d8860ab007b7b4656e09ef4545800e98c",
+      "security_headers_match": true,
+      "expected_match": true
+    },
+    {
+      "id": "css",
+      "path": "/assets/index-BZpalHf7.css",
+      "started_at": "2026-10-03T17:49:12.396Z",
+      "finished_at": "2026-10-03T17:49:14.314Z",
+      "status": 200,
+      "bytes": 58227,
+      "sha256": "6799cd5de49639b854270820c090bf5983b22d7d81b58818b9a427e48c1152ec",
+      "content_type": "text/css",
+      "cache_control": "public, max-age=604800",
+      "set_cookie_present": false,
+      "security_headers": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expected_sha256": "6799cd5de49639b854270820c090bf5983b22d7d81b58818b9a427e48c1152ec",
+      "security_headers_match": true,
+      "expected_match": true
+    },
+    {
+      "id": "session",
+      "path": "/api/auth/session",
+      "started_at": "2026-10-03T17:49:14.315Z",
+      "finished_at": "2026-10-03T17:49:14.843Z",
+      "status": 200,
+      "bytes": 18,
+      "sha256": "60483fbb3c01c4080583563e215e3ca4ab5ce4ff74f47cf36eadedd152572d2f",
+      "content_type": "application/json; charset=utf-8",
+      "cache_control": "no-store",
+      "set_cookie_present": false,
+      "security_headers": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": null,
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": null,
+        "content-security-policy": "default-src 'none'; frame-ancestors 'none'"
+      },
+      "signed_in": false,
+      "expected_match": true
+    }
+  ],
+  "finished_at": "2026-10-03T17:49:14.844Z",
+  "all_five_passed": true,
+  "limits": "Five unauthenticated GETs only; not a real-wallet, concurrent-production-D1, WAF rule or limiter-accounting verification."
+}

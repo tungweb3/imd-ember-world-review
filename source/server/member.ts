@@ -26,6 +26,39 @@ export type MemberDeps={
 /** Profile writes that reached the database, per member per minute (5/min). [REDACTED] */
 export const PROFILE_WRITES_PER_MINUTE=5;
 export const REQUEST_KEPT_MS=86_400_000,HISTORY_KEPT_MS=180*86_400_000,LOGIN_TOUCH_MS=3_600_000;
+export const MEMBER_CLEANUP_MAX_ROWS=200,MEMBER_CLEANUP_OPPORTUNISTIC_ROWS=10;
+const HARDENING_OBJECTS=['profile_requests_write_budget','profile_requests_expiry','profile_history_expiry'];
+/** Only a server-verified EOA session may currently persist the Web2 member. Contract and legacy/unknown sessions
+ *  still sign in and read: ERC-1271 validity can depend on what is signed and is not continuing write authority. */
+const mayWriteMember=(s:{walletType:string|null;verificationMethod:string|null})=>s.walletType==='EOA'&&s.verificationMethod==='ECDSA';
+async function hardeningReady(db:D1Database):Promise<boolean>{
+  const r=await db.prepare("SELECT name,type FROM sqlite_master WHERE name IN (?1,?2,?3)").bind(...HARDENING_OBJECTS)
+    .all<{name:string;type:string}>();
+  return HARDENING_OBJECTS.every((name,i)=>r.results.some(x=>x.name===name&&x.type===(i===0?'trigger':'index')));
+}
+export type MemberCleanupResult={status:'cleaned';requests:number;history:number}|{status:'schema_unavailable'};
+/** Expiry is eligibility for deletion, not a hard deletion deadline: each invocation scans an expiry index and
+ *  deletes at most `limit` rows per table. A backlog drains over subsequent cron/opportunistic invocations. */
+export async function pruneMemberRecords(db:D1Database,now:number,limit=MEMBER_CLEANUP_MAX_ROWS):Promise<MemberCleanupResult>{
+  if(!await hardeningReady(db))return {status:'schema_unavailable'};
+  const bounded=Number.isSafeInteger(limit)?Math.max(1,Math.min(MEMBER_CLEANUP_MAX_ROWS,limit)):MEMBER_CLEANUP_MAX_ROWS;
+  const r=await db.batch([
+    db.prepare(`DELETE FROM profile_requests WHERE rowid IN (SELECT rowid FROM profile_requests INDEXED BY profile_requests_expiry
+      WHERE expires_at<=?1 ORDER BY expires_at,member_id,request_id LIMIT ?2)`).bind(now,bounded),
+    db.prepare(`DELETE FROM profile_history WHERE history_id IN (SELECT history_id FROM profile_history INDEXED BY profile_history_expiry
+      WHERE expires_at<=?1 ORDER BY expires_at,history_id LIMIT ?2)`).bind(now,bounded)]);
+  return {status:'cleaned',requests:r[0]?.meta.changes??0,history:r[1]?.meta.changes??0};
+}
+const rateLimited=()=>fail(429,'NAME_RATE_LIMITED',{retryAfterSeconds:60},{'Retry-After':'60'});
+function budgetExceeded(error:unknown):boolean{
+  // D1 may wrap SQLite's constraint message in `cause`. Only this literal identifies the quota refusal.
+  for(let n=0;n<4&&error&&typeof error==='object';n++){
+    const e=error as {message?:unknown;cause?:unknown};
+    if(typeof e.message==='string'&&e.message.includes('MEMBER_WRITE_RATE_LIMIT'))return true;
+    error=e.cause;
+  }
+  return false;
+}
 /** The canonical login identity: never taken from the client. [REDACTED] */
 export const identityKey=(address:string)=>'eip155:1:'+address.toLowerCase();
 const PUBLIC_ID=/^u_[a-z2-9]{20}$/,REQUEST_ID=/^[A-Za-z0-9_-]{8,64}$/;
@@ -107,7 +140,7 @@ async function route(request:Request,deps:MemberDeps,pathname:string,address:str
       if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s);
       const m=await readMember(db,identityKey(s.address));
       if(!m)return fail(404,'MEMBER_NOT_FOUND');
-      await touchLogin(db,m,now);
+      if(mayWriteMember(s))await hardeningReady(db).then(ready=>ready?touchLogin(db,m,now):undefined).catch(()=>{});
       return reply(200,memberView(m,now));
     }
     // The writes (as server/auth.ts's): Origin (another site: 403), then the limiter, then the body and the session; only
@@ -138,6 +171,9 @@ async function bootstrapMember(request:Request,db:D1Database,deps:MemberDeps):Pr
   if(!/^application\/json\s*(;|$)/i.test(request.headers.get('content-type')??''))return fail(400,'BAD_REQUEST');
   const now=(deps.now??Date.now)(),s=await readSession(request,db,now);
   if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s);
+  if(!mayWriteMember(s))return fail(403,'CONTRACT_WRITE_NOT_ENABLED');
+  if(!await hardeningReady(db))return fail(503,'PROFILE_UNAVAILABLE');
+  await pruneMemberRecords(db,now,MEMBER_CLEANUP_OPPORTUNISTIC_ROWS);
   const address=s.address.toLowerCase(),key=identityKey(address),found=await readMember(db,key);
   if(found){await touchLogin(db,found,now);return reply(200,memberView(found,now));}
   const id=newMemberId();
@@ -173,28 +209,56 @@ async function putProfile(request:Request,db:D1Database,deps:MemberDeps):Promise
     !Number.isSafeInteger(version)||(version as number)<0)return fail(400,'BAD_REQUEST');
   const now=(deps.now??Date.now)(),s=await readSession(request,db,now);
   if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s);
+  if(!mayWriteMember(s))return fail(403,'CONTRACT_WRITE_NOT_ENABLED');
+  if(!await hardeningReady(db))return fail(503,'PROFILE_UNAVAILABLE');
+  await pruneMemberRecords(db,now,MEMBER_CLEANUP_OPPORTUNISTIC_ROWS);
   const m=await readMember(db,identityKey(s.address));
   if(!m||m.public_member_id!==actor)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
   const name=checkName(displayName);
   if(!name.ok)return fail(400,'NAME_FORMAT_INVALID',{reason:name.reason});
   const hash=await sha256(JSON.stringify([name.display,version])),member=m.member_id;
-  const record=(outcome:string)=>db.prepare(`INSERT OR IGNORE INTO profile_requests(member_id,request_id,payload_hash,outcome,result_version,created_at,expires_at)
-    VALUES(?1,?2,?3,?4,NULL,?5,?6)`).bind(member,requestId,hash,outcome,now,now+REQUEST_KEPT_MS).run().catch(()=>{});
-  // The same request again: its first answer (a success shows the profile as it is now).
-  const seen=await db.prepare('SELECT payload_hash,outcome FROM profile_requests WHERE member_id=?1 AND request_id=?2').bind(member,requestId)
+  const readRequest=()=>db.prepare('SELECT payload_hash,outcome FROM profile_requests WHERE member_id=?1 AND request_id=?2').bind(member,requestId)
     .first<{payload_hash:string;outcome:string}>();
-  if(seen){
+  const existingReply=async(seen:{payload_hash:string;outcome:string},current:MemberRow|null=null)=>{
     if(seen.payload_hash!==hash)return fail(409,'IDEMPOTENCY_CONFLICT');
-    return seen.outcome==='ok'?reply(200,memberView(m,now)):refuse(seen.outcome,m,now);
-  }
-  const recent=await db.prepare('SELECT count(*) n FROM (SELECT 1 FROM profile_requests WHERE member_id=?1 AND created_at>?2 LIMIT ?3)')
-    .bind(member,now-60_000,PROFILE_WRITES_PER_MINUTE).first<{n:number}>();
-  if((recent?.n??0)>=PROFILE_WRITES_PER_MINUTE)return fail(429,'NAME_RATE_LIMITED',{retryAfterSeconds:60},{'Retry-After':'60'});
-  const refused=async(error:string)=>{await record(error);return refuse(error,m,now);};
+    const latest=current??await readMember(db,identityKey(s.address));
+    return seen.outcome==='ok'?(latest?reply(200,memberView(latest,now)):fail(503,'PROFILE_UNAVAILABLE')):refuse(seen.outcome,latest,now);
+  };
+  // The same request again: its first answer (a success shows the profile as it is now).
+  const seen=await readRequest();
+  if(seen)return existingReply(seen,m);
+  const refused=async(error:string)=>{
+    try{
+      await db.prepare(`INSERT OR IGNORE INTO profile_requests(member_id,request_id,payload_hash,outcome,result_version,created_at,expires_at)
+        VALUES(?1,?2,?3,?4,NULL,?5,?6)`).bind(member,requestId,hash,error,now,now+REQUEST_KEPT_MS).run();
+    }catch(e){
+      const won=await readRequest();
+      if(won)return existingReply(won);
+      return budgetExceeded(e)?rateLimited():fail(503,'PROFILE_UNAVAILABLE');
+    }
+    // OR IGNORE may have lost to a different payload using this same key. Return the winner, not this local refusal.
+    const recorded=await readRequest();
+    return recorded?existingReply(recorded):fail(503,'PROFILE_UNAVAILABLE');
+  };
   if(m.profile_state==='locked')return refused('PROFILE_LOCKED');
   if(m.version!==version)return refused('PROFILE_VERSION_CONFLICT');
-  // The same name again (after NFKC, case included) changes nothing and spends no cooldown.
-  if(m.profile_state==='ready'&&m.display_name===name.display)return reply(200,memberView(m,now));
+  // A fresh no-op still reserves a logical-attempt slot. It changes no profile version, cooldown or history.
+  if(m.profile_state==='ready'&&m.display_name===name.display){
+    try{
+      await db.prepare(`INSERT INTO profile_requests(member_id,request_id,payload_hash,outcome,result_version,created_at,expires_at)
+        VALUES(?1,?2,?3,'ok',(SELECT version FROM member_profiles WHERE member_id=?1 AND version=?4
+          AND profile_state='ready' AND display_name=?5),?6,?7)`).bind(member,requestId,hash,version,name.display,now,now+REQUEST_KEPT_MS).run();
+    }catch(e){
+      const won=await readRequest();
+      if(won)return existingReply(won);
+      if(budgetExceeded(e))return rateLimited();
+      const changed=await readMember(db,identityKey(s.address));
+      return changed&&(changed.version!==version||changed.profile_state==='locked')?
+        refused(changed.profile_state==='locked'?'PROFILE_LOCKED':'PROFILE_VERSION_CONFLICT'):fail(503,'PROFILE_UNAVAILABLE');
+    }
+    const done=await readRequest();
+    return done?existingReply(done):fail(503,'PROFILE_UNAVAILABLE');
+  }
   if(m.profile_state==='ready'&&m.next_name_change_at!==null&&m.next_name_change_at>now)return refused('NAME_CHANGE_COOLDOWN');
   if(isReservedName(name.key))return refused('NAME_UNAVAILABLE');
   const old=m.active_name_key,same=old===name.key;
@@ -218,17 +282,15 @@ async function putProfile(request:Request,db:D1Database,deps:MemberDeps):Promise
       SELECT ?1,'self',?2,display_name,?3,version+1,?4,?5 FROM member_profiles WHERE member_id=?1`)
       .bind(member,m.profile_state==='needs_name'?'initial':'rename',name.display,now,now+HISTORY_KEPT_MS),
     db.prepare(`UPDATE member_profiles SET display_name=?2,active_name_key=?3,profile_state='ready',version=version+1,name_changed_at=?4,
-      next_name_change_at=?5,updated_at=?4 WHERE member_id=?1`).bind(member,name.display,name.key,now,now+RENAME_COOLDOWN_MS),
-    db.prepare('DELETE FROM profile_requests WHERE member_id=?1 AND expires_at<=?2').bind(member,now),
-    db.prepare('DELETE FROM profile_history WHERE member_id=?1 AND expires_at<=?2').bind(member,now));
+      next_name_change_at=?5,updated_at=?4 WHERE member_id=?1`).bind(member,name.display,name.key,now,now+RENAME_COOLDOWN_MS));
   try{await db.batch(writes);}
-  catch{
+  catch(e){
     // Rolled back. Say why from what is there now: this same request committed by another tab, the profile moved on,
     // or the name was taken meanwhile; anything else is the database failing.
-    const again=await db.prepare('SELECT payload_hash,outcome FROM profile_requests WHERE member_id=?1 AND request_id=?2').bind(member,requestId)
-      .first<{payload_hash:string;outcome:string}>();
+    const again=await readRequest();
     const now2=await readMember(db,identityKey(s.address));
-    if(again&&now2)return again.payload_hash!==hash?fail(409,'IDEMPOTENCY_CONFLICT'):again.outcome==='ok'?reply(200,memberView(now2,now)):refuse(again.outcome,now2,now);
+    if(again)return existingReply(again,now2);
+    if(budgetExceeded(e))return rateLimited();
     if(now2&&(now2.version!==version||now2.profile_state==='locked'))return refused(now2.profile_state==='locked'?'PROFILE_LOCKED':'PROFILE_VERSION_CONFLICT');
     if(now2&&!same&&!await claimable(db,name.key,member,now))return refused('NAME_UNAVAILABLE');
     return fail(503,'PROFILE_UNAVAILABLE');

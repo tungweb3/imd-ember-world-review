@@ -1,3 +1,5 @@
+> Historical fourth-snapshot evidence (public commit `6e307de`, source `c491ff3`, deployed Worker `acdbb2bd`). Current R4/AUD4 repair evidence is in the root README and R5/. Source has changed; old source counts, tests, algorithms and fingerprints are not current results.
+
 # ROUTES：公開 Worker 路由與邊界
 
 本版對應部署 Worker `acdbb2bd`、部署來源 `ddb10e2`、快照來源 `c491ff3`。`source/worker/app.ts:135–146` 依序呼叫會員、帳號、World handler，再交給 Static Assets。`wrangler.jsonc:21–30` 只讓 /api/world/*、/api/auth/*、/api/me/*、/api/wallet/* 優先執行 Worker；其他路徑由 Static Assets 處理，未知靜態路徑採 SPA fallback。

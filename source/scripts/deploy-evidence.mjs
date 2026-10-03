@@ -38,7 +38,7 @@ export function parseJsonc(text){
 export function readSums(text){
   const out=new Map();for(const line of text.split('\n')){const m=/^([0-9a-f]{64}) {2}([A-Za-z0-9._/-]{1,200})\r?$/.exec(line);if(m)out.set(m[2],m[1]);}return out;
 }
-const git=(repo,args)=>{const r=spawnSync('git',args,{cwd:repo,encoding:'buffer'});return r.status===0?r.stdout:null;};
+const git=(repo,args)=>{const r=spawnSync('git',['-c','safe.directory='+resolve(repo),...args],{cwd:repo,encoding:'buffer'});return r.status===0?r.stdout:null;};
 /** A file as of `commit` when the repo has it, else the working tree's copy (and says which). */
 function sourceFiles(repo,commit){
   const atCommit=commit&&git(repo,['cat-file','-e',commit+'^{commit}'])!==null;

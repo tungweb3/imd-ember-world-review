@@ -1,0 +1,53 @@
+UTC_START=2026-10-03T17:07:16.4734773Z
+COMMAND=node --test --test-concurrency=3 --test-name-pattern='^N-' tests/auth.test.mjs tests/wallet-client.test.mjs tests/ownership.test.mjs tests/worker.test.mjs
+✔ N-7: the session route names an expiry only for a session that ran out; a revoked, forged, malformed or missing cookie gets no reason (103.0621ms)
+✔ N-4: an owner’s own earlier check no longer uses up its lane: its retry, and a second device after its sign-in, sign in (the reproduction) (100.0737ms)
+✔ N-4: the lane stays one per /24 and address a minute, whoever sends the verifies: racing verifies take it once, verifies sent from other networks take no more, and garbage from the owner’s own /24 still holds it (the residual) (70.8477ms)
+✔ N-4: each contract check records how it was admitted, a shared (pool) check or a lane check (21.0145ms)
+✔ N-4/N-5: an IPv6 /48 makes at most two lane checks of one address a minute, from two different /64s (27.0402ms)
+✔ N-4/N-5: the lane siege for IPv6 is at its stated cost: 5 /48s (two /64s each) aiming garbage at 3 smart wallets every minute keep one of them out at a location; 4 /48s do not, nor do 4 /48s of six /64s at one wallet (377.3257ms)
+✔ N-5: four smart wallets on four /64s of one /48 sign in within a minute (the reproduction) (44.7372ms)
+✔ N-5: one /64 cannot spend its /48’s shares for its neighbours, whichever address sends the verifies; rotating host bits inside it gains nothing (99.4408ms)
+✔ N-5: rotating /64s inside one /48 is still bounded: 6 contract checks, 20 code reads and 60 challenges a minute, however many /64s (204.5933ms)
+✔ N-5: IPv4 is unchanged, and nothing longer than an IPv6 /64 is stored or logged (94.0182ms)
+✔ N-5 (deployed ahead of 0005): challenges and ERC-1271 sign-in keep the 0004 rules and never answer 503; once 0005 is applied the new rules hold (127.7545ms)
+✔ N-3: past the 256-candidate cap, a seat that counts through its owner’s sighting in the last 24 h is still checked (the reproduction) (186.6884ms)
+✔ N-3: the cut follows the counting rule exactly: a sighting at 24 h counts, one just over does not, nor one under another owner, nor none; online now does; a seat sold since is dropped by ownerOf (260.741ms)
+✔ N-3: the ranking read happens only past the cap, once per check, and only for registered seats not online now (97.9939ms)
+✔ N-3: the answer kept in D1 is cut the same way: another instance with chain:index refused still proves the recently seen seat (99.0971ms)
+✔ N-6: one IP’s throwaway sign-ins no longer keep a new buyer from their first seat discovery (the reproduction) (479.712ms)
+✔ N-6: the lane is for a refused read that counts no seat: none when the roster or a kept answer already shows a seat that counts; one for a new buyer, a stale kept answer, or seats that do not count (84.6608ms)
+✔ N-6: one lane per network a minute, even when claims race (36.9447ms)
+✔ N-6: twenty other networks can still keep a refused read out at one location, and it reopens the next minute (the residual at its stated cost) (700.7884ms)
+✔ N-6: the lanes have a site-wide ceiling: 60 in 6 s; the 61st is refused with nothing written and no key asked, and the next slice admits again (531.6828ms)
+✔ N-6: an index read that failed (the budget allowed it) takes no lane: limited on the kept answer, with no lane row and no lane key (22.0324ms)
+✔ N-6 (deployed ahead of 0005): no lane, and a refused read is limited as before, never 503 (23.333ms)
+✔ N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped: owner mode stays and nothing asks the wallet (169.5094ms)
+✔ N-1: and the reverse: an older “signed in” read that arrives after a newer “signed out” revives nothing and reads no house (78.0491ms)
+✔ N-1: an older read that fails late (a lost connection, or a body cut off) after a newer answer changes nothing (155.2298ms)
+✔ N-1: a switch of account or a sign-out while a session read is on its way still drops it (186.4114ms)
+✔ N-1: a sign-in click waits for the newest session read, so a live session in the cookie jar is found and nothing is signed (248.0728ms)
+✔ N-1: an older read answered late with an error status (503 or 429) after a newer “signed in” changes nothing (186.9376ms)
+✔ N-1: a house read of the replaced session that lands while another address signs in changes nothing (161.4725ms)
+✔ N-1: a house read begun for a session that a newer read then ends changes nothing when it lands (200, 429 or 401) (179.2424ms)
+✔ N-2: a challenge whose body arrives after the switch to another account asks the wallet nothing and verifies nothing (94.6157ms)
+✔ N-2: the same after a switch to another wallet with the same account, a sign-out, or the page closing: no prompt from the dead flow (198.1255ms)
+✔ N-2: a new sign-in started at once is untouched by the old flow’s late body or late refusal (213.8032ms)
+✔ N-2: a wallet that locks while the challenge body is on its way is not asked to sign (69.6916ms)
+✔ N-2: a prompt already open when the flow is cancelled by a sign-out is answered into nothing (62.5719ms)
+✔ N-2: a dead flow’s verify refusal whose body lands after a new flow began leaves the new flow alone (101.4908ms)
+✔ N-2: a click still waiting for a session read is ended by the page closing or a sign-out: no prompt, no challenge, no verify (288.1679ms)
+✔ N-7: a session revoked elsewhere (AUTH_REQUIRED) a day before its expiry is signed out, not expired (the reproduction) (34.1761ms)
+✔ N-7: a real expiry still reads as expired: SESSION_EXPIRED, a 401 at the held session’s expiresAt, and the W-1 timer (46.9514ms)
+✔ N-7: an expiry seen through a session read is still expired: with no hint, and when the server’s clock is ahead of the page’s (40.0522ms)
+✔ N-7: My wallet says “Signed out.” after this page’s own sign-out and “You are no longer signed in” after a revocation, never why it cannot know (704.2097ms)
+✔ N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, IPv4-mapped and unknown clients have none (3.0913ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4049.6903
+UTC_END=2026-10-03T17:07:20.9488860Z EXIT=0

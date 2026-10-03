@@ -1,0 +1,93 @@
+{
+  "kind": "production-deployment-allowlist",
+  "record": "20261003T174551Z-54410b2",
+  "source_commit": "54410b2f8dece71bdb2fd999c94feea6454ecfcd",
+  "source_dirty": false,
+  "vite_env_files": [],
+  "started_at": "2026-10-03T17:45:51.193Z",
+  "finished_at": "2026-10-03T17:48:17.618Z",
+  "worker_version": "e491cb71-60ec-4cfe-9db7-b88e52d78ce9",
+  "worker_bytes": 309594,
+  "worker_sha256": "c7d7c0fbe49ce601a187bafdf7480c40d64ceda7bcfde64b9aea3f63f809811c",
+  "frontend_tree_digest": "37e45c2a5288f20df0313b732b743c0cc10088a9a80c4872dad704f32b2e3984",
+  "frontend_files": 102,
+  "frontend_unchanged_during_upload": true,
+  "tools": {
+    "node": "v24.19.0",
+    "wrangler": "4.143.0",
+    "vite": "8.3.1",
+    "typescript": "5.9.3"
+  },
+  "full_source_tests": {
+    "tests": 1087,
+    "pass": 1087,
+    "fail": 0,
+    "skipped": 0
+  },
+  "typecheck": "passed",
+  "frontend_build": "passed",
+  "wrangler_exit_code": 0,
+  "production_traffic": {
+    "deployment_id": "ed848a16-21ba-43d8-8b95-4ff3183f7732",
+    "created_on": "2026-10-03T17:48:14.840676Z",
+    "versions": [
+      {
+        "version_id": "e491cb71-60ec-4cfe-9db7-b88e52d78ce9",
+        "percentage": 100
+      }
+    ]
+  },
+  "d1": {
+    "backup": "completed privately before 0008; bytes, hash, SQL and download URL withheld",
+    "applied_migrations": [
+      "0001_wallet_login.sql",
+      "0002_sign_in_budgets.sql",
+      "0003_sign_in_layers.sql",
+      "0004_index_candidates.sql",
+      "0005_lanes_and_subnets.sql",
+      "0006_members.sql",
+      "0008_member_hardening.sql"
+    ],
+    "schema_object_names": [
+      "index_lane_probes",
+      "index_lane_probes_expiry",
+      "index_lane_probes_net",
+      "profile_history_expiry",
+      "profile_requests_expiry",
+      "profile_requests_write_budget"
+    ],
+    "schema_comparison": "six names/types/SQL definitions verified against final 0008; see PRODUCTION_D1.md",
+    "concurrent_requests": "not verified in production"
+  },
+  "bindings": {
+    "DB": "imd-world",
+    "API_LIMITER": {
+      "limit": 180,
+      "period": 60
+    },
+    "SEAT_LIMITER": {
+      "limit": 60,
+      "period": 60
+    },
+    "AUTH_LIMITER": {
+      "limit": 20,
+      "period": 60
+    },
+    "CHAIN_LIMITER": {
+      "limit": 20,
+      "period": 60
+    },
+    "ASSETS": true
+  },
+  "cron": "*/15 * * * *",
+  "waf": "unchanged by this deployment; rule configuration/accounting not queried",
+  "public_worker_comparison": "byte-identical to previously executed source-only rebuild",
+  "live_check": "LIVE_MATCH.json: five GETs, all passed",
+  "unknowns": [
+    "real wallet/full WorldApp browser scenarios",
+    "production D1 concurrent member request behavior",
+    "WAF rule/current limiter refusal accounting",
+    "cron backlog throughput",
+    "upstream and multi-network availability"
+  ]
+}

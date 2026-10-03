@@ -1,8 +1,8 @@
 import {GATEWAY_DEFAULTS,SHARED_SHAPE,type ReadGateway,type SharedCopy} from '../server/gateway.ts';
 import {handleWorldApi,LimiterMissing,type Allow} from '../server/world-api.ts';
 import {UPSTREAM_TTL_MS} from '../src/world/cadence.ts';
-import {handleAccountApi} from '../server/auth.ts';
-import {handleMemberApi} from '../server/member.ts';
+import {handleAccountApi,pruneIndexProbes} from '../server/auth.ts';
+import {handleMemberApi,pruneMemberRecords} from '../server/member.ts';
 import {Ownership,type ChainAccess} from '../server/ownership.ts';
 import {recordPresence} from '../server/presence.ts';
 import {mockChainFetch,parseMockOwners} from '../server/chain-mock.ts';
@@ -10,7 +10,7 @@ import {CHARACTER_COLLECTIONS} from '../src/world/collections.ts';
 import type {D1Database} from '../server/d1.ts';
 // Cloudflare Worker for imdember.com (entry: worker/index.ts). wrangler.jsonc routes only /api/world/* and the wallet
 // routes (/api/auth/*, /api/me/*, /api/wallet/*) to it (assets.run_worker_first); every other path is served by Workers
-// Static Assets from dist/ without running this code. The cron trigger runs `scheduled` (the presence recorder).
+// Static Assets from dist/ without running this code. The cron trigger runs `scheduled` (presence, M1 and probe cleanup).
 // Helpers live here, not in the entry: workerd treats every named export of the entry module as an entrypoint and
 // refuses to start on one that is not a handler (a string constant, for example).
 type AssetsBinding={fetch(request:Request):Promise<Response>};
@@ -145,10 +145,17 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
       const api=await handleWorldApi(request,gateway,{waitUntil,allow,floorKey:env.ALCHEMY_API_KEY||undefined,shared});
       return api??env.ASSETS.fetch(request);
     },
-    /** Cron (every 15 min): record which seats IMD lists online. Nothing to do without a database. */
+    /** Cron (every 15 min): record which seats IMD lists online, and independently drain expired M1 records in
+     *  bounded batches. No database: skip. A database still on 0006: reads stay available and cleanup skips safely. */
     async scheduled(_controller:ScheduledController,env:Env,ctx:Context):Promise<void> {
       if(!env.DB)return;
       ctx.waitUntil(recordPresence(gateway,env.DB,now(),p=>ctx.waitUntil(p)).then(r=>console.log('presence',JSON.stringify(r))));
+      ctx.waitUntil(pruneMemberRecords(env.DB,now()).then(r=>console.log('member_cleanup',JSON.stringify(r)))
+        .catch(()=>console.log('member_cleanup',JSON.stringify({status:'unavailable'}))));
+      // Probe backoff has an independent lifecycle: an absent M1 schema must not gate it, and a failed probe prune
+      // must not cancel presence/member housekeeping. The helper caps the deletion batch at 200 rows.
+      ctx.waitUntil(pruneIndexProbes(env.DB,now()).then(r=>console.log('index_probe_cleanup',JSON.stringify(r)))
+        .catch(()=>console.log('index_probe_cleanup',JSON.stringify({status:'unavailable'}))));
     }
   };
 }

@@ -1,3 +1,5 @@
+> Historical fourth-snapshot evidence (public commit `6e307de`, source `c491ff3`, deployed Worker `acdbb2bd`). Current R4/AUD4 repair evidence is in the root README and R5/. Source has changed; old source counts, tests, algorithms and fingerprints are not current results.
+
 # WALLET_METHODS：錢包方法、流程與證據界線
 
 ## 1. 本次目標與清冊結論

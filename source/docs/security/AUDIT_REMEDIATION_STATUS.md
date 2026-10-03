@@ -253,13 +253,15 @@ building and stops on any failure.
 - The path fails closed: no RPC key, the node down or erroring (503 `VERIFY_UNAVAILABLE`), a refused or throwing budget
   (429 `CHAIN_BUSY`), a missing limiter binding (503 `LIMITER_UNAVAILABLE`). None of them makes a session or trusts the
   address alone. Each challenge buys at most one ERC-1271 check and is burnt on any failure.
-- The recorded type and method are for audit and debugging; they grant nothing and `/api/auth/session` does not return
-  them. Seat ownership is always proved with `ownerOf` on Ethereum mainnet.
+- The recorded type and method are not ownership proof and `/api/auth/session` does not return them. AUD4 now uses
+  both fields to permit persistent Member M1 writes only for `EOA`/`ECDSA`; contract or unknown types fail closed.
+  Seat ownership is always proved with `ownerOf` on Ethereum mainnet.
 - **Risk (F-2, stated, not fixed):** the contract decides who may sign for it. A contract that accepts any signature
   (some vaults, escrows, badly written wallets) lets anyone sign in as it, and if it holds a seat, anyone gets owner
   mode for that seat (today a read-only view on the player's own screen). The `CONTRACT` mark makes such sessions
-  visible in D1; it does not reduce that risk. Anything that later grants more than a view to a session must not rely
-  on an ERC-1271 sign-in alone.
+  visible in D1; it does not reduce that login/view risk. AUD4 prevents expansion into public M1 profile writes by
+  temporarily disabling them for contract sessions. EOA sessions do support selected persistent M1 writes, so World
+  sessions as a whole are not read-only. See `AUD4_MEMBER_POLICY.md` and `MINT_BOUNDARY.md` for the enforced policy.
 
 ## Layered sign-in limits
 
@@ -1325,21 +1327,19 @@ the page shows only while it holds that session); one assertion of a `10bb630` t
   above (BLOCKED_EVIDENCE), and on production D1 returning the `RETURNING` row or `meta.changes` (unverified; with
   neither, the claim is taken as no lane and its row stays for the minute).
 - **Files changed:** `server/auth.ts`, `server/presence.ts` (comment: a released row is pruned 30 s earlier).
-- **Tests:** `tests/ownership.test.mjs` "AUD3-02: a lane claim the location key refused does not keep the network out…"
-  (the reproduction, the audit's first case; on `f4272c5` still `limited` at 31 s with the key not asked), "AUD3-02:
-  claims refused by one location’s key no longer fill the site-wide ceiling for a buyer at another location…" (the
+- **Tests:** `tests/ownership.test.mjs` "AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s…"
+  (the reproduction, the audit's first case; on `f4272c5` still `limited` at 31 s with the key not asked), "AUD3-02: 40 local refusals reserve nothing after 20 admitted reads; another location can admit a buyer…" (the
   reproduction, the audit's second case, at its 60 networks; on `f4272c5` the buyer at B refused in D1, B's key asked 0
-  times; at 80 networks the ceiling fills again, above), "AUD3-02: a key that throws is a refusal…",
-  "AUD3-02: two /64s of one /48 claim at once…", "AUD3-02: a release that fails keeps the row for the minute (fail closed)…",
-  "AUD3-02: with a D1 that applies the claim but returns no RETURNING row…", "AUD3-02: while the key refuses, releases are capped site-wide…",
-  "AUD3-02: the release finds its row on index_lanes_net…" (the reads the cost comment states), the guards "AUD3-02 guard:
-  a network whose claims the key keeps refusing asks it at most twice a minute…" (fails with a release that leaves no
-  retry wait, and with a 6 s retry), "AUD3-02 guard: a /64 whose claim was released cannot claim again within 30 s…"
+  times; at 80 networks the ceiling fills again, above), "AUD3-02: a key that throws makes no admitted reservation or index read and keeps the 30 s probe backoff…",
+  "AUD3-02: two /64s race and the key admits one; only its admitted row counts for the minute…", "AUD4-03: a D1 reservation that returns changes 1 without a RETURNING row still admits; a local refusal writes no admitted row…",
+  "AUD4-03: a D1 reservation that returns changes 1 without a RETURNING row still admits; a local refusal writes no admitted row…", "AUD4-03: 100 refused /24s reserve zero admitted rows in both rounds, without a release/update refund workload…",
+  "AUD4-03: preflight and atomic reservation both use covering network/global indexes…" (the reads the cost comment states), the guards "AUD4-03: a refusing key is asked at most twice/minute per network slot even if the home binding allows every read…" (fails with a release that leaves no
+  retry wait, and with a 6 s retry), "AUD4-03: a refused /64 waits 30 s before probing again and leaves its /48 neighbour’s other probe slot…"
   (`bd4f749`, T36: one /64 reads at 0 s and 1 s, its neighbour in the /48 at 2 s, each asks the key once; fails with
   `INDEX_LANE`'s `'released:'||sub` term dropped: the first /64 asks twice and its neighbour is refused in D1) and
   "AUD3-02 guard: one admitted lane operation is up to NFT_PAGE_CAP (5) index pages…"
   (the handoff's point that an index operation is not one HTTP request; fails with the page cap raised), and the
-  residual pin "AUD3-02 residual (a limiter that counts refused calls)…". Every N-6 test is unchanged.
+  residual pin "AUD4-03 residual (denials count)…". Every N-6 test is unchanged.
 - **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
 
 ### AUD3-03 — A smart-wallet check the location’s limit refused still used up the address’s shared checks, so the owner’s own retries kept it out · Fixed
@@ -1642,6 +1642,10 @@ with the limiter question.
 
 ### The handoff's regression matrix (T01..T41)
 
+The statuses below remain the historical AUD3 record. Discovery test references are refreshed to their current
+AUD4 equivalents (separate probe/admitted rows); the old release algorithm and its outcomes are superseded by
+AUD4_REMEDIATION.md. Historical rows do not assert that the removed release implementation still executes.
+
 The owner's engineering handoff (in Chinese) lists the cases these fixes must cover (its §10, T01..T41). Its cases, the
 tests that hold them and their state:
 
@@ -1666,12 +1670,12 @@ tests that hold them and their state:
 | T17 | the lane's index read 502 | `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" | FIXED_LOCAL |
 | T18 | a timeout or a malformed body | `tests/ownership.test.mjs` "AUD3-01: the same for a timeout and for a malformed index body…" | FIXED_LOCAL |
 | T19 | the first proof unavailable, ownerOf uncertain | `tests/ownership.test.mjs` "AUD3-01: a lane rebuild whose ownerOf read fails…", "AUD3-01 guard: a first proof that cannot be made…", "AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild…" | FIXED_LOCAL |
-| T20 | the key refuses after the claim | `tests/ownership.test.mjs` "AUD3-02: a lane claim the location key refused does not keep the network out…" | FIXED_LOCAL |
-| T21 | the key throws or its binding is missing | `tests/ownership.test.mjs` "AUD3-02: a key that throws is a refusal…"; `tests/auth.test.mjs` "on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding…", "AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503…" | FIXED_LOCAL |
-| T22 | refused at 0 s, free at 31 s | `tests/ownership.test.mjs` "AUD3-02: a lane claim the location key refused does not keep the network out…" | FIXED_LOCAL; the limiter assumption BLOCKED_EVIDENCE |
-| T23 | unread rows at A, a buyer at B, a cost ceiling kept | `tests/ownership.test.mjs` "AUD3-02: claims refused by one location’s key no longer fill the site-wide ceiling…", "AUD3-02: while the key refuses, releases are capped site-wide…" | PARTIAL: FIXED_LOCAL at the audit's 60 networks, the cost ceiling kept; about 80 claims in one 6 s slice at one location still fill the site-wide ceiling for every other location (60 before; measured, not pinned) |
-| T24 | concurrent claims, one released | `tests/ownership.test.mjs` "AUD3-02: two /64s of one /48 claim at once…", "N-6: one lane per network a minute, even when claims race…"; `tests/auth.test.mjs` "AUD3-03: of two claims of one address…" | FIXED_LOCAL |
-| T25 | the release fails | `tests/ownership.test.mjs` "AUD3-02: a release that fails keeps the row for the minute…"; `tests/auth.test.mjs` "AUD3-03: a release that fails keeps the claim counted…" | FIXED_LOCAL |
+| T20 | the key refuses after the claim | `tests/ownership.test.mjs` "AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s…" | FIXED_LOCAL |
+| T21 | the key throws or its binding is missing | `tests/ownership.test.mjs` "AUD3-02: a key that throws makes no admitted reservation or index read and keeps the 30 s probe backoff…"; `tests/auth.test.mjs` "on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding…", "AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503…" | FIXED_LOCAL |
+| T22 | refused at 0 s, free at 31 s | `tests/ownership.test.mjs` "AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s…" | FIXED_LOCAL; the limiter assumption BLOCKED_EVIDENCE |
+| T23 | unread rows at A, a buyer at B, a cost ceiling kept | `tests/ownership.test.mjs` "AUD3-02: 40 local refusals reserve nothing after 20 admitted reads; another location can admit a buyer…", "AUD4-03: 100 refused /24s reserve zero admitted rows in both rounds, without a release/update refund workload…" | PARTIAL: FIXED_LOCAL at the audit's 60 networks, the cost ceiling kept; about 80 claims in one 6 s slice at one location still fill the site-wide ceiling for every other location (60 before; measured, not pinned) |
+| T24 | concurrent claims, one released | `tests/ownership.test.mjs` "AUD3-02: two /64s race and the key admits one; only its admitted row counts for the minute…", "N-6: one lane per network a minute, even when claims race…"; `tests/auth.test.mjs` "AUD3-03: of two claims of one address…" | FIXED_LOCAL |
+| T25 | the release fails | `tests/ownership.test.mjs` "AUD4-03: a D1 reservation that returns changes 1 without a RETURNING row still admits; a local refusal writes no admitted row…"; `tests/auth.test.mjs` "AUD3-03: a release that fails keeps the claim counted…" | FIXED_LOCAL |
 | T26 | a contract check refused by the key, no eth_call | `tests/auth.test.mjs` "AUD3-03: an ERC-1271 check the location key refused leaves no claim…", "AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released…" | FIXED_LOCAL |
 | T27 | 5 s later, a fresh challenge | `tests/auth.test.mjs` "AUD3-03: an ERC-1271 check the location key refused leaves no claim…", "AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released…" | FIXED_LOCAL; the limiter assumption BLOCKED_EVIDENCE |
 | T28 | sent, then failed | `tests/auth.test.mjs` "AUD3-03 guard: a check whose eth_call was sent and failed…"; `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" | FIXED_LOCAL (guard) |
@@ -1682,11 +1686,11 @@ tests that hold them and their state:
 | T33 | canonical keys | `tests/worker.test.mjs` "rate limits key IPv6 clients by their /64…", "the sign-in budgets key a client by its network…" | unchanged but for `::1` (T34) |
 | T34 | IPv4-mapped forms, dotted tails, no shared zero bucket | `tests/worker.test.mjs` "AUD3-08: address text is keyed by its real family…" | FIXED_LOCAL |
 | T35 | invalid text | `tests/auth.test.mjs` "AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row…"; `tests/worker.test.mjs` "AUD3-08: address text is keyed by its real family…" | FIXED_LOCAL |
-| T36 | /64 rotation | `tests/auth.test.mjs` "N-5: rotating /64s inside one /48 is still bounded…"; `tests/ownership.test.mjs` "AUD3-02 guard: a /64 whose claim was released cannot claim again within 30 s…" | unchanged; the released lane row's nesting pinned (guard) |
+| T36 | /64 rotation | `tests/auth.test.mjs` "N-5: rotating /64s inside one /48 is still bounded…"; `tests/ownership.test.mjs` "AUD4-03: a refused /64 waits 30 s before probing again and leaves its /48 neighbour’s other probe slot…" | unchanged; the released lane row's nesting pinned (guard) |
 | T37–T39 | N-3, A-2 and A-4; the standing checks; the shared cache | `tests/ownership.test.mjs` "N-3: past the 256-candidate cap…", "A-2: a refused index reload keeps the last index answer as candidates…"; `tests/auth.test.mjs` "forged signature, another key, and every altered message field are refused (401)…"; `tests/worker.test.mjs` "the Worker keeps a per-location shared copy of the snapshot…" | unchanged |
 | T40 | the whole suite, types, the Worker build | `npm test`, `npx tsc --noEmit`, `npm run build`, `npx wrangler deploy --dry-run` (results above) | passing locally |
 | T41 | the live source, 0005, assets and headers | none (nothing deployed, nothing read from production) | BLOCKED_EVIDENCE |
-| – | the limiter's treatment of refused calls | `tests/ownership.test.mjs` "AUD3-02 residual (a limiter that counts refused calls)…"; `tests/auth.test.mjs` "AUD3-03 residual (a limiter that counts refused calls)…" | BLOCKED_EVIDENCE (pinned under both models) |
+| – | the limiter's treatment of refused calls | `tests/ownership.test.mjs` "AUD4-03 residual (denials count)…"; `tests/auth.test.mjs` "AUD3-03 residual (a limiter that counts refused calls)…" | BLOCKED_EVIDENCE (pinned under both models) |
 
 Advice weighed and not adopted, and why: reading the counts, asking the key and only then inserting the lane row (one
 network's concurrent reads would each pass the read and spend a key unit, so one network could close a location's lane
@@ -1694,6 +1698,15 @@ key that now takes 20); the audit's plain `DELETE` of a refused lane row (it let
 house read, with no site-wide bound, and it would change two N-6 guards); refunding a lane whose read was sent (the read
 may have cost upstream); turning the Report's probe into a test (it asserts the old behaviour); and reading production
 (not authorized in this round).
+
+## R4 / AUD4 and Member M1 remediation (local, 2026-10-04)
+
+The current local remediation supersedes the earlier implementation descriptions for the nine findings from fourth
+Audit/Report snapshot `6e307de`. See [AUD4_REMEDIATION.md](AUD4_REMEDIATION.md) for the finding matrix and retained
+residuals, [AUD4_MEMBER_POLICY.md](AUD4_MEMBER_POLICY.md) for contract-write/quota/retention policy, and
+[AUD4_DISCOVERY.md](AUD4_DISCOVERY.md) for independent probes and admitted capacity. Historical review statuses above
+describe their own snapshots and are not rewritten into whole-site guarantees. New source is not deployed; 0008 is
+required before persistent M1 writes. Exact local commits, tests and rebuild fingerprints accompany this remediation.
 
 ## Genesis Mint (not changed in this round)
 

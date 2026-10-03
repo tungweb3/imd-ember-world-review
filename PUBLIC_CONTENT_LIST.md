@@ -1,3 +1,5 @@
+> Historical fourth-snapshot evidence (public commit `6e307de`, source `c491ff3`, deployed Worker `acdbb2bd`). Current R4/AUD4 repair evidence is in the root README and R5/. Source has changed; old source counts, tests, algorithms and fingerprints are not current results.
+
 # PUBLIC_CONTENT_LIST：公開內容清單
 
 固定 source `c491ff3` 共 **604** 個 tracked 檔案；以下 **92** 個收錄於 source/，另 **512** 個保留。公開 source 中 **76** 個原樣、**16** 個遮蔽；其中 **11** 個為 LOW_ENTROPY，不公開原始 blob id／SHA-256。部署對照為 Worker `acdbb2bd`、部署來源 `ddb10e2`；見 [SCOPE.md](SCOPE.md)、[DEPLOYMENT_MATCH.md](DEPLOYMENT_MATCH.md)、[REDACTIONS.md](REDACTIONS.md)。

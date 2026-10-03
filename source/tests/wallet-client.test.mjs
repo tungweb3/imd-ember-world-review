@@ -510,7 +510,7 @@ test('visibility-refresh-clears-stale-owner: a tab shown again after a “Log ou
   // (a) Another browser of A ends every device while this tab is hidden; shown again, it reads the session: signed out.
   const env=fakeEnv(),t=tab(w,w.browser(),fakeWallet(A),{env});await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
   const other=w.browser();assert.equal((await other.signIn(A)).verify.status,200);
-  assert.equal((await other.post('/api/auth/logout-all')).status,200);
+  assert.equal((await other.post('/api/auth/logout-all',{expectedAddress:A.address})).status,200);
   assert.equal(statusOf(t.client.state,w.clock.now()),'owner','hidden: nothing has told this tab yet');
   w.clock.advance(20_000);const n=t.calls.length;env.show();
   await until(()=>t.calls.length>n&&t.client.state.session===null);await settle();
@@ -1256,7 +1256,7 @@ test('N-7: a session revoked elsewhere (AUTH_REQUIRED) a day before its expiry i
   await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
   w.clock.advance(6*DAY);                                                                 // a day before the session's expiresAt
   const other=w.browser();assert.equal((await other.signIn(A)).verify.status,200);
-  const all=await other.post('/api/auth/logout-all');assert.deepEqual([all.status,await all.json()],[200,{revoked:2}]);
+  const all=await other.post('/api/auth/logout-all',{expectedAddress:A.address});assert.deepEqual([all.status,await all.json()],[200,{revoked:2}]);
   await t.client.refreshHome(true);
   const s=t.client.state;
   assert.deepEqual([s.session,s.home,s.expired,s.ended,statusOf(s,w.clock.now())],[null,null,false,'revoked','connected']);
@@ -1309,7 +1309,7 @@ test('N-7: My wallet says “Signed out.” after this page’s own sign-out and
   const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),en=(zh,e)=>e,zh=z=>z,at=t=>({state:structuredClone(t.client.state),now:w.clock.now()});
   // Revoked: another browser logs out every device; this page's next house read is a 401 AUTH_REQUIRED.
   const r=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv()});await r.client.signIn();
-  const other=w.browser();assert.equal((await other.signIn(A)).verify.status,200);assert.equal((await other.post('/api/auth/logout-all')).status,200);
+  const other=w.browser();assert.equal((await other.signIn(A)).verify.status,200);assert.equal((await other.post('/api/auth/logout-all',{expectedAddress:A.address})).status,200);
   await r.client.refreshHome(true);const revoked=at(r);r.stop();
   // This page's own sign-out.
   const o=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv()});await o.client.signIn();await o.client.signOut();const out=at(o);o.stop();
@@ -2330,7 +2330,7 @@ test('ADV-1 guard: a “Log out all devices” the server refused (this browser�
   const pick=x=>{current=x;for(const fn of subs)fn();},t=tab(w,b,null,{registry:{current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}},holdReply:p=>g.wait('all',ALL,p)});
   await until(()=>statusOf(t.client.state,w.clock.now())==='owner');
   const elsewhere=w.browser();assert.equal((await elsewhere.signIn(A)).verify.status,200);
-  assert.equal((await elsewhere.post('/api/auth/logout-all')).status,200);                // another device logs A out everywhere: this page does not know yet
+  assert.equal((await elsewhere.post('/api/auth/logout-all',{expectedAddress:A.address})).status,200); // another device logs A out everywhere: this page does not know yet
   g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));           // "Log out all devices": refused (401), the answer held
   pick(wb);await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch');          // a wallet on B is chosen: "Sign in as B"
   const click=t.client.signIn();await settle();pick(wn);await settle();                   // the click waits for that answer; another wallet becomes current
@@ -2355,7 +2355,7 @@ test('ADV-1: a “Log out all devices” the server refused, answered after anot
   const pick=x=>{current=x;for(const fn of subs)fn();},t=tab(w,b,null,{registry:{current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}},holdReply:p=>g.wait('all',ALL,p)});
   await until(()=>statusOf(t.client.state,w.clock.now())==='owner');
   const elsewhere=w.browser();assert.equal((await elsewhere.signIn(A)).verify.status,200);
-  assert.equal((await elsewhere.post('/api/auth/logout-all')).status,200);                // another device logs A out everywhere: this page does not know yet
+  assert.equal((await elsewhere.post('/api/auth/logout-all',{expectedAddress:A.address})).status,200); // another device logs A out everywhere: this page does not know yet
   g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));           // "Log out all devices": refused (401), the answer held
   pick(wb);await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch');          // a wallet on B is chosen: "Sign in as B"
   const click=t.client.signIn();await settle();pick(wn);await settle();await settle();    // the click waits for that answer; another wallet, A granted, becomes current

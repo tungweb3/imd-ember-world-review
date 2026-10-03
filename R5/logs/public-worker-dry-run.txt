@@ -1,0 +1,18 @@
+UTC_START=2026-10-03T17:05:54.9794298Z
+COMMAND=./node_modules/.bin/wrangler.cmd deploy --dry-run --outdir ../worker-public
+
+ ⛅️ wrangler 4.143.0 (update available 4.147.0)
+───────────────────────────────────────────────
+
+X [ERROR] Build failed with 2 errors:
+
+  X [ERROR] Cannot read directory "../../../../..": Access is denied.
+
+
+  X [ERROR] Could not resolve "<PUBLIC_SOURCE>\\worker\\index.ts"
+
+
+
+
+🪵  Logs were written to "<REMEDIATION_WORKSPACE>\wrangler-public-logs\wrangler-2026-10-03_17-05-56_024.log"
+UTC_END=2026-10-03T17:05:56.8239522Z EXIT=1

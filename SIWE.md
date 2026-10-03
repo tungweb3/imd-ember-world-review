@@ -1,3 +1,5 @@
+> Historical fourth-snapshot evidence (public commit `6e307de`, source `c491ff3`, deployed Worker `acdbb2bd`). Current R4/AUD4 repair evidence is in the root README and R5/. Source has changed; old source counts, tests, algorithms and fingerprints are not current results.
+
 # SIWE：登入、訊息檢查、nonce、session 與撤銷
 
 ## 1. 範圍與版本

@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 # SHA-256 of https://imdember.com responses, one GET each, Sat, 03 Oct 2026 13:01:17 GMT to Sat, 03 Oct 2026 13:01:36 GMT (response Date headers). Only these four static files and GET /api/auth/session were requested in this round.
 # sha256  size  path  (status, content-type, cache-control, date)
 b51fd33164084511d9fb0dc3a23cadfcecbb6965d74a0e418761b7a1bee0205a  2634  /  (HTTP 200 OK, text/html, public, max-age=0, must-revalidate; Date Sat, 03 Oct 2026 13:01:17 GMT)

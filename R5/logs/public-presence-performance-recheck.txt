@@ -1,0 +1,13 @@
+UTC_START=2026-10-03T17:04:54.1770747Z
+COMMAND=node --test --test-name-pattern=recording a production-sized roster tests/presence.test.mjs
+presence run (parse 2 bodies + derive + 1 upsert): 29.3 / 6.9 / 5.2 / 4.3 / 6.0 ms
+✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (72.4415ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 547.5277
+UTC_END=2026-10-03T17:04:55.0866296Z EXIT=0

@@ -1,0 +1,189 @@
+UTC_START=2026-10-03T17:08:13.5958023Z
+COMMAND=node --test --test-concurrency=3 tests/member.test.mjs tests/member-client.test.mjs tests/member-r4.test.mjs tests/aud4-auth.test.mjs tests/aud4-discovery.test.mjs tests/aud4-member-server.test.mjs
+✔ AUD4-01: intended A + cookie A revokes only A, while intended A + cookie B changes no session or challenge (136.5878ms)
+✔ AUD4-01: absent/forged/dead cookie cannot turn expectedAddress into authority (28.1588ms)
+✔ AUD4-01: stale page A never revokes shared cookie B; reconciliation shows actual B (50.1737ms)
+✔ AUD4-01: stale page A never revokes shared cookie B; reconciliation fails closed (34.4847ms)
+✔ AUD4-06: committed verify + truncated reconciles, second click asks no second signature (19.8987ms)
+✔ AUD4-06: committed verify + malformed reconciles, second click asks no second signature (16.6981ms)
+✔ AUD4-06: committed verify + invalid-fields reconciles, second click asks no second signature (19.6847ms)
+✔ AUD4-06: committed verify + transport-after-commit reconciles, second click asks no second signature (15.1738ms)
+✔ AUD4-06: failed reconciliation remains unknown; repeated click reconciles before any new prompt (18.8791ms)
+✔ AUD4-06: definite failed verify creates no session; uncertain delivery confirmed signed out permits one new flow (49.78ms)
+✔ AUD4-06: account switch during uncertain-verify reconciliation cannot restore A or prompt again (65.5018ms)
+✔ AUD4-06: provider switch during uncertain-verify reconciliation cannot restore A or prompt again (61.061ms)
+✔ AUD4-06: account abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (45.9202ms)
+✔ AUD4-06: provider abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (46.737ms)
+✔ AUD4-06: teardown abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (47.1386ms)
+✔ AUD4-06: conditional abandoned logout preserves a newer session of A or B and its cookie/flow (47.5628ms)
+✔ AUD4-06: matching abandoned session cleanup preserves a newer pending challenge and its flow cookie (44.505ms)
+✔ AUD4-03 original 80-claim case: denials free at A cannot poison B's admitted capacity (284.439ms)
+✔ AUD4-03 original 80-claim case: denials counted at A cannot poison B's admitted capacity (173.4135ms)
+✔ AUD4-03 multiple-colo admitted work: 60 reservations fill the global 6 s ceiling; the 61st asks no local key and sends no index read (612.4211ms)
+✔ AUD4-03 raced preflight: one IPv4 /24 atomically limits probes before any local key is asked (53.2418ms)
+✔ AUD4-03 raced preflight: one IPv6 /64 atomically limits probes before any local key is asked (43.103ms)
+✔ AUD4-03 raced preflight: two IPv6 /48 slots atomically limits probes before any local key is asked (44.8238ms)
+✔ AUD4-03 raced global preflight: 61 local successes still produce exactly 60 reservations/index operations (530.3221ms)
+✔ AUD4-03 preflight failure: missing/failing D1 stops before the local key and sends no index read (11.3515ms)
+✔ AUD4-03 slow local admission dates the final reservation with a fresh clock (13.4465ms)
+✔ AUD4-03 conservative D1 result: an applied row without RETURNING or changes sends no index read and is not refunded (17.597ms)
+✔ AUD4-03 old release rows remain compatible: their /64 waits but the neighbour can use the second /48 slot (19.3524ms)
+✔ AUD4-03 residual comparison: denials free local model, global admitted rows never include refusal (1061.0983ms)
+✔ AUD4-03 residual comparison: denials counted local model, global admitted rows never include refusal (2781.7808ms)
+✔ AUD4-03 refused same-network concurrency: 12 raced preflights ask the local key once, keep one probe, and retry exactly at 30 s (135.3951ms)
+✔ AUD4-03 opportunistic prune: each gate deletes at most two expired scopes and preserves unexpired markers (17.8422ms)
+✔ AUD4-03 missing 0008: lane fails closed while EOA login and ordinary home proof remain available (30.2635ms)
+✔ AUD4-03 missing index_lane_probes_net: lane fails closed while EOA login and ordinary home proof remain available (26.0313ms)
+✔ AUD4-03 missing index_lane_probes_expiry: lane fails closed while EOA login and ordinary home proof remain available (41.108ms)
+✔ AUD4-03 probe SQL cost guards: covering LIMITed net/expiry reads and PK expiry replacement after a two-row prune (7.8277ms)
+✔ AUD4-02: permissive ERC-1271 may log in/read but cannot bootstrap; no member or cookie is written (109.0102ms)
+✔ AUD4-02: existing contract/unknown identities read without last_login writes; bootstrap/PUT fail closed (54.0781ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ AUD4-02/04/05: missing 0008 fails persistent writes closed, keeps sign-in/profile reads, skips cron safely (34.5922ms)
+✔ AUD4-03/04 probe cron: each run deletes at most 200 expired markers, retains live backoff, and does not change member/admitted rows (27.6292ms)
+✔ AUD4-03/04 probe cleanup remains independent when either probe or M1 hardening schema is missing (46.1839ms)
+✔ AUD4-03/04 probe cleanup caps oversized/non-finite limits and supports the two-row opportunistic bound (23.1908ms)
+✔ AUD4-03/04 probe prune storage failure cannot cancel member cleanup or expose SQL/secret log text (17.3152ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 6 simultaneous distinct valid refusal attempts commit exactly five quota rows (19.1615ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 12 simultaneous distinct valid refusal attempts commit exactly five quota rows (39.0557ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 20 simultaneous distinct valid refusal attempts commit exactly five quota rows (53.561ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: success, stale version, cooldown, locked and unavailable refusals share one rolling budget (34.555ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 6 parallel fresh names cannot overspend while optimistic-version batches race (24.2269ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 12 parallel fresh names cannot overspend while optimistic-version batches race (28.3491ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 20 parallel fresh names cannot overspend while optimistic-version batches race (40.7387ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: concurrent same key/payload has one mutation and slot; retry works at a full budget (39.6563ms)
+✔ AUD4-05: concurrent same new key/different payload returns the committed winner even for INSERT OR IGNORE refusals (24.567ms)
+✔ AUD4-05: same-key success vs refusal cannot return an uncommitted local answer (19.5295ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: same-name no-op spends a fresh slot but never changes version, cooldown or history (21.9023ms)
+✔ AUD4-05: a no-op observed before moderation cannot be recorded as successful after its atomic guard fails (25.6338ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+✔ AUD4-05: per-member quotas remain independent while the existing per-IP cap still applies (59.6648ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: rolled-back success guard cannot hide quota refusal in fallback outcome recording (28.9891ms)
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ AUD4-05: storage failure recording a refusal answers 503 and cannot falsely claim it was recorded (18.7638ms)
+✔ AUD4-04: indexed cleanup has a per-table hard bound, drains backlog, preserves unexpired retries/current profile (46.3832ms)
+✔ AUD4-04: a member who never renames still gets cron cleanup; no DB skips and failures reveal no raw errors (18.7526ms)
+✔ the member follows the session: loaded when signed in, cleared when signed out, needs_name shown as such (82.8839ms)
+✔ an answer for the wallet the page has left is dropped; the new wallet’s own member shows (105.697ms)
+✔ signed out and in again with the same wallet: an answer of the earlier sign-in never replaces a newer one (186.8382ms)
+✔ an answer naming another wallet than the page’s is not shown (the cookie changed under the page) (111.2633ms)
+✔ 503 and network failures are "unavailable", never "needs a name"; a retry loads it (33.1604ms)
+✔ a save whose answer is lost is retried once with the same request id: saved once, one cooldown (20.4812ms)
+✔ refusals: cooldown shows the server’s time, a version conflict reads the profile again, the form never asks the wallet (56.0562ms)
+✔ "not now" folds the card for that member on this browser only; no name is made (41.8123ms)
+✔ a page load reads with GET and creates with POST only once: an existing member spends no per-IP write budget (66.7252ms)
+✔ clicking through houses asks for the name of the one the viewer stops at, not of every house passed (31.3594ms)
+✔ public names: one read per address a minute, a bad address asks nothing, a failure is no name (1.3798ms)
+✔ My wallet, as rendered: the first-name card says the name is public and tied to the wallet; each state says what it is (755.8817ms)
+✔ the house panel says whose home it is by the player name, with the short address kept below (807.9148ms)
+✔ AUD4-08 rendered UI: a present deadline disables only before its time; server-calibrated cooling remains authoritative for the hint (601.3466ms)
+✔ AUD4-02/07 rendered UI: contract policy is stable, and an uncertain save offers result-checking rather than a new name (587.4223ms)
+✔ M1-R2: pre-save GET(v0) cannot replace the saved v1 or its cooldown (92.4114ms)
+✔ M1-R2: GET2 returns before GET1, and latest GET may not roll back an already accepted version (24.8246ms)
+✔ M1-R2: late GET1 401/error cannot clear the profile accepted from GET2 (41.1929ms)
+✔ M1-R2: a newer GET(v2) remains after an earlier successful PUT(v1) body arrives (32.0374ms)
+✔ AUD4-07: committed PUT with a truncated or malformed body retries the exact original id once (52.9527ms)
+✔ AUD4-07: two lost bodies read back the committed profile, release saving, and block a new logical name (35.4035ms)
+✔ AUD4-07: retry blocked before idempotency lookup cannot declare an earlier PUT refused (22.9158ms)
+✔ AUD4-07: attempts that never reached the server keep the same request id when connectivity returns (16.0364ms)
+✔ AUD4-07: a never-ending success body has bounded waiting and readback does not issue a new PUT (23.1524ms)
+✔ AUD4-07: retry-delay exceptions still release saving and preserve the original operation (17.9397ms)
+✔ AUD4-07/M1-R2: an old wallet save cannot clear a newer wallet saving state or restore its name (30.4939ms)
+✔ AUD4-07: returning to the same wallet resumes its uncertain request rather than creating a new id (30.814ms)
+✔ AUD4-08: before, exactly at and after the server deadline, the store rerenders and GET refreshes cooldown (27.967ms)
+✔ AUD4-08: moving the client clock beyond the deadline cannot bypass the server cooldown (19.4669ms)
+✔ AUD4-08: teardown cancels the deadline and late reads, without another profile GET (29.6605ms)
+✔ AUD4-02 client: bootstrap write-policy refusal is explicit and does not request another wallet signature (15.2234ms)
+✔ E1 E3 E21 N01: a signed-in wallet gets exactly one member on first bootstrap, the same one after, from the session alone (132.6199ms)
+✔ E2 E15 E48 N02: no member without a live session; dead sessions are 401 and the cookie is left alone (47.2769ms)
+✔ writes need this site as Origin and a JSON request; refusals change nothing (30.8879ms)
+✔ E4 N12: two first bootstraps racing make one member; the loser rolls back whole and answers with the winner (42.8865ms)
+✔ a session row holding a mixed-case address (as an older row might) still resolves to the lowercase identity (28.9771ms)
+✔ E5 E11 E117: identities are eip155:1 only and canonical; another wallet gets another member (37.9185ms)
+✔ N03 N04 N05 E6: first name, public lookup, cooldown from the first name, and the member id never changes (30.8743ms)
+✔ N06 N07: names are unique site-wide by NFKC + ASCII case; the loser learns nothing about the holder (44.9126ms)
+✔ N08 N09: same value is a no-op; a case-only change is a change; the old name is kept 30 days for its member (86.5029ms)
+✔ N10 N11 E14: a form written for another member, or for an older profile, is refused and changes nothing (30.7281ms)
+✔ N13 N14: a retried request gets its first answer once; the same id with other content is a conflict (22.1948ms)
+✔ N15 E13: only the four fields are accepted; a member id, wallet, role or cooldown in the body is refused (20.7493ms)
+✔ N16 N17: format and reserved names are refused before any claim; the database holds the reserved names too (42.461ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ N18: five name writes a minute per member reach the database; then 429 with Retry-After, refusals counted (30.5105ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"LIMITER_UNAVAILABLE","colo":null,"net":"net:203.0.113.0/24"}
+✔ the per-IP limit: member:<ip> keys on AUTH_LIMITER, checked before the session; a missing binding is 503 (19.8215ms)
+✔ N19 N20: moderation renames to 會員-<code>, quarantines the name, and lets the member rename without the cooldown (68.2688ms)
+✔ races inside the write: a name taken, or a version moved, after the checks rolls the whole batch back (92.6152ms)
+✔ E7 E49: logout and session expiry end nothing of the member: same member, coins and life after signing in again (30.7385ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/world/names/:address","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ 503, not "new member": no database, or a database before migrations/0006; sign-in itself still works (35.3967ms)
+✔ the member routes leave the account routes as they were (15.8744ms)
+ℹ tests 111
+ℹ suites 0
+ℹ pass 111
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6691.3243
+UTC_END=2026-10-03T17:08:20.7255828Z EXIT=0

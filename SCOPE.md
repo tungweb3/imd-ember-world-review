@@ -1,3 +1,5 @@
+> Historical fourth-snapshot evidence (public commit `6e307de`, source `c491ff3`, deployed Worker `acdbb2bd`). Current R4/AUD4 repair evidence is in the root README and R5/. Source has changed; old source counts, tests, algorithms and fingerprints are not current results.
+
 # SCOPE：本次 World 公開審查範圍
 
 目標是 World 的資料讀取、錢包登入、session、席位／房屋權限及 M1 會員公開名稱。部署紀錄的 Worker 為 `acdbb2bd-8add-4b15-bfa6-a31266c83520`、部署來源為 `ddb10e28a867998323164e7585635efedfcf7788`；本快照從固定 Git source `c491ff3c9edf9d0eb39a9233ccfff101a7c8133c` 取檔。快照 source 與部署來源是不同識別值。

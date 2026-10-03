@@ -44,8 +44,8 @@ export const BODY_LIMIT=2048;
  *     a minute), asked last; FRESH_NETWORK_RESERVE of it only for a network with no challenge in the last minute (A-7).
  *  Every 429/503 of these routes, and every challenge of a surge, writes one JSON line (handleAccountApi: evt, route, status,
  *  error, reason, colo, net, walletType when known), and so does a claim kept counted after its key refused it (Swarm audit
- *  1ef8e8a6: index_lane_kept, reason release_failed or release_cap, AUD3-02; erc1271_claim_kept, reason release_failed,
- *  AUD3-03; evt, route, reason, colo, net, at most one per claim). About the client they carry exactly: `net`, a key
+ *  1ef8e8a6: erc1271_claim_kept, reason release_failed, AUD3-03; evt, route, reason, colo, net, at most one per claim;
+ *  AUD4-03 index refusals no longer reserve rows or need release logs). About the client they carry exactly: `net`, a key
  *  derived from its IP (IPv4 /24, IPv6 /48, 'net:unknown' without one), and on auth_surge lines `addr`, the address's
  *  first 6 characters ('0x' and 4 hex digits). Never a full IP, a full address, a cookie, token, signature, message or
  *  nonce. IPv6 challenge rows also keep the /64 prefix that asked (`sub`: never the host bits, never logged), as long as
@@ -98,16 +98,16 @@ export const BODY_LIMIT=2048;
  *   address through the first two keys plus 1 per /24 (2 per /48) through the lane, and <= 60/min per location (three
  *   keys). These eth_call bounds hold with AUD3-03's release: a check is admitted only with its D1 claim in place and the
  *   key's yes, and a claim stays counted once its check was admitted, whatever the eth_call answers.
- *   The releases rest on one assumption (Swarm audit 1ef8e8a6, AUD3-02 and AUD3-03): a lane claim (INDEX_LANE) or a
- *   contract claim whose key refused (or failed) is released, so a refused ask spends no D1 share. That assumes a refused
- *   call to a Cloudflare rate-limit binding takes nothing from anyone, as the repository's model has it (tests:
- *   windowLimiter, a fixed 60 s window). It is not verified against Cloudflare (open evidence). Were refused calls counted
- *   in a sliding minute, re-asks would keep a closed key closed with fewer networks; measured through the Worker under
- *   such a model (tests 'AUD3-02 residual', 'AUD3-03 residual'): 10 /24s re-asking a closed 'chain:index:lane' every 30 s
- *   keep a buyer's lane out for 3 minutes (9 do not; without the release, 20 are needed), and 6 /24s each sending one
- *   garbage verify every 6 s keep a first-time smart wallet out of a closed 'chain:erc1271' for 3 minutes (5 do not;
- *   under the fixed window none do, and the owner signs in once the minute is over). Re-asks are bounded: a refusing lane
- *   key at most twice a minute per network slot (before: once); a refusing ERC-1271 key by a /24's challenges and code
+ *   ERC-1271 contract claims whose key refused (or failed) are released (AUD3-03), giving back their D1 called share.
+ *   Index refusals instead retain a separate 30 s probe marker and never take an admitted D1 share (AUD4-03); there
+ *   is no INDEX_LANE release. Neither can refund a Cloudflare token if that limiter counted the denied call. Actual
+ *   production denial accounting is unverified. windowLimiter counts every call but uses a fixed 60 s boundary;
+ *   a denial-counted sliding model can keep a closed key closed. Measured through the Worker: 10 /24s re-asking
+ *   'chain:index:lane' every 30 s keep a buyer out for 3 minutes (9 do not; AUD4-03 preserves that backoff), and 6 /24s
+ *   each sending one garbage verify every 6 s keep a first-time smart wallet out of a closed 'chain:erc1271' for
+ *   3 minutes (5 do not; under the fixed window none do, and the owner signs in once the minute is over). Re-asks
+ *   are bounded: a refusing index key at most twice a minute per network slot (the separate probe gate); a refusing
+ *   ERC-1271 key by a /24's challenges and code
  *   share (up to 10 a minute for first-time addresses, 30 for known ones, before: 3).
  *  Every count is dated when the request body has arrived (A-5), and the contract check again after its code read.
  *  Refusals are 429 SIGN_IN_BUSY (challenge) and 429 CHAIN_BUSY (ERC-1271), both Retry-After 60. The first flood guard is
@@ -141,28 +141,25 @@ export const BODY_LIMIT=2048;
  *     per location (864 k index reads a month) that is about 0.9 M rows written a month per location when the rows
  *     exist, at most about 1.7 M if every read kept a new address (only an address the index names a seat for is kept,
  *     so each new one takes a seat); the cron's prune scans that small table and writes 1 per row it deletes. A refused
- *     read whose answer counts no seat claims its network's index lane (N-6, INDEX_LANE: reads ≤ 2 covering entries of
- *     index_lanes_net and ≤ 60 of index_lanes_at; writes 3 when it takes the lane, the row and its 2 index entries, none
- *     when refused); a lane taken adds one index read (its KEEP_INDEX as above) and one sightings read, and the next
- *     cron run (every 15 min) deletes its row once older than a minute (3 more), so the table holds at most about 16
- *     minutes of lanes, ≤ (INDEX_LANE_BUDGET + INDEX_LANE_RELEASES) x 10 x 16, about 12.8 k rows at the ceiling (the
- *     counts above read only the last minute's and 6 s's entries, so its size adds no read). A network taking its lane
- *     every minute of a month writes about 259 k rows (about $0.26; an IPv6 /48 twice that): one long-lived throwaway
- *     session can cause that from each network it reads from. A claim the key then refuses (or that fails) is released
- *     (AUD3-02, INDEX_LANE_RELEASE: reads ≤ 2 + 80, writes 3) within INDEX_LANE_RELEASES per 6 s site-wide, and its
- *     prune (3) comes 30 s earlier; past that cap, or if the release fails, it stays as a lane taken (fail closed).
- *     Site-wide worst case, the same for IPv4 and IPv6 (both counts are site-wide): claims ≤ INDEX_LANE_BUDGET +
- *     INDEX_LANE_RELEASES per 6 s (800 a minute), releases ≤ 200 a minute, so rows written ≤ 800 x 3 (claims) + 200 x 3
- *     (releases) + 800 x 3 (prune) = 5,400 a minute, about 233 M a month (about $183 past the included 50 M if nothing
- *     else used them; without releases the ceiling bounds lanes at 25.9 M a month, about 155 M rows written, about $105);
- *     release reads ≤ 200 x 82 a minute, about 0.7 bn a month, within the included reads. Reaching the release cap takes
- *     about 100 /24s (IPv6: 50 /48s using both /64s) each re-asking twice a minute while their location's key refuses,
- *     plus sessions to feed them (one session's 20 home reads a minute per location feeds ten such networks); reaching
- *     the ceiling part takes, as before, 600 /24s a minute. Per /24 while its location's lane key refuses: ≤ 2 released
- *     claims a minute (an IPv6 /48 ≤ 4, from two /64s), 9 rows each with the prune, ≤ 18 rows a minute (about 0.78 M a
- *     month, about $0.78), inside the site-wide bound. Claims D1 refuses read ≤ 62 and write none (20,000 a minute all
- *     month: about 54 bn read, about $54). Lane reads raise chain:index's 20 a minute per location to at most 40, and
- *     only while 20 other networks a minute take lanes there.
+ *     read whose answer counts no seat preflights its network's index lane (AUD4-03, INDEX_LANE_READY: reads ≤ 2
+ *     covering index_lanes_net entries and ≤ 60 index_lanes_at entries). A location limiter refusal stops here, with
+ *     no admitted-lane writes or release query. Local admission repeats both bounded checks in atomic INDEX_LANE: ≤ 62 more
+ *     reads, writes 3 when it reserves the row and its two index entries, none if a racing claim took the capacity.
+ *     Between preflight and the local key, a separate atomic probe gate (0008 index_lane_probes) keeps the 30 s net
+ *     backoff. Its batch deletes at most two expired scopes (≤ 2 expiry entries, 2 PK row lookups, 8 entries written)
+ *     and reserves one probe (≤ 2 covering net entries and 1 PK row; ≤ 4 entries written). Allows/refusals/failures
+ *     all keep this marker; no refund. Every gate writes at most 12 entries, never a global refused-attempt counter.
+ *     A lane taken adds one index operation (≤ 5 pages, KEEP_INDEX as above) and one sightings read. The cron (every
+ *     15 min) deletes its row once older than a minute (3 more). Under that cron schedule, the table holds about
+ *     16 minutes of reservations: ≤ INDEX_LANE_BUDGET x 10 x 16 = 9,600 rows at the ceiling. Counts read only recent
+ *     indexed entries. Site-wide, ≤ 600 reservations a minute, no release updates: reservation plus eventual prune
+ *     writes ≤ 3,600 rows a minute for admitted reservations and their prune. Refused probes write zero admitted
+ *     rows. Their separate marker expires at 30 s, reclaimed by two-row opportunistic prune or independent cron
+ *     prune of at most 200 scopes (≤ 800 entries written). Distinct-network input/storage has no global hard cap;
+ *     imposing a global probe cap would make other locations' availability depend on refusals again.
+ *     A racing D1 refusal may have spent a local token; refused limiter calls may count too (external unknown).
+ *     The modeled location ceiling remains 20 normal + 20 lane operations a minute; Cloudflare's permissive,
+ *     eventually consistent limiter is not an exact accounting guarantee. D1 alone strictly caps lane reservations.
  *   So a successful sign-in writes about 13 rows and reads about 5–91; the cron later deletes the challenge (5) and the
  *   expired session (6; 5 if it was revoked), and each cron run (96 a day) reads the challenges older than 10 min still kept (used ones, 1 day).
  *  Worst case at the valve, sustained for a whole 30-day month (600/min = 25.9 M challenges), on Workers Paid (50 M rows
@@ -255,29 +252,46 @@ export const CLAIM_LANE_0004=`UPDATE login_challenges SET called_at=?1 WHERE non
 /** N-6: the index lanes' site-wide ceiling, INDEX_LANE_BUDGET per INDEX_LANE_WINDOW_MS (600 a minute, counted in 6 s
  *  slices like the challenge valve, so a refused claim reads at most 60 entries of index_lanes_at). */
 export const INDEX_LANE_BUDGET=60,INDEX_LANE_WINDOW_MS=6_000;
-/** N-6 (server/ownership.ts home): an NFT-index read the location's chain:index budget refused, whose answer counts no
- *  seat, may take its network's lane: ?5 a minute (netScale: one per /24; two per /48, never two from one /64 ?2, whose
- *  row released by INDEX_LANE_RELEASE still counts as its own), and at most ?7 site-wide since ?6; the row is written
- *  only then (one atomic statement), which returns its row id, and only then is the 'chain:index:lane' key asked. Reads
- *  at most ?5 covering entries of index_lanes_net and ?7 of index_lanes_at. */
-export const INDEX_LANE=`INSERT INTO index_lanes(net,sub,at) SELECT ?1,?2,?3
- WHERE (SELECT count(*)<?5 AND total(sub IS ?2 OR sub IS 'released:'||?2)=0 FROM (SELECT sub FROM index_lanes WHERE net=?1 AND at>?4 LIMIT ?5))
- AND (SELECT count(*) FROM (SELECT 1 FROM index_lanes WHERE at>?6 LIMIT ?7))<?7 RETURNING rowid AS id`;
-/** AUD3-02 (Swarm audit 1ef8e8a6 #2): a claim whose 'chain:index:lane' key then refused (or failed) made no read, so its
- *  row is released, in one conditional statement: ?1 its row id (null when D1 returned none: then its own net ?2, sub ?3
- *  and at ?4 name it, which no other row can share, since INDEX_LANE admits no second row of one /64 within a minute),
- *  dated back to ?5 = at - NETWORK_WINDOW_MS + INDEX_LANE_RETRY_MS, so it leaves the site-wide count at once and its
- *  network's count 30 s after the claim (that network may claim again then, never sooner: a refusing key is asked at
- *  most twice a minute per network slot, before once), and marked ('released:' before its sub: released once, and still
- *  its /64's own row). Only while fewer than ?7 (INDEX_LANE_RELEASES) rows released for claims of the same 6 s slice
- *  (?6, ?5] exist site-wide: past that cap the row stays, holding its network for the minute and the site-wide count
- *  for its 6 s slice, as before AUD3-02 (fail closed), and so does a row whose release fails. Reads ≤ 2 to find the
- *  row and ≤ 80 entries of index_lanes_at and their rows (that slice's ≤ 60 claims and ≤ 20 releases); writes 3 (the
- *  row and its two index entries: index_lanes_net holds at and sub, index_lanes_at holds at). Assumes a refused call
- *  to the binding takes nothing from anyone (the NETWORK_CHALLENGE_BUDGET comment, "What that buys"). */
-export const INDEX_LANE_RETRY_MS=30_000,INDEX_LANE_RELEASES=20;
-export const INDEX_LANE_RELEASE=`UPDATE index_lanes SET at=?5,sub='released:'||coalesce(sub,'') WHERE net=?2 AND sub IS ?3 AND at=?4 AND (?1 IS NULL OR rowid=?1)
- AND (SELECT count(*) FROM (SELECT 1 FROM index_lanes WHERE at>?6 AND at<=?5 AND +sub GLOB 'released:*' LIMIT ?7))<?7`;
+/** N-6 / AUD4-03: a lane spends admitted work only. ?5 per minute (one per /24, two per /48 and never two from one
+ *  /64 ?2), at most ?7 site-wide since ?6. Keep the 'released:' term for rows left by an older deployment. Each check
+ *  reads at most ?5 covering index_lanes_net entries and ?7 index_lanes_at entries. */
+const INDEX_LANE_ELIGIBILITY=`(SELECT count(*)<?5 AND total(sub IS ?2 OR sub IS 'released:'||?2)=0 FROM (SELECT sub FROM index_lanes WHERE net=?1 AND at>?4 LIMIT ?5))
+ AND (SELECT count(*) FROM (SELECT 1 FROM index_lanes WHERE at>?6 LIMIT ?7))<?7`;
+/** A bounded, read-only preflight, to avoid probing a location key for an already-spent network or global window.
+ *  Not a reservation: the atomic INSERT must repeat both checks after the location limiter admits the request. */
+export const INDEX_LANE_READY=`SELECT 1 ready WHERE ${INDEX_LANE_ELIGIBILITY}`;
+export const INDEX_LANE=`INSERT INTO index_lanes(net,sub,at) SELECT ?1,?2,?3 WHERE ${INDEX_LANE_ELIGIBILITY} RETURNING rowid AS id`;
+/** AUD4-03: a probe is separate from admitted work. At most one per /24 or /64, two per /48, every 30 s, regardless
+ *  of whether the location key allows, refuses or fails. No global probe cap that could starve other locations. */
+export const INDEX_PROBE_BACKOFF_MS=30_000,INDEX_PROBE_OPPORTUNISTIC_PRUNE=2,INDEX_PROBE_CRON_PRUNE=200;
+/** ?1 now; ?2 hard-clamped batch size. Covering expiry read, then at most ?2 PK lookups/deletions (four B-tree entries
+ *  per row: table, text PK, net index, expiry index). INDEXED BY fails closed instead of scanning a missing index. */
+export const INDEX_PROBE_PRUNE=`DELETE FROM index_lane_probes WHERE scope_key IN
+ (SELECT scope_key FROM index_lane_probes INDEXED BY index_lane_probes_expiry WHERE expires_at<=?1 ORDER BY expires_at,scope_key LIMIT ?2)`;
+/** ?1 canonical scope, ?2 net, ?3 sub, ?4 current time, ?5 expiry, ?6 netScale. One atomic UPSERT; reads at most two
+ *  covering network entries and one PK row. Expired same-scope rows can be replaced even if prune chose other rows. */
+export const INDEX_PROBE=`INSERT INTO index_lane_probes(scope_key,net,sub,probed_at,expires_at) SELECT ?1,?2,?3,?4,?5
+ WHERE (SELECT count(*)<?6 AND total(scope_key IS ?1)=0 FROM
+  (SELECT scope_key FROM index_lane_probes INDEXED BY index_lane_probes_net WHERE net=?2 AND expires_at>?4 LIMIT ?6))
+ ON CONFLICT(scope_key) DO UPDATE SET net=excluded.net,sub=excluded.sub,probed_at=excluded.probed_at,expires_at=excluded.expires_at
+ WHERE index_lane_probes.expires_at<=excluded.probed_at RETURNING scope_key`;
+const PROBE_SCHEMA_MISSING=/no such (?:table|index):\s*(?:main\.)?index_lane_probes(?:_net|_expiry)?\b/i;
+/** Independent cron cleanup: missing migration/index is a fixed status, not a leaked SQL error. Storage failures
+ *  propagate to the caller's fixed unavailable log. The caller cannot raise the per-call deletion cap above 200. */
+export async function pruneIndexProbes(db:D1Database,now:number,limit=INDEX_PROBE_CRON_PRUNE):Promise<
+ {status:'cleaned';deleted:number}|{status:'schema_unavailable'}>{
+  const cap=Number.isFinite(limit)?Math.max(0,Math.min(INDEX_PROBE_CRON_PRUNE,Math.trunc(limit))):INDEX_PROBE_CRON_PRUNE;
+  try{return {status:'cleaned',deleted:(await db.prepare(INDEX_PROBE_PRUNE).bind(now,cap).run()).meta.changes??0};}
+  catch(e){if(PROBE_SCHEMA_MISSING.test(errorText(e)))return {status:'schema_unavailable'};throw e;}
+}
+/** Prune at most two expired scopes, then atomically reserve this probe. Missing 0008 or D1 failure gives no lane;
+ *  keeping a reservation whose result was unreadable is conservative. Local outcomes never refund the marker. */
+async function reserveIndexProbe(db:D1Database,net:string,sub:string|null,now:number){
+  const scope=net+'|'+(sub??'');
+  const [,r]=await db.batch([db.prepare(INDEX_PROBE_PRUNE).bind(now,INDEX_PROBE_OPPORTUNISTIC_PRUNE),
+    db.prepare(INDEX_PROBE).bind(scope,net,sub,now,now+INDEX_PROBE_BACKOFF_MS,netScale(net))]);
+  return r.results?.[0]?.scope_key===scope||r.meta.changes===1;
+}
 /** After CLAIM_CONTRACT and CLAIM_LANE refused: was it the address's share (and this network's check of it)? (Else the
  *  network's.) For the log line only. */
 const ADDRESS_CONTRACT_CHECKS='SELECT count(*) n FROM (SELECT 1 FROM login_challenges WHERE address=?1 AND called_at>?2 LIMIT ?3)';
@@ -464,17 +478,18 @@ export async function verifySignature(message:string,signature:`0x${string}`,add
 const EVM_HALT=/^(?:execution reverted|out of gas|invalid opcode|invalid jump destination|stack (?:underflow|overflow|limit reached)|write protection|return data out of bounds)\b/i;
 export const reverted=(e:unknown)=>{const {code,message}=(e&&typeof e==='object'?e:{}) as {code?:unknown;message?:unknown};
   return code===3||(code===-32000&&typeof message==='string'&&EVM_HALT.test(message));};
-export type Session={address:string;expiresAt:number;tokenHash:string};
+export type Session={address:string;expiresAt:number;tokenHash:string;walletType:string|null;verificationMethod:string|null};
 /** The live session of this request, or why there is none ('none': no cookie). */
 export async function readSession(request:Request,db:D1Database,now:number):Promise<Session|'none'|'AUTH_REQUIRED'|'SESSION_EXPIRED'>{
   const token=readCookie(request,SESSION_COOKIE);
   if(!token)return 'none';
   if(!/^[\w-]{43}$/.test(token))return 'AUTH_REQUIRED';
   const tokenHash=await sha256(token);
-  const row=await db.prepare('SELECT address,expires_at,revoked_at FROM sessions WHERE token_hash=?1').bind(tokenHash).first<{address:string;expires_at:number;revoked_at:number|null}>();
+  const row=await db.prepare('SELECT address,expires_at,revoked_at,wallet_type,verification_method FROM sessions WHERE token_hash=?1').bind(tokenHash)
+    .first<{address:string;expires_at:number;revoked_at:number|null;wallet_type:string|null;verification_method:string|null}>();
   if(!row||row.revoked_at!==null)return 'AUTH_REQUIRED';
   if(row.expires_at<=now)return 'SESSION_EXPIRED';
-  return {address:row.address,expiresAt:row.expires_at,tokenHash};
+  return {address:row.address,expiresAt:row.expires_at,tokenHash,walletType:row.wallet_type,verificationMethod:row.verification_method};
 }
 
 /** `now` is when the route began; challenge and verify take their own after the body. */
@@ -603,10 +618,29 @@ async function session({request,db,now}:Omit<Ctx,'origin'>):Promise<Response>{
 async function logout({request,db,now}:Ctx):Promise<Response>{
   if(!/^application\/json\s*(;|$)/i.test(request.headers.get('content-type')??''))return fail(400,'BAD_REQUEST');
   const token=readCookie(request,SESSION_COOKIE),flow=readCookie(request,FLOW_COOKIE),writes=[];
+  const body=await readJson(request);
+  if(!body)return fail(400,'BAD_REQUEST');
+  let flowHash=flow?await sha256(flow):null,clearFlowCookie=true;
+  // AUD4-06 abandoned-flow cleanup is conditional on its challenge, not whichever cookie a newer tab installed.
+  // The nonce is a consistency assertion only: the caller must still hold the matching session token. A conflict
+  // clears no cookie or flow and invalidates nothing, preserving a newer A or B session.
+  if(body.expectedNonce!==undefined){
+    const nonce=body.expectedNonce;
+    if(typeof nonce!=='string'||! /^[\da-f]{32}$/.test(nonce))return fail(400,'BAD_REQUEST');
+    const matches=token?await db.prepare(`SELECT 1 matched,
+      (SELECT flow_hash FROM login_challenges WHERE nonce=?2) flow_hash FROM sessions WHERE token_hash=?1 AND nonce=?2`)
+      .bind(await sha256(token),nonce).first<{matched:number;flow_hash:string|null}>():null;
+    if(!matches)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
+    // Another tab may already have a newer challenge but not yet a newer session. Clean only the abandoned
+    // challenge's original flow, and never clear a different current flow cookie. A pruned old challenge is safe
+    // to skip: the token still names the one session being revoked, but no old flow is inferred from a new cookie.
+    clearFlowCookie=typeof matches.flow_hash==='string'&&matches.flow_hash===flowHash;
+    flowHash=matches.flow_hash;
+  }
   if(token)writes.push(db.prepare('UPDATE sessions SET revoked_at=?1 WHERE token_hash=?2 AND revoked_at IS NULL').bind(now,await sha256(token)));
-  if(flow)writes.push(db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE flow_hash=?2 AND used_at IS NULL AND invalidated_at IS NULL').bind(now,await sha256(flow)));
+  if(flowHash)writes.push(db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE flow_hash=?2 AND used_at IS NULL AND invalidated_at IS NULL').bind(now,flowHash));
   if(writes.length)await db.batch(writes);
-  return reply(204,null,[clearSession(),clearFlow()]);
+  return reply(204,null,[clearSession(),...clearFlowCookie?[clearFlow()]:[]]);
 }
 /** Sign out everywhere (F-4): this request's live session names the address; every live session of it is revoked, and
  *  every open challenge for it (its index range: only the last CHALLENGE_TTL_MS can still be open) and of this flow is
@@ -614,10 +648,16 @@ async function logout({request,db,now}:Ctx):Promise<Response>{
  *  401 and changes nothing, its cookie included (AUD3-06: the browser may hold a cookie another tab has just set by the
  *  time this answer lands). Never limited, like logout: it only ends the caller's own address. D1: reads the address's
  *  live sessions (sessions_live) and at most the challenges of the last 5 min; writes 1 + 1 index entry per session ended. */
-async function logoutAll({request,db,now}:Ctx):Promise<Response>{
+async function logoutAll({request,db,deps}:Ctx):Promise<Response>{
   if(!/^application\/json\s*(;|$)/i.test(request.headers.get('content-type')??''))return fail(400,'BAD_REQUEST');
-  const s=await readSession(request,db,now),flow=readCookie(request,FLOW_COOKIE);
+  // AUD4-01: the body asserts the account the confirmation named, never authority to revoke it. The request's
+  // live cookie must name that same address. A stale page holding A with B's cookie changes neither account nor flow.
+  // Read time again after the bounded body, so a slow request cannot act with an already-expired session.
+  const body=await readJson(request),now=clock(deps),s=await readSession(request,db,now),flow=readCookie(request,FLOW_COOKIE);
   if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s);
+  const expected=body?.expectedAddress;
+  if(typeof expected!=='string'||!/^0x[\da-fA-F]{40}$/.test(expected))return fail(400,'BAD_REQUEST');
+  if(expected.toLowerCase()!==s.address.toLowerCase())return fail(409,'ACCOUNT_CONTEXT_CHANGED');
   const [ended]=await db.batch([
     db.prepare(REVOKE_ALL_SESSIONS).bind(now,s.address),
     db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE issued_at>?3 AND address=?2 AND used_at IS NULL AND invalidated_at IS NULL').bind(now,s.address,now-CHALLENGE_TTL_MS),
@@ -684,26 +724,25 @@ async function accountRoute(request:Request,deps:AccountDeps,pathname:string):Pr
     if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s);
     if(!await permit(deps,'home','session:'+s.tokenHash.slice(0,32)))return noted(fail(429,'RATE_LIMITED',[],{'Retry-After':'60'}),{reason:'home'});
     const fresh=new URL(request.url).searchParams.get('fresh')==='1',budget=()=>permit(deps,'chain',CHAIN_KEYS.index);
-    // N-6: the lane of this request's own network (INDEX_LANE, counted in D1 first, so one network's refused claims never
-    // spend the key), then its key 'chain:index:lane' (fails closed; a missing binding is 503 as for the main key). Any
-    // error of the claim (a database before migrations/0005, D1 failing) is no lane: the read stays limited.
-    // AUD3-02: a claim the key did not admit (refused, or its binding failed) made no read, so exactly its row is
-    // released (INDEX_LANE_RELEASE: by the row id the claim returned, else by its own net, sub and at), within
-    // INDEX_LANE_RELEASES per 6 s site-wide; past that cap, or if the release fails, the row holds its network for the
-    // minute and the site-wide count for its 6 s slice, as before, and one index_lane_kept line says why. An admitted
-    // claim keeps its row: a read that was sent is never refunded (AUD3-01). A D1 that returned neither the row nor
-    // changes is treated as no lane (its row, if any, stays).
-    const lane=async()=>{const t=clock(deps),net=deps.client??'net:unknown',sub=deps.sub??null;let id:unknown;
-      try{const r=await db.prepare(INDEX_LANE).bind(net,sub,t,t-NETWORK_WINDOW_MS,netScale(net),t-INDEX_LANE_WINDOW_MS,INDEX_LANE_BUDGET).run();
-        id=r.results?.[0]?.id;if(typeof id!=='number'&&r.meta.changes!==1)return false;}
+    // AUD4-03: preflight the bounded network/global counts, atomically reserve a separate 30 s network probe, ask the
+    // local limiter, then atomically reserve admitted
+    // work in D1. A local refusal (or failure) writes no admitted lane row, so it cannot fill another location's ceiling.
+    // The preflight is advisory: races must still pass INDEX_LANE with a fresh clock after the limiter. A race lost
+    // then may spend a local token but sends no index read. Probe backoff counts allows/refusals/failures alike,
+    // independently of admitted capacity and with no refund; Cloudflare's actual counting is still unknown.
+    // D1 errors (including before migration 0005) give no lane. Missing limiter remains 503. Once reserved, no refund
+    // for a sent/failed index read (AUD3-01); absent both RETURNING and changes also fails closed, keeping any row.
+    const lane=async()=>{const net=deps.client??'net:unknown',sub=deps.sub??null;let t=clock(deps);
+      try{if(!await db.prepare(INDEX_LANE_READY).bind(net,sub,t,t-NETWORK_WINDOW_MS,netScale(net),t-INDEX_LANE_WINDOW_MS,INDEX_LANE_BUDGET).first())return false;}
       catch{return false;}
-      let admitted=false;
-      try{admitted=await permit(deps,'chain',CHAIN_KEYS.indexLane);}
-      finally{if(!admitted){const b=t-NETWORK_WINDOW_MS+INDEX_LANE_RETRY_MS;let kept='release_failed';
-        try{kept=(await db.prepare(INDEX_LANE_RELEASE).bind(typeof id==='number'?id:null,net,sub,t,b,b-INDEX_LANE_WINDOW_MS,INDEX_LANE_RELEASES).run()).meta.changes===1?'':'release_cap';}
-        catch{/* kept, as past the cap */}
-        if(kept)audit(deps,{evt:'index_lane_kept',route:'/api/me/home',reason:kept});}}
-      return admitted;};
+      t=clock(deps);
+      try{if(!await reserveIndexProbe(db,net,sub,t))return false;}
+      catch{return false;}
+      if(!await permit(deps,'chain',CHAIN_KEYS.indexLane))return false;
+      t=clock(deps);
+      try{const r=await db.prepare(INDEX_LANE).bind(net,sub,t,t-NETWORK_WINDOW_MS,netScale(net),t-INDEX_LANE_WINDOW_MS,INDEX_LANE_BUDGET).run();
+        return typeof r.results?.[0]?.id==='number'||r.meta.changes===1;}
+      catch{return false;}};
     try{return reply(200,await deps.ownership.home(s.address,{chain:deps.chain,db,now,waitUntil:deps.waitUntil,budget,lane,clock:()=>clock(deps)},fresh));}
     catch(e){if(e instanceof LimiterMissing)throw e;return fail(503,'OWNERSHIP_UNAVAILABLE');}
   }catch(e){return e instanceof LimiterMissing?noted(fail(503,'LIMITER_UNAVAILABLE'),{reason:'missing:'+e.binding}):noted(fail(503,'AUTH_UNAVAILABLE'),{reason:'error'});}

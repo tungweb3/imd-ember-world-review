@@ -16,16 +16,20 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
 const owners=map=>Object.assign(Array(2000).fill(null),map);
 
 test('migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes',()=>{
-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql']);
+  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql']);
   const db=openD1(),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
-  assert.deepEqual(tables,['economy_accounts','index_candidates','index_lanes','life_state','login_challenges','member_profiles','members','nickname_claims','profile_history','profile_requests',
+  assert.deepEqual(tables,['economy_accounts','index_candidates','index_lane_probes','index_lanes','life_state','login_challenges','member_profiles','members','nickname_claims','profile_history','profile_requests',
     'seat_presence','sessions','wallet_identities']);
   const indexes=t=>db.raw.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL ORDER BY name").all(t).map(r=>r.name);
   assert.deepEqual(indexes('login_challenges'),['login_challenges_address','login_challenges_called_address','login_challenges_called_net','login_challenges_flow','login_challenges_issued','login_challenges_net']);
   assert.deepEqual(indexes('sessions'),['sessions_address','sessions_erc1271','sessions_expires','sessions_live']);
   assert.deepEqual(indexes('index_lanes'),['index_lanes_at','index_lanes_net']);
+  assert.deepEqual(indexes('index_lane_probes'),['index_lane_probes_expiry','index_lane_probes_net']);
   assert.deepEqual(indexes('nickname_claims'),['nickname_claims_member','nickname_claims_one_active']);
-  assert.deepEqual(indexes('profile_requests'),['profile_requests_recent']);assert.deepEqual(indexes('profile_history'),['profile_history_member']);
+  assert.deepEqual(indexes('profile_requests'),['profile_requests_expiry','profile_requests_recent']);
+  assert.deepEqual(indexes('profile_history'),['profile_history_expiry','profile_history_member']);
+  assert.deepEqual(db.raw.prepare("SELECT name,tbl_name FROM sqlite_master WHERE type='trigger' ORDER BY name").all().map(r=>({...r})),
+    [{name:'profile_requests_write_budget',tbl_name:'profile_requests'}]);
   assert.deepEqual(db.raw.prepare('SELECT name FROM pragma_table_info(?) ORDER BY cid').all('login_challenges').map(r=>r.name).slice(-2),['sub','called_via']);
 });
 

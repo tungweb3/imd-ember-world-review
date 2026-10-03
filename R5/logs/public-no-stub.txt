@@ -1,0 +1,637 @@
+UTC_START=2026-10-03T16:58:21.0769403Z
+COMMAND=npm test -- --test-concurrency=3
+
+> stickember-imd-world@0.1.0 test
+> node --test tests/*.test.mjs --test-concurrency=3
+
+✔ AUD4-01: intended A + cookie A revokes only A, while intended A + cookie B changes no session or challenge (605.6293ms)
+✔ AUD4-01: absent/forged/dead cookie cannot turn expectedAddress into authority (112.0107ms)
+✔ AUD4-01: stale page A never revokes shared cookie B; reconciliation shows actual B (154.9034ms)
+✔ AUD4-01: stale page A never revokes shared cookie B; reconciliation fails closed (114.5707ms)
+✔ AUD4-06: committed verify + truncated reconciles, second click asks no second signature (34.6512ms)
+✔ AUD4-06: committed verify + malformed reconciles, second click asks no second signature (58.4725ms)
+✔ AUD4-06: committed verify + invalid-fields reconciles, second click asks no second signature (67.7464ms)
+✔ AUD4-06: committed verify + transport-after-commit reconciles, second click asks no second signature (27.503ms)
+✔ AUD4-06: failed reconciliation remains unknown; repeated click reconciles before any new prompt (55.9373ms)
+✔ AUD4-06: definite failed verify creates no session; uncertain delivery confirmed signed out permits one new flow (74.5185ms)
+✔ AUD4-06: account switch during uncertain-verify reconciliation cannot restore A or prompt again (63.5567ms)
+✔ AUD4-06: provider switch during uncertain-verify reconciliation cannot restore A or prompt again (49.6325ms)
+✔ AUD4-06: account abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (54.9672ms)
+✔ AUD4-06: provider abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (73.1199ms)
+✔ AUD4-06: teardown abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (53.0674ms)
+✔ AUD4-06: conditional abandoned logout preserves a newer session of A or B and its cookie/flow (162.1268ms)
+✔ AUD4-06: matching abandoned session cleanup preserves a newer pending challenge and its flow cookie (141.8542ms)
+✔ AUD4-03 original 80-claim case: denials free at A cannot poison B's admitted capacity (1046.1589ms)
+✔ AUD4-03 original 80-claim case: denials counted at A cannot poison B's admitted capacity (530.6223ms)
+✔ AUD4-03 multiple-colo admitted work: 60 reservations fill the global 6 s ceiling; the 61st asks no local key and sends no index read (1309.7598ms)
+✔ AUD4-03 raced preflight: one IPv4 /24 atomically limits probes before any local key is asked (87.0715ms)
+✔ AUD4-03 raced preflight: one IPv6 /64 atomically limits probes before any local key is asked (77.5094ms)
+✔ AUD4-03 raced preflight: two IPv6 /48 slots atomically limits probes before any local key is asked (84.8225ms)
+✔ AUD4-03 raced global preflight: 61 local successes still produce exactly 60 reservations/index operations (875.5084ms)
+✔ AUD4-03 preflight failure: missing/failing D1 stops before the local key and sends no index read (36.2786ms)
+✔ AUD4-03 slow local admission dates the final reservation with a fresh clock (26.0943ms)
+✔ AUD4-03 conservative D1 result: an applied row without RETURNING or changes sends no index read and is not refunded (22.5613ms)
+✔ AUD4-03 old release rows remain compatible: their /64 waits but the neighbour can use the second /48 slot (39.3153ms)
+✔ AUD4-03 residual comparison: denials free local model, global admitted rows never include refusal (1293.6513ms)
+✔ AUD4-03 residual comparison: denials counted local model, global admitted rows never include refusal (2827.5811ms)
+✔ AUD4-03 refused same-network concurrency: 12 raced preflights ask the local key once, keep one probe, and retry exactly at 30 s (165.5425ms)
+✔ AUD4-03 opportunistic prune: each gate deletes at most two expired scopes and preserves unexpired markers (30.7707ms)
+✔ AUD4-03 missing 0008: lane fails closed while EOA login and ordinary home proof remain available (48.2098ms)
+✔ AUD4-03 missing index_lane_probes_net: lane fails closed while EOA login and ordinary home proof remain available (43.8389ms)
+✔ AUD4-03 missing index_lane_probes_expiry: lane fails closed while EOA login and ordinary home proof remain available (39.8013ms)
+✔ AUD4-03 probe SQL cost guards: covering LIMITed net/expiry reads and PK expiry replacement after a two-row prune (6.9817ms)
+✔ AUD4-02: permissive ERC-1271 may log in/read but cannot bootstrap; no member or cookie is written (279.4031ms)
+✔ AUD4-02: existing contract/unknown identities read without last_login writes; bootstrap/PUT fail closed (181.0799ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ AUD4-02/04/05: missing 0008 fails persistent writes closed, keeps sign-in/profile reads, skips cron safely (120.1609ms)
+✔ AUD4-03/04 probe cron: each run deletes at most 200 expired markers, retains live backoff, and does not change member/admitted rows (101.1424ms)
+✔ AUD4-03/04 probe cleanup remains independent when either probe or M1 hardening schema is missing (139.1526ms)
+✔ AUD4-03/04 probe cleanup caps oversized/non-finite limits and supports the two-row opportunistic bound (41.9825ms)
+✔ AUD4-03/04 probe prune storage failure cannot cancel member cleanup or expose SQL/secret log text (40.7122ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 6 simultaneous distinct valid refusal attempts commit exactly five quota rows (43.7446ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 12 simultaneous distinct valid refusal attempts commit exactly five quota rows (42.5355ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 20 simultaneous distinct valid refusal attempts commit exactly five quota rows (76.0889ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: success, stale version, cooldown, locked and unavailable refusals share one rolling budget (88.381ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 6 parallel fresh names cannot overspend while optimistic-version batches race (53.4508ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 12 parallel fresh names cannot overspend while optimistic-version batches race (41.8229ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 20 parallel fresh names cannot overspend while optimistic-version batches race (101.3457ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: concurrent same key/payload has one mutation and slot; retry works at a full budget (158.9814ms)
+✔ AUD4-05: concurrent same new key/different payload returns the committed winner even for INSERT OR IGNORE refusals (48.2069ms)
+✔ AUD4-05: same-key success vs refusal cannot return an uncommitted local answer (55.9684ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: same-name no-op spends a fresh slot but never changes version, cooldown or history (73.0299ms)
+✔ AUD4-05: a no-op observed before moderation cannot be recorded as successful after its atomic guard fails (43.2137ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+✔ AUD4-05: per-member quotas remain independent while the existing per-IP cap still applies (118.1275ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: rolled-back success guard cannot hide quota refusal in fallback outcome recording (42.7779ms)
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ AUD4-05: storage failure recording a refusal answers 503 and cannot falsely claim it was recorded (26.7902ms)
+✔ AUD4-04: indexed cleanup has a per-table hard bound, drains backlog, preserves unexpired retries/current profile (115.1547ms)
+✔ AUD4-04: a member who never renames still gets cron cleanup; no DB skips and failures reveal no raw errors (47.63ms)
+✔ sign-in: server-built SIWE message, one session cookie with every flag, token stored only as its hash (301.7707ms)
+✔ every auth and /api/me response is no-store and carries no CORS header (38.4726ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ every Worker route answers with HSTS: success, errors, 429, 503, 204 logout, the wallet assets route and the member routes (56.4367ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+✔ forged signature, another key, and every altered message field are refused (401), with or without an RPC fallback (261.9475ms)
+✔ Origin: missing, foreign, and loopback-on-production are 403; loopback works only on a loopback URL; verify must match the challenge origin (53.3313ms)
+✔ flow cookie: missing or another browser's flow cannot use a challenge (login CSRF, cross-browser replay) (25.8866ms)
+✔ challenge lifetime: expired 410, replayed 409, superseded 409, unknown 409 (78.4163ms)
+✔ the SIWE Expiration Time is the challenge window (5 min), not the 7-day session, and the stored message must say so (38.0583ms)
+✔ F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; only that text verifies, the retired wording and any other is 401 (102.8449ms)
+✔ concurrent verifies of one signature create exactly one session (94.9622ms)
+✔ logout revokes the session server-side, clears both cookies, invalidates open challenges, and is idempotent (36.3848ms)
+✔ logout-all: one browser ends every live session of its address on every device, and its open challenges; others are untouched (194.5367ms)
+✔ logout-all needs a live session of its own: no, forged, revoked or expired cookies are 401 and end nobody; Origin, JSON and method rules hold; never rate limited (173.0676ms)
+✔ sessions end at 7 days (absolute, no renewal); a dead cookie is refused, not cleared (55.8482ms)
+✔ N-7: the session route names an expiry only for a session that ran out; a revoked, forged, malformed or missing cookie gets no reason (60.3924ms)
+✔ AUD3-06: a late signed-out answer for a revoked cookie (session read, house 401, logout-all 401) does not delete the cookie another tab of the profile just set (the reproduction) (179.3202ms)
+✔ AUD3-06: the same for an expired cookie (SESSION_EXPIRED) (150.1709ms)
+✔ AUD3-06: on the page, a session read sent with a dead cookie that lands after another tab’s sign-in leaves this browser signed in (83.4687ms)
+✔ AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in still clears that cookie, and the new session stays live at the server until it expires (51.4996ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"RATE_LIMITED","reason":"verify","colo":null,"net":"net:unknown"}
+✔ only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401 (13.153ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ rate limits: sign-in answers 429 when exhausted and fails CLOSED when the binding throws; the read buckets fail open (71.992ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net6:2001:db8:1::/48"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:100.64.20.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:198.51.100.0/24"}
+✔ challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing (962.2337ms)
+✔ F-5: a challenge flood starves neither its own verify nor anyone else; no neighbour can refuse a player's challenges; every refusal and surge is one line whose only client details are a network key and, on surges, a 6-character address prefix (321.1588ms)
+✔ W-2: an IPv6 client's refusal line carries its /48 network key and nothing longer of its IP; the surge prefix is 6 characters (38.8354ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+✔ A-5: a challenge or verify whose body arrives late is counted when it arrives, and the contract check after its code read (197.4643ms)
+✔ A-1: garbage from a few other networks no longer holds a chosen smart wallet; its own network keeps one check of it a minute until the lane key (20 a minute per location) is spent, and the shared keys still see at most two checks per address (443.6081ms)
+✔ A-1: the residual at its stated cost: 9 /24s aiming garbage at 3 smart wallets every minute keep one of them out at a location; 8 /24s, or 9 at 2 wallets, do not (409.884ms)
+✔ N-4: an owner’s own earlier check no longer uses up its lane: its retry, and a second device after its sign-in, sign in (the reproduction) (105.9163ms)
+✔ N-4: the lane stays one per /24 and address a minute, whoever sends the verifies: racing verifies take it once, verifies sent from other networks take no more, and garbage from the owner’s own /24 still holds it (the residual) (88.3958ms)
+✔ N-4: each contract check records how it was admitted, a shared (pool) check or a lane check (21.9307ms)
+✔ N-4/N-5: an IPv6 /48 makes at most two lane checks of one address a minute, from two different /64s (42.5656ms)
+✔ N-4/N-5: the lane siege for IPv6 is at its stated cost: 5 /48s (two /64s each) aiming garbage at 3 smart wallets every minute keep one of them out at a location; 4 /48s do not, nor do 4 /48s of six /64s at one wallet (391.234ms)
+✔ N-5: four smart wallets on four /64s of one /48 sign in within a minute (the reproduction) (58.7859ms)
+✔ N-5: one /64 cannot spend its /48’s shares for its neighbours, whichever address sends the verifies; rotating host bits inside it gains nothing (156.0148ms)
+✔ N-5: rotating /64s inside one /48 is still bounded: 6 contract checks, 20 code reads and 60 challenges a minute, however many /64s (332.7112ms)
+✔ N-5: IPv4 is unchanged, and nothing longer than an IPv6 /64 is stored or logged (167.4172ms)
+✔ N-5 (deployed ahead of 0005): challenges and ERC-1271 sign-in keep the 0004 rules and never answer 503; once 0005 is applied the new rules hold (220.9095ms)
+✔ AUD3-03: an ERC-1271 check the location key refused leaves no claim: the owner’s retries are refused by the key alone, and once it has room (5 s later) a fresh challenge signs in (the reproduction) (55.2853ms)
+✔ AUD3-03: the same on a database before 0005 (the 0004 claims and release) (50.3623ms)
+✔ AUD3-03: of two claims of one address, the one whose key refused is released and the admitted one is kept (10.1922ms)
+✔ AUD3-03: a release that fails keeps the claim counted (still 429 and burnt) and writes one erc1271_claim_kept line (66.0423ms)
+✔ AUD3-03: the release reads one row, by the challenge’s nonce, on a database with and without migrations/0005 (13.9291ms)
+✔ AUD3-03 guard: a check whose eth_call was sent and failed (node error, 503) stays counted: two such failures spend the address’s shared checks (56.2676ms)
+✔ AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released: once the key has room (5 s later) the owner signs in on that lane (43.3748ms)
+✔ AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503 and leaves no contract claim (20.8963ms)
+✔ AUD3-03 residual (a limiter that counts refused calls): after 7 /24s close chain:erc1271, 6 /24s each sending one garbage verify every 6 s keep a first-time smart wallet out for 3 minutes and 5 do not; under the fixed-window model none do (1694.0601ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+✔ AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row is its IPv4 /24 with no /64, and twenty-one different invalid texts share one AUTH_LIMITER key (the 21st is refused) (76.3472ms)
+✔ A-6: a neighbour's challenges for a player's address never refuse that player; the /24 share stays the only network limit (142.2875ms)
+✔ A-7: while 20 networks keep the valve full, a network that has not asked in the last minute still gets its challenge (2815.6982ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:198.18.0.0/24"}
+✔ ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE and then one check per network; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt (175.805ms)
+✔ P3: garbage signatures for EOAs from 7 /24s never reach chain:erc1271, so a smart wallet still signs in; a no-code answer is cached briefly (137.4396ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:100.64.6.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:198.51.100.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget_known","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+✔ F-3: a /24's garbage leaves its other wallets alone, fake addresses never reach the contract budget, returning smart wallets keep a budget of their own, EOAs never wait (794.9484ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"error","colo":null,"net":"net:192.0.2.0/24"}
+✔ ERC-1271: the challenge is claimed before any read, so garbage retries, racing verifies and a failed burn all read the chain once (42.9958ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:SEAT_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding makes exactly the routes that need it answer 503; loopback stays open (223.9853ms)
+✔ logout is never rate limited: after anonymous reads drain the bucket, or with the limiter refusing or down, it still revokes (76.5781ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ /api/me/home is limited per session: one session re-checking too often does not starve another on the same IP, nor sign-in (52.3872ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","walletType":"CONTRACT","colo":null,"net":"net:198.18.15.0/24"}
+✔ ERC-1271 smart wallets: magic value signs in, anything else is 401, no key is 503; ERC-6492 wrappers are 400 (72.8803ms)
+✔ W-3: a contract wallet's eth_call failing at the node is 503 VERIFY_UNAVAILABLE with no session; a revert or a non-magic answer is 401 (296.0787ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:198.18.46.0/24"}
+✔ any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read (64.4416ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ ERC-1271 checks spend the per-location CHAIN_LIMITER (chain:erc1271) before eth_call and fail closed; ECDSA sign-ins never touch it (59.1545ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+✔ F-2: each session records EOA/ECDSA or CONTRACT/ERC1271; every way the ERC-1271 path can be unavailable is refused and makes no session (153.5538ms)
+✔ ERC-1271 needs code at the address and exactly the magic word: echoes, precompiles and padded answers are 401 (32.0266ms)
+✔ challenge always issues a new flow value; the one the browser brings only names the challenges it supersedes (26.4105ms)
+✔ malformed input is 400 and wrong methods 405; unknown account routes 404; the read API is untouched (8.9503ms)
+✔ the known-smart-wallet lookup and logout-all read through partial indexes: an address’s ECDSA or revoked sessions, however many, are never visited (28.6257ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/logout","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ deployed before migrations/0003: sign-in is a logged 503 AUTH_UNAVAILABLE with no session and the challenge kept; once 0003 is applied it signs in (25.2335ms)
+✔ without D1 (the Vite dev server, a missing binding) sign-in and /api/me answer 503 AUTH_UNAVAILABLE (19.4248ms)
+verify handler: cold 16.6 (window-8 table alone 24.3) ms, warm 6.6 ms
+✔ one @noble/curves copy, _setWindowSize exists, and a cold verify in a fresh process stays far below the 50 ms CPU cap (738.7726ms)
+✔ F-6: no undici in the lockfile falls in GHSA-3wwx-pv8p-q78v (7.28.0-7.29.0) (2.2678ms)
+✔ F-6: the undici override is still needed (a dependency pins a vulnerable undici) (0.9163ms)
+✖ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (3457.665ms)
+✔ outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts (636.8475ms)
+✔ hashTree lists every file under the tree, sorted, with POSIX paths relative to the base, size and SHA-256 (15.075ms)
+✔ SHA256SUMS lines are sha256sum -c format, and the tree digest changes with any byte or any file name (9.5348ms)
+✔ a real deploy refuses a dirty tree; a dry run only records it (0.522ms)
+✔ record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler (2.18ms)
+✔ deploy records are gitignored and importing the script deploys nothing (693.9434ms)
+✔ env files Vite would load are refused on a real deploy and listed by name on a dry run; others are ignored (12.2544ms)
+✔ the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip (1715.2005ms)
+✔ the script runs main only as the started script, on any Node 24 (no import.meta.main), with Windows paths compared without case (0.6978ms)
+✔ the script itself, run on a throwaway git repo: a failing test stops a dry run before tsc with no record; --skip-tests alone is refused (2494.2903ms)
+✔ every static response and the SPA fallback carry the security headers (2.359ms)
+✔ the CSP allows the GLB texture path (blob:) and nothing that would let an injected script run (2.2642ms)
+✔ hashed build output is cached for a week, never immutable; everything else keeps the default revalidation (0.5048ms)
+✔ the world music is cached for a week like the hashed build, and the CSP lets it play from this origin only (0.4533ms)
+✔ HSTS: a year or more, every subdomain, no preload, and the same value on static files and Worker responses (0.6233ms)
+✔ the hashed copies of the models, decor and Pepe frame the page loads are cached for a week; their originals revalidate (1.0567ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<PUBLIC_SOURCE>\src\world\households.ts' imported from <PUBLIC_SOURCE>\src\world\homeEntry.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
+    at #resolve (node:internal/modules/esm/loader:683:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///<PUBLIC_SOURCE>/src/world/households.ts'
+}
+
+Node.js v24.19.0
+✖ tests\home-entry.test.mjs (1915.9028ms)
+✔ the member follows the session: loaded when signed in, cleared when signed out, needs_name shown as such (233.3317ms)
+✔ an answer for the wallet the page has left is dropped; the new wallet’s own member shows (122.7747ms)
+✔ signed out and in again with the same wallet: an answer of the earlier sign-in never replaces a newer one (190.7493ms)
+✔ an answer naming another wallet than the page’s is not shown (the cookie changed under the page) (132.9131ms)
+✔ 503 and network failures are "unavailable", never "needs a name"; a retry loads it (51.3152ms)
+✔ a save whose answer is lost is retried once with the same request id: saved once, one cooldown (47.0198ms)
+✔ refusals: cooldown shows the server’s time, a version conflict reads the profile again, the form never asks the wallet (128.0005ms)
+✔ "not now" folds the card for that member on this browser only; no name is made (87.9537ms)
+✔ a page load reads with GET and creates with POST only once: an existing member spends no per-IP write budget (72.6114ms)
+✔ clicking through houses asks for the name of the one the viewer stops at, not of every house passed (19.9693ms)
+✔ public names: one read per address a minute, a bad address asks nothing, a failure is no name (1.3416ms)
+✔ My wallet, as rendered: the first-name card says the name is public and tied to the wallet; each state says what it is (1096.037ms)
+✔ the house panel says whose home it is by the player name, with the short address kept below (920.4559ms)
+✔ AUD4-08 rendered UI: a present deadline disables only before its time; server-calibrated cooling remains authoritative for the hint (744.891ms)
+✔ AUD4-02/07 rendered UI: contract policy is stable, and an uncertain save offers result-checking rather than a new name (708.1687ms)
+✔ M1-R2: pre-save GET(v0) cannot replace the saved v1 or its cooldown (176.6179ms)
+✔ M1-R2: GET2 returns before GET1, and latest GET may not roll back an already accepted version (98.6566ms)
+✔ M1-R2: late GET1 401/error cannot clear the profile accepted from GET2 (75.0832ms)
+✔ M1-R2: a newer GET(v2) remains after an earlier successful PUT(v1) body arrives (128.2464ms)
+✔ AUD4-07: committed PUT with a truncated or malformed body retries the exact original id once (147.069ms)
+✔ AUD4-07: two lost bodies read back the committed profile, release saving, and block a new logical name (59.4999ms)
+✔ AUD4-07: retry blocked before idempotency lookup cannot declare an earlier PUT refused (61.7181ms)
+✔ AUD4-07: attempts that never reached the server keep the same request id when connectivity returns (53.1129ms)
+✔ AUD4-07: a never-ending success body has bounded waiting and readback does not issue a new PUT (48.9133ms)
+✔ AUD4-07: retry-delay exceptions still release saving and preserve the original operation (38.1225ms)
+✔ AUD4-07/M1-R2: an old wallet save cannot clear a newer wallet saving state or restore its name (101.7876ms)
+✔ AUD4-07: returning to the same wallet resumes its uncertain request rather than creating a new id (41.5217ms)
+✔ AUD4-08: before, exactly at and after the server deadline, the store rerenders and GET refreshes cooldown (74.3822ms)
+✔ AUD4-08: moving the client clock beyond the deadline cannot bypass the server cooldown (48.6089ms)
+✔ AUD4-08: teardown cancels the deadline and late reads, without another profile GET (49.2285ms)
+✔ AUD4-02 client: bootstrap write-policy refusal is explicit and does not request another wallet signature (1.7355ms)
+✔ E1 E3 E21 N01: a signed-in wallet gets exactly one member on first bootstrap, the same one after, from the session alone (225.8365ms)
+✔ E2 E15 E48 N02: no member without a live session; dead sessions are 401 and the cookie is left alone (114.6438ms)
+✔ writes need this site as Origin and a JSON request; refusals change nothing (36.591ms)
+✔ E4 N12: two first bootstraps racing make one member; the loser rolls back whole and answers with the winner (85.9061ms)
+✔ a session row holding a mixed-case address (as an older row might) still resolves to the lowercase identity (42.1533ms)
+✔ E5 E11 E117: identities are eip155:1 only and canonical; another wallet gets another member (65.546ms)
+✔ N03 N04 N05 E6: first name, public lookup, cooldown from the first name, and the member id never changes (60.4482ms)
+✔ N06 N07: names are unique site-wide by NFKC + ASCII case; the loser learns nothing about the holder (78.6123ms)
+✔ N08 N09: same value is a no-op; a case-only change is a change; the old name is kept 30 days for its member (277.9796ms)
+✔ N10 N11 E14: a form written for another member, or for an older profile, is refused and changes nothing (54.196ms)
+✔ N13 N14: a retried request gets its first answer once; the same id with other content is a conflict (51.8731ms)
+✔ N15 E13: only the four fields are accepted; a member id, wallet, role or cooldown in the body is refused (33.0346ms)
+✔ N16 N17: format and reserved names are refused before any claim; the database holds the reserved names too (83.6999ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ N18: five name writes a minute per member reach the database; then 429 with Retry-After, refusals counted (78.1982ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"LIMITER_UNAVAILABLE","colo":null,"net":"net:203.0.113.0/24"}
+✔ the per-IP limit: member:<ip> keys on AUTH_LIMITER, checked before the session; a missing binding is 503 (47.2601ms)
+✔ N19 N20: moderation renames to 會員-<code>, quarantines the name, and lets the member rename without the cooldown (133.5235ms)
+✔ races inside the write: a name taken, or a version moved, after the checks rolls the whole batch back (167.746ms)
+✔ E7 E49: logout and session expiry end nothing of the member: same member, coins and life after signing in again (47.3859ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/world/names/:address","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ 503, not "new member": no database, or a database before migrations/0006; sign-in itself still works (69.4796ms)
+✔ the member routes leave the account routes as they were (35.5637ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<PUBLIC_SOURCE>\src\world\households.ts' imported from <PUBLIC_SOURCE>\src\world\homeEntry.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
+    at #resolve (node:internal/modules/esm/loader:683:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///<PUBLIC_SOURCE>/src/world/households.ts'
+}
+
+Node.js v24.19.0
+✖ tests\ownership.test.mjs (1873.7647ms)
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":1,"at":1790596800000,"indexPruned":1,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790596800000,"indexPruned":1,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":2,"at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":1,"at":1790596560000,"indexPruned":0,"lanesPruned":0}
+presence run (parse 2 bodies + derive + 1 upsert): 10.4 / 15.5 / 9.0 / 25.8 / 13.0 ms
+✔ migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes (11.7543ms)
+✔ 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work (3.2555ms)
+✔ 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work (3.8411ms)
+✔ 0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty (4.6548ms)
+✔ 0005 is additive: on a live 0004 database every row of every table stays as it was, the new columns are empty, index_lanes starts empty, and the 0004 statements still run (5.9606ms)
+✔ 0006 is additive: on a live 0005 database every row of every table stays as it was, the new tables start empty but for the seven system names, and the 0005 statements still run (8.865ms)
+✔ A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not (97.13ms)
+✔ N-6: the cron deletes index-lane rows older than a minute and keeps the rest, by a range of index_lanes_at; a database before 0005 is left alone (13.1141ms)
+✔ a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched (15.066ms)
+✔ a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs (20.1496ms)
+✔ an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one (14.2372ms)
+✔ an edge-cached roster is dated by its Age, not by the time the cron read it (8.1058ms)
+✔ no database: the cron does nothing and makes no upstream read (6.4246ms)
+✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (121.8276ms)
+✔ the Swarm Audit Record is a collapsed block naming scope, reviewed version, date, deployment match and the previous-review label (25.9927ms)
+✔ its job and report links open the real pages in a new tab with no referrer and no opener (4.811ms)
+✔ every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open (12.3327ms)
+✔ the two re-reviews of Worker 50c688c9 are listed with their findings, and the page says this version was not re-reviewed (18.3908ms)
+✔ the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, and the page says this version was not re-reviewed (50.2393ms)
+✔ the two reviews of Worker bbf24001 are listed with R3-R1 and AUD3-01..AUD3-09, and the page says this version was not re-reviewed (18.0362ms)
+✔ My wallet shows the record in every state, before sign-in too, and no longer the old one-line link (1.156ms)
+✔ the remediation status doc agrees with the site’s record, names only real tests, and carries no forbidden word or personal detail (563.1261ms)
+✔ the future Mint boundary is written down: G-1..G-3 and the S-2 checklist, linked from the docs, claiming nothing about a Mint (2.8622ms)
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<PUBLIC_SOURCE>\src\world\households.ts' imported from <PUBLIC_SOURCE>\src\world\homeEntry.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
+    at #resolve (node:internal/modules/esm/loader:683:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///<PUBLIC_SOURCE>/src/world/households.ts'
+}
+
+Node.js v24.19.0
+✖ tests\wallet-client.test.mjs (1918.4405ms)
+✔ worker answers the three read routes with JSON, API headers and no sensitive fields (96.1878ms)
+✔ worker rejects writes with 405, unknown API paths with 404 and gateway failures with 503 (9.6616ms)
+✔ everything outside /api/world/ goes to the ASSETS binding untouched (2.6306ms)
+✔ seat details are bounded to 256 per isolate, least recently read dropped first (520.1064ms)
+✔ the snapshot body is serialised once per data change and rebuilt when any source changes (15.3732ms)
+✔ per-IP rate limits: 429 JSON when a limiter refuses, open when it fails, 503 when production lacks the binding (6.1751ms)
+✔ the deployed worker sends upstream reads with edge-cache TTLs and an identifying User-Agent, kept alive by waitUntil (5.9399ms)
+✔ the Worker entry module exports only its default handler (workerd rejects any other export) (0.2859ms)
+✔ the Vite dev adapter runs the same handler and passes other paths on (5.4577ms)
+✔ rate limits key IPv6 clients by their /64, so rotating host bits within one block gains nothing (39.9814ms)
+✔ the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-mapped IPv6 as IPv4 (0.7847ms)
+✔ N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, IPv4-mapped and unknown clients have none (0.4632ms)
+✔ AUD3-08: address text is keyed by its real family: hex and dotted IPv4-mapped forms are that IPv4, other IPv6 with a dotted tail stays IPv6, the zero /64 and extra or invalid parts are the one unknown key (the reproduction) (1.1406ms)
+✔ the Worker keeps a per-location shared copy of the snapshot, and a cold isolate answers from it at once (55.1513ms)
+✔ edgeCopy keys by the request origin, and a copy the Cache API does not have is undefined (0.7819ms)
+ℹ tests 239
+ℹ suites 0
+ℹ pass 235
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16197.5893
+
+✖ failing tests:
+
+test at tests\deploy-evidence.test.mjs:31:1
+✖ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (3457.665ms)
+  AssertionError [ERR_ASSERTION]: file:///<PUBLIC_SOURCE>/scripts/deploy-evidence.mjs:75
+    const commit=pick(m.commit,PATTERNS.commit);if(!commit)throw new Error('manifest.json has no valid commit');
+                                                                 ^
+
+  Error: manifest.json has no valid commit
+      at evidence (file:///<PUBLIC_SOURCE>/scripts/deploy-evidence.mjs:75:64)
+      at main (file:///<PUBLIC_SOURCE>/scripts/deploy-evidence.mjs:119:23)
+      at file:///<PUBLIC_SOURCE>/scripts/deploy-evidence.mjs:123:45
+      at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+      at async node:internal/modules/esm/loader:643:26
+      at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+  Node.js v24.19.0
+
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///<PUBLIC_SOURCE>/tests/deploy-evidence.test.mjs:54:80)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\home-entry.test.mjs:1:1
+✖ tests\home-entry.test.mjs (1915.9028ms)
+  'test failed'
+
+test at tests\ownership.test.mjs:1:1
+✖ tests\ownership.test.mjs (1873.7647ms)
+  'test failed'
+
+test at tests\wallet-client.test.mjs:1:1
+✖ tests\wallet-client.test.mjs (1918.4405ms)
+  'test failed'
+UTC_END=2026-10-03T16:58:38.1641107Z EXIT=1

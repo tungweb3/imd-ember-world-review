@@ -253,7 +253,7 @@ test('logout-all: one browser ends every live session of its address on every de
   const mine=await body(await one.post('/api/auth/challenge',{address:newAccount().address}));   // this browser, mid sign-in as someone else
   const open=n=>w.db.raw.prepare('SELECT invalidated_at IS NULL AND used_at IS NULL o FROM login_challenges WHERE nonce=?').get(n).o;
   assert.equal(open(mine.nonce),1);
-  const out=await one.post('/api/auth/logout-all');
+  const out=await one.post('/api/auth/logout-all',{expectedAddress:a.address});
   assert.equal(open(mine.nonce),0,'this browser\'s own flow challenge, for another address, is cancelled too');
   assert.deepEqual([out.status,await body(out)],[200,{revoked:2}]);
   assert.deepEqual(out.headers.getSetCookie().sort(),['__Host-imd_flow=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0','__Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0']);
@@ -268,7 +268,7 @@ test('logout-all: one browser ends every live session of its address on every de
   assert.equal((await stranger.get('/api/me/home')).status,200,'another address is untouched');
   // Signing in again afterwards works, and a new logout-all only ends what is live then.
   assert.equal((await two.signIn(a)).verify.status,200);
-  const again=await two.post('/api/auth/logout-all');assert.deepEqual(await body(again),{revoked:1});
+  const again=await two.post('/api/auth/logout-all',{expectedAddress:a.address});assert.deepEqual(await body(again),{revoked:1});
 });
 
 test('logout-all needs a live session of its own: no, forged, revoked or expired cookies are 401 and end nobody; Origin, JSON and method rules hold; never rate limited',async()=>{
@@ -296,7 +296,7 @@ test('logout-all needs a live session of its own: no, forged, revoked or expired
   // With the sign-in limiter refusing or down it still works.
   for(const binding of [{limit:async()=>({success:false})},{limit:async()=>{throw new Error('binding down');}}]){
     const b=w.browser();await b.signIn(a);w.env.AUTH_LIMITER=binding;
-    const x=await b.post('/api/auth/logout-all');assert.equal(x.status,200);assert.equal(live(),0);
+    const x=await b.post('/api/auth/logout-all',{expectedAddress:a.address});assert.equal(x.status,200);assert.equal(live(),0);
     w.env.AUTH_LIMITER={limit:async()=>({success:true})};
   }
 });
@@ -345,7 +345,7 @@ async function lateAnswers(end){
   return out;
 }
 test('AUD3-06: a late signed-out answer for a revoked cookie (session read, house 401, logout-all 401) does not delete the cookie another tab of the profile just set (the reproduction)',async()=>{
-  const out=await lateAnswers(async(w,a)=>{const other=w.browser();await other.signIn(a);assert.equal((await other.post('/api/auth/logout-all')).status,200);});
+  const out=await lateAnswers(async(w,a)=>{const other=w.browser();await other.signIn(a);assert.equal((await other.post('/api/auth/logout-all',{expectedAddress:a.address})).status,200);});
   assert.deepEqual(out,{session:[200,{signedIn:false},[],true,200,401,{signedIn:false}],home:[401,{error:'AUTH_REQUIRED'},[],true,200,401,{signedIn:false}],
     'logout-all':[401,{error:'AUTH_REQUIRED'},[],true,200,401,{signedIn:false}]});
 });
@@ -359,7 +359,7 @@ test('AUD3-06: the same for an expired cookie (SESSION_EXPIRED)',async()=>{
 test('AUD3-06: on the page, a session read sent with a dead cookie that lands after another tab’s sign-in leaves this browser signed in',async()=>{
   const {AuthClient}=await import('../src/world/auth.ts');
   const w=setup(),a=newAccount(),b=w.browser();await b.signIn(a);
-  const other=w.browser();await other.signIn(a);await other.post('/api/auth/logout-all');                  // this browser's session ended elsewhere
+  const other=w.browser();await other.signIn(a);await other.post('/api/auth/logout-all',{expectedAddress:a.address}); // this browser's session ended elsewhere
   let land;const landed=new Promise(r=>{land=r;});let hold=true;
   const page=new AuthClient({fetch:async(path,init={})=>{const r=await b.send(b.request(path,{method:init.method??'GET',body:init.body,headers:init.headers}));
       if(hold&&path==='/api/auth/session'){hold=false;await landed;}return b.keep(r);},

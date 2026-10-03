@@ -1,0 +1,1414 @@
+2026-10-03T16:51:25.3512475Z
+✔ a travel to the Guardian Hall or the Archive Hall shows its name, below the HUD title and clear of its cards, on a desktop and a phone held either way (4.0605ms)
+✔ on the first-run HUD's windows too: clear on each desktop and phone but a 375 x 667 one, where the names lie on the title's pills, still on the canvas and under the title's foot (1.2733ms)
+✔ the names sit on the buildings' bodies there, the panorama's over their tops; where they floated before they left the screen (21.8963ms)
+✔ the arrival camera sees you and the building past the row houses as on the live site, and past the trees: the Archive Hall faces the east road's mouth, the forge the square's west gate (21.2226ms)
+✔ arriving at the forge you stand level with its door ring, as before the other doors: its tag has the room over your 你 tag it has there (10.1631ms)
+✔ an explicit travel opens once the camera has settled: never sooner, never held past the cap, never mid-drag (1.9219ms)
+✔ walking away from the arrival spot cancels the open, and so does any position the scene cannot measure (0.297ms)
+✔ travel lands before each landmark and the Observatory on open ground, where the drawer hides its own 前往 (6.9405ms)
+✔ the 前往 / 走近 buttons stay for places you are not at, and edges are measured from the place, not its centre (0.5121ms)
+✔ the drawer heading: the eyebrow names the kind or district in the current language, never the title again (1.0623ms)
+✔ AUD4-01: intended A + cookie A revokes only A, while intended A + cookie B changes no session or challenge (86.6571ms)
+✔ AUD4-01: absent/forged/dead cookie cannot turn expectedAddress into authority (21.2693ms)
+✔ AUD4-01: stale page A never revokes shared cookie B; reconciliation shows actual B (41.4229ms)
+✔ AUD4-01: stale page A never revokes shared cookie B; reconciliation fails closed (32.3691ms)
+✔ AUD4-06: committed verify + truncated reconciles, second click asks no second signature (21.1125ms)
+✔ AUD4-06: committed verify + malformed reconciles, second click asks no second signature (15.3756ms)
+✔ AUD4-06: committed verify + invalid-fields reconciles, second click asks no second signature (18.4293ms)
+✔ AUD4-06: committed verify + transport-after-commit reconciles, second click asks no second signature (14.6429ms)
+✔ AUD4-06: failed reconciliation remains unknown; repeated click reconciles before any new prompt (18.4551ms)
+✔ AUD4-06: definite failed verify creates no session; uncertain delivery confirmed signed out permits one new flow (26.5871ms)
+✔ AUD4-06: account switch during uncertain-verify reconciliation cannot restore A or prompt again (40.2979ms)
+✔ AUD4-06: provider switch during uncertain-verify reconciliation cannot restore A or prompt again (62.3883ms)
+✔ AUD4-06: account abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (63.173ms)
+✔ AUD4-06: provider abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (34.3704ms)
+✔ AUD4-06: teardown abandonment + first logout complete before late-cookie fetch failure still revokes only the abandoned session (22.9979ms)
+✔ AUD4-06: conditional abandoned logout preserves a newer session of A or B and its cookie/flow (38.6479ms)
+✔ AUD4-06: matching abandoned session cleanup preserves a newer pending challenge and its flow cookie (38.5888ms)
+✔ AUD4-03 original 80-claim case: denials free at A cannot poison B's admitted capacity (220.4192ms)
+✔ AUD4-03 original 80-claim case: denials counted at A cannot poison B's admitted capacity (190.2253ms)
+✔ AUD4-03 multiple-colo admitted work: 60 reservations fill the global 6 s ceiling; the 61st asks no local key and sends no index read (622.1412ms)
+✔ AUD4-03 raced preflight: one IPv4 /24 atomically limits probes before any local key is asked (68.3875ms)
+✔ AUD4-03 raced preflight: one IPv6 /64 atomically limits probes before any local key is asked (63.5305ms)
+✔ AUD4-03 raced preflight: two IPv6 /48 slots atomically limits probes before any local key is asked (54.8566ms)
+✔ AUD4-03 raced global preflight: 61 local successes still produce exactly 60 reservations/index operations (576.3285ms)
+✔ AUD4-03 preflight failure: missing/failing D1 stops before the local key and sends no index read (14.8489ms)
+✔ AUD4-03 slow local admission dates the final reservation with a fresh clock (14.4058ms)
+✔ AUD4-03 conservative D1 result: an applied row without RETURNING or changes sends no index read and is not refunded (22.7295ms)
+✔ AUD4-03 old release rows remain compatible: their /64 waits but the neighbour can use the second /48 slot (20.7175ms)
+✔ AUD4-03 residual comparison: denials free local model, global admitted rows never include refusal (911.3258ms)
+✔ AUD4-03 residual comparison: denials counted local model, global admitted rows never include refusal (2566.2529ms)
+✔ AUD4-03 refused same-network concurrency: 12 raced preflights ask the local key once, keep one probe, and retry exactly at 30 s (155.8004ms)
+✔ AUD4-03 opportunistic prune: each gate deletes at most two expired scopes and preserves unexpired markers (20.9784ms)
+✔ AUD4-03 missing 0008: lane fails closed while EOA login and ordinary home proof remain available (35.1291ms)
+✔ AUD4-03 missing index_lane_probes_net: lane fails closed while EOA login and ordinary home proof remain available (31.7962ms)
+✔ AUD4-03 missing index_lane_probes_expiry: lane fails closed while EOA login and ordinary home proof remain available (32.7836ms)
+✔ AUD4-03 probe SQL cost guards: covering LIMITed net/expiry reads and PK expiry replacement after a two-row prune (7.3996ms)
+✔ AUD4-02: permissive ERC-1271 may log in/read but cannot bootstrap; no member or cookie is written (116.2036ms)
+✔ AUD4-02: existing contract/unknown identities read without last_login writes; bootstrap/PUT fail closed (66.6978ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ AUD4-02/04/05: missing 0008 fails persistent writes closed, keeps sign-in/profile reads, skips cron safely (32.1457ms)
+✔ AUD4-03/04 probe cron: each run deletes at most 200 expired markers, retains live backoff, and does not change member/admitted rows (27.3256ms)
+✔ AUD4-03/04 probe cleanup remains independent when either probe or M1 hardening schema is missing (41.6033ms)
+✔ AUD4-03/04 probe cleanup caps oversized/non-finite limits and supports the two-row opportunistic bound (22.9782ms)
+✔ AUD4-03/04 probe prune storage failure cannot cancel member cleanup or expose SQL/secret log text (12.7606ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 6 simultaneous distinct valid refusal attempts commit exactly five quota rows (21.141ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 12 simultaneous distinct valid refusal attempts commit exactly five quota rows (24.4864ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 20 simultaneous distinct valid refusal attempts commit exactly five quota rows (36.5807ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: success, stale version, cooldown, locked and unavailable refusals share one rolling budget (32.9155ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 6 parallel fresh names cannot overspend while optimistic-version batches race (23.6148ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 12 parallel fresh names cannot overspend while optimistic-version batches race (22.1293ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: 20 parallel fresh names cannot overspend while optimistic-version batches race (36.535ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: concurrent same key/payload has one mutation and slot; retry works at a full budget (28.3921ms)
+✔ AUD4-05: concurrent same new key/different payload returns the committed winner even for INSERT OR IGNORE refusals (20.8063ms)
+✔ AUD4-05: same-key success vs refusal cannot return an uncommitted local answer (17.6911ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: same-name no-op spends a fresh slot but never changes version, cooldown or history (20.7053ms)
+✔ AUD4-05: a no-op observed before moderation cannot be recorded as successful after its atomic guard fails (13.8533ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+✔ AUD4-05: per-member quotas remain independent while the existing per-IP cap still applies (50.8556ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ AUD4-05: rolled-back success guard cannot hide quota refusal in fallback outcome recording (25.0412ms)
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ AUD4-05: storage failure recording a refusal answers 503 and cannot falsely claim it was recorded (24.6914ms)
+✔ AUD4-04: indexed cleanup has a per-table hard bound, drains backlog, preserves unexpired retries/current profile (68.9462ms)
+✔ AUD4-04: a member who never renames still gets cron cleanup; no DB skips and failures reveal no raw errors (23.8909ms)
+✔ sign-in: server-built SIWE message, one session cookie with every flag, token stored only as its hash (119.682ms)
+✔ every auth and /api/me response is no-store and carries no CORS header (26.5256ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ every Worker route answers with HSTS: success, errors, 429, 503, 204 logout, the wallet assets route and the member routes (28.4371ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+✔ forged signature, another key, and every altered message field are refused (401), with or without an RPC fallback (83.9721ms)
+✔ Origin: missing, foreign, and loopback-on-production are 403; loopback works only on a loopback URL; verify must match the challenge origin (28.6521ms)
+✔ flow cookie: missing or another browser's flow cannot use a challenge (login CSRF, cross-browser replay) (18.9474ms)
+✔ challenge lifetime: expired 410, replayed 409, superseded 409, unknown 409 (29.2624ms)
+✔ the SIWE Expiration Time is the challenge window (5 min), not the 7-day session, and the stored message must say so (31.8386ms)
+✔ F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; only that text verifies, the retired wording and any other is 401 (27.1512ms)
+✔ concurrent verifies of one signature create exactly one session (52.5432ms)
+✔ logout revokes the session server-side, clears both cookies, invalidates open challenges, and is idempotent (17.0391ms)
+✔ logout-all: one browser ends every live session of its address on every device, and its open challenges; others are untouched (50.1671ms)
+✔ logout-all needs a live session of its own: no, forged, revoked or expired cookies are 401 and end nobody; Origin, JSON and method rules hold; never rate limited (68.5075ms)
+✔ sessions end at 7 days (absolute, no renewal); a dead cookie is refused, not cleared (28.9676ms)
+✔ N-7: the session route names an expiry only for a session that ran out; a revoked, forged, malformed or missing cookie gets no reason (26.8611ms)
+✔ AUD3-06: a late signed-out answer for a revoked cookie (session read, house 401, logout-all 401) does not delete the cookie another tab of the profile just set (the reproduction) (103.3856ms)
+✔ AUD3-06: the same for an expired cookie (SESSION_EXPIRED) (74.6251ms)
+✔ AUD3-06: on the page, a session read sent with a dead cookie that lands after another tab’s sign-in leaves this browser signed in (35.9077ms)
+✔ AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in still clears that cookie, and the new session stays live at the server until it expires (22.1436ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"RATE_LIMITED","reason":"verify","colo":null,"net":"net:unknown"}
+✔ only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401 (4.4319ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ rate limits: sign-in answers 429 when exhausted and fails CLOSED when the binding throws; the read buckets fail open (37.5072ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net6:2001:db8:1::/48"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:100.64.20.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:198.51.100.0/24"}
+✔ challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing (520.6612ms)
+✔ F-5: a challenge flood starves neither its own verify nor anyone else; no neighbour can refuse a player's challenges; every refusal and surge is one line whose only client details are a network key and, on surges, a 6-character address prefix (199.9496ms)
+✔ W-2: an IPv6 client's refusal line carries its /48 network key and nothing longer of its IP; the surge prefix is 6 characters (25.7904ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
+✔ A-5: a challenge or verify whose body arrives late is counted when it arrives, and the contract check after its code read (116.068ms)
+✔ A-1: garbage from a few other networks no longer holds a chosen smart wallet; its own network keeps one check of it a minute until the lane key (20 a minute per location) is spent, and the shared keys still see at most two checks per address (247.3934ms)
+✔ A-1: the residual at its stated cost: 9 /24s aiming garbage at 3 smart wallets every minute keep one of them out at a location; 8 /24s, or 9 at 2 wallets, do not (243.2409ms)
+✔ N-4: an owner’s own earlier check no longer uses up its lane: its retry, and a second device after its sign-in, sign in (the reproduction) (44.1759ms)
+✔ N-4: the lane stays one per /24 and address a minute, whoever sends the verifies: racing verifies take it once, verifies sent from other networks take no more, and garbage from the owner’s own /24 still holds it (the residual) (63.4476ms)
+✔ N-4: each contract check records how it was admitted, a shared (pool) check or a lane check (19.779ms)
+✔ N-4/N-5: an IPv6 /48 makes at most two lane checks of one address a minute, from two different /64s (38.9126ms)
+✔ N-4/N-5: the lane siege for IPv6 is at its stated cost: 5 /48s (two /64s each) aiming garbage at 3 smart wallets every minute keep one of them out at a location; 4 /48s do not, nor do 4 /48s of six /64s at one wallet (368.4612ms)
+✔ N-5: four smart wallets on four /64s of one /48 sign in within a minute (the reproduction) (39.8115ms)
+✔ N-5: one /64 cannot spend its /48’s shares for its neighbours, whichever address sends the verifies; rotating host bits inside it gains nothing (147.6259ms)
+✔ N-5: rotating /64s inside one /48 is still bounded: 6 contract checks, 20 code reads and 60 challenges a minute, however many /64s (312.7471ms)
+✔ N-5: IPv4 is unchanged, and nothing longer than an IPv6 /64 is stored or logged (139.0721ms)
+✔ N-5 (deployed ahead of 0005): challenges and ERC-1271 sign-in keep the 0004 rules and never answer 503; once 0005 is applied the new rules hold (210.0025ms)
+✔ AUD3-03: an ERC-1271 check the location key refused leaves no claim: the owner’s retries are refused by the key alone, and once it has room (5 s later) a fresh challenge signs in (the reproduction) (49.5737ms)
+✔ AUD3-03: the same on a database before 0005 (the 0004 claims and release) (68.6017ms)
+✔ AUD3-03: of two claims of one address, the one whose key refused is released and the admitted one is kept (10.5659ms)
+✔ AUD3-03: a release that fails keeps the claim counted (still 429 and burnt) and writes one erc1271_claim_kept line (44.9053ms)
+✔ AUD3-03: the release reads one row, by the challenge’s nonce, on a database with and without migrations/0005 (6.1117ms)
+✔ AUD3-03 guard: a check whose eth_call was sent and failed (node error, 503) stays counted: two such failures spend the address’s shared checks (43.3126ms)
+✔ AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released: once the key has room (5 s later) the owner signs in on that lane (36.1941ms)
+✔ AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503 and leaves no contract claim (11.7001ms)
+✔ AUD3-03 residual (a limiter that counts refused calls): after 7 /24s close chain:erc1271, 6 /24s each sending one garbage verify every 6 s keep a first-time smart wallet out for 3 minutes and 5 do not; under the fixed-window model none do (1724.9088ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+✔ AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row is its IPv4 /24 with no /64, and twenty-one different invalid texts share one AUTH_LIMITER key (the 21st is refused) (53.6984ms)
+✔ A-6: a neighbour's challenges for a player's address never refuse that player; the /24 share stays the only network limit (115.3421ms)
+✔ A-7: while 20 networks keep the valve full, a network that has not asked in the last minute still gets its challenge (2301.3904ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:198.18.0.0/24"}
+✔ ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE and then one check per network; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt (153.0589ms)
+✔ P3: garbage signatures for EOAs from 7 /24s never reach chain:erc1271, so a smart wallet still signs in; a no-code answer is cached briefly (126.2074ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:100.64.6.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:198.51.100.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_cap","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget_known","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
+✔ F-3: a /24's garbage leaves its other wallets alone, fake addresses never reach the contract budget, returning smart wallets keep a budget of their own, EOAs never wait (704.2614ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"error","colo":null,"net":"net:192.0.2.0/24"}
+✔ ERC-1271: the challenge is claimed before any read, so garbage retries, racing verifies and a failed burn all read the chain once (42.5496ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:API_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:SEAT_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding makes exactly the routes that need it answer 503; loopback stays open (187.4701ms)
+✔ logout is never rate limited: after anonymous reads drain the bucket, or with the limiter refusing or down, it still revokes (58.5776ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ /api/me/home is limited per session: one session re-checking too often does not starve another on the same IP, nor sign-in (44.1972ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","walletType":"CONTRACT","colo":null,"net":"net:198.18.15.0/24"}
+✔ ERC-1271 smart wallets: magic value signs in, anything else is 401, no key is 503; ERC-6492 wrappers are 400 (66.6631ms)
+✔ W-3: a contract wallet's eth_call failing at the node is 503 VERIFY_UNAVAILABLE with no session; a revert or a non-magic answer is 401 (260.5824ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:198.18.46.0/24"}
+✔ any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read (73.0355ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ ERC-1271 checks spend the per-location CHAIN_LIMITER (chain:erc1271) before eth_call and fail closed; ECDSA sign-ins never touch it (54.4761ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+✔ F-2: each session records EOA/ECDSA or CONTRACT/ERC1271; every way the ERC-1271 path can be unavailable is refused and makes no session (157.1403ms)
+✔ ERC-1271 needs code at the address and exactly the magic word: echoes, precompiles and padded answers are 401 (29.4239ms)
+✔ challenge always issues a new flow value; the one the browser brings only names the challenges it supersedes (26.8143ms)
+✔ malformed input is 400 and wrong methods 405; unknown account routes 404; the read API is untouched (10.0509ms)
+✔ the known-smart-wallet lookup and logout-all read through partial indexes: an address’s ECDSA or revoked sessions, however many, are never visited (25.5465ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/logout","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ deployed before migrations/0003: sign-in is a logged 503 AUTH_UNAVAILABLE with no session and the challenge kept; once 0003 is applied it signs in (26.5459ms)
+✔ without D1 (the Vite dev server, a missing binding) sign-in and /api/me answer 503 AUTH_UNAVAILABLE (10.9696ms)
+verify handler: cold 14.6 (window-8 table alone 27.5) ms, warm 6.3 ms
+✔ one @noble/curves copy, _setWindowSize exists, and a cold verify in a fresh process stays far below the 50 ms CPU cap (685.9629ms)
+✔ the three first rings: the Observatory (screen and Pepe), #361, the Hall of the Heart at the arch, all breathing (4.7677ms)
+✔ visited places and drawers already opened never get a ring; the spare rings go to the nearest landmarks in frame (2.3459ms)
+✔ the agent: #361, then #921, then the nearest figure online; never offline, never one the scene has not drawn (2.6442ms)
+✔ with no world (a failed read) the rings still go to the Observatory, the Hall and a landmark (0.7993ms)
+✔ phones held landscape: at most two rings (0.9721ms)
+✔ the drawer just opened keeps its ring, still and faint, for 60 s, and only the latest one does (2.4233ms)
+✔ quiet after 3 visits or 3 minutes: the rings stop breathing and stay (2.2138ms)
+✔ the breath: 1.6 s from faint (.35) to bright (.8) and back (0.4308ms)
+✔ a ring grows to stay at least 28 px (touch) or 32 px wide on screen, and never shrinks (2.8159ms)
+✔ the hint's arrow points where the place is on screen, for any camera yaw (2.541ms)
+✔ the hint: E within reach, else the nearest place not visited within 40 m, else how to play (1.2572ms)
+✔ past play distance the feed leaves the beacon anchors out (their tags hide with the in-world labels) (0.7423ms)
+✔ a returning visit's 「從哪開始？」 relights up to 3 places not visited yet, even past the quiet (1.2788ms)
+✔ tags stay clear of the HUD: the name line only where the whole tag has no room, hung under the ring where neither fits (7.5945ms)
+✔ the tags step out from under Pepe: on a portrait phone's first frame the Observatory's tag leaves the grown statue whole (503.6315ms)
+✔ boarding zones: the stands are in their own stop's zone, the Memory Gate and the square are not (2.374ms)
+✔ idle and near follow the zone you stand in; E boards only near a stop (1.4391ms)
+✔ boarding: seated at once on a clear berth, sails after BOARD_TIME from the stop, walking off cancels a wait (1.351ms)
+✔ Esc, a drawer or the Map cancels a boarding; any travel ends every phase (0.4833ms)
+✔ riding: under way at BOAT_SPEED, RIDE_DWELL at each stop passed, and the ETA counts the dwell (3.692ms)
+✔ get off: queued for the next stop, at once when alongside, E again stays aboard, Esc never un-queues (1.6249ms)
+✔ a drawer or the Map over the world: the ride sails on under it and still puts you ashore (0.3118ms)
+✔ a tab left in the background catches up exactly: one long tick equals the frame-by-frame ride (21.0659ms)
+✔ never overtakes: it keeps FOLLOW_GAP behind a boat ahead, and waits behind one moored at a stop (2.738ms)
+✔ with the real ambient fleet, boarded at any moment at any stop: no hull ever overlaps an ambient boat for a lap (2056.4371ms)
+✔ berth: clear only with no ambient boat within BERTH_AHEAD past or BERTH_BEHIND short of the stop; the wait is exact (25.3013ms)
+✔ the boat lies where the ride says: at the mooring while boarding and ashore, on the route under way (0.5472ms)
+✔ the rider seed is this browser’s: kept once made, past a store that refuses, remade when the kept one is not a seed (0.9959ms)
+✔ a crew is 1–3 distinct agents from the pool, never one drawn nearby or on another boat, the same for the same inputs (12.6019ms)
+✔ a click on a hull opens its next rider, round the crew (0.2321ms)
+✔ the ambient boats sail instances 0–3 on the live water, with riders drawn only within reach of the look point (12.7306ms)
+✔ a new lap brings a new crew, never an agent drawn by then; a crew whose rider left the pool is replaced (1.5463ms)
+✔ a ray picks a drawn rider as that agent, and an ambient hull as its next rider (6.2942ms)
+✔ the loop's nine stops in sailing order: each new pier runs from dry bank into the loop's water, its boat moored on the route square across its end, or alongside the forge's stage along the bank (5.5554ms)
+✔ the new stops touch no lot, home, lane or landmark of the live layout: the lots' own rule and every home keep clear of them (4377.8345ms)
+✔ no tree or rock of the forest stands where the new stops are: none is hidden for them, and none stands on their decks (247.2226ms)
+✔ boarding and leaving at each stop: its stand is open ground you walk to, in its zone, and a ride from the stop before lands you there (2164.0608ms)
+✔ arriving at a new stop (the Map's travel, or stepping ashore) the camera sees you and the boat at the stop past every house its lots can hold, the launch pier's beacon and lamps, the stop's lamp and sign and the ground (6204.8474ms)
+✔ the launch pier is walked: onto its planks from the bank, along it to the stop, the $1B beacon's footing solid as drawn (11.6975ms)
+✔ each stop but 霜谷渡口's north-east landing has a boat shelter by its bank end (on dry bank on a stone footing, or on piles in the water beside its pier), solid, named both ways, off its deck and clear of the boats; the short stages (Isle West, Isle Northwest) have a T head the boat lies alongside (130.2354ms)
+✔ waiting at every stop of the nine: the boat is on demand, so E seats you once the berth is clear, under 6 s on average over a lap and never 30 s (270.1849ms)
+✔ 霜谷渡口's two landings, its shelter and the tarn's keep off every lot, home, lane, tree, rock and building of Frosthollow; you walk to each and step off on it; the view there sees you and the shuttle (6303.9098ms)
+✔ the loop: a closed route every metre round Guardian Isle, the river down from the falls pool and the canal back up (16.1447ms)
+✔ under way the boat keeps 1.2 m of water from either bank, and never runs its hull onto a landing stage (21466.9767ms)
+✔ no drawn bank shows inside a hull round the whole loop at low water: the shipped hull’s wetted plan, turned to its heading, over the ground as drawn (1453.07ms)
+✔ stops: moored alongside the Falls landing, the forge’s landing and the Cais steps and square across the other piers’ ends, a short step from each (39.1943ms)
+✔ pass-bys: the hull clears the forge wheel by 1 m and keeps 0.3 m under the Ember Bridge at high water (194.5078ms)
+✔ seated riders’ heads stay out of the Ember Bridge’s arch at high water, with the bob and the sway counted (41.054ms)
+✔ the launch pier (啟印台) stops short of the boats’ lane: nothing the platform or its pier instruments build stands in the hull’s way at any water level, riders’ heads included (88.3619ms)
+✔ the river lanterns slide out of a boat’s way: over a lap none floats inside an ambient hull, and the ones in a boat’s path are moved (463.1468ms)
+✔ BOAT is the owner-approved hull as shipped: public/models/props/boat.glb, waterline at its origin (2.8693ms)
+✔ ambient boats: four a quarter lap apart at 2.5 m/s, 12 s at each stop, the same boats in every browser (51.5403ms)
+✔ the boot title sits inside #root and names the world in both languages (1.3755ms)
+✔ the boot title needs no script, no font, no image and no other origin: one inline style block (0.6549ms)
+✔ in the scene's rides: by a station E boards the cable car and nothing else, the HUD reads it, the camera frames the cabin, one ride at a time, travel ends it (126.254ms)
+✔ a click boards by a station and takes you to one from afar; its walls, its label's spot and a cabin standing in it answer it; the Map and the HUD name them (26.6551ms)
+✔ each 纜車 label reads by distance as a road sign does: whole by its door, gone past 50 m (not two alike over the square) (0.9649ms)
+✔ a click by a station rides from it at any moment, off its platform too (stepped to its door first); a hidden tab still lands you across (16028.7636ms)
+✔ riding through a station it gives way: wherever its hall or roof would hide you from the ride's camera it is drawn without them, solid, and the rest hides nothing (278.2059ms)
+✔ a name is not read through a cable car station: from Frosthollow's green the Emberford names over its hall go, its own 纜車 stays; from the square none goes (96.9937ms)
+✔ the stations and the pylon stand on free ground by the Falls landing and on Frosthollow's green: dry, off every lane, landmark, deck, wall, home and lot (92.1307ms)
+✔ the cabins run clear all round: 1 m over the ground, the lots' tallest houses, the village's buildings, the landmarks, the trees as drawn and the pass trail's walkers (13209.053ms)
+✔ the cabins keep clear of the Frost line's shuttle, the Ember Lift, the pylon and the stations they run through, and of each other (596.6416ms)
+✔ the forest gives way where the cable car goes: the trees and rocks its stations, pylon or cabins would stand in are hidden, and only those (74.0259ms)
+✔ six cabins at the one speed (「多加班次」, 2026-10-01): one through each station every 11 s and never two in it at once; waits of 2.4 s on average and 7.3 s at most (20.4892ms)
+✔ a ride always ends at the other station, by its door on open ground you can walk from, and back at the one you left if it cannot (913.9595ms)
+✔ arriving at either station (a ride or the Map) the camera sees you, the station and its label over open ground, inside no building (196.111ms)
+✔ reduced motion: the cabins stand still, and a ride is a short fade to the other station (59.0224ms)
+✔ each station reads as one from its door's side and dresses as its place: the Falls station as the works by the falls, Frosthollow's in logs and thatch, a cabin on each sign (19.0263ms)
+✔ both stations sit low over their ropes: the Falls station's roof 1.3 m over its rope and 2.5 m at most over the Memory Gate 21 m off, Frosthollow's ridge 2.1 m over its rope (20.6909ms)
+✔ the pylon stands on its mast: from its footing to its crossarm there is iron under the ropes all the way up (2.1749ms)
+✔ four meshes in all: each station, the pylon with the ropes, and the six cabins as one instanced mesh; no texture (16.8509ms)
+✔ the ropes hang between their supports and read from afar; a cabin runs through a station in about 6 s, the camera kept behind its way out (1597.2906ms)
+✔ owner cadence: one read per 15 minutes; failures retry at 30 s, 60 s, then every 2 min until a read succeeds (28.7761ms)
+✔ the first read happens even in a hidden tab; later reads wait while hidden and run as soon as it is visible (25.4677ms)
+✔ poke reads now (manual refresh); stop cancels the timer and the visibility hook; a throwing read counts as a failure (41.631ms)
+✔ a cold server still reading upstream is asked again after SOON_RETRY_MS twice, then on the usual schedule (98.0761ms)
+✔ a good read of data the gateway held past its TTL is followed by one read after FOLLOW_UP_MS, once per cycle (78.7642ms)
+✔ before the first good world read a failure is asked again after 5 s, then 15 s, then on RETRY_MS from its start (126.9182ms)
+✔ the first load adds no burst: one read at a time, and a snapshot that fails at once is asked at most twice in any 10 s (69.1569ms)
+✔ the market quote is read from DEX Screener by the browser first and returned at once; the Worker route is only the fallback (2.1192ms)
+✔ the Worker-only seat floor is read when the Observatory drawer asks, at most once per cycle, and merged into later quotes (1.8428ms)
+✔ the CSP lets the browser read DEX Screener and nothing else new (0.6303ms)
+✔ the switch: off by default, remembered in localStorage, never throwing when storage is missing or blocked (2.0038ms)
+✔ calm on: the sky, the rain and the music leave the market (a clear sky, day and night as usual); the card keeps the real tier (74.5275ms)
+✔ turning calm on clears the rain within about three seconds; a market change still eases over a dozen (18.985ms)
+✔ the switch in the why block: the real market line stays, the switch says on or off, a press flips it (37.911ms)
+✔ the switch is no clearing: turning calm on during market rain moves on to the fair music, never the rain-clearing song (6.8958ms)
+✔ CANAL_RIM: dry outer banks 3 m past the canal water on both sides, every 4th sample (13.4072ms)
+✔ worldCircle(118): the smallest circle round Emberford, Frosthollow and the canal banks, (-66.3,-28.3) r 222.3 (8.5343ms)
+✔ panorama zoom: 555 -> 602 on 16:9, 1134 -> 1230 on a 9:19.5 phone, and the whole canal fits the screen there (11.1228ms)
+✔ minimap frame: 389 x 383.3 m, 12 m past the canal banks, 197 px tall at 200 wide (1.7781ms)
+✔ minimap caption: Guardian Isle is Emberford all the way to its banks, the far side of the canal is not (8.3745ms)
+✔ map shapes: the canal ribbon on its banks, basins and the tarn on their water, the boat loop on the water (12.7352ms)
+✔ map stops: eleven boat stops in sailing order and the Ember Lift, each travel target a dry, open spot facing its water (7.5314ms)
+✔ map names: 守印者島 on the island, 守印者湖 on the bank under the Mere, the tarn and the lift beside their water (0.6346ms)
+✔ the Frost line on the maps: the stream drawn round 霜谷渡口's bay, the line dashed up it from the Falls landing to the tarn's (3.402ms)
+✔ one river mesh: the canal and basins are water in it, under the river, and every seam shows single, opaque-enough water (128.8699ms)
+✔ no bare bed: wherever the earth lies under the lowest water, water is drawn over it, at least 90% opaque (the river from the waterfall's foot to the lagoon, the canal, the basins; the stream and the tarn) (1221.831ms)
+✔ the delta lagoon and the Frost Tarn each read as one sheet of water: the ribbon running into each ends under it, so no band or cut end shows (330.5133ms)
+✔ the Frost Tarn is part of the stream mesh, 1 cm over the stream, with the aqueduct's water (1.732ms)
+✔ terrain colours: the canal, basins and tarn get the river's bed and banks, not meadow (352.3833ms)
+✔ the Ember Lift and its aqueduct stand clear: no tree, rock or waterfall boulder in them, and no instance moved (964.95ms)
+✔ canal works: decks where feet stand, the Guardian Steps in two flights, the aqueduct on its piers, the lift on its collider (542.5741ms)
+✔ lanterns: three of the ten are set afloat in the falls pool, drift down the canal and hand over to the river at the join (69.8001ms)
+✔ the canal: 451 samples, 439.5 m, from the falls pool at river s 12.1 back into the river at s 250.5, water all the way (23.4994ms)
+✔ the segment index answers the canal exactly like the full scan, and onIsland is the outline exactly (2061.3256ms)
+✔ Guardian Isle: a simple outline of 2.65 ha holding the lodge and every founding home south of the river (12.5001ms)
+✔ not a ring round the square: the canal skirts the hillside, the square and the civic landmarks stay outside the loop (2.2691ms)
+✔ founding homes: nobody moves, the founding placement still comes out of the new map, lots keep clear of the canal (46.597ms)
+✔ terrain guards: the canal leaves every pad, landmark, solid, lane and the waterfall where they were (155.967ms)
+✔ water rules: decks are dry, the canal and basins are water, lots and hillside homes keep to the island and off the banks (2620.1293ms)
+✔ on foot: every landmark, founding door, pier and the Cais steps are reachable; the island hangs on the Ember Bridge (1965.908ms)
+✔ forest(): no tree within 2.2 m and no rock within 0.8 m of river, canal, basin, stream or tarn water, and none on a deck or the Guardian Steps (261.3333ms)
+✔ the Guardian Steps: walked from hill-street down onto the Guardian pier between solid cheeks, never stepped onto from the slope beside them; the flights keep to the slope (165.6574ms)
+✔ Frost Tarn: water at the stream head on the stream bed, with a landing; buildings, the lane and lots keep off it (433.0435ms)
+✔ the stream is at least 2.1 m wide each side and keeps its banks; the Frost bridge arch clears the 2.17 m wide, 1.38 m tall hull (80.9186ms)
+✔ the watermill's wheel stays on the bank, and the Frost line passes it on open water (5.5737ms)
+✔ Frosthollow homes: the tarn and the wider stream cost at most 5 of the 822 phase-B candidates, all clear of the water (2.8305ms)
+✔ inWorld's stream halo follows the stream alone: the tarn does not stretch the walkable world past the map (0.2563ms)
+✔ the world-time chip follows the card when a line wraps and when the title above pushes it down or lets it up (0.9016ms)
+✔ each band owns its core hours, boundaries sit half-way, and the weights always sum to 1 (1.9155ms)
+✔ the blend is smooth: no weight jumps between neighbouring minutes, and the lighting follows without a pop (15.4754ms)
+✔ the sun rises in the east, stands highest near 12:00 UTC in the south, sets in the west, and is down at night (0.7129ms)
+✔ the moon phase matches published new and full moons, and the illuminated share follows it (0.3123ms)
+✔ a full moon is up all night (highest near midnight), a new moon is down at night and gives no moonlight (0.5463ms)
+✔ the key light: warm and low at dusk, high and pale at noon, cool moonlight at night; never below the floor (1.3639ms)
+✔ the sky tint keeps the weather: a stormy night is darker than a clear one, night darker than day, dusk warmer (0.4617ms)
+✔ the slider/?hour preview picks an hour of the same UTC day; null returns to live; the clock reads UTC (0.4474ms)
+✔ DayNight on a real scene: night dims the key and the sky light, the rain still dims on top, lightning still reads (10.8734ms)
+✔ the lights come on through dusk, stay on all night, fade through dawn, and never jump (1.8494ms)
+✔ DayNight night lights on a real scene: lamps, windows, the moon glint on the rain-patched water, mist (5.3655ms)
+✔ the time slider: quarter-hour stops of today (never 24:00), a drag previews that hour, Live goes back to the real clock (0.6244ms)
+✔ the belfry clock shows UTC world time, whatever the viewer’s zone, and follows the time slider (27.6241ms)
+✔ a stormy dawn or dusk stays a storm: no brighter than its noon, darker than a clear dawn or dusk (48.9039ms)
+✔ figures keep a night floor: a thunderstorm, a new moon and 19:30 before moonrise stay well above black (14.9485ms)
+✔ a change of world time eases in (no single frame carries a slider stop, no hard cut on Back to live) and settles exactly (51.5598ms)
+✔ a preview stays on its UTC day when the real clock passes midnight: the moon and the shadows hold still (3.3451ms)
+✔ only real lamps are boosted: not a transparent overlay (the you-halo, the bolt) nor an opted-out screen (3.0802ms)
+✔ F-6: no undici in the lockfile falls in GHSA-3wwx-pv8p-q78v (7.28.0-7.29.0) (1.122ms)
+✔ F-6: the undici override is still needed (a dependency pins a vulnerable undici) (0.3793ms)
+✔ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (2410.4722ms)
+✔ outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts (430.6888ms)
+✔ hashTree lists every file under the tree, sorted, with POSIX paths relative to the base, size and SHA-256 (8.7249ms)
+✔ SHA256SUMS lines are sha256sum -c format, and the tree digest changes with any byte or any file name (5.3843ms)
+✔ a real deploy refuses a dirty tree; a dry run only records it (0.2498ms)
+✔ record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler (1.2053ms)
+✔ deploy records are gitignored and importing the script deploys nothing (164.0636ms)
+✔ env files Vite would load are refused on a real deploy and listed by name on a dry run; others are ignored (9.8785ms)
+✔ the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip (494.5231ms)
+✔ the script runs main only as the started script, on any Node 24 (no import.meta.main), with Windows paths compared without case (0.4411ms)
+✔ the script itself, run on a throwaway git repo: a failing test stops a dry run before tsc with no record; --skip-tests alone is refused (1670.3805ms)
+✔ bootRead starts the early read in live mode only and never throws (main.tsx runs it before React mounts) (1.446ms)
+✔ without AbortSignal.timeout (Safari before 16) there is no early read and refresh() reads on its own (49.2891ms)
+✔ a failed early read is read again only within what is left of its time budget (9.1464ms)
+✔ the early read's body is read under the caller's signal too (10.1079ms)
+✔ the first refresh uses the early read and asks nothing itself; the next refresh reads again (62.1727ms)
+✔ an early read older than EARLY_READ_MAX_AGE_MS is dropped for a fresh one (4.6141ms)
+✔ a failed early read is simply read again by the refresh (3.2953ms)
+✔ an abort while the early read is still on its way rejects the refresh (the page was left) (4.0605ms)
+✔ mock mode never takes the early read, and the page starts one only in live mode (10.3139ms)
+✔ the house models asked for at boot are the ones the first live read draws, each with a model file (7.9601ms)
+✔ both models ship with the site in their slots, the lift in fit mode over the stand-in (10.1669ms)
+✔ Ember Lift: the headframe replaces the stand-in, stands on its collider over the bay cut, over the aqueduct, the counterweight north, clear of the aqueduct and the cradle (108.8855ms)
+✔ texel rules: window and lantern glass on the boat, ember iron on the lift, each texel keeping its own colour (0.7612ms)
+✔ night glows: the mask becomes the emissive map, dark by day on the boat, smouldering on the lift, both brighter at night (1.3151ms)
+✔ Ember boats: one InstancedMesh; the fallback fills the hull’s box until the model arrives, then the model (merged) takes over with its glow (3.1974ms)
+✔ a drawer opening counts its place at once and is saved; agents, lots and the sealed gate never count (2.0561ms)
+✔ seven of seven fires once, on the visit that completes it; Frosthollow is a bonus and never completes it (0.6924ms)
+✔ visits made in another tab are kept, and a tab that finished the list there does not celebrate here again (0.2888ms)
+✔ storage refused or throwing: visits still count for the page, fall through to sessionStorage, and nothing throws (0.3804ms)
+✔ Frosthollow counts on arrival: the travel target and anywhere in its valley, never the city (0.216ms)
+✔ the Explore note goes beside its pill where the row has room, never down over the weather card on a wide screen (0.1473ms)
+✔ the pill during the first load says it is connecting, with no "Not fetched"; after it, a failure is unavailable (63.5351ms)
+✔ the heart drawer, the record feeds and the Observatory say loading during the first load, unavailable after it (44.1771ms)
+✔ what counts as loading: nothing yet during the first load, or still read upstream; never data already in hand (0.5768ms)
+✔ end to end: the real poll and bridge against a failing edge; the pill connects through the quick retries, then says unavailable (17.2538ms)
+✔ the first-run flag: unseen until marked, remembered by whichever store accepts the write (1.2424ms)
+✔ reading a key collects every store, so a write that fell through is never hidden by a stale one (1.0989ms)
+✔ the default stores survive a browser whose storage getters throw, and fall back to this page (0.4148ms)
+✔ deep links (?seat= ?wallet= ?job= ?district=) skip the first-run guidance and do not use it up (1.2389ms)
+✔ the 7 places: the Observatory counts, the sealed Memory Gate does not, Frosthollow is a bonus (0.6083ms)
+✔ visits: which drawers count, and n of 7 never counts the bonus or unknown ids (0.334ms)
+✔ the stored visited list: known places only, anything unreadable is empty, and it round-trips (0.2767ms)
+✔ the You tag: 60 s on a first-run visit, 3.5 s after a teleport, paused while the world is covered (0.4528ms)
+✔ the tap note: once a session, kept in sessionStorage then this page, never in localStorage (0.4412ms)
+✔ the welcome: a first run gets the strip, a returning visit the where-to-start pill, a deep link neither and keeps the flag (0.5626ms)
+✔ first visit 1366x768 en: a moderate pull-back with screen, Pepe, #361, the arch and 2 landmarks you can see and read (99.1636ms)
+✔ first visit 1366x768 zh: a moderate pull-back with screen, Pepe, #361, the arch and 2 landmarks you can see and read (64.9326ms)
+✔ first visit 1440x900 en: a moderate pull-back with screen, Pepe, #361, the arch and 2 landmarks you can see and read (85.6479ms)
+✔ first visit 1440x900 zh: a moderate pull-back with screen, Pepe, #361, the arch and 2 landmarks you can see and read (75.091ms)
+✔ first visit 1600x900 en: a moderate pull-back with screen, Pepe, #361, the arch and 2 landmarks you can see and read (58.3651ms)
+✔ first visit 1600x900 zh: a moderate pull-back with screen, Pepe, #361, the arch and 2 landmarks you can see and read (49.7748ms)
+✔ first visit: a landmark hidden behind the row houses does not count (the old frame hid the Forge behind them) (28.4669ms)
+✔ first visit 844x390 (a phone held landscape): the closest frame of you, the screen, Pepe, #361 and the arch, no named landmarks (23.7784ms)
+✔ first visit: the pull-back is the closest one the search offers (about 3 notches on desktop, never past 60 m) (742.8294ms)
+✔ first visit: the solver keeps a target out from under a HUD box that covers where it would be (117.0804ms)
+✔ first visit 390x844: the owner-approved look-ahead, with Pepe, the screen, #361 and you where the mock measured them (1.2007ms)
+✔ first visit 375x667: the short phone moves the look point (the strip sits where 390x844 had you) and still frames all four (6.6779ms)
+✔ first visit: a 3 s forward push from the spawn at the first-run yaw walks at least 10 m past the statue (14.7979ms)
+✔ first visit: the opening eases back to the play camera over 1.2 s; what the input took over stays with it (0.5101ms)
+✔ the cycle: one LAP from the Falls dwell, the lift both ways, 霜谷渡口 each way, the Tarn dwell, every leg joined end to end (26.211ms)
+✔ the lift: the cradle rises from the river’s live level to the stream at 0.8 m/s with a shuttle in it, waits at the top, comes down with the other; up, down, up, down in turn (21.9369ms)
+✔ afloat all the way: the wetted hull never touches the ground at low water, never runs onto a deck, and fits the aqueduct’s trough (1830.9967ms)
+✔ the Frost bridge: under its arch the whole hull keeps 0.3 m of air, at every point across its beam; the watermill’s wheel is passed 2 m off, the lane kept off its side (996.9066ms)
+✔ the loop’s boats: each shuttle turns in the falls pool between them and lies at the Falls berth clear of them, all cycle long (21.5581ms)
+✔ the two shuttles: never within 0.4 m of each other; one at a time in the falls pool, the cradle, the aqueduct’s trough and every berth; they pass only at 霜谷渡口, one in its bay (41.1779ms)
+✔ the berths: moored square across the Falls landing’s and the tarn landing’s ends, alongside 霜谷渡口’s two stages, a short step from each deck; nextDock names each stay, a shuttle’s or the sooner (1.6181ms)
+✔ waiting for the Frost line, E pressed every second of a cycle: the Falls landing about 50 s on average and never 2.5 min, the tarn under 30 s, 霜谷渡口 each way under 1.5 min (one shuttle: 124 s and 104 s) (4.7431ms)
+✔ no bank inside the shuttle’s hull at low water: the layout’s own ground stays under it all cycle, and the ground as drawn nearly so (1902.8244ms)
+✔ the zones: the Falls landing is the loop’s own, 霜谷渡口’s two landings and the tarn’s their decks plus 1.3 m; nowhere else (2.6329ms)
+✔ board at the Falls with a shuttle alongside: sit, get off again while it lies there, else the get-off is queued for 霜谷渡口 as it leaves, off there on the bay’s landing (1.7585ms)
+✔ waiting: the HUD counts down to a shuttle, you sit as it comes alongside; too near its leaving you wait for the next (the other, half a cycle on); Cancel, Esc or walking off end the wait, a drawer or the Map does not (0.4518ms)
+✔ under way: E queues the get-off and again stays aboard; Esc only queues; a drawer or the Map changes nothing; alongside, E gets off there; staying aboard you ride the same shuttle round the line (0.8972ms)
+✔ travel from every phase ends it; one long catch-up tick is the same as every frame (2.088ms)
+✔ the player’s loop boat keeps out of the falls pool while either shuttle turns in it: the Falls berth is not clear, and a boat under way waits behind it (236.7937ms)
+✔ the landings past the Falls name themselves over their shelters (霜谷渡口's north-east landing over its stop sign): the stop, and at 霜谷渡口 which way its boats go (0.7689ms)
+✔ the ridge line round Frosthollow has peaks and cols: its height and its distance change with the bearing (1.2999ms)
+✔ the crest is rounded, not a lip: its curvature across the ridge stays low at every bearing (1.3607ms)
+✔ three summits stand off the ridge (N, NE, W) and over it (0.9043ms)
+✔ the valley floor, the pass and Emberford keep their heights (the ridge only reshapes the mountains) (3.9086ms)
+✔ snow lies on the summits and the high, shaded slopes, never on a ring or low down (493.7883ms)
+✔ no cliffs cut into the mountains: the ground never jumps between samples 0.25 m apart (264.6391ms)
+✔ the relief on the ranges never repeats: no shift of 100-160 m lines its crests up with themselves (86.1126ms)
+✔ the foot of the valley wall is no circle: the low contours wander with the bearing (34.6464ms)
+✔ talus fans give the walk limit a cause on the open slopes, off walkable ground and water, never a ring (6.3424ms)
+✔ the terrain mesh asks channelQuery once per vertex (the height and the colour share it) (267.5411ms)
+✔ the cradle hangs outside the headframe on its bay face and rides it; the boat lies in it; the chains reach the jib (209.3435ms)
+✔ the chains glow like embers, brighter at night; no light is added (24.686ms)
+✔ the shuttle bobs afloat but lies still in the cradle and under reduced motion (36.5243ms)
+✔ the Falls landing offers both rides; the lift: sit, rise ~11 m, off at 霜谷渡口 on the bay’s landing (38.6998ms)
+✔ from 霜谷渡口’s bay landing on to the tarn: under the Frost bridge (camera floor), off on the tarn landing; its north-east landing is for the falls (36.853ms)
+✔ you ride the shuttle you boarded: from the Falls in the second one, seated in its instance all the way (28.0564ms)
+✔ both shuttles are drawn where the line has them, in the instances after the player's boat (22.6023ms)
+✔ at the tarn E boards the shuttle back; Esc only queues, a drawer changes nothing, travel ends it (22.0874ms)
+✔ one ride at a time: waiting for the lift, E and the loop stay out of it; Esc cancels the wait and the loop is back on offer (17.9687ms)
+✔ the camera floor: the Frost bridge and the loop’s decks, nowhere else (0.4515ms)
+✔ gateway coalesces complete worker reads, caches, answers past its TTL at once, marks a failed refresh stale, backs off and recovers (62.7366ms)
+✔ malformed HTTP 200 never becomes an empty fresh network (0.7243ms)
+✔ HTTP 200 with unreachable IMD health is unavailable, not zero online (0.5536ms)
+✔ no reader waits past waitMs on an upstream read that never settles; the cache answers stale or unavailable (101.4186ms)
+✔ a lost shared read is replaced after inflightMaxAgeMs and cannot overwrite newer data when it settles late (62.3245ms)
+✔ the request that starts an upstream read hands it to waitUntil; coalesced readers and cache hits do not (1.2923ms)
+✔ a fetcher that throws synchronously does not wedge the cache (0.3724ms)
+✔ an Age header from a shared cache dates the data, bounded to five minutes (1.4357ms)
+✔ a lost read that fails late leaves the newer data fresh and its refresh on schedule (37.757ms)
+✔ a lost read that settles while its replacement is still pending leaves the replacement shared (62.7772ms)
+✔ timeouts keep their order: upstream abort < gateway answer < every client timeout, and a read is presumed lost only after both (1.7388ms)
+✔ the market sample is dated by the Age DEX Screener's CDN sends, in dev as in the Worker (0.9465ms)
+✔ ids no minted seat has are answered without an upstream read or a cache entry (3.3343ms)
+✔ an id missing from the cached swarm refreshes it at most once per swarm TTL; with no swarm data seats go upstream (1.1898ms)
+✔ an expired entry with data is answered at once, and one background read (kept by waitUntil) replaces it (3.3814ms)
+✔ labels stay honest: data older than FRESH_MS is answered stale, data older than staleMaxAgeMs is not answered at once (37.4111ms)
+✔ a cold isolate answers from the shared copy at once; a copy within the TTL needs no upstream read at all (6.2966ms)
+✔ a cold isolate still waiting on its own read picks up the copy another isolate wrote meanwhile (38.1987ms)
+✔ a shared copy past the TTL is answered at once and refreshed (which writes the copy); past FRESH_MS it is labelled stale (4.1868ms)
+✔ a shared copy older than staleMaxAgeMs, dated in the future, malformed or filed under another key is ignored (166.1461ms)
+✔ with no shared copy a cold read waits coldWaitMs at most (and a hung copy sharedWaitMs at most), then answers unavailable (4110.4978ms)
+✔ failures never write the shared copy or lose the last good data, and a failing copy never fails a read (11.3958ms)
+✔ only snapshot sources go into the shared copy: never seat details, the market or the keyed floor (6.3557ms)
+✔ source() reads (the wallet routes, the cron) still wait for an expired entry's refresh, and write the copy the last request brought (3.4104ms)
+✔ a shared-copy lookup lost with the request that started it holds no later reader, and never stops upstream reads (112.3602ms)
+✔ the shared copy replaces data too old to answer with, but never data at least as new as the copy (12.3711ms)
+✔ the shared copy's shape changes with any select, route or limit, and with nothing else (1.2184ms)
+✔ a brightness floor: rain, storm and thunderstorm skies stay over .45 of the old fair sky (0…+5 %, gone since 2026-10-01, kept as FAIR for a fixed reference) by day and at night, their sun over half (82.3217ms)
+✔ the rain dims the sky light by a sixth at most (it was 40 %), and the haze stays light (40.1145ms)
+✔ calm drops: a downpour in a full gale falls at most 12 m/s, leans at most 1 in 2, and its veils stay light (14.1729ms)
+✔ cosy rain: the windows and lamps glow warm in the rain by day, none on a dry day, the night as before (30.3478ms)
+✔ the music dips a little under thunder, no longer by more than half (0.9343ms)
+✔ a wet night stays readable: the streaks dim to a grey at night, and the ground darkens half as much as by day (3.7743ms)
+✔ wet greens stay green: grass and leaves darken less than stone, by their colour or their vertex colours (6.2455ms)
+✔ reduced motion: the still rain is half the streaks, fainter (still streaks read as scratches); phones a little fainter (9.9373ms)
+✔ the Guardian Quarter ships the v002 Guardian Hall: its GLB, manifest entry and public hash, and the lodge on the turtle is gone (15.3761ms)
+✔ drawn 1.55x: 10.2 m, just over the homes round it, a little wider than the first hall, inside its terrace (34.2015ms)
+✔ no lot or home moves, and none is crowded: the walking rule round the hall stays off every home's yard and every lot (15.6897ms)
+✔ the homes beside it cannot move close by, so it stays 1.55x: the game's own move rule finds their nearest free lot 81 m off (27.8766ms)
+✔ its teal beacon burns in the lantern, round the modelled crystal: not in the dome, not a second crystal (7.7597ms)
+✔ walking, arriving, clicking and reading it: stopped at its walls, landed before its door, framed on arrival, its box over its dome, its name on its drum (144.1099ms)
+✔ a quiet window: 56 joins fold into one count; the 4 work events become linked lines, newest first (7.5887ms)
+✔ a busy window: sites, steps and finished jobs, each with its page; joins below the dawn threshold arrive one by one (4.6321ms)
+✔ stale or missing swarm data: the digest says so and arrivals stay dark (17.9316ms)
+✔ the 09:28Z window: workflow stages link to their published workflow, oracle checks read as their question (5.6499ms)
+✔ every static response and the SPA fallback carry the security headers (1.1799ms)
+✔ the CSP allows the GLB texture path (blob:) and nothing that would let an injected script run (1.1119ms)
+✔ hashed build output is cached for a week, never immutable; everything else keeps the default revalidation (0.2351ms)
+✔ the world music is cached for a week like the hashed build, and the CSP lets it play from this origin only (0.2015ms)
+✔ HSTS: a year or more, every subdomain, no preload, and the same value on static files and Worker responses (0.2687ms)
+✔ the hashed copies of the models, decor and Pepe frame the page loads are cached for a week; their originals revalidate (0.5407ms)
+✔ a delayed GLB replaces only the heart, retains latest source state and rotates around its center (11.0605ms)
+✔ missing and failed core assets keep a usable procedural crystal (0.7494ms)
+✔ a GLB arriving after scene disposal is released without reattaching or leaking shared resources (1.4225ms)
+✔ group 5: enterGate is ok only in owner mode, for the session's own house (1.3298ms)
+✔ group 5: the real sign-in makes the gate ok for the owner's house only; a revoked session (401 from /api/me/home) closes it (143.0931ms)
+✔ the door: the Enter offer appears within 1.8 m of the owner's door spot, in front of the house (0.5664ms)
+✔ group 8: the ?interior= preview opens only in DEV or with ?debug=1, and grants nothing (2.3085ms)
+✔ group 5: the Enter action (the door pill and the household block) is offered for the owner's own house only (0.3342ms)
+✔ TEST-1: the render rules for the Enter action (the door pill, the household block, the scene's door check) (0.2356ms)
+✔ W-1: an Enter press opens the offered house only while enterGate is still ok at that moment (0.1657ms)
+✔ the fixture is the layout of 83e12e6: 193 households, 1200 slots, 9 village houses, 2 pedestals, 6000 lots (2.3874ms)
+✔ every household's home stands where it stood, turned and sized as it was, on the same ground (live read and from scratch) (43.0998ms)
+✔ the old home slots, Frosthollow's village houses and the featured pedestals are where they were (108.5415ms)
+✔ every lot a household could take next is where it was, and the same sizes fit on it (the rule itself, not the baked table) (3428.2414ms)
+✔ house size follows the agent count: 1 s, 2–3 ms, 4–6 m, 7–9 l, 10+ xl (2.2913ms)
+✔ one house per wallet: every live agent with an owner is housed exactly once, grouped by wallet (2.7133ms)
+✔ placement is deterministic and bigger households live nearer the Guardian lodge (15.8517ms)
+✔ houses never overlap, keep an alley, stand dry and clear of village buildings, on ground that is not too steep (47.855ms)
+✔ the rectangle test agrees with sampling (rotated boxes) (17.4684ms)
+✔ founding homes stay put; a grown household moves only if it no longer fits; departed wallets leave flat ground (12.1894ms)
+✔ every house door and every agent is reachable on foot from the spawn (1241.2515ms)
+✔ move mode offers only free lots that fit, and a signed move frees the old lot without moving anyone else (32.0114ms)
+✔ households that joined after the founding snapshot do not jump into a lot someone just moved out of (19.3602ms)
+✔ group 7: the entry chunk holds no interior code; one lazy chunk holds it all, imported dynamically (1776.6347ms)
+✔ INT-1: a room that throws while building gives the world back at once and reports the failure (2.0849ms)
+✔ INT-1: Exit leaves through the room when there is one, else straight back to the world (0.4098ms)
+✔ INT-2: a failed chunk load is forgotten, so the next Enter imports again; a loaded chunk is imported once (1.3326ms)
+✔ look: every door and drawer on a model is painted the model's own frame colour, graded as the model is; brass and glass keep theirs (125.6671ms)
+✔ look: on each graded model's texels, the wood moves toward the room's palette and keeps a wood hue; the accents keep their colour (777.1801ms)
+✔ look: every glowing region holds texels bright enough to light (the glass, the embers, the lamp) (81.5838ms)
+✔ look: every hinged door turns on the edge away from its knob, procedural and on the model, and opens outward (34.8236ms)
+✔ look: the hearth's tile sheet no longer hangs past the stove, and its candles burn with the procedural flames (27.1236ms)
+✔ look: every model stands at least 80 % of the procedural piece's height (the listed exception says why) (37.0834ms)
+✔ look: the Tripo lemon tree stands about 1.2 m, uniformly scaled, inside its 1.1 × 1.0 m slot (3.4607ms)
+✔ look: from the rest views the lemon tree covers no seat frame, the window or the Pepe cabinet (19.4164ms)
+✔ look: the GLB textures a room uploads (RGBA8, full mips) fit DESIGN §9: 40 MB on desktop, 12 MB on phones, every room size (41.3576ms)
+✔ look: phones take the normal and metal/rough maps off, the map's mean standing in for it (7.09ms)
+✔ look: the load queue runs jobs in order, never more than n at once, and every job once (0.4714ms)
+✔ look: a slot's load settles once whether it mounts, fails or has no file (30.9264ms)
+✔ group 4: closed → opening → open → closing → closed, each leg taking the piece's duration (2.4061ms)
+✔ group 4: a toggle mid-way reverses from the current t, never jumping to the end (0.3359ms)
+✔ group 4: reduced motion snaps straight to open or closed, from any state (0.3462ms)
+✔ group 4: t stays in 0…1 for any dt (huge, negative, NaN, Infinity), and the easing too (0.5111ms)
+✔ group 4: every openable slot has its duration from the design (doors 450, drawers 300, lids 400 ms) (0.3345ms)
+✔ group 1: one room per house size, with the design's dimensions and seat-wall capacity, sized by the house rule (2.5213ms)
+✔ group 2: seatLayout puts exactly one frame per seat on each page, capacity per page, xl fills wall A before B (23.8759ms)
+✔ group 2 (review): a part page hangs as a centred grid, fuller rows first, only hooks that hold a frame (3.8485ms)
+✔ group 2: every frame hangs inside its wall section, inside the room, clear of the window opening and of each other (2.2657ms)
+✔ group 3: every footprint is inside the room, ≥ 0.05 m from every other piece, clear of the entry zone, the partition and the archway (1.7887ms)
+✔ group 3: every door, lid, drawer and shutter sweeps clear of the walls and of every other piece; only the entry door enters its zone (576.7218ms)
+✔ group 6: the slots and the Tripo plan name the same pieces, sizes, parts and glows (2.2443ms)
+✔ group 6: every procedural moving part is its own node inside its slot box, pivoting at the edge the slot names (62.8047ms)
+✔ group 6: a GLB with one part missing takes over the carcass and the part it has; the missing one stays procedural and still moves (4.8044ms)
+✔ group 6: a slot with no url fetches nothing; a GLB that fails to load keeps the whole procedural piece (3.4861ms)
+✔ fit mode (uniform) scales by the tighter horizontal extent and centres on the footprint (0.4803ms)
+✔ tripo: production loads every shipped model; ?debug=1 (or DEV) with &furniture=procedural shows the room without them (1.6389ms)
+✔ tripo: production urls are set for exactly the shipped files, each the one the manifest records, within 400 KB, core glTF (11.8665ms)
+✔ tripo: every shipped model mounts as one mesh with the triangles Tripo made, and hides the procedural carcass (95.3815ms)
+✔ tripo: a missing or broken GLB keeps the procedural piece whole, doors and all (18.7728ms)
+✔ tripo: one room fetches each file once (three chairs, one file), every piece gets its own copy (11.2481ms)
+✔ tripo: each fitted model stands inside its slot, clear of the walls, the entry, the archway, the partition and every other piece (57.2716ms)
+✔ tripo: the doors and drawers are the procedural parts, placed over the models' real openings, which they close (546.5984ms)
+✔ tripo: the Pepe cabinet's plaque moves onto the model's plinth, its strip light under the model's top (17.8785ms)
+✔ tripo: the models' glass, embers, candles and lamp glow with the room's procedural glow of that name (21.3135ms)
+✔ tripo: the grade weighs by hue (the wood takes it, the accents keep their colour), goes off in tripo-raw and back on (10.7634ms)
+✔ the rest view on a 390×844 phone faces the back wall: the seat frames and the window read, the back wall is whole (19.8812ms)
+✔ portrait phones (390×844, 360×780): the whole room fits the width, every piece is whole on screen, the Pepe card sits on its cabinet (3.0824ms)
+✔ landscape and desktop keep the rest view they had (distances measured on 2da46cd, before the portrait change) (3.2159ms)
+✔ the rest view on a wide screen: every room fits inside the HUD margins, and a bigger house shows bigger (1.3863ms)
+✔ picking: the Pepe cabinet's plaque is reached wherever it shows, never the doors over it (16.7567ms)
+✔ the window: rain on the glass with the tier's rain and with a shower on a dry sky, none on a dry calm day (4.7204ms)
+✔ the window: UTC day and night, the time preview, and the weather's light (0.6594ms)
+✔ the window (review): a daytime storm turns the lamps on and the room down; rain greys the sky rather than snowing on it (0.6066ms)
+✔ a brilliant sky: a brighter sky in the window, the room lit as on a clear day (no light past white) (1.5191ms)
+✔ the window (the owner, 2026-09-29, 「還是改一下」): no sun patch or hard sun shadows in rain; brilliant and clear keep them, overcast much weaker (1.0828ms)
+✔ the seat frames: the roster's state when it has the seat, the server's own otherwise; words in both languages (1.0924ms)
+✔ the shell: every size in both styles is built, with the window and the door cut clean through the walls (333.5709ms)
+✔ a name label is near within 25 m of its place’s edge (an agent: its seat), not beyond (1.8008ms)
+✔ a name label is dimmed to 40 % unless near or hovered, and fades out past 80 m as before (0.1977ms)
+✔ a dimmed name label is still clickable and tappable (labelAt); one faded out past 80 m is not (0.3695ms)
+✔ a road sign is whole within 30 m, eases out and is gone by 50 m (0.2619ms)
+✔ no road signs in the panorama, however close (0.1349ms)
+✔ a sign yields (fades out) where it overlaps a shown name label or a beacon tag, not beside one (0.216ms)
+✔ a sign you can see is a sign you can click, from half strength (0.1274ms)
+✔ opacity eases over 200 ms without overshoot; reduced motion and a cut jump (0.1788ms)
+✔ road signs are dimmed like the names unless within 10 m or under the mouse; distance, the panorama and yields still apply (0.9547ms)
+✔ a dimmed road sign and a dimmed name stay clickable (pickBox, labelAt); the panorama and the far fade take both away (0.6178ms)
+✔ a sign yields (fades out) under a beacon tag, dimmed or not, and under a name shown; it eases, not pops (0.289ms)
+✔ the yield has no history: the same frame gives the same signs whatever they did before (a panorama round trip) (2.1458ms)
+✔ one place in full, the hint’s next one; every other tag the name line only, dimmed to 40 % (6.1155ms)
+✔ at spawn a fresh visitor sees ONE whole tag (Pepe’s screen, the hint’s place, 9.8 m off), not #361 standing 9.1 m away too (0.9359ms)
+✔ the whole tag: the hint’s place when you stand by it, else the nearest ring within 25 m, else the hint’s, else the first (3.2338ms)
+✔ a dimmed tag comes back whole under the mouse or on focus only; near its place it stays dimmed (3.214ms)
+✔ after 3 visits every tag folds to a gold dot; its name comes back on hover, focus or near; a relight undoes it (1.765ms)
+✔ the 3-minute quiet stops the breathing but never folds the tags: the one whole tag stays whole (0.4438ms)
+✔ only the whole tag’s ring breathes; the other lit rings hold still, and none once quiet (0.7178ms)
+✔ labels grow with distance so their text never drops under 13 px (12 on the touch layout), and never shrink (6.7711ms)
+✔ a label's box is exactly where three's Sprite raycast reaches it, with the panorama band shift too (5.1077ms)
+✔ the label under a point: the nearest one; a finger reaches a small label within a 44 px box (0.3983ms)
+✔ a near label opens its drawer, a far one travels there first (0.3776ms)
+✔ road signs name the district and the landmark its road leads to, in both languages (1.6545ms)
+✔ each landmark as drawn: the Oracle Tower 1.5x, the Archive Hall 1.35x, the launch dais 1.35x, the forge 1.3x and 1.35x taller, the gate 1.35x taller on its plan, the hall crowned, the longhouse 1.12x (222.3912ms)
+✔ what grew stands on the models: the stacks on the forge's chimneys, the spire posts on the gate's towers, the crown on the hall's lantern (46.0073ms)
+✔ walked, landed on, clicked and named at its size: nobody walks into a grown body, the landing is open, the names rise with the tops or show on arrival (196.8171ms)
+✔ heart: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (31.6357ms)
+✔ oracle: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (17.3546ms)
+✔ forge: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (18.9774ms)
+✔ archive: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (14.1869ms)
+✔ launch: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (20.5211ms)
+✔ guardian: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (162.1608ms)
+✔ chronicle: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (27.8269ms)
+✔ frost-longhouse: its walking footprint keeps 1.2 m from every home, lot, lane, water, pier, stop, station, statue, building and landmark, and out of every yard (95.042ms)
+✔ the grown bodies as drawn keep the margin too: their plans from homes and lots, their feet from yards, lanes and water (the forge's no nearer the river than the live one's) (360.1767ms)
+✔ the grown landmarks stand on level ground: a terrace under each body, and nothing grows or lies on it (158.9363ms)
+✔ the forge's terrace leaves the ground under the Baixa's block where it was and the west road's and the gate trail's within 5 cm; the drawn ground by the block's corner no more than 0.3 m lower (85.429ms)
+✔ the launch pier and its boat stop, the other stops, the boats' loop, the cable car, Pepe, the screen, the signs and every other lane are where they were (33.0411ms)
+✔ the forge's water wheel where it was, in the river at the bank, the grown forge's wall at its rim and not through it however it turns (91.2376ms)
+✔ where the mill house stood, the forge's yard behind its back wall: a woodshed stacked full against it, crates, charcoal, an anvil, a cart, a quench trough and an ash tree by the gate trail, which runs open through it; off the forge, the water, every home, lot, tree and rock (264.3691ms)
+✔ the yard's ash is lit at night as the forest's ashes are (skin/daynight.ts nightLift), not left black by them (96.3978ms)
+✔ the west road leads to the grown forge's door, as it led to the live one's: its first run as it was, its last to the door, open end to end, its lamp along it (2.9753ms)
+✔ the east road, off the Archive Hall's plinth: open end to end, its lamps along it; the Pepe lamps elsewhere where they were (4.8237ms)
+✔ the cable car's cabins pass the Memory Gate's spires clear of them (151.5397ms)
+✔ the baked file is exactly what the live rules give today, bit for bit (5182.3931ms)
+✔ the page's lot candidates (baked rings, then live rings past the tape) are the live sequence's (388.0051ms)
+✔ the forest from the tapes is the forest the live checks make: every tree and rock, same rng draws (99.8069ms)
+✔ placement and free lots from the table equal those from the rule (764.9999ms)
+✔ a tape gives whole rings only: a ring longer than what is left, and every ring after it, is made live (0.274ms)
+✔ the snapshot keeps what the digest reads and drops what nobody reads: events trimmed, unknown top-level fields dropped (44.7698ms)
+✔ Explorer activity is an optional snapshot source: cached for the upstream TTL, and its failure fails nothing else (30.8356ms)
+✔ the seat floor: no key means no Alchemy call and floorEnabled false; with a key it is read once per 10 min, key in the header only (5.2905ms)
+✔ the market fallback never waits on Alchemy: the floor comes from the cache, refreshed in the background (1.2687ms)
+✔ the Worker passes its secret only to the gateway, and only public keyless reads use the edge cache (4.9264ms)
+✔ Explorer deep links use the human pages, never the JSON routes (1.4665ms)
+✔ unchecked data never becomes a link (0.381ms)
+✔ Explorer tabs and the district chips (2.1269ms)
+✔ links back into the world are validated strictly and round-trip (0.8926ms)
+✔ wallets read like imd.fun: 0x1234…abcd, or the ENS name the data already carries (0.3066ms)
+✔ near loads start at once; far ones wait for every near one, then start together, nearest first (2.5059ms)
+✔ a far load cancelled while it waits never starts; a loader that throws reports the error and frees the far ones (0.6985ms)
+✔ in the world: the plaza, the landmarks and the village's houses are near; the Memory Gate, the Lift and Frosthollow far (2.1615ms)
+✔ landmark footprints keep clear of each other, the observatory, Pepe, village walls and the river (12.1247ms)
+✔ travel, spawn, signposts and featured pedestals land on open, dry ground (6.6016ms)
+✔ the river is a real barrier and the Ember Bridge is the crossing (5.2835ms)
+✔ with today’s ~420 homes every landmark, pedestal and home is reachable, and Frosthollow over the pass (1205.8522ms)
+✔ when homes fill Emberford, Frosthollow homes (and the first 1200) stay reachable (4319.3927ms)
+✔ Frosthollow’s stream is a barrier and its bridge is the crossing; buildings stand dry and off the lanes (3.5617ms)
+✔ homes fill Emberford’s hillside first, then Frosthollow, then the rim; styles follow the village (13.557ms)
+✔ homes sit on dry land, off the lanes, apart from each other, with an open doorstep (71.2989ms)
+✔ home slots are population independent, stable and unbounded (60.8793ms)
+✔ river level follows 24h accepted steps and never invents traffic (0.6054ms)
+✔ quotes match the exact Ethereum base token and choose the most liquid pool (2.7668ms)
+✔ market weather handles boundaries, missing change and expired or stale quotes (1.5026ms)
+✔ market gateway caches a fixed public endpoint and keeps failed refreshes visibly stale (35.4211ms)
+✔ the quote keeps the DEX Screener fields the beacon and weather use (live 07:59Z pair) (0.6026ms)
+✔ the seat floor: OpenSea first, LooksRare as fallback, ETH only; the card hides when absent or too old (0.8461ms)
+✔ rain and wind follow the 1h change; the sky keeps the 24h change (0.3661ms)
+✔ the 1h shower (owner, 2026-10-01): none down to −5 %, a quarter of the most just past it, the most from −10 % (0.3553ms)
+✔ the member follows the session: loaded when signed in, cleared when signed out, needs_name shown as such (92.6031ms)
+✔ an answer for the wallet the page has left is dropped; the new wallet’s own member shows (113.4148ms)
+✔ signed out and in again with the same wallet: an answer of the earlier sign-in never replaces a newer one (163.6068ms)
+✔ an answer naming another wallet than the page’s is not shown (the cookie changed under the page) (107.7336ms)
+✔ 503 and network failures are "unavailable", never "needs a name"; a retry loads it (32.3774ms)
+✔ a save whose answer is lost is retried once with the same request id: saved once, one cooldown (33.6358ms)
+✔ refusals: cooldown shows the server’s time, a version conflict reads the profile again, the form never asks the wallet (41.3904ms)
+✔ "not now" folds the card for that member on this browser only; no name is made (45.4889ms)
+✔ a page load reads with GET and creates with POST only once: an existing member spends no per-IP write budget (80.15ms)
+✔ clicking through houses asks for the name of the one the viewer stops at, not of every house passed (45.7012ms)
+✔ public names: one read per address a minute, a bad address asks nothing, a failure is no name (0.843ms)
+✔ My wallet, as rendered: the first-name card says the name is public and tied to the wallet; each state says what it is (1017.6996ms)
+✔ the house panel says whose home it is by the player name, with the short address kept below (1005.3396ms)
+✔ AUD4-08 rendered UI: a present deadline disables only before its time; server-calibrated cooling remains authoritative for the hint (1415.751ms)
+✔ AUD4-02/07 rendered UI: contract policy is stable, and an uncertain save offers result-checking rather than a new name (1736.3908ms)
+✔ M1-R2: pre-save GET(v0) cannot replace the saved v1 or its cooldown (96.6843ms)
+✔ M1-R2: GET2 returns before GET1, and latest GET may not roll back an already accepted version (23.5885ms)
+✔ M1-R2: late GET1 401/error cannot clear the profile accepted from GET2 (50.3086ms)
+✔ M1-R2: a newer GET(v2) remains after an earlier successful PUT(v1) body arrives (35.3603ms)
+✔ AUD4-07: committed PUT with a truncated or malformed body retries the exact original id once (56.0014ms)
+✔ AUD4-07: two lost bodies read back the committed profile, release saving, and block a new logical name (42.8459ms)
+✔ AUD4-07: retry blocked before idempotency lookup cannot declare an earlier PUT refused (22.2035ms)
+✔ AUD4-07: attempts that never reached the server keep the same request id when connectivity returns (19.1639ms)
+✔ AUD4-07: a never-ending success body has bounded waiting and readback does not issue a new PUT (20.7655ms)
+✔ AUD4-07: retry-delay exceptions still release saving and preserve the original operation (22.4374ms)
+✔ AUD4-07/M1-R2: an old wallet save cannot clear a newer wallet saving state or restore its name (36.7149ms)
+✔ AUD4-07: returning to the same wallet resumes its uncertain request rather than creating a new id (21.9312ms)
+✔ AUD4-08: before, exactly at and after the server deadline, the store rerenders and GET refreshes cooldown (28.6238ms)
+✔ AUD4-08: moving the client clock beyond the deadline cannot bypass the server cooldown (18.8332ms)
+✔ AUD4-08: teardown cancels the deadline and late reads, without another profile GET (25.825ms)
+✔ AUD4-02 client: bootstrap write-policy refusal is explicit and does not request another wallet signature (1.6861ms)
+✔ E1 E3 E21 N01: a signed-in wallet gets exactly one member on first bootstrap, the same one after, from the session alone (253.7216ms)
+✔ E2 E15 E48 N02: no member without a live session; dead sessions are 401 and the cookie is left alone (39.7529ms)
+✔ writes need this site as Origin and a JSON request; refusals change nothing (24.2759ms)
+✔ E4 N12: two first bootstraps racing make one member; the loser rolls back whole and answers with the winner (43.4725ms)
+✔ a session row holding a mixed-case address (as an older row might) still resolves to the lowercase identity (25.4661ms)
+✔ E5 E11 E117: identities are eip155:1 only and canonical; another wallet gets another member (31.9693ms)
+✔ N03 N04 N05 E6: first name, public lookup, cooldown from the first name, and the member id never changes (31.7853ms)
+✔ N06 N07: names are unique site-wide by NFKC + ASCII case; the loser learns nothing about the holder (44.7612ms)
+✔ N08 N09: same value is a no-op; a case-only change is a change; the old name is kept 30 days for its member (278.1419ms)
+✔ N10 N11 E14: a form written for another member, or for an older profile, is refused and changes nothing (36.6694ms)
+✔ N13 N14: a retried request gets its first answer once; the same id with other content is a conflict (33.8303ms)
+✔ N15 E13: only the four fields are accepted; a member id, wallet, role or cooldown in the body is refused (30.3219ms)
+✔ N16 N17: format and reserved names are refused before any claim; the database holds the reserved names too (45.6738ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ N18: five name writes a minute per member reach the database; then 429 with Retry-After, refusals counted (33.2054ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"LIMITER_UNAVAILABLE","colo":null,"net":"net:203.0.113.0/24"}
+✔ the per-IP limit: member:<ip> keys on AUTH_LIMITER, checked before the session; a missing binding is 503 (24.618ms)
+✔ N19 N20: moderation renames to 會員-<code>, quarantines the name, and lets the member rename without the cooldown (59.5874ms)
+✔ races inside the write: a name taken, or a version moved, after the checks rolls the whole batch back (85.8552ms)
+✔ E7 E49: logout and session expiry end nothing of the member: same member, coins and life after signing in again (27.6418ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/world/names/:address","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ 503, not "new member": no database, or a database before migrations/0006; sign-in itself still works (36.9673ms)
+✔ the member routes leave the account routes as they were (26.4554ms)
+✔ workload: tokens per second from two real reads; before the second read, Explorer's step buckets or nothing (39.8228ms)
+✔ the $1B goal beacon follows imd.fun's 24-cell rule and labels an fdv fallback (2.4485ms)
+✔ the seat card: 2,000 seats, distinct holder wallets, enrolled seats (3.5462ms)
+✔ milestones: a fresh live read at a new hundred, once per browser, at most one a day; never mock or stale (28.3562ms)
+✔ the milestone record lives in localStorage behind try/catch (0.4711ms)
+✔ the queue as assets.ts builds it: near fetches at the browser priority, far ones after them at low priority, one fetch per URL (101.1546ms)
+✔ a far hashed copy already in the HTTP cache is taken at once; one that is not waits in the queue; near and plain URLs go straight to it (37.3706ms)
+✔ fromCache asks the HTTP cache only, and a cached SPA index.html under a hash counts as not cached (1.2734ms)
+✔ a .glb answered with the SPA index.html (a missing hash) or an HTTP error fails instead of reaching the parser (2.2897ms)
+✔ a failed hashed copy is loaded once more from its plain URL, at the same priority; the cancel follows it (21.4642ms)
+✔ plainUrl maps every hashed copy the page loads back to its plain path, and nothing else (0.9537ms)
+✔ nothing plays or loads before the audio may start (the first gesture, sound on, tab shown) (5.4351ms)
+✔ the first track waits for a known weather, at most WAIT_MS (0.8349ms)
+✔ each weather and hour starts the owner's track for it (the real catalogue; storms play 'Lantern in the Storm') (1.6406ms)
+✔ a weather change crossfades after it has settled; a flicker back does nothing (2.8663ms)
+✔ a weather change in a track's first minute waits for the minute; a previewed hour settles in seconds (1.3063ms)
+✔ only the playing track and, near its end, the next one load; the next crossfades in as the first ends (0.8712ms)
+✔ thunder ducks the music and lets it back up (0.5774ms)
+✔ muted or hidden: the music pauses where it is, the fetch ahead is dropped, and resumes on the same file (0.9011ms)
+✔ saveData keeps the music off until the visitor turns the toggle on (1.7234ms)
+✔ a file that fails is skipped quietly for the visit (8.8727ms)
+✔ moments: the boat song on a ride plays out ashore; After the Rain when rain turns fair; the celebration (4.2866ms)
+✔ dispose lets every file and node go and stops the ticks (0.7798ms)
+✔ through WorldSound: the music hears the gesture, the toggle, a hidden tab and the thunder of the real sound.ts (10.2036ms)
+✔ a play() refused outside a gesture keeps listening for one: the next tap starts the music; until then nothing reads as playing (1.7035ms)
+✔ a cue that turns back mid-fade brings the fading track back up where it is; another cue waits for the fade (1.6948ms)
+✔ fades start when the new track is heard, not when it is asked for (a slow fetch keeps the old one up) (0.6523ms)
+✔ a new track that fails mid-crossfade leaves the one before playing (1.1465ms)
+✔ a thunder roll cancelled by a mute or a hidden tab no longer ducks the music later (0.3181ms)
+✔ a moment with no song of its own waits like the mood change it is (0.6674ms)
+✔ saveData: held until the toggle is pressed on, and says so (0.2306ms)
+✔ the real catalogue: each moment plays its own song (Ember Boats, After the Rain, Frosthollow Lullaby); the celebration keeps the rotation (1.1799ms)
+✔ the owner's report (2026-09-29): the first press on the speaker toggle plays the music, it does not take a second pair of presses (13.2936ms)
+✔ the mood follows the market weather tiers by day and the UTC night on dry weather (2.6106ms)
+✔ moments: the celebration beats a ride, a ride beats clearing, clearing only once dry, Frosthollow only at night (0.4112ms)
+✔ rain turning fair: from any rain tier to a clear or brilliant sky, nothing else (0.8401ms)
+✔ the rotation never plays the same track twice running and draws only from the mood (2.6685ms)
+✔ in fair and night every third track is a vocal theme; other moods never get one (1.1504ms)
+✔ each moment plays its song once, then the mood rotation; a new moment or the same one later plays it again (0.8418ms)
+✔ a mood with no instrumental borrows the nearest one; an empty catalogue plays nothing (0.4856ms)
+✔ a new cue replaces the track only when it no longer fits; a moment song is never cut short when the moment ends (0.5232ms)
+✔ the settle before a crossfade: moments quickly, a previewed hour shortly, weather and night only after a minute of play (0.474ms)
+✔ every catalogued file exists, matches its size, is under 4 MB, content-hashed, loudness-normalised (34.5265ms)
+✔ the owner's tracks play in their weather (storms play 'Lantern in the Storm', kept by the owner; thunderstorms borrow it) (0.5589ms)
+✔ the Claude 生成 takes: every weather mood rotates two or more instrumentals (thunder its one kept take), night mixes in themes, three moments have their song (1.3734ms)
+✔ the owner's picks: the 14 kept takes and the 6 added songs ship, the five dropped ones do not (nor any take of a title dropped whole) (1.631ms)
+✔ the encoder's take list: skipTakes drops a take found on the Drive or already encoded, and a later take still comes in (0.905ms)
+✔ the shown titles tell every track apart (the help drawer names the one playing) (0.1812ms)
+✔ overcast tracks suit a dry night too (「適合沒下雨的晚上」): they rotate at night beside the night tracks, and still in overcast (0.7696ms)
+✔ the visit's first fair track is Morning on the Riverside (the owner's favourite), then the usual rotation (0.3886ms)
+✔ the nearest segment is the plain definition's, on random points and on the ties between neighbouring segments (492.436ms)
+✔ maximum zoom frames both villages, the pass and every landmark at every yaw, for portrait and landscape screens (1696.6724ms)
+✔ portrait phones get a longer pull-back than landscape screens, and homes beyond the rim widen it (12.5241ms)
+✔ at play distance (≤ 80 m) the camera, fog, clip planes, shadows and labels are exactly what they were (4.4116ms)
+✔ beyond 80 m the view eases monotonically into the panorama (10.2426ms)
+✔ zoom input: steps are multiplicative and reversible, the panorama is a few clicks away, the wheel keeps its feel (43.1678ms)
+✔ button, key and wheel zooms glide: monotonic, no overshoot, about 150 ms, landing exactly on the goal (0.6686ms)
+✔ minimap projection: north is up, east is right, one scale, and both villages fit in the box (1.6076ms)
+✔ the map arrow turns to where the camera looks (three.js camera, projected onto the north-up map) (1.0361ms)
+✔ minimap caption names the region the player stands in (2.3281ms)
+✔ panorama labels declutter by priority, and the pose channel replays the latest pose to new listeners (1.5079ms)
+✔ the outskirts continue the terrain from its exact edge: watertight, same shading at the seam, facing up (720.6668ms)
+✔ a short landscape page (844x390 window, 480 px canvas) fits and centres the panorama in the rows on screen (80.6063ms)
+✔ past play distance the camera never ends up behind a valley rim or under the snow ranges (13174.1782ms)
+✔ the clearance samples an upper bound of the drawn ground: never below the mesh, exact at its vertices (50.5021ms)
+✔ ground height: the terrain inside its square, the outskirts' own surface beyond it (447.8632ms)
+✔ the full map opens on the view that shows you: the city close-up in Emberford's core, else the whole world (44.5836ms)
+✔ an owner of #361 and #921 (both online) gets one house of size ms, verified by ownerOf at a block, no second signature (284.6077ms)
+✔ /api/me/home answers for the session’s wallet only: an address in the query, a header or a body changes nothing (55.1665ms)
+✔ forged candidates are rejected by ownerOf: an index or swarm entry is only a candidate (69.4255ms)
+✔ a sold seat drops within 30 s; the second-hand buyer counts it once it is online, even before IMD indexes the sale (119.0177ms)
+✔ /api/me/home: every NFT index read spends CHAIN_LIMITER (chain:index); refused, throwaway sessions cause no keyed read at all (696.0202ms)
+✔ home?fresh=1 and a refused budget: the stored index answer and IMD’s roster name the candidates, ownerOf proves them, and the view says limited (62.8204ms)
+✔ A-2: a refused index reload keeps the last index answer as candidates, and ownerOf re-proves them each time (fresh and after 5 min) (35.0202ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ A-2: another server instance, with an empty cache and chain:index refused or the index failing, still proves a seat only the index named, from the answer kept in D1 (148.2134ms)
+✔ A-2: a kept index answer is dated when its index read began, not its request: a request held before the index keeps its later answer over one read meanwhile (31.0993ms)
+index_probe_cleanup {"status":"schema_unavailable"}
+member_cleanup {"status":"schema_unavailable"}
+presence {"written":1,"at":1790596800000,"indexPruned":null,"lanesPruned":null}
+✔ deployed before migrations/0004: house reads, refused or failing index reads and the cron work as before the table (25.3381ms)
+✔ an hour of owner re-checks at 60 s costs 60 eth_calls but only 12 NFT index calls, and a sale still shows within one re-check (180.2629ms)
+✔ eligibility: a registered agent online now or within 24 h counts; offline longer or not an agent does not (20.9211ms)
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":1,"at":1790597100001,"indexPruned":0,"lanesPruned":0}
+✔ a buyer never inherits the seller’s sighting: the seat counts once it is online under the buyer; never seen is its own reason (30.3401ms)
+✔ house size follows the eligible count (1 s, 2–3 ms, 4–6 m, 7–9 l, 10+ xl); zero eligible is signed in without a house (1612.7487ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ chain failures are 503 OWNERSHIP_UNAVAILABLE, never an empty house, and are not cached (78.584ms)
+✔ one address: ownership is read once per 30 s (in-flight shared); more than 200 candidates are split and pinned to one block (81.3239ms)
+✔ A-4: past the 256-candidate cap, seats whose agent can count are checked first, and a cut list says partial, never a complete zero (1392.0461ms)
+✔ A-4: under the cap a read is complete; far past it (600 or 301 candidates) the seat that counts is still found and the cost stays two eth_calls (1672.7075ms)
+✔ N-3: past the 256-candidate cap, a seat that counts through its owner’s sighting in the last 24 h is still checked (the reproduction) (1189.3435ms)
+✔ N-3: the cut follows the counting rule exactly: a sighting at 24 h counts, one just over does not, nor one under another owner, nor none; online now does; a seat sold since is dropped by ownerOf (3787.2765ms)
+✔ N-3: the ranking read happens only past the cap, once per check, and only for registered seats not online now (712.2755ms)
+✔ N-3: the answer kept in D1 is cut the same way: another instance with chain:index refused still proves the recently seen seat (153.7862ms)
+✔ N-6: one IP’s throwaway sign-ins no longer keep a new buyer from their first seat discovery (the reproduction) (816.3876ms)
+✔ N-6: the lane is for a refused read that counts no seat: none when the roster or a kept answer already shows a seat that counts; one for a new buyer, a stale kept answer, or seats that do not count (144.9714ms)
+✔ N-6: one lane per network a minute, even when claims race (80.2488ms)
+✔ N-6: twenty other networks can still keep a refused read out at one location, and it reopens the next minute (the residual at its stated cost) (1194.2543ms)
+✔ N-6: the lanes have a site-wide ceiling: 60 in 6 s; the 61st is refused with nothing written and no key asked, and the next slice admits again (1043.1165ms)
+✔ N-6: an index read that failed (the budget allowed it) takes no lane: limited on the kept answer, with no lane row and no lane key (67.9658ms)
+✔ N-6 (deployed ahead of 0005): no lane, and a refused read is limited as before, never 503 (42.0995ms)
+✔ AUD3-01: a lane read that fails (502) keeps the request’s first proof: 200 limited with seat 100 offline-24h, eligible 0, never 503 (the reproduction) (72.6263ms)
+✔ AUD3-01: the same for a timeout and for a malformed index body (62.9716ms)
+✔ AUD3-01: a lane rebuild whose ownerOf read fails keeps the first proof (23.8425ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:198.51.100.0/24"}
+✔ AUD3-01 guard: a first proof that cannot be made is still 503 and asks no lane (32.2609ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:198.51.100.0/24"}
+✔ AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild (D1 failing on its sightings read) still propagates: 503 (73.9415ms)
+✔ AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s (62.8447ms)
+✔ AUD3-02: 40 local refusals reserve nothing after 20 admitted reads; another location can admit a buyer (1199.6729ms)
+✔ AUD3-02: a key that throws makes no admitted reservation or index read and keeps the 30 s probe backoff (23.6272ms)
+✔ AUD3-02: two /64s race and the key admits one; only its admitted row counts for the minute (52.7212ms)
+✔ AUD4-03: D1 reservation failure after local admission fails closed, without an index read or compensating release (28.9008ms)
+✔ AUD4-03: a D1 reservation that returns changes 1 without a RETURNING row still admits; a local refusal writes no admitted row (39.4895ms)
+✔ AUD4-03: 100 refused /24s reserve zero admitted rows in both rounds, without a release/update refund workload (1557.4933ms)
+✔ AUD4-03: preflight and atomic reservation both use covering network/global indexes (10.8979ms)
+✔ AUD4-03: a refusing key is asked at most twice/minute per network slot even if the home binding allows every read (208.4689ms)
+✔ AUD4-03: a refused /64 waits 30 s before probing again and leaves its /48 neighbour’s other probe slot (29.1166ms)
+✔ AUD3-02 guard: one admitted lane operation is up to NFT_PAGE_CAP (5) index pages and answers partial (21.4941ms)
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
+✔ AUD4-03 residual (denials count): 10 /24s re-probing every 30 s keep a same-location buyer out for 3 minutes; 9 do not (4232.1988ms)
+✔ public assets: no session, 5-minute public cache, seats from IMD’s roster with no keyed read at all, characters empty until configured (236.8029ms)
+✔ character NFTs, once configured: keyed reads only within the global budget (fail closed), cached 5 min, a failure not re-asked for 60 s (55.5402ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ CHAIN_MOCK_OWNERS (local E2E) acts only on a loopback URL, never on imdember.com (65.6269ms)
+cold /api/me/home (20 seats): 38.9 ms (window-8 table 57.0)
+✔ a cold /api/me/home for a 20-seat holder costs less than two window-8 tables built under the same load (1311.4214ms)
+✔ the Worker entry never loads layout.ts or households.ts; the client’s houseSize is the same function (915.0218ms)
+✔ murals, posters and shop signs sit on real row-house faces, inside the wall, off every door, window, arcade and band (3.01ms)
+✔ against the built houses (skin/terrain.ts villageRows): behind every piece is bare wall, nothing standing out, no opening (504.4709ms)
+✔ the facade rule knows the openings: a piece where a window or the arcade is fails it (0.5607ms)
+✔ murals face the town, stand on their walls and keep clear of every label (4.3584ms)
+✔ shop signs hang over the walkers, over ground, and their boards are clear of the wall (13.042ms)
+✔ lamps and gonfalon poles: counts, and every one out of the lanes, rings, labels, solids, water and the murals' view (6.8907ms)
+✔ the wind swings the cloth: slight on a calm day, strong in a storm, faster, still under reduced motion (0.4906ms)
+✔ night light is low and only at night; decor goes only once the labels have gone (0.4792ms)
+✔ the atlases are the files the script made, and every cell is inside its atlas at whole pixels (45.8628ms)
+✔ the builder: six draw calls, one per flag kind, instanced counts, materials that the night and the rain treat as paint (22.4465ms)
+✔ pepe-idle.webp is frame 14 of the 17-frame sheet, every pixel the same (125.3318ms)
+✔ the sprite and the portrait load the frame, not the sheet, and show all of it (1.6882ms)
+✔ the market screen stays exactly as it is; Pepe on his own spot, facing the square, drawn 1.5x (a 4.95 m statue) (20.5276ms)
+✔ the square keeps its room round him: nothing nearer than before, and the wings, equestrian group, pedestals, screen, quay and lanes as the re-layout asked (56.766ms)
+✔ on foot: from the spawn you walk all round him, between him and the screen, to the Cais stand and the #361 pedestal (174.2629ms)
+✔ onboarding's first stop is still one click: Pepe's screen, his label opens it from the spawn, a travel lands before it (0.5997ms)
+✔ first visit on desktops, phones and a phone held landscape: his head and his name clear of the HUD; a click on his head reaches him (835.3945ms)
+✔ the shipped statue is Genesis's v002 GLB, byte for byte, registered with its provenance (14.1581ms)
+✔ on the plinth, 1.5x: feet on its top, 4.8–5.1 m tall, the drum 0.4 m round the feet and no wider than before, the walking rule round it, under the Pepe label (56.8664ms)
+✔ the ember sits between the real hands: the nearest vertex is past the core and within 6 cm (model units) (39.9019ms)
+✔ the flame keeps to the maker's limits at its tallest flicker, and no vertex of the hands, chin or lips is inside it (12.9461ms)
+✔ it faces the square and every first view: the camera sees his front or three-quarter, never his side (871.6122ms)
+✔ the flat Pepe stays until the model is in, comes back if it fails, and a late model after dispose is dropped (29.4498ms)
+✔ two draws more than the sprite: statue, core and halo; the statue's triangles are not ray-tested, clicks still reach Pepe (111.3376ms)
+✔ gold with Pepe's face: the night rules skip it, its ember brightens at dusk and night, and holds still under reduced motion (7.9677ms)
+✔ the ring round Pepe has no mote any more (a statue stands there); the screen's ring keeps its own (2.0621ms)
+✔ with no founding homes, every household takes the first free candidate for its size, in priority order (3601.2375ms)
+✔ newcomers after the founding homes take the first free candidate for their size (6978.7979ms)
+✔ near a stop the boat is not drawn; boarded, instance 4 lies at the mooring on the live water with you on its bench (14.7898ms)
+✔ under way the boat and you follow the route; reduced motion holds it level, otherwise it bobs within BOB (10.0884ms)
+✔ ashore: you step onto the stop's pier, level and on your feet; the boat lingers, then goes (7.3492ms)
+✔ travel mid-ride ends it: the boat is gone and you stand where you landed (1.7648ms)
+✔ a boarding cancelled once seated (Esc, a drawer, the Map) puts you back on the pier, never left in the water (2.1754ms)
+✔ the camera looks down more steeply only where the route passes the Ember Bridge or the launch pier (14.7791ms)
+✔ the square stays walkable: spawn reaches the bridge, the arch, both roads, the quay, every pane and the belfry (704.045ms)
+✔ tap-to-walk from the spawn arrives at the panes, the control wall, Pepe, the pedestals, the quay and the arch (315.6851ms)
+✔ a tap on a solid walks up to it and stops; every tap walk ends (2002.4547ms)
+✔ pools, tree trunks and the belfry block the player (blockedAt names each one) (3.7599ms)
+✔ new solids stay off founding homes, featured pedestals, the spawn, the signposts and the river (26.6795ms)
+✔ the Ember Belfry stands on the west hill behind the square, far from every lot, lane, landmark and the river (342.6627ms)
+✔ forest(): the belfry terrace is cleared by scale 0 without moving any other tree or rock (141.3172ms)
+✔ equestrian: collider = lowest step, keepers clear the pedestal, the mount faces the Cais steps and is the only Tripo part (16.9237ms)
+✔ Ember Belfry: a Tripo tower replaces only the stone; terrace, clock, hands, bell and glows stay (12.6472ms)
+✔ pools and trees match their colliders; panes lie between the rays, off the ring and off the pools (9.2428ms)
+✔ fountain jets follow the pulse and the river level, and stay a low dribble when the feed is stale (0.5599ms)
+✔ memory windows show real records newest first and never invent any (10.2084ms)
+✔ keeper lamps read their district feeds, only while those feeds are fresh, and stay dormant without data (24.453ms)
+✔ the belfry strikes for finished work only: clear for accepted steps and completed jobs, muffled for failures, never for joins (9.7705ms)
+✔ PlazaAnimator: jets, ember, lamps, water and bell follow the signals; the shared ember material stays untouched (29.6089ms)
+✔ a loaded rider model gets the ember on its own staff tip (highest vertex), not on the procedural hand (5.7809ms)
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":1,"at":1790596800000,"indexPruned":1,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790596800000,"indexPruned":1,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":2,"at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+index_probe_cleanup {"status":"cleaned","deleted":0}
+member_cleanup {"status":"cleaned","requests":0,"history":0}
+presence {"written":1,"at":1790596560000,"indexPruned":0,"lanesPruned":0}
+presence run (parse 2 bodies + derive + 1 upsert): 7.1 / 11.6 / 6.4 / 8.7 / 8.5 ms
+✔ migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes (9.9219ms)
+✔ 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work (2.6801ms)
+✔ 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work (3.4777ms)
+✔ 0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty (4.0428ms)
+✔ 0005 is additive: on a live 0004 database every row of every table stays as it was, the new columns are empty, index_lanes starts empty, and the 0004 statements still run (5.6817ms)
+✔ 0006 is additive: on a live 0005 database every row of every table stays as it was, the new tables start empty but for the seven system names, and the 0005 statements still run (9.0946ms)
+✔ A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not (47.98ms)
+✔ N-6: the cron deletes index-lane rows older than a minute and keeps the rest, by a range of index_lanes_at; a database before 0005 is left alone (9.5465ms)
+✔ a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched (11.9887ms)
+✔ a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs (14.0137ms)
+✔ an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one (11.8404ms)
+✔ an edge-cached roster is dated by its Age, not by the time the cron read it (7.8413ms)
+✔ no database: the cron does nothing and makes no upstream read (7.7498ms)
+✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (69.6859ms)
+✔ recent activity reads as the world's own sentences; joins fold into one line (41.5724ms)
+✔ reads accumulate: work kept across reads by event, newest first, at most KEEP_LINES; a cached re-read adds nothing (11.1684ms)
+✔ door lamps: the joins of each fresh read light their homes once; a busy read is a dawn from the lodge (6.3307ms)
+✔ lamp rate limit: a seat lights at most once per cooldown; few arrivals light one door after another, oldest first (2.9451ms)
+✔ lamp brightness: a flare, then a glow fading to an ember over one read cycle; reduced motion skips the flare (0.6944ms)
+✔ the $1B beacon's segments and the pier's hour lamps from real reads (3.303ms)
+✔ forge sparks follow the workload: two reads give a token rate; before that, the last 60 minutes of steps; nothing, nothing (0.9098ms)
+✔ milestone through the read cycle: once per hundred per browser, at most one a day, and the page remembers when storage refuses (50.6386ms)
+✔ a hundred found by a read waits until someone can see it; the milestone line names live, replay and preview shows (0.986ms)
+✔ DoorLamps: one lamp per home by instance colour; porch light for an online agent; arrivals flare, fade and rest; writes throttle after the flare (17.3384ms)
+✔ pier meshes: lit beacon segments glow gold; hour posts rise with each hour's steps (7.8454ms)
+✔ fireworks and forge sparks: hidden and idle until asked; wind leans them; reduced motion stills the sparks (6.2144ms)
+✔ the milestone fireworks, and every pattern of the brilliant sky bursts, are on screen from the views the game uses (30.2567ms)
+✔ every listed public file's hash is its content's, and every file in the hashed folders is listed (22.6554ms)
+✔ a production build loads the hashed copy under /assets/; the dev server and unlisted files use the plain path (0.6613ms)
+✔ the build writes every hashed copy byte for byte, and stops on a file changed since it was hashed (38.6355ms)
+✔ every model, atlas and frame the world loads at startup has a hashed copy (3.0569ms)
+✔ full registry retains 5000 online seats, exact huge decimal IDs, and seat zero (153.3807ms)
+✔ multiple workers do not create duplicate seats and ownership is not presence (3.3575ms)
+✔ new agents append stable homes; disconnects retain history; failures never become offline (167.9449ms)
+✔ partial response does not assert omitted seats offline (2.81ms)
+✔ schema matches actual keyed swarm and numeric working; unseated devices counted separately (0.6663ms)
+✔ bridge preserves data on network failure with visible stale mode, never silently mock (42.4496ms)
+✔ the Swarm Audit Record is a collapsed block naming scope, reviewed version, date, deployment match and the previous-review label (24.5342ms)
+✔ its job and report links open the real pages in a new tab with no referrer and no opener (3.9467ms)
+✔ every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open (10.9004ms)
+✔ the two re-reviews of Worker 50c688c9 are listed with their findings, and the page says this version was not re-reviewed (15.1431ms)
+✔ the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, and the page says this version was not re-reviewed (10.3973ms)
+✔ the two reviews of Worker bbf24001 are listed with R3-R1 and AUD3-01..AUD3-09, and the page says this version was not re-reviewed (12.0827ms)
+✔ My wallet shows the record in every state, before sign-in too, and no longer the old one-line link (1.2952ms)
+✔ the remediation status doc agrees with the site’s record, names only real tests, and carries no forbidden word or personal detail (297.8887ms)
+✔ the future Mint boundary is written down: G-1..G-3 and the S-2 checklist, linked from the docs, claiming nothing about a Mint (3.0498ms)
+✔ a world point lands where the camera draws it, in CSS pixels (3.5842ms)
+✔ behind the camera: flagged, never on screen, and mirrored so an edge mark points the way to turn (0.6449ms)
+✔ a view offset (the panorama band shift) moves the points with the picture (0.5632ms)
+✔ the feed: you first, anchors capped, listeners hear only movement, one empty list while paused (3.996ms)
+✔ teleports reach their listeners until they unsubscribe (0.3716ms)
+✔ hover: listeners hear a new target or a moved mouse, never a repeat; taps on nothing reach their listeners (0.5753ms)
+✔ only a brilliant sky sends fireworks up: a market quote of +10 % or more, never with the calm switch on (18.741ms)
+✔ the schedule: the first burst 12–40 s after the sky turns brilliant, then 40–120 s apart, three shells in one of six patterns (17.5665ms)
+✔ no fireworks under reduced motion, on a slow device, or behind a drawer, the strip, a house or a hidden tab (6.9196ms)
+✔ a burst is a few of the milestone show's shells, in one of its patterns, over sooner; the milestone show is as it was (57.8703ms)
+✔ a burst still in the air is cut short when the calm switch turns on or the market falls under +10 % (47.305ms)
+✔ the hundred and a brilliant sky share the fireworks: neither cuts the other off (94.2074ms)
+✔ the preference: on by default, "off" remembered, localStorage then sessionStorage, never throwing (2.0279ms)
+✔ thunder comes 1–4 s after the flash, later, quieter and duller with distance; never a crack (0.4899ms)
+✔ the rain hiss: silent when dry, rising with the rain, soft even in a downpour (0.2723ms)
+✔ the rain hiss per tier shown, as the owner asked after listening: rain and thunderstorm x.75, storm x.5 (1.4101ms)
+✔ the trim eases with the rain when the weather changes: no step, and follows the tier shown (82.2616ms)
+✔ no AudioContext before a gesture; a mouse press, a click or a key starts it at once (14.7541ms)
+✔ on a phone the audio starts as the tap ends, and a touch that does not count is retried by the next tap (6.1775ms)
+✔ the toggle mutes (master 0, context suspended), saves "off", and a reload stays muted with no context (9.0392ms)
+✔ a hidden tab suspends the audio and showing it resumes; hidden at the first gesture creates nothing yet (6.0843ms)
+✔ thunder is scheduled after the delay: a low rumble and its body swelling in softly, never a crack; the rain dips (4.1363ms)
+✔ thunder still to come is dropped by a mute or a hidden tab (it never rolls in later with no flash) (5.5655ms)
+✔ the rain hiss follows the level, stops when dry and starts again (3.13ms)
+✔ WeatherFx strikes reach the thunder through onStrike (158.014ms)
+✔ the first press on the toggle while the audio waits for a gesture starts the sound instead of muting it (8.1603ms)
+✔ the first press keeps the sound on only once: with no Web Audio, or a context that never runs, the next press mutes (3.2567ms)
+✔ only Enter and Space note a press on the toggle; a press that leaves (blur, cancel) is forgotten (7.1844ms)
+✔ locked (the hint by the toggle): sound on and never run; a touch that does not count keeps it; muted is never locked (2.3666ms)
+✔ IMD states map to Explorer's groups; unknown values stay unknown (2.6833ms)
+✔ the Forge feed: the gateway keeps the 12 newest non-oracle jobs, and each row links to its Explorer job page (2.6992ms)
+✔ oracle rows: signed, split and answering are told apart and link to the question's job page (19.8128ms)
+✔ publications and launches get a status from their contracts and types, and a link (2.7709ms)
+✔ workflow stage jobs never reach the Forge, and their ids travel with the jobs so no link points at their missing page (0.958ms)
+✔ a published workflow opens its own page, as Explorer's Published tab does, never a stage job (those are "Not found") (1.1133ms)
+✔ demo records (mock mode) open Explorer's tabs, never a made-up record page (2.8588ms)
+✔ keeper lamps and the Forge read the real states: an executing job lights the Jobs keeper, signed answers the Oracle keeper (1.0144ms)
+✔ the Forge mill turns with Explorer's Running count when no listed job is executing (09:28Z: 45 workflows + 1 job) (1.9993ms)
+✔ the stops a click reaches: every loop stop with a deck of its own, then the Frost line's landings past the Falls (3.0982ms)
+✔ standing by a shelter (within SHELTER_REACH of it, on the ground in front of it) is standing at its stop: E boards the loop's boat, or the Frost line's shuttle (8.5009ms)
+✔ a click on a stop: within BOARD_NEAR of its stand, to the stand (unless you stand at the stop) and aboard; farther, to the stand only (1.4548ms)
+✔ what lights up: each stop's deck sheet (and its T head, and its shelter's platform in the water), hidden until the mouse is over it; each shelter its own colour (67.417ms)
+✔ the field's grid is THREE.PlaneGeometry's, rotated flat, float for float (89.4856ms)
+✔ a field read back from its baked file builds the same terrain, outskirts and camera bound, filled in place (2101.244ms)
+✔ the baked file holds the field's floats exactly and nothing else passes for it (28.4588ms)
+✔ the build bakes the phone field under a content-hashed /assets/ name; the dev server bakes nothing (467.2483ms)
+✔ a phone takes the field from the baked file it started downloading at boot, once (523.1622ms)
+✔ desktops, the dev server and every failed download work the field out on the main thread, the same (4289.3926ms)
+✔ the field is the ground as it always was: pinned to the digest of the code before it was baked or sliced (3.9039ms)
+✔ worked out in slices, however it is cut, the field is the same float for float (3918.4082ms)
+✔ a phone works the field out in slices while the file is on its way, and the first to finish wins (977.6614ms)
+✔ the segment index gives bit-identical answers to the full scan, for the river and the stream (3368.0905ms)
+✔ the terrain mesh asks riverQuery once per vertex (the index and landHeight add no second river pass) (790.1623ms)
+✔ under the Ember Bridge the earth is river bed: the drawn terrain is open water, the deck is where feet stand (567.6108ms)
+✔ off the bridge and pier decks and the Guardian Steps, terrainHeight is the earth itself (106.741ms)
+✔ outskirts biome: snow only high on the ranges, meadow downs and sand flats in the south, drawn on both meshes (493.0953ms)
+✔ outskirts heights: ridged ranges 48-120 m, downs and flats low once the biome takes over from the terrain's edge (518.2338ms)
+✔ terrain edge: the N and W ranges keep their heights, the old 39-62 m rim elsewhere becomes 15-30 m downs (0.7233ms)
+✔ the downs carry copses, not a forest ring: the lowered rim does not fill with trees (87.3894ms)
+✔ the camera's ground bound stays above the outskirts as drawn, where biome borders cross the wide outer rings (609.142ms)
+✔ the title carries one quiet line: an independent community project that Identity.md does not run or endorse (15.6493ms)
+✔ the guide opens with the same statement in both languages (1.0714ms)
+✔ index.html says it in its description and in its noscript text, in both languages there (0.5326ms)
+✔ none of it claims a tie to Identity.md or any assurance (1.5207ms)
+✔ first sign-in asks for exactly one signature, goes connect → sign → verify → owner, and a double click starts one flow (163.6282ms)
+✔ a reload restores the session from the cookie with no signature and no challenge, even when the click comes first (71.0056ms)
+✔ a rejected signature leaves a visitor with the owner-less notice, and nothing is retried by itself (84.2591ms)
+✔ switching A → B turns owner mode off at once and ends A at the server; B is merely connected (80.3111ms)
+✔ A’s signature arriving after the switch to B is never sent to verify (74.6404ms)
+✔ A’s verify held before the server answers, then the switch to B: dropped, and no session of A survives (114.576ms)
+✔ A’s verify held after the server answers, then the switch to B: dropped, and no session of A survives (107.6955ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ a wallet with no IMD seat is signed in with no house, and a failing chain read is a different state (52.0059ms)
+✔ after 7 days the session is expired, on the next check and on the next visit; signing in again needs one signature (95.6527ms)
+✔ tabs follow each other through the channel by re-reading the server, and a forged message changes nothing (192.3811ms)
+✔ a visit whose wallet is on another account than the session is a mismatch until signed in again as that account (74.7724ms)
+✔ every state has its own chip and status wording in both languages (0.9664ms)
+✔ sign out ends the page’s session only when the server revoked it; a lost logout keeps it, says so, and a retry works (20.4227ms)
+✔ Sign out on all devices: every browser of the address is signed out, the other tab at once, the other device on its next read; a lost request keeps it and says so (140.8908ms)
+✔ My wallet: “Log out this device” ends only this browser; “Log out all devices” asks inline, and only its confirm ends every device (120.4332ms)
+✔ Sign out on all devices from a browser whose sign-in already ended: this page is signed out, says other devices were not, and a fresh sign-in can do it (52.2292ms)
+✔ with the sign-in bucket drained by cross-site reads (the reported attack), Sign out still revokes and a reload stays signed out (47.0763ms)
+✔ an account switch whose logout is lost shows the old session as a mismatch, never as signed out (62.6719ms)
+{"evt":"auth_refused","route":"/api/auth/session","status":429,"error":"RATE_LIMITED","reason":"api","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/auth/session","status":429,"error":"RATE_LIMITED","reason":"api","colo":null,"net":"net:unknown"}
+✔ a reload whose session read fails (429) never asks for a signature while the session is valid (51.7225ms)
+✔ a reload whose session read fails (network) never asks for a signature while the session is valid (41.3689ms)
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+{"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
+✔ owner mode ends when every re-check has failed for longer than 3 minutes, and comes back when one succeeds (27.941ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ a smart wallet whose check the server's chain budget refused gets the busy notice, and its next click signs in (28.8199ms)
+✔ an undeployed smart account gets its own notice, and one verify only (10.8858ms)
+✔ the owner re-check asks nothing while the tab is hidden and once when it is shown again (297.4006ms)
+✔ My-wallet rows after a sale show only the seats the server proved, with each reason worded and the count pluralised (37.4804ms)
+✔ a seat bought after sign-in shows on a reload or on Check again, with no second signature (93.7244ms)
+✔ the map marks the owner’s own household 「我家」 only in owner mode; otherwise the viewed wallet’s, as “this wallet’s home” (1.3097ms)
+✔ saved moves from older builds lose their message and signature on read, malformed ones are dropped, and a clean list is left alone (1.9924ms)
+✔ moving needs owner mode: a connected wallet, a switched account or another wallet’s house cannot move, and the move asks the wallet for nothing (39.5526ms)
+✔ W-1: a session past its expiresAt here is not owner mode: status, move gate, move and hint refuse; the client ends it on time and re-reads the server when shown again (220.3113ms)
+✔ visibility-refresh-clears-stale-owner: a tab shown again after a “Log out all devices” elsewhere, or after the seat was sold, leaves owner mode (153.1431ms)
+{"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
+✔ W-3 on the page: a node failure on a smart wallet’s check is “can’t be checked right now”, never a bad signature; the next click signs in with one new signature (44.8502ms)
+✔ F-7(e): a locked wallet (accountsChanged with no account) keeps the session and owner mode; only a log-out ends it (53.4624ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ A-3: an older house read whose body arrives after a newer answer is dropped: it neither undoes a sale nor a recovery (125.9614ms)
+✔ A-8: a house read that was refused or cut off is “the check couldn’t be completed”, never “checked on chain: no seat” (1727.2075ms)
+✔ A-4: on the page, a read the NFT index cut short at its page cap says the list may be incomplete, not that the wallet names more than 256 seats (1082.4944ms)
+✔ discovery: window.ethereum only without announcements, the single announced wallet, a choice among several remembered per browser (11.4167ms)
+✔ with several wallets, only the chosen one is asked anything; choosing another shows a mismatch and follows only its accounts (135.5682ms)
+✔ switching wallets while a signature is pending drops that flow: the late signature is never verified and nothing is signed in (67.78ms)
+✔ only the address that asked can end up signed in: a wallet signing with another key, or a verify answer for another address (90.3474ms)
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.18.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.19.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.20.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.21.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.22.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.23.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.24.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:198.18.25.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:unknown"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x6335","colo":null,"net":"net:unknown"}
+✔ the page checks the sign-in message before the wallet sees it: the real server message passes, every altered one ends the flow unsigned (113.3792ms)
+✔ while the wallet asks for the signature, the page shows a summary read from the checked message, and only then (85.5656ms)
+✔ a chain switch in the wallet changes nothing: still the owner, no re-login, no wallet or server request (44.7049ms)
+✔ a click waiting on the session read never reaches a wallet that was replaced meanwhile (54.3833ms)
+✔ a second provider announcing the chosen wallet’s rdns never takes over: the pick stays, the copy is flagged and never asked (83.2898ms)
+✔ a remembered wallet that has not announced is never replaced by whichever one did: the player is asked (54.733ms)
+✔ a replaced wallet’s late answers change nothing: a slow eth_accounts, and accountsChanged from a wallet without removeListener (86.6854ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ under one’s own house, only an account without a session is told to sign in; a signed-in one is told why its seats do not count (53.1795ms)
+✔ N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped: owner mode stays and nothing asks the wallet (68.2188ms)
+✔ N-1: and the reverse: an older “signed in” read that arrives after a newer “signed out” revives nothing and reads no house (68.6006ms)
+✔ N-1: an older read that fails late (a lost connection, or a body cut off) after a newer answer changes nothing (124.6404ms)
+✔ N-1: a switch of account or a sign-out while a session read is on its way still drops it (173.7808ms)
+✔ N-1: a sign-in click waits for the newest session read, so a live session in the cookie jar is found and nothing is signed (250.1954ms)
+✔ N-1: an older read answered late with an error status (503 or 429) after a newer “signed in” changes nothing (186.8175ms)
+✔ N-1: a house read of the replaced session that lands while another address signs in changes nothing (146.9313ms)
+✔ N-1: a house read begun for a session that a newer read then ends changes nothing when it lands (200, 429 or 401) (200.1202ms)
+✔ N-2: a challenge whose body arrives after the switch to another account asks the wallet nothing and verifies nothing (89.8337ms)
+✔ N-2: the same after a switch to another wallet with the same account, a sign-out, or the page closing: no prompt from the dead flow (171.7259ms)
+✔ N-2: a new sign-in started at once is untouched by the old flow’s late body or late refusal (186.4368ms)
+✔ N-2: a wallet that locks while the challenge body is on its way is not asked to sign (65.9732ms)
+✔ N-2: a prompt already open when the flow is cancelled by a sign-out is answered into nothing (73.6615ms)
+✔ N-2: a dead flow’s verify refusal whose body lands after a new flow began leaves the new flow alone (109.8947ms)
+✔ N-2: a click still waiting for a session read is ended by the page closing or a sign-out: no prompt, no challenge, no verify (225.0613ms)
+✔ N-7: a session revoked elsewhere (AUTH_REQUIRED) a day before its expiry is signed out, not expired (the reproduction) (38.545ms)
+✔ N-7: a real expiry still reads as expired: SESSION_EXPIRED, a 401 at the held session’s expiresAt, and the W-1 timer (53.3482ms)
+✔ N-7: an expiry seen through a session read is still expired: with no hint, and when the server’s clock is ahead of the page’s (36.0731ms)
+✔ N-7: My wallet says “Signed out.” after this page’s own sign-out and “You are no longer signed in” after a revocation, never why it cannot know (953.8719ms)
+✔ R3-R1: an accountsChanged(B) that arrives while eth_requestAccounts is pending wins over the late [A]: no prompt, no challenge, no verify, B stays connected (the reproduction) (74.3789ms)
+✔ R3-R1: a lock (accountsChanged([])) while the connect is pending ends the click: nothing asked, no account (58.1896ms)
+✔ R3-R1: a lock while the signature prompt is open verifies nothing (77.2606ms)
+✔ R3-R1: a slow eth_accounts answer that lands after a lock event changes nothing (54.9626ms)
+✔ R3-R1 guard: a normal first connect that emits accountsChanged for the same account completes with one prompt and one verify (46.4613ms)
+✔ R3-R1 guard: B then A while pending: the latest event (A) agrees with the answer, so A signs in once (46.6794ms)
+✔ R3-R1 guard: a sign-out, the page closing or a wallet switch while the connect is pending: the late answer sets no account and asks nothing (156.0655ms)
+✔ R3-R1: a wallet that changes with no provider-change event while the prompt is open verifies nothing (90.9445ms)
+✔ AUD3-04: a session read begun while this page’s sign-out is on its way, answered after it, revives nothing: “Signed out.” stays (the reproduction) (96.3855ms)
+✔ AUD3-04: the same when the house read then fails or is refused: no session, house or hint of A is left (187.1139ms)
+✔ AUD3-04: an account switch’s logout and an abandoned flow’s logout end a read begun before them, and a session a read showed meanwhile (493.1911ms)
+✔ AUD3-04: a wallet (provider) switch’s logout during a flow ends a read begun before it, and a session a read showed meanwhile (339.8419ms)
+✔ AUD3-04: the sign-in click’s own logout of another address’s session ends a session read begun while it was on its way, whether the house read then works or fails (270.7414ms)
+✔ AUD3-04: a house read sent while this page’s sign-out is on its way, answered after it, sets no house (69.5069ms)
+✔ AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent leaves that house applied and nothing checking (126.8809ms)
+✔ AUD3-05: a house read answered for the address another tab signed in, whose session re-read is refused (429), leaves no owner mode and nothing checking (the reproduction) (33.459ms)
+✔ AUD3-05: the same for a 503 and a lost connection (58.8398ms)
+✔ AUD3-05 guard: once the session read works again, Check again finds the cookie’s session (B, a mismatch with account A) and nothing stays checking (39.4952ms)
+✔ AUD3-07: “Log out all devices” on a session the server says ran out reads as expired, and still says other devices were not signed out (the reproduction) (24.0954ms)
+✔ AUD3-07: when the follow-up session read fails (429, 503), the page still says other devices were not signed out, and a click reads the session again before it signs (54.2299ms)
+✔ AUD3-07 guard: an AUTH_REQUIRED or unreadable 401 stays “other devices were not signed out” with no cause claimed (36.0348ms)
+✔ AUD3-07 guard: a logout-all answer, or its follow-up read, that lands after the account switched changes nothing of the new state (224.5329ms)
+✔ AUD3-07: a house read in flight across a refused logout-all whose follow-up session read fails sets no house (75.0498ms)
+✔ AUD3-06: a refused logout-all (401) answered after another tab of the profile signed in leaves this page on that tab’s session, read afresh, and still says other devices were not signed out (59.37ms)
+✔ ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current, ends A on the page: no session, house, hint or owner mode (the reproduction) (267.6188ms)
+✔ ADV-1 guard: a newer session the page holds when the click’s logout of A is confirmed (A signed in anew, or C, by another tab) is left alone (304.8728ms)
+✔ ADV-2: the sign-in click’s confirmed logout of A is told to the other tabs: one that showed A as owner reads the server and leaves owner mode, B not signed in (the reproduction) (44.2566ms)
+✔ ADV-3: an account switch’s logout still on its way when the click comes: the click waits for it, then B signs in with one prompt and one verify and keeps its cookie (the reproduction) (250.6634ms)
+✔ ADV-3: a click while this page’s sign-out is on its way waits for it, then signs B in, and B keeps its cookie (142.77ms)
+✔ ADV-3: an abandoned flow’s verify still on its way when the click comes: the click waits until that late session is logged out, then B signs in and keeps its cookie (320.2175ms)
+✔ ADV-3: a logout of this page that does not answer never leads to a prompt: after LOGOUT_WAIT_MS the click ends asking nothing; once it answered, the next click signs B in (113.6283ms)
+✔ ADV-3 guard: another wallet chosen while the click waits for an account switch’s logout, after a read found A again: A ends on the page once that logout is confirmed (192.0228ms)
+✔ ADV-3 guard: after an account switch, and on a mismatch, the click signs B in with one prompt for B, one challenge and one verify, and B keeps its cookie (184.2993ms)
+✔ ADV-1: “Log out this device” confirmed after another wallet became current while a click waited for it ends A on the page, says “Signed out.” and tells the other tabs (480.773ms)
+✔ ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout, ends on the page when that logout is confirmed after another wallet became current (131.7441ms)
+✔ ADV-2 guard: the confirmed logout of a click that another wallet ended is still told to the other tabs (113.7488ms)
+✔ ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen: the next click, for that wallet’s account, waits for it, and that account keeps its cookie (171.1977ms)
+✔ ADV-3 guard: a wallet switch’s logout of the flow it ended still out: the click on the new wallet waits for it, and that account keeps its cookie (181.1101ms)
+✔ ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes: the click waits for that logout, and B keeps its cookie (207.6362ms)
+✔ ADV-3 guard: signed in already as the wallet’s account while this page’s logout is still out: the click re-checks the house at once and arms no wait (144.5443ms)
+✔ ADV-3 guard: a click waiting for this page’s logout goes on as soon as a read shows the wallet’s account signed in already (173.4686ms)
+✔ ADV-3 guard: a click whose own session read finds the session it showed gone waits for this page’s logout before it asks for a challenge (153.5429ms)
+✔ ADV-3: while a click waits for this page’s logout, My wallet says so and its sign button is off; a second click asks nothing; once answered, B signs in and the notice goes (832.4561ms)
+✔ ADV-3 guard: a click that waited for this page’s logout and then finds another wallet in use asks nothing and leaves no waiting notice (117.8498ms)
+✔ ADV-3: an abandoned flow’s verify whose body stalls after its headers: its late session is logged out on the headers, the click for B signs B in, and the body landing later leaves B alone (195.1629ms)
+✔ ADV-1: an abandoned flow’s late session whose verify body and logout answer land in either order after another wallet became current ends on the page once both are in, never before its logout is confirmed (389.0585ms)
+✔ ADV-1: an abandoned flow that dies while its verify body is read: its late session, shown by a read while a click waited, ends on the page when its logout is confirmed after another wallet became current (166.3925ms)
+✔ ADV-3: a session or house read that fails while a click waits for this page’s logout (503, 429, 500) leaves My wallet saying it waits, with its sign button off; once answered, the click asks B to sign (1215.8945ms)
+✔ ADV-3 guard: on a mismatch, a click that a switch to another account ends during its own session re-read leaves no waiting line, and My wallet’s sign button on (817.4311ms)
+✔ ADV-3 guard: “Log out this device”, or a switch to another account, while a click waits for this page’s logout takes the waiting line down at once, the sign button on (3007.0957ms)
+✔ ADV-3: the page’s teardown while a click waits for this page’s logout takes the waiting line down: a client started again shows none, the sign button on (1340.2732ms)
+✔ ADV-1 guard: a sign-out confirmed after another wallet became current leaves a newer session the page holds by then, and never says “Signed out.” for it, also after the next account switch (747.0936ms)
+✔ ADV-1 guard: a “Log out all devices” the server refused (this browser’s sign-in had ended), answered after another wallet became current while a click waited for it, says no “Signed out.” (757.6447ms)
+✔ ADV-1: a “Log out all devices” the server refused, answered after another wallet became current while a click waited for it, reads the session again: the session another device ended is not kept (806.2841ms)
+✔ ADV-1 guard: an abandoned flow’s verify body landing after its late logout was confirmed leaves another tab’s newer session the page holds (174.4036ms)
+✔ ADV-1 guard: an abandoned flow’s late logout that was lost: its verify body landing later leaves the still-live late session on the page (153.6862ms)
+✔ ADV-3 guard: a click that waits only for a session read, with no logout of this page out, shows no waiting line (669.7721ms)
+✔ ADV-3 guard: signed in already as the wallet’s account, a click that waits for a session read while this page’s logout is out shows no waiting line and asks nothing (738.6822ms)
+✔ the bands named are the ones weatherForChange draws: inside each band its tier, just outside it another (3.286ms)
+✔ why this weather: the 24h change, its value and band, DEX Screener and the read time, not advice, a metaphor (16.2184ms)
+✔ an hour down more than 5 % on a dry sky is named as the shower; the demo world names its made-up quote as the source (7.395ms)
+✔ a value that rounds onto the edge of its band is written a cent inside it; any other is rounded as the card rounds it (5.0573ms)
+✔ the 24h figure printed beside a tier stays in its band: the weather card, the market dashboard, the control wall (49.5122ms)
+✔ an old quote, one with no 24h change, or none at all: the sky is neutral and the block says why (3.5446ms)
+✔ the market board keeps its numbers under the source, the read time and not-advice, in every state (0.5047ms)
+✔ the Observatory drawer opens on the why block, and its market board carries the source, read time and not-advice (24.2822ms)
+✔ the 3D control wall names the tier and says a shower takes an hour down more than 5 % (10.6442ms)
+✔ none of the new copy gives an assurance or claims a tie (2.5071ms)
+✔ the 24h change picks the tier; a value exactly on a falling boundary takes the worse tier (2.3116ms)
+✔ every tier has a label and a sky; the brilliant sky outshines the clear one; each worse tier is darker with a weaker sun (1.396ms)
+✔ rain intensity: drizzle ≈ .3, storm ≈ .65, thunderstorm 1, and the falling hour adds a shower on top (0.7697ms)
+✔ a shower on a dry sky is named on the card exactly when rain is drawn; rain tiers already say rain (1.0458ms)
+✔ how rain looks: nothing when dry, and every quantity grows from drizzle to storm to thunderstorm (2.0084ms)
+✔ the two streak octaves always add up to full rain and only ever crossfade as the zoom moves (19.2806ms)
+✔ over the panorama the streaks thin out and stay short on screen; at play distance all of them, at full length (16.7445ms)
+✔ the rain volume follows the camera and reaches the ground at the centre of the view at every zoom and pitch (283.8632ms)
+✔ streaks: thousands on a desktop in a thunderstorm, far fewer on phones, none when dry; one draw call (37.977ms)
+✔ rain sheets: panorama veils around the look point in every rain, never a blanket, none at play distance (42.588ms)
+✔ haze: rain thickens the fog, more over the panorama; a dry sky leaves it alone (25.5428ms)
+✔ the first weather shows at once; later changes ease in; the sky light dims with the rain and comes back (2.9423ms)
+✔ ripples ring the river while it rains, never under reduced motion; reduced motion keeps the rain still but drawn (19.3401ms)
+✔ wet: the ground and the houses darken and gloss, props, lights and glass do not; everything dries back exactly (9.6813ms)
+✔ the reviewers' override exists only in DEV builds or with ?debug=1 (0.9246ms)
+✔ lightning: 60–150 s apart, mean about 100 s, never a double strike (11.9682ms)
+✔ lightning glows: one soft rise and fall per strike, never a second pulse, well under the old flash (167.0152ms)
+✔ lightning under reduced motion: no glow and no bolt at any moment (11.5606ms)
+✔ the bolt: lit at most BOLT_PEAK for BOLT_LIT s, a faint afterglow, then gone (5.0085ms)
+✔ WeatherFx lightning: thunderstorms only, 60–150 s apart, a soft glow that lifts the sky and a bolt past the town (684.9573ms)
+✔ WeatherFx lightning under reduced motion: no strike at all, not even ?lightning=now; the rain still falls on screen (534.5699ms)
+✔ WeatherFx lightning over the panorama: the bolt stands on screen, 150–260 m from the look point (142.6864ms)
+✔ worker answers the three read routes with JSON, API headers and no sensitive fields (50.5797ms)
+✔ worker rejects writes with 405, unknown API paths with 404 and gateway failures with 503 (4.111ms)
+✔ everything outside /api/world/ goes to the ASSETS binding untouched (1.2284ms)
+✔ seat details are bounded to 256 per isolate, least recently read dropped first (334.1128ms)
+✔ the snapshot body is serialised once per data change and rebuilt when any source changes (10.9874ms)
+✔ per-IP rate limits: 429 JSON when a limiter refuses, open when it fails, 503 when production lacks the binding (6.6744ms)
+✔ the deployed worker sends upstream reads with edge-cache TTLs and an identifying User-Agent, kept alive by waitUntil (2.9291ms)
+✔ the Worker entry module exports only its default handler (workerd rejects any other export) (0.2034ms)
+✔ the Vite dev adapter runs the same handler and passes other paths on (2.0723ms)
+✔ rate limits key IPv6 clients by their /64, so rotating host bits within one block gains nothing (14.289ms)
+✔ the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-mapped IPv6 as IPv4 (0.5397ms)
+✔ N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, IPv4-mapped and unknown clients have none (0.2646ms)
+✔ AUD3-08: address text is keyed by its real family: hex and dotted IPv4-mapped forms are that IPv4, other IPv6 with a dotted tail stays IPv6, the zero /64 and extra or invalid parts are the one unknown key (the reproduction) (0.6483ms)
+✔ the Worker keeps a per-location shared copy of the snapshot, and a cold isolate answers from it at once (59.6645ms)
+✔ edgeCopy keys by the request origin, and a copy the Cache API does not have is undefined (1.2997ms)
+✔ every world model is the manifest's output: quantized, declared, and the statue left alone (26.2294ms)
+✔ quantize: normals within half a degree, UVs to 1/65535, positions and textures byte for byte; UVs outside [0,1] stay float (2.5129ms)
+✔ three.js loads a shipped model as quantized normals and UVs, and a house's in-place transform keeps them right (34.2768ms)
+ℹ tests 1087
+ℹ suites 0
+ℹ pass 1087
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 122085.8429
+2026-10-03T16:53:27.7857152Z exit=0

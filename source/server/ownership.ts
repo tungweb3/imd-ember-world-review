@@ -129,7 +129,7 @@ export type OwnershipRequest={chain:ChainAccess;db?:D1Database;now:number;waitUn
   /** The chain budget (per Cloudflare location) every NFT index read spends first: home()'s candidates and the public
    *  character list. Absent or refusing means no such Alchemy call. */
   budget?:()=>Promise<boolean>;
-  /** N-6: the requesting network's discovery lane (server/auth.ts INDEX_LANE, then 'chain:index:lane'), asked by home()
+  /** N-6 / AUD4: the network's discovery lane (bounded preflight/probe, 'chain:index:lane', then atomic INDEX_LANE), asked by home()
    *  only after `budget` refused an index read whose answer counts no seat; true lets that one read through. Absent: no lane. */
   lane?:()=>Promise<boolean>;
   /** The clock, read again when an NFT index read begins (absent: `now`). Its answer is dated then, not when the request
@@ -282,8 +282,8 @@ export class Ownership{
     let proof=await this.proof(a,world.owners,world.agents,req,fresh),seen=await this.sightings(proof.ids,a,req.db);
     // N-6: a read the budget refused whose answer counts no seat may be hiding a seat only the index names (a new buyer,
     // or one whose kept answer names only seats sold since, or none that count). Its network's lane (server/auth.ts
-    // INDEX_LANE: one read a minute, IPv6 one per /64 and two per /48, at most INDEX_LANE_BUDGET per 6 s site-wide, then
-    // 'chain:index:lane') reads the index once, keeping the answer (KEEP_INDEX) so that owner needs no lane again; ownerOf
+    // AUD4 preflight/probe, then 'chain:index:lane', then atomic INDEX_LANE: one admitted read a minute, IPv6 one per /64
+    // and two per /48, at most INDEX_LANE_BUDGET per 6 s site-wide) reads the index once, keeping the answer (KEEP_INDEX); ownerOf
     // proves it as always, and nothing the client sends is a candidate. The lane is asked before the rebuild, so a
     // refused one costs no second ownerOf; refused, the view stays 'limited' (could not check, never "owns nothing").
     // AUD3-01 (Swarm audit 1ef8e8a6 #1): the lane's read was sent, so if it (or the ownerOf read after it) fails, this

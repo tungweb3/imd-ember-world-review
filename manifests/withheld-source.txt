@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 # Withheld source files at commit c491ff3c9edf9d0eb39a9233ccfff101a7c8133c (git -c core.autocrlf=false archive, i.e. the exact git blob bytes)
 # Format: sha256sum (SHA-256, two spaces, path relative to the repo root). 512 files. Git blob ids: withheld-source-gitblobs.txt
 0ca8fa23a4cc56a8131c260ebee54d5f8668c013fb591d9feb97d5ba34d2a6d4  DESIGN.md

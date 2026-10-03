@@ -206,3 +206,25 @@ test('the house panel says whose home it is by the player name, with the short a
   assert.match(moderated,/你的家 · 中型屋/);assert.doesNotMatch(moderated,/會員-/,'a name taken away is not shown on the house');
   assert.match(en,/EmberCat ’s home · Medium house/);
 });
+
+test('AUD4-08 rendered UI: a present deadline disables only before its time; server-calibrated cooling remains authoritative for the hint',async()=>{
+  const deadline=START+7*DAY,member=view({displayName:'TimedCat',profileState:'ready',version:1,nextNameChangeAt:deadline});
+  const [before,at,after,serverCooling]=await render([
+    {state:st({view:member}),lang:'en',now:deadline-1},{state:st({view:member}),lang:'en',now:deadline},
+    {state:st({view:member}),lang:'en',now:deadline+1},{state:st({view:member,cooling:true}),lang:'en',now:deadline+1}]);
+  const button=html=>html.match(/<button[^>]*>Change name<\/button>/)?.[0]??assert.fail('missing Change name button');
+  assert.match(button(before),/disabled/);assert.doesNotMatch(button(at),/disabled/);assert.doesNotMatch(button(after),/disabled/);
+  assert.match(button(serverCooling),/disabled/);
+});
+
+test('AUD4-02/07 rendered UI: contract policy is stable, and an uncertain save offers result-checking rather than a new name',async()=>{
+  const [contractZh,contractEn,unknown,checking]=await render([
+    {state:st({phase:'unavailable',error:{code:'CONTRACT_WRITE_NOT_ENABLED'}}),lang:'zh',now:START},
+    {state:st({view:view({}),error:{code:'CONTRACT_WRITE_NOT_ENABLED'}}),lang:'en',now:START},
+    {state:st({view:view({displayName:'AlreadySaved',profileState:'ready',version:1}),pendingSave:true,error:{code:'SAVE_RESULT_UNKNOWN'}}),lang:'en',now:START},
+    {state:st({view:view({}),pendingSave:true,saving:true}),lang:'en',now:START}]);
+  assert.match(text(contractZh),/合約錢包仍可登入及查看世界/);assert.match(text(contractZh),/再次簽名不會開啟/);
+  assert.match(text(contractEn),/Contract wallets can still sign in and view the world/);assert.doesNotMatch(contractEn,/<input|type="submit"/);
+  assert.match(text(unknown),/Check previous save/);assert.match(text(unknown),/Current player name AlreadySaved/);
+  assert.doesNotMatch(unknown,/<input|type="submit"/);assert.match(checking,/<button[^>]*disabled[^>]*>Checking…<\/button>/);
+});

@@ -12,8 +12,11 @@ examined World only; they say nothing about a Mint, and their results must not b
   Permit or Permit2, no typed-data signature.
 - The session is the `__Host-imd_session` cookie (HttpOnly, Secure, SameSite=Lax, Path=/, 7 days, no renewal), stored
   server-side only as its SHA-256. `Path=/` means every page on imdember.com sends it.
-- What a session grants in World: owner mode for the seats `ownerOf` proves on Ethereum mainnet, which today is a local,
-  read-only view (the house, the local move); nothing on chain and nothing about assets.
+- What a session grants in World: session functionality and owner mode for the seats `ownerOf` proves on Ethereum
+  mainnet (the house and local move), plus selected persistent Member M1 profile writes for `EOA`/`ECDSA` sessions.
+  The session is not strictly read-only. M1 names are social labels, never ownership or Mint proof.
+  `CONTRACT`/`ERC1271` and unknown verification types cannot bootstrap or write M1 under the temporary AUD4 policy;
+  their login and reads remain available. No asset transaction or approval is authorized by any World session.
 - One origin shares its CSP, its `__Host-` cookies, its local storage and a wallet's "connected site" permission (F-8).
 
 ## G-1 — a World session is never a Mint authorization
@@ -26,11 +29,15 @@ chain and contract, for how much), and it must not treat a live World session as
 ## G-2 — re-evaluate for Mint what World accepts
 
 - **SIWE relay (S-1, the review's F-1):** a real signature of a real challenge, obtained on a phishing page, still gives a
-  7-day World session; World accepts that because the session grants a read-only view. A Mint must decide how it stops a
-  relayed sign-in from reaching anything that costs the player.
+  7-day World session. The existing shared boundary remains: an EOA session can now write its public M1 name and start
+  the rename cooldown. Exact SIWE checking and Origin checks do not defeat a relay that obtains a real signature.
+  A Mint must decide how it stops a relayed sign-in from reaching anything that costs the player.
 - **Contracts that accept any signature (F-2):** under ERC-1271 the contract decides who signs for it; a permissive one
-  lets anyone sign in as it. World records such sessions (`CONTRACT`/`ERC1271`) and grants only a view. A Mint must decide
-  which smart-contract wallets it supports and what an ERC-1271 sign-in may do there.
+  lets anyone sign in as it. World records such sessions (`CONTRACT`/`ERC1271`); AUD4 temporarily disables their
+  persistent M1 writes, including login-time profile touches, with `CONTRACT_WRITE_NOT_ENABLED`. This also restricts
+  legitimate smart wallets until a reviewed additional write-authority policy exists; it does not repair permissive
+  contract authentication or change `ownerOf` house authority. A Mint must decide which smart-contract wallets it
+  supports and what an ERC-1271 sign-in may do there.
 - **Eligibility:** World's "a seat counts" rule (held now, agent online in the last 24 hours, proved per read and cached
   30 s) is a display rule; Mint eligibility needs its own rule and its own proof at the moment of minting.
 

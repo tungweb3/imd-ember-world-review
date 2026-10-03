@@ -42,7 +42,9 @@ export function saveErrorText(e:SaveError,say:Say,when:(n:number)=>string):strin
     case 'NAME_CHANGE_COOLDOWN':return say('改名冷卻中','Name changes are cooling down')+(e.nextNameChangeAt?say('，下次可改名：',' until ')+when(e.nextNameChangeAt):'')+say('。','.');
     case 'NAME_RATE_LIMITED':case 'RATE_LIMITED':return say('嘗試太頻繁，請一分鐘後再試。','Too many tries. Please wait a minute.');
     case 'PROFILE_VERSION_CONFLICT':return say('你的資料剛在其他分頁更新過，已重新讀取；請確認後再送出。','Your profile changed in another tab and has been read again. Check it and send again.');
-    case 'ACCOUNT_CONTEXT_CHANGED':return say('登入的錢包已經換了，這次修改沒有送出。','The signed-in wallet changed, so this change was not sent.');
+    case 'ACCOUNT_CONTEXT_CHANGED':return say('登入的錢包已經換了，這次修改未套用。','The signed-in wallet changed, so this change was not applied.');
+    case 'CONTRACT_WRITE_NOT_ENABLED':return say('合約錢包仍可登入及查看世界，但目前暫時不能建立會員或修改玩家名稱；再次簽名不會開啟這項功能。','Contract wallets can still sign in and view the world, but creating a member or changing a player name is not enabled yet. Another signature will not enable it.');
+    case 'SAVE_RESULT_UNKNOWN':return say('上一筆儲存結果尚未確認，請先確認結果再修改名稱。','The previous save result is still unknown. Check that result before changing your name.');
     case 'PROFILE_LOCKED':return say('名稱暫時不能修改。','Your name can’t be changed right now.');
     case 'AUTH_REQUIRED':case 'SESSION_EXPIRED':return say('登入已結束，請重新簽名登入後再取名。','Your sign-in has ended. Sign in again to set your name.');
     default:return say('暫時無法儲存，請稍後重試。','Couldn’t save right now. Please try again later.');
@@ -61,7 +63,7 @@ function NameForm({client,state,mode,onDone}:{client:MemberClient;state:MemberSt
       <p className="small-note">{text('取一個玩家名稱，之後的 Ember 金幣、角色紀錄都記在你的會員帳號上。','Pick a player name. Your Ember Coins and character records will be kept on your member account.')}</p></>}
     {mode==='fix'&&<p className="empty-state wallet-notice">{text('你的名稱需要修改（目前顯示為 ','Your name needs to be changed (it shows as ')}<b>{state.view?.member.displayName}</b>{text('）。請取一個新名稱。','). Please choose a new one.')}</p>}
     <label className="member-input"><span>{mode==='rename'?text('新名稱','New name'):text('玩家名稱','Player name')}</span>
-      <input value={value} maxLength={64} autoComplete="off" spellCheck={false} aria-invalid={!!local} aria-describedby="member-rule"
+      <input value={value} disabled={state.saving||state.pendingSave} maxLength={64} autoComplete="off" spellCheck={false} aria-invalid={!!local} aria-describedby="member-rule"
         onChange={e=>{setValue(e.target.value);client.clearError();}} placeholder={text('例如 EmberCat','e.g. EmberCat')}/></label>
     <p id="member-rule" className="small-note">{text(`可用中文、英文字母、數字與底線，${NAME_MIN}–${NAME_MAX} 個字；大小寫不同也算同一個名稱。`,`Chinese characters, English letters, digits and underscores, ${NAME_MIN}–${NAME_MAX} characters; names differing only in case count as the same name.`)}</p>
     {local&&<p className="small-note warn" role="alert">{local}</p>}
@@ -82,6 +84,16 @@ export function MemberBlock({client}:{client:MemberClient}){
   const when=(n:number)=>new Date(n).toLocaleString(locale,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
   useEffect(()=>{setEditing(false);},[state.address]);
   if(state.phase==='idle')return null;
+  if(state.pendingSave)return <section className="member-block">
+    <p className="empty-state wallet-notice" role="alert">{saveErrorText({code:'SAVE_RESULT_UNKNOWN'},text,when)}</p>
+    {v?.displayName&&<p className="member-name"><span>{text('目前讀到的玩家名稱','Current player name')}</span><b>{v.displayName}</b></p>}
+    <button className="secondary" disabled={state.saving} onClick={()=>void client.retrySave()}>{state.saving?text('確認中…','Checking…'):text('確認上次儲存結果','Check previous save')}</button>
+  </section>;
+  if(state.error?.code==='CONTRACT_WRITE_NOT_ENABLED')return <section className="member-block">
+    {v?.displayName&&<p className="member-name"><span>{text('玩家名稱','Player name')}</span><b>{v.displayName}</b></p>}
+    <p className="empty-state wallet-notice" role="alert">{saveErrorText(state.error,text,when)}</p>
+    <button className="secondary" onClick={()=>void client.load()}>{text('重新讀取資料','Refresh profile')}</button>
+  </section>;
   if(state.phase==='loading'&&!v)return <section className="member-block"><p className="small-note">{text('讀取玩家資料…','Reading your player profile…')}</p></section>;
   if(!v)return <section className="member-block"><p className="empty-state wallet-notice">{text('玩家資料暫時無法取得，請稍後重試。這不影響你的錢包登入。','Your player profile can’t be read right now. Try again later; your wallet sign-in is not affected.')}</p>
     <button className="secondary" onClick={()=>void client.load()}>{text('重試','Try again')}</button></section>;
@@ -89,7 +101,8 @@ export function MemberBlock({client}:{client:MemberClient}){
   if(v.profileState==='needs_name'&&(!state.skipped||editing))return <section className="member-block member-welcome"><NameForm client={client} state={state} mode="first" onDone={()=>setEditing(false)}/></section>;
   if(v.profileState==='needs_name')return <section className="member-block member-row"><p className="small-note">{text('還沒有玩家名稱。','No player name yet.')}</p>
     <button className="secondary" onClick={()=>setEditing(true)}>{text('取名','Choose a name')}</button></section>;
-  const cooling=v.nextNameChangeAt!==null;
+  // Live clients notify this store at the calibrated server deadline and refresh the profile. SSR/fixtures use now.
+  const cooling=state.cooling??(v.nextNameChangeAt!==null&&Date.now()<v.nextNameChangeAt);
   return <section className="member-block">
     <p className="member-name"><span>{text('玩家名稱','Player name')}</span><b>{v.displayName}</b></p>
     {v.profileState==='locked'?<p className="small-note">{text('名稱暫時不能修改。','Your name can’t be changed right now.')}</p>:

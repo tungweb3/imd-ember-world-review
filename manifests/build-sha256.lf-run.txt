@@ -1,3 +1,4 @@
+# Historical fourth-snapshot evidence: public 6e307de / source c491ff3 / deployed acdbb2bd. Not the current repair fingerprint; see R5 and r5-published-source.json.
 # The only dist/ files that differ when rebuilding from git -c core.autocrlf=false archive ddb10e28a867998323164e7585635efedfcf7788 (LF working tree; npm ci + npm run build, 2026-10-03T13:13:31Z). All other 98 files are identical to build-sha256.txt. Each of these differs only in CR bytes (the deploy was built from a CRLF checkout).
 # sha256  size  path
 010ed5e5bec891e5a806b2d224ecc0d962fc585fa761c8a7285251e8ae03cc07  3818  _headers
