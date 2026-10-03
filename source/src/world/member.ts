@@ -21,14 +21,18 @@ export type MemberState={
   view:MemberView|null;saving:boolean;error:SaveError|null;
   /** A transport failure has not yet been reconciled with the original request id. New names cannot be sent. */
   pendingSave:boolean;
-  /** Time-based UI hint, calibrated from serverTime. The server still enforces every name change. */
+  /** The server still reports a cooldown. Elapsed time schedules a refresh, never unlocks the form by itself. */
   cooling:boolean;
   /** "Not now" was chosen on this browser for this member: the naming card stays folded (no fake name is made). */
   skipped:boolean;
 };
 export type SessionSource={readonly state:{session:{address:string}|null};subscribe(fn:()=>void):()=>void};
 export type MemberDeps={fetch:(path:string,init?:RequestInit)=>Promise<Response>;storage?:Pick<Storage,'getItem'|'setItem'>|null;
-  newId?:()=>string;wait?:(ms:number)=>Promise<void>;now?:()=>number;timers?:Timers};
+  newId?:()=>string;wait?:(ms:number)=>Promise<void>;
+  /** Legacy wall-clock injection, retained for callers; cooldowns use monotonicNow exclusively. */
+  now?:()=>number;
+  /** Monotonic elapsed milliseconds (performance.now in browsers). Wall-clock changes do not affect cooldowns. */
+  monotonicNow?:()=>number;timers?:Timers};
 export const INITIAL_MEMBER:MemberState={address:null,phase:'idle',view:null,saving:false,error:null,pendingSave:false,cooling:false,skipped:false};
 const SKIP_KEY='imd.member.skip.';
 const json=(method:string,body?:unknown):RequestInit=>({method,headers:{'content-type':'application/json'},body:JSON.stringify(body??{}),credentials:'same-origin'});
@@ -38,6 +42,8 @@ const errorOf=async(r:Response):Promise<SaveError>=>{try{const v=await r.clone()
 const randomId=()=>{const b=crypto.getRandomValues(new Uint8Array(16));return 'r-'+Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');};
 /** Bounds fetch plus body consumption, including a stream that never completes. Retries retain the same request id. */
 export const PROFILE_WRITE_TIMEOUT_MS=15_000;
+/** A failed deadline refresh keeps the last server cooldown and retries without a zero-delay request loop. */
+export const PROFILE_COOLDOWN_RETRY_MS=60_000;
 type SaveBody={displayName:string;expectedActorPublicId:string;expectedProfileVersion:number;requestId:string};
 type PendingSave={body:SaveBody;uncertain:boolean};
 /** A syntactically valid JSON body is not necessarily a profile response. Bad/truncated bodies enter recovery. */
@@ -56,8 +62,8 @@ export class MemberClient{
   private s:MemberState=INITIAL_MEMBER;private listeners=new Set<()=>void>();private gen=0;private unsub:(()=>void)|null=null;
   private reads=0;private saveRuns=0;private versions=new Map<string,number>();
   // Kept in this client only, per wallet: a switch drops responses, not an uncertain operation's request id.
-  private pending=new Map<string,PendingSave>();private cooldownTimer:unknown=null;
-  private timeBase:{local:number;server:number}|null=null;
+  private pending=new Map<string,PendingSave>();private cooldownTimer:unknown=null;private cooldownRuns=0;
+  private timeBase:{elapsed:number;server:number}|null=null;
   private auth:SessionSource;private deps:MemberDeps;
   constructor(auth:SessionSource,deps:MemberDeps){this.auth=auth;this.deps=deps;}
   get state(){return this.s;}
@@ -82,27 +88,29 @@ export class MemberClient{
   }
   /** The answer is this state's only if nothing changed meanwhile and it names this state's wallet. */
   private mine(gen:number,v?:MemberView){return gen===this.gen&&(!v||v.loginWallet.address.toLowerCase()===this.s.address);}
-  private now(){return (this.deps.now??Date.now)();}
-  private serverNow(){return this.timeBase?this.timeBase.server+Math.max(0,this.now()-this.timeBase.local):this.now();}
+  private monotonicNow(){return (this.deps.monotonicNow??(()=>performance.now()))();}
+  private serverNow(){return this.timeBase?this.timeBase.server+Math.max(0,this.monotonicNow()-this.timeBase.elapsed):this.s.view?.serverTime??0;}
   private timers():Timers{return this.deps.timers??{set:(f,ms)=>setTimeout(f,ms),clear:t=>clearTimeout(t as ReturnType<typeof setTimeout>)};}
-  private clearCooldown(){if(this.cooldownTimer!==null)this.timers().clear(this.cooldownTimer);this.cooldownTimer=null;}
+  private clearCooldown(){if(this.cooldownTimer!==null)this.timers().clear(this.cooldownTimer);this.cooldownTimer=null;this.cooldownRuns++;}
   private armCooldown(){
-    this.clearCooldown();const deadline=this.s.view?.member.nextNameChangeAt??null;
-    const remaining=deadline===null?0:deadline-this.serverNow(),cooling=remaining>0;
+    this.clearCooldown();const view=this.s.view,deadline=view?.member.nextNameChangeAt??null;
+    const remaining=deadline===null?0:deadline-this.serverNow(),cooling=deadline!==null&&deadline>(view?.serverTime??0);
     if(this.s.cooling!==cooling)this.set({cooling});
     if(!cooling||!this.unsub)return;
-    const gen=this.gen;
-    this.cooldownTimer=this.timers().set(()=>{this.cooldownTimer=null;if(!this.mine(gen))return;
+    const gen=this.gen,run=this.cooldownRuns;
+    this.cooldownTimer=this.timers().set(()=>{if(!this.unsub||run!==this.cooldownRuns||!this.mine(gen))return;this.cooldownTimer=null;
       if(deadline!==null&&deadline>this.serverNow()){this.armCooldown();return;}
-      this.set({cooling:false});void this.load();
-    },Math.min(remaining,2_147_483_647));
+      // The estimate only schedules reconciliation. A slow/failed body leaves the server's last cooldown locked.
+      // accept() arms the server's new deadline; an unchanged/failed read gets a bounded positive backoff.
+      void this.load().finally(()=>{if(this.unsub&&run===this.cooldownRuns&&this.mine(gen))this.armCooldown();});
+    },remaining>0?Math.min(remaining,2_147_483_647):PROFILE_COOLDOWN_RETRY_MS);
     // Local Node tests should not be kept alive by a seven-day browser timer.
     (this.cooldownTimer as {unref?:()=>void}|null)?.unref?.();
   }
   /** Versions cannot move backwards for a member in this account generation, even across GET/save ordering. */
   private accept(v:MemberView){
     const known=this.versions.get(v.member.publicMemberId)??-1;if(v.member.version<known)return false;
-    this.versions.set(v.member.publicMemberId,v.member.version);this.timeBase={local:this.now(),server:v.serverTime};
+    this.versions.set(v.member.publicMemberId,v.member.version);this.timeBase={elapsed:this.monotonicNow(),server:v.serverTime};
     this.set({phase:'ready',view:v,skipped:this.skippedFor(v)});this.armCooldown();return true;
   }
   private skippedFor(v:MemberView){try{return this.deps.storage?.getItem(SKIP_KEY+v.member.publicMemberId)==='1';}catch{return false;}}

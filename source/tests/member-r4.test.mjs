@@ -122,7 +122,7 @@ test('AUD4-07: attempts that never reached the server keep the same request id w
 test('AUD4-07: a never-ending success body has bounded waiting and readback does not issue a new PUT',async()=>{
   const clock=clockTimers();let puts=0;const ids=[],signals=[];
   const f=await fixture(async(p,i,run)=>{const r=await run();if(i.method==='PUT'){puts++;ids.push(JSON.parse(i.body).requestId);signals.push(i.signal);
-      return new Response(new ReadableStream({start(){}}),{status:200});}return r;},{now:clock.now,timers:clock.timers});
+      return new Response(new ReadableStream({start(){}}),{status:200});}return r;},{now:clock.now,monotonicNow:clock.now,timers:clock.timers});
   const saving=f.c.save('SlowBodyCat');await until(()=>puts===1,'first body pending');clock.tick(PROFILE_WRITE_TIMEOUT_MS);
   await until(()=>puts===2,'same-id retry');clock.tick(PROFILE_WRITE_TIMEOUT_MS);assert.equal(await saving,false);
   assert.equal(f.c.state.saving,false);assert.equal(f.c.state.pendingSave,true);assert.equal(new Set(ids).size,1);
@@ -158,27 +158,28 @@ test('AUD4-07: returning to the same wallet resumes its uncertain request rather
 });
 
 test('AUD4-08: before, exactly at and after the server deadline, the store rerenders and GET refreshes cooldown',async()=>{
-  const clock=clockTimers();let gets=0;const f=await fixture(async(p,i,run)=>{if(!i.method)gets++;return run();},{now:clock.now,timers:clock.timers});
+  const clock=clockTimers();let gets=0;const f=await fixture(async(p,i,run)=>{if(!i.method)gets++;return run();},{now:clock.now,monotonicNow:clock.now,timers:clock.timers});
   assert.equal(await f.c.save('TimerCat'),true);assert.equal(f.c.state.cooling,true);
   // Renew the browser session before its seven-day expiry: the cooldown has its own independent deadline.
   f.w.clock.advance(6*DAY);clock.tick(6*DAY);await f.b.signIn(f.a);
   let updates=0;const off=f.c.subscribe(()=>updates++),before=gets;
   f.w.clock.advance(DAY-1);clock.tick(DAY-1);assert.equal(f.c.state.cooling,true);assert.equal(gets,before);
-  f.w.clock.advance(1);clock.tick(1);assert.equal(f.c.state.cooling,false);assert.ok(updates>0,'deadline emitted a store update');
+  f.w.clock.advance(1);clock.tick(1);assert.equal(f.c.state.cooling,true,'wait for server confirmation');
   await until(()=>f.c.state.view.member.nextNameChangeAt===null,'fresh server cooldown');assert.equal(gets,before+1);
+  assert.equal(f.c.state.cooling,false);assert.ok(updates>0,'server confirmation emitted a store update');
   assert.equal(await f.c.save('AfterTimer'),true);assert.equal(f.c.state.view.member.version,2);off();f.stop();
 });
 
 test('AUD4-08: moving the client clock beyond the deadline cannot bypass the server cooldown',async()=>{
-  const clock=clockTimers();const f=await fixture(null,{now:clock.now,timers:clock.timers});assert.equal(await f.c.save('ClockCat'),true);
-  clock.tick(7*DAY);assert.equal(f.c.state.cooling,false,'only the local hint reaches the deadline');
+  const clock=clockTimers();const f=await fixture(null,{now:clock.now,monotonicNow:clock.now,timers:clock.timers});assert.equal(await f.c.save('ClockCat'),true);
+  clock.tick(7*DAY);assert.equal(f.c.state.cooling,true,'a local elapsed estimate does not confirm server expiry');
   assert.equal(await f.c.save('TooEarlyCat'),false);assert.equal(f.c.state.error.code,'NAME_CHANGE_COOLDOWN');
   await until(()=>f.c.state.cooling,'fresh serverTime recalibrates the deadline');
   assert.equal(f.c.state.view.member.version,1);assert.equal(f.w.db.raw.prepare('SELECT count(*) n FROM profile_history').get().n,1);f.stop();
 });
 
 test('AUD4-08: teardown cancels the deadline and late reads, without another profile GET',async()=>{
-  const clock=clockTimers();let gets=0;const f=await fixture(async(p,i,run)=>{if(!i.method)gets++;return run();},{now:clock.now,timers:clock.timers});
+  const clock=clockTimers();let gets=0;const f=await fixture(async(p,i,run)=>{if(!i.method)gets++;return run();},{now:clock.now,monotonicNow:clock.now,timers:clock.timers});
   assert.equal(await f.c.save('StopTimerCat'),true);assert.equal(clock.jobs.size,1);f.stop();assert.equal(clock.jobs.size,0);
   const before=gets;clock.tick(8*DAY);await settle();assert.equal(gets,before);
 });

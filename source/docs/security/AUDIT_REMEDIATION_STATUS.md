@@ -1,5 +1,9 @@
 # IMD Ember World — audit remediation status
 
+This page preserves earlier review/deployment history. The fifth Audit's four new Low findings and the latest local
+World/Auth/M1 repairs are recorded in `R5_LOW_REMEDIATION.md`; these repairs are not deployed or independently closed.
+Two test references below were updated when R5 replaced unconditional newer-session cleanup with conditional reconciliation.
+
 Remediation of the Swarm review of World's wallet sign-in and home authorization (World-only; Genesis Mint out of
 scope), following the remediation document v1.0 of 2026-09-29.
 
@@ -1432,8 +1436,8 @@ the page shows only while it holds that session); one assertion of a `10bb630` t
 - **Tests:** `tests/wallet-client.test.mjs` "AUD3-04: a session read begun while this page’s sign-out is on its way, answered after it, revives nothing…"
   (the reproduction; on `f4272c5` session A came back, then `revoked`), "AUD3-04: the same when the house read then fails or is refused…"
   (on `f4272c5` session A and its hint stayed), "AUD3-04: an account switch’s logout and an abandoned flow’s logout end a read begun before them…",
-  "AUD3-04: a wallet (provider) switch’s logout during a flow ends a read begun before it…" (`bd4f749`; on `f4272c5`, and
-  with `providerChanged` not calling `loggedOut`, `revoked` and a house read sent), "AUD3-04: the sign-in click’s own logout of another address’s session ends a session read begun while it was on its way…"
+  "AUD3-04 / R5: a provider switch cancels the old prompt but preserves another tab’s newer same-wallet session…"
+  (R5 supersedes the earlier `bd4f749` unconditional-logout expectation: a different nonce for the same wallet must survive), "AUD3-04: the sign-in click’s own logout of another address’s session ends a session read begun while it was on its way…"
   (`bd4f749`; on `d429ec3` and `f4272c5` `revoked` with a house read sent, or with the house read lost A's session,
   `mismatch`, and A's hint), "AUD3-04: a house read sent while this page’s sign-out is on its way, answered after it, sets no house…"
   (`bd4f749`; on `f4272c5`, and with `loggedOut`'s `homeGen++` removed, A's house on a signed-out page), and the guard
@@ -1565,8 +1569,9 @@ the page shows only while it holds that session); one assertion of a `10bb630` t
   (on `066d109` a client started again kept `logout-pending`), and the guards "ADV-3 guard: on a mismatch, a click that a switch to another account ends during its own session re-read…"
   (the line set without `live()`), "ADV-3 guard: “Log out this device”, or a switch to another account, while a click waits for this page’s logout…"
   (either end leaving `waiting` set), "ADV-3 guard: a click that waits only for a session read, with no logout of this page out…"
-  (the line set for any wait) and "ADV-3 guard: signed in already as the wallet’s account, a click that waits for a session read…"
-  (the line set without `asks()`); the panel test above and the guard on another wallet in use read `waiting` since then.
+  (the line set for any wait) and "ADV-3 / R5 guard: an already-signed-in click asks nothing…"
+  (retains the `asks()` waiting-line control; R5 additionally confirms that delayed old cookie-clear headers are reconciled
+  without revoking the newer server session); the panel test above and the guard on another wallet in use read `waiting` since then.
 - **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
 
 ### AUD3-07 — Log out all devices on a sign-in that had run out did not say it had expired · Fixed
@@ -1658,7 +1663,7 @@ tests that hold them and their state:
 | T05 | N-1's orderings | `tests/wallet-client.test.mjs` "N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped…" | unchanged |
 | T06 | a read begun during the sign-out, landing after it | `tests/wallet-client.test.mjs` "AUD3-04: a session read begun while this page’s sign-out is on its way…", "AUD3-04: a house read sent while this page’s sign-out is on its way…" | FIXED_LOCAL |
 | T07 | T06 with the house read 429 or lost | `tests/wallet-client.test.mjs` "AUD3-04: the same when the house read then fails or is refused…" | FIXED_LOCAL |
-| T08 | the switch and abandon logouts (and the wallet switch's and the sign-in click's own) | `tests/wallet-client.test.mjs` "AUD3-04: an account switch’s logout and an abandoned flow’s logout…", "AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent…", "AUD3-04: a wallet (provider) switch’s logout during a flow…", "AUD3-04: the sign-in click’s own logout of another address’s session…", "ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current…", "ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout…" | FIXED_LOCAL |
+| T08 | the switch and abandon logouts (and the wallet switch's and the sign-in click's own) | `tests/wallet-client.test.mjs` "AUD3-04: an account switch’s logout and an abandoned flow’s logout…", "AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent…", "AUD3-04 / R5: a provider switch cancels the old prompt but preserves another tab’s newer same-wallet session…", "AUD3-04: the sign-in click’s own logout of another address’s session…", "ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current…", "ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout…" | FIXED_LOCAL |
 | T09 | a house answer for B, the re-read 429, 503 or lost | `tests/wallet-client.test.mjs` "AUD3-05: a house read answered for the address another tab signed in…", "AUD3-05: the same for a 503 and a lost connection…" | FIXED_LOCAL |
 | T10 | recovery after T09 | `tests/wallet-client.test.mjs` "AUD3-05 guard: once the session read works again…" | FIXED_LOCAL (guard) |
 | T11 | a late session read after a new verify | `tests/auth.test.mjs` "AUD3-06: a late signed-out answer for a revoked cookie…", "AUD3-06: on the page, a session read sent with a dead cookie…" | FIXED_LOCAL |

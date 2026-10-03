@@ -1,0 +1,12 @@
+# Fifth results and sixth closure scope
+
+The fifth public snapshot was `357668f37c75317f79ff2266795636597a707c04`, deployed source `54410b2f8dece71bdb2fd999c94feea6454ecfcd`. Both jobs completed. Completed/accepted describes output delivery, not a zero-vulnerability or certification verdict. Originals remain unedited in the owner records; original hashes were rechecked before publication. Current sixth source does not inherit the fifth Report's aggregate conclusion.
+
+- Audit: https://explorer.imd.fun/jobs/e137990d-8dbc-4153-ae11-cada783827ea; retained original SHA-256 `93868411e170b03b349d7da7982293e96b8fceef6a36cfd32752c7284984aaab`. Official delivery source: https://github.com/Identity-md/research/tree/main/jobs/e137990d-8dbc-4153-ae11-cada783827ea/files/artifacts/ .
+- Report: https://explorer.imd.fun/jobs/0860e448-e960-43af-9a1c-5eed9019ef04; retained original SHA-256 `920d7ff88e39d280dde9788bc6fce0d7940ff77c35645bccc0fdde1d14a9948d`. Official delivery source: https://github.com/Identity-md/research/tree/main/jobs/0860e448-e960-43af-9a1c-5eed9019ef04/files/artifacts/ .
+
+The Report found seven of nine R4 items locally fixed and two partly (R4-03 smart-wallet persistent-write policy and R4-09 discovery availability). The Audit supplied four new Low counterexamples: account/provider cleanup of a newer shared-cookie context; teardown skipping uncertain verify cleanup; invalid session readback becoming confirmed absence; backward wall-clock extending rename cooling. The Report did not override these concrete counterexamples. The Audit did not provide a complete nine-row closure matrix.
+
+Review `source/docs/security/R5_LOW_REMEDIATION.md`, new auth/authority/member-r5 tests, and this snapshot's supplied-source validation. Retest those four original orderings and controls, plus R4-01 logout-all address binding and existing R3/AUD3/N/ADV/Enter/Home invariants. Require per-finding fixed/partly/open/unknown judgments and reproducible evidence, including prompts, created/live/revoked sessions and pending challenges.
+
+Retain cross-cookie authority limits, delayed Set-Cookie timing, best-effort teardown/request delivery, unbounded real auth-read stall, R4-03 policy, R4-09 availability, AUD3-05 partly and AUD3-09 review-limit. A fixture passing is not proof of real-wallet, full-browser or production D1/WAF/limiter/upstream behavior. No new Solidity/Mint/Coin/transactions/approvals/Permit/batch/delegation boundary is in scope.

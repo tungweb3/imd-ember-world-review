@@ -1,0 +1,95 @@
+{
+  "kind": "R6 production-deployment allowlist",
+  "source_commit": "1cc61b68b2dc14af83bf5178c9fe057452ba9b46",
+  "source_parent": "54410b2f8dece71bdb2fd999c94feea6454ecfcd",
+  "previous_public_commit": "357668f37c75317f79ff2266795636597a707c04",
+  "record": "20261003T214856Z-1cc61b6",
+  "started_at": "2026-10-03T21:48:56.252Z",
+  "finished_at": "2026-10-03T21:50:27.782Z",
+  "worker_version": "5022cd62-6f1f-444c-af94-3b68ec359b94",
+  "worker_bytes": 314447,
+  "worker_sha256": "3977c6db6cbff23e9f6aec87092a236c603eac8bf64a7ce0c825d400dd1ad7dd",
+  "frontend_tree_digest": "2ab7a5e3ee6b85e2a96bef7a71ae548ebe4af60d41a65530017a82808f40b2ec",
+  "frontend_files_in_local_manifest": 102,
+  "frontend_unchanged_during_upload": true,
+  "tools": {
+    "node": "v24.19.0",
+    "wrangler": "4.143.0",
+    "vite": "8.3.1",
+    "typescript": "5.9.3"
+  },
+  "full_private_source_tests": {
+    "tests": 1183,
+    "pass": 1183,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "typecheck": "passed",
+  "frontend_build": "passed",
+  "production_traffic": {
+    "deployment_id": "665f9e0a-8ae6-4a09-ac0d-e919d09fb60c",
+    "created_on": "2026-10-03T21:50:24.590411Z",
+    "versions": [
+      {
+        "version_id": "5022cd62-6f1f-444c-af94-3b68ec359b94",
+        "percentage": 100
+      }
+    ]
+  },
+  "d1": {
+    "migrations": [
+      "0001_wallet_login.sql",
+      "0002_sign_in_budgets.sql",
+      "0003_sign_in_layers.sql",
+      "0004_index_candidates.sql",
+      "0005_lanes_and_subnets.sql",
+      "0006_members.sql",
+      "0008_member_hardening.sql"
+    ],
+    "read_schema_names": [
+      "login_challenges",
+      "sessions",
+      "members",
+      "member_profiles",
+      "profile_history"
+    ],
+    "pre_post_selected_metadata": "identical",
+    "new_migrations_applied": false,
+    "backup": "completed privately before deployment; bytes/hash/content/download URL withheld",
+    "concurrent_production_requests": "not verified"
+  },
+  "bindings": {
+    "DB": "imd-world",
+    "API_LIMITER": {
+      "limit": 180,
+      "period": 60
+    },
+    "SEAT_LIMITER": {
+      "limit": 60,
+      "period": 60
+    },
+    "AUTH_LIMITER": {
+      "limit": 20,
+      "period": 60
+    },
+    "CHAIN_LIMITER": {
+      "limit": 20,
+      "period": 60
+    },
+    "ASSETS": true
+  },
+  "bindings_evidence": "Wrangler upload metadata; actual runtime enforcement/accounting not independently verified",
+  "cron": "*/15 * * * *",
+  "waf": "unchanged; configuration/current accounting not queried",
+  "deployment_comparison": "partial: retained Worker bytes/hash, deployment API traffic, four static GET hashes/headers and anonymous session",
+  "limits": [
+    "real-wallet/full-browser scenarios not performed",
+    "production D1 concurrency/cleanup throughput not verified",
+    "WAF/current limiter refusal accounting not queried",
+    "upstream/multi-network availability not verified",
+    "not every deployed static file fetched; private presentation sources withheld",
+    "sixth independent review pending"
+  ]
+}

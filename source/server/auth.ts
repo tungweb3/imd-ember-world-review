@@ -615,27 +615,49 @@ async function session({request,db,now}:Omit<Ctx,'origin'>):Promise<Response>{
   return reply(200,{signedIn:true,address:getAddress(s.address),expiresAt:s.expiresAt});
 }
 /** Revokes the session server-side and every open challenge of this browser flow; idempotent. */
-async function logout({request,db,now}:Ctx):Promise<Response>{
+async function logout({request,db,deps}:Ctx):Promise<Response>{
   if(!/^application\/json\s*(;|$)/i.test(request.headers.get('content-type')??''))return fail(400,'BAD_REQUEST');
   const token=readCookie(request,SESSION_COOKIE),flow=readCookie(request,FLOW_COOKIE),writes=[];
   const body=await readJson(request);
   if(!body)return fail(400,'BAD_REQUEST');
+  const now=clock(deps);
+  if(body.expectedNonce!==undefined&&body.expectedAddress!==undefined)return fail(400,'BAD_REQUEST');
   let flowHash=flow?await sha256(flow):null,clearFlowCookie=true;
   // AUD4-06 abandoned-flow cleanup is conditional on its challenge, not whichever cookie a newer tab installed.
-  // The nonce is a consistency assertion only: the caller must still hold the matching session token. A conflict
-  // clears no cookie or flow and invalidates nothing, preserving a newer A or B session.
+  // The nonce is a consistency assertion only: revocation needs the matching session token. With no session token,
+  // the original flow cookie can only cancel its own pending challenge. A conflict changes no cookie or flow.
   if(body.expectedNonce!==undefined){
     const nonce=body.expectedNonce;
     if(typeof nonce!=='string'||! /^[\da-f]{32}$/.test(nonce))return fail(400,'BAD_REQUEST');
     const matches=token?await db.prepare(`SELECT 1 matched,
       (SELECT flow_hash FROM login_challenges WHERE nonce=?2) flow_hash FROM sessions WHERE token_hash=?1 AND nonce=?2`)
       .bind(await sha256(token),nonce).first<{matched:number;flow_hash:string|null}>():null;
-    if(!matches)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
+    if(!matches){
+      // Before verification there may be no session cookie yet. The original flow cookie can only cancel its own
+      // still-pending nonce, never a session or a replacement flow. A supplied session token never falls back here.
+      if(token||!flowHash)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
+      const pending=await db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE nonce=?2 AND flow_hash=?3 AND used_at IS NULL AND invalidated_at IS NULL AND accept_until>?1')
+        .bind(now,nonce,flowHash).run();
+      if(pending.meta.changes!==1)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
+      return reply(204,null,[clearFlow()]);
+    }
     // Another tab may already have a newer challenge but not yet a newer session. Clean only the abandoned
     // challenge's original flow, and never clear a different current flow cookie. A pruned old challenge is safe
     // to skip: the token still names the one session being revoked, but no old flow is inferred from a new cookie.
     clearFlowCookie=typeof matches.flow_hash==='string'&&matches.flow_hash===flowHash;
     flowHash=matches.flow_hash;
+  }else if(body.expectedAddress!==undefined){
+    // R5: an automatic switch without a retained flow nonce asserts the displayed account. The live request cookie
+    // remains the authority; an address alone cannot revoke it. Only that session's original challenge flow is ended.
+    const address=body.expectedAddress;
+    if(typeof address!=='string'||!/^0x[\da-fA-F]{40}$/.test(address))return fail(400,'BAD_REQUEST');
+    const s=await readSession(request,db,now);
+    if(typeof s==='string')return fail(401,s==='none'?'AUTH_REQUIRED':s);
+    if(address.toLowerCase()!==s.address.toLowerCase())return fail(409,'ACCOUNT_CONTEXT_CHANGED');
+    const own=await db.prepare(`SELECT c.flow_hash FROM sessions s
+      LEFT JOIN login_challenges c ON c.nonce=s.nonce WHERE s.token_hash=?1`).bind(s.tokenHash).first<{flow_hash:string|null}>();
+    clearFlowCookie=typeof own?.flow_hash==='string'&&own.flow_hash===flowHash;
+    flowHash=own?.flow_hash??null;
   }
   if(token)writes.push(db.prepare('UPDATE sessions SET revoked_at=?1 WHERE token_hash=?2 AND revoked_at IS NULL').bind(now,await sha256(token)));
   if(flowHash)writes.push(db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE flow_hash=?2 AND used_at IS NULL AND invalidated_at IS NULL').bind(now,flowHash));

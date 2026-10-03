@@ -1493,14 +1493,16 @@ test('AUD3-04: an account switch’s logout and an abandoned flow’s logout end
     const n=t.calls.length;g.open('logout');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();   // the server revokes A
     if(when==='after'){g.open('read');await settle();await settle();}
     const s=t.client.state;
-    assert.deepEqual([s.session,s.home,s.account,s.ended,statusOf(s,w.clock.now()),t.hint.get(),t.calls.slice(n)],[null,null,bAddr,null,'connected',null,[]],name);
+    assert.deepEqual([s.session,s.home,s.account,s.ended,statusOf(s,w.clock.now()),t.hint.get()],[null,null,bAddr,when==='before'?'revoked':null,'connected',null],name);
+    // R5: cleanup of an abandoned generation reconciles the shared cookie. It may read, never start a new flow.
+    assert.ok(t.calls.slice(n).every(c=>c==='GET /api/auth/session'),name+': only authoritative readback is allowed');
     t.stop();
   }
 });
 
-// The same for providerChanged's logout (another wallet chosen while a flow runs). A's prompt is open when another tab of
-// the profile signs A in, so the cookie is A's when the switch's logout goes out.
-test('AUD3-04: a wallet (provider) switch’s logout during a flow ends a read begun before it, and a session a read showed meanwhile',async()=>{
+// R5 supersedes the old unconditional-logout expectation here: another tab's newer A session is a different flow,
+// even when its address/expiry match the original one. Cancelling the open prompt must preserve that session.
+test('AUD3-04 / R5: a provider switch cancels the old prompt but preserves another tab’s newer same-wallet session',async()=>{
   for(const when of ['after','before']){
     const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
     const wa=fakeWallet(A),wb=fakeWallet(B),subs=new Set();let current=wa,open;wa.gate=new Promise(r=>open=r);wb.granted=true;
@@ -1508,15 +1510,19 @@ test('AUD3-04: a wallet (provider) switch’s logout during a flow ends a read b
     const t=tab(w,b,null,{registry,hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('read',SESSION,p)});await settle();
     const flow=t.client.signIn();await until(()=>wa.asked.includes('personal_sign'));   // A's prompt is open
     assert.equal((await b.signIn(A)).verify.status,200);                                  // another tab of this profile signs A in
+    const newerCookie=b.jar.get(SESSION_COOKIE);
     g.arm('logout');current=wb;for(const fn of subs)fn();await until(()=>g.held('logout'));   // the wallet switches to B: the flow's logout on its way
     if(when==='after'){g.arm('read');void t.client.restore();await until(()=>g.held('read'));}   // a session read: the Worker answers A, held
     else{await t.client.restore();await until(()=>!t.client.state.checking);
       assert.deepEqual([t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],[a,'mismatch'],when+': the read showed A while the logout was out');}
-    const n=t.calls.length;g.open('logout');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();   // the server revokes A
+    const n=t.calls.length;g.open('logout');await settle();                               // old nonce cannot revoke the newer A flow
     if(when==='after'){g.open('read');await settle();await settle();}
     open();await flow;await settle();                                                    // A's prompt answered late: nothing verified
     const s=t.client.state;
-    assert.deepEqual([s.session,s.home,s.account,s.ended,statusOf(s,w.clock.now()),t.hint.get(),posts(t.calls,'/api/auth/verify'),t.calls.slice(n)],[null,null,bAddr,null,'connected',null,0,[]],when);
+    assert.deepEqual([s.session?.address,s.home?.address.toLowerCase(),s.account,s.ended,statusOf(s,w.clock.now()),t.hint.get()?.address,posts(t.calls,'/api/auth/verify')],[a,a,bAddr,null,'mismatch',a,0],when);
+    assert.equal(b.jar.get(SESSION_COOKIE)===newerCookie,true,when+': newer cookie unchanged');
+    assert.equal((await b.get('/api/auth/session').then(r=>r.json())).signedIn,true,when+': newer session remains live');
+    assert.ok(t.calls.slice(n).every(c=>c.startsWith('GET ')),when+': no automatic signature or verify');
     t.stop();
   }
 });
@@ -1662,8 +1668,9 @@ test('AUD3-07 guard: an AUTH_REQUIRED or unreadable 401 stays “other devices w
   }
 });
 
-// Guard (T15): 'answer' (a SESSION_EXPIRED one) fails with signOut's generation check after the logout-all request removed
-// (B's new state would read as expired); 'follow-up read' fails with the check after the follow-up session read removed
+// Guard (T15): the stale logout-all answer must not replace the newer authoritative cleanup read's state;
+// R5's address-bound cleanup is refused for expired A and therefore reads the confirmed expiry before the old answer.
+// 'follow-up read' fails with the check after the follow-up session read removed
 // (the old notice lands on the new flow's open prompt).
 test('AUD3-07 guard: a logout-all answer, or its follow-up read, that lands after the account switched changes nothing of the new state',async()=>{
   for(const late of ['answer','follow-up read']){
@@ -1674,10 +1681,12 @@ test('AUD3-07 guard: a logout-all answer, or its follow-up read, that lands afte
     if(late==='answer'){
       lag=7*DAY+1;w.clock.advance(7*DAY+1);                                                 // as AUD3-07's reproduction: the server says SESSION_EXPIRED
       g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));         // the 401 is answered, held
-      wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();
+      wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1&&t.client.state.sessionKnown);await settle();
+      const before=t.client.state;
+      assert.deepEqual([before.account,before.session,before.notice,before.expired,before.ended,statusOf(before,now())],[bAddr,null,null,true,'expired','expired'],late+': fresh read confirms expiry');
       g.open('all');await out;await settle();
       const s=t.client.state;
-      assert.deepEqual([s.account,s.session,s.notice,s.expired,s.ended,s.leaving,statusOf(s,now())],[bAddr,null,null,false,null,false,'connected'],late);
+      assert.deepEqual([s.account,s.session,s.notice,s.expired,s.ended,s.leaving,statusOf(s,now())],[bAddr,null,null,true,'expired',false,'expired'],late);
     }else{
       const copy=w.browser();copy.jar.set(SESSION_COOKIE,laptop.jar.get(SESSION_COOKIE));assert.equal((await copy.post('/api/auth/logout')).status,204);
       g.arm('read');const out=t.client.signOut(true);
@@ -2121,7 +2130,8 @@ test('ADV-3 guard: a click that waited for this page’s logout and then finds a
   await t.client.signIn();g.arm('logout');wa.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
   const n=t.calls.length,click=t.client.signIn();await settle();
   current=wc;g.open('logout');await click;await settle();                                // the page now sees another wallet (no event); the logout answered
-  assert.deepEqual([t.calls.slice(n),wc.asked,t.client.state.notice,!!t.client.state.waiting,t.client.state.phase],[[],[],null,false,'idle']);
+  assert.deepEqual([wc.asked,t.client.state.notice,!!t.client.state.waiting,t.client.state.phase],[[],null,false,'idle']);
+  assert.ok(t.calls.slice(n).every(c=>c==='GET /api/auth/session'),'cleanup may reconcile, but no new challenge or signature');
   t.stop();
 });
 
@@ -2422,16 +2432,20 @@ test('ADV-3 guard: a click that waits only for a session read, with no logout of
   t.stop();
 });
 
-test('ADV-3 guard: signed in already as the wallet’s account, a click that waits for a session read while this page’s logout is out shows no waiting line and asks nothing',async()=>{
+test('ADV-3 / R5 guard: an already-signed-in click asks nothing; a late old logout cookie clear is reconciled without revoking the newer session',async()=>{
   const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates();
   const t=tab(w,b,wallet,{holdReply:async p=>{await g.wait('logout',LOGOUT,p);await g.wait('read',SESSION,p);}});await settle();
   await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
   assert.equal((await b.signIn(B)).verify.status,200);await t.client.restore();           // another tab of the profile signs B in; this page reads it
+  const newer=w.browser();newer.jar=new Map(b.jar);                                    // retain B's credential before the delayed A cookie-clear headers
   assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
   g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));            // another read on its way (held)
   const click=t.client.signIn();await settle();
   const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]),during=[!!s.waiting,s.notice,noticeLine(html)];
   g.open('read');await read;await click;g.open('logout');await settle();
-  assert.deepEqual([during,statusOf(t.client.state,w.clock.now()),wallet.signed],[[false,null,null],'owner',1]);
+  // The old A request already matched and revoked A before B was created. Its delayed Set-Cookie clear can still
+  // delete B's browser cookie: this transport race is not revocation of B. Fresh read must reflect cookie absence.
+  assert.deepEqual([during,statusOf(t.client.state,w.clock.now()),wallet.signed,b.jar.has(SESSION_COOKIE),t.client.state.session,t.client.state.home],[[false,null,null],'connected',1,false,null,null]);
+  assert.equal((await newer.get('/api/auth/session').then(r=>r.json())).signedIn,true,'newer B session is still live');
   t.stop();
 });
