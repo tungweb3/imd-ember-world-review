@@ -28,5 +28,6 @@ export const PUBLIC_HASHES:Readonly<Record<string,string>>={
  "models/landmarks/landmark_oracle.glb": "649809a666",
  "models/landmarks/landmark_pepe_statue.glb": "5b3f3acb36",
  "models/props/boat.glb": "c19d20ecc1",
+ "models/props/boat_shelter.glb": "6b44d9d4d3",
  "references/imd/pepe-idle.webp": "93e67adf9a"
 };

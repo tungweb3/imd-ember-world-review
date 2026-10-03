@@ -48,10 +48,10 @@ No `Access-Control-*` header is ever sent (same-origin only; no CORS credentials
 |---|---|---|---|
 | `POST /api/auth/challenge` body `{address}` | Origin allow-list | 200 `{nonce,message,acceptUntil}` + `Set-Cookie __Host-imd_flow` | 400 `BAD_REQUEST` (JSON, content-type, size > 2 KB, address), 403 `ORIGIN_NOT_ALLOWED`, 429 `RATE_LIMITED`, 503 `AUTH_UNAVAILABLE` (no DB) |
 | `POST /api/auth/verify` body `{nonce,signature}` | Origin + flow cookie | 200 `{address,expiresAt}` + `Set-Cookie __Host-imd_session`, flow cookie cleared | 400 `BAD_REQUEST` / `UNSUPPORTED_SIGNATURE` (ERC-6492 wrapper), 401 `SIGNATURE_INVALID`, 403 `ORIGIN_NOT_ALLOWED` / `FLOW_MISMATCH`, 409 `CHALLENGE_USED` (used, superseded or lost a concurrent race), 410 `CHALLENGE_EXPIRED`, 429, 503 `AUTH_UNAVAILABLE` / `VERIFY_UNAVAILABLE` (ERC-1271 needed but no RPC key, or the node could not answer: a transport or HTTP failure, a JSON-RPC error that is not a revert or an EVM halt, a malformed reply; Swarm retest W-3) |
-| `GET /api/auth/session` | cookie | 200 `{signedIn:false}` (plus `expired:true` when the cookie's session ran out; a revoked, unknown or malformed cookie gets no reason: Swarm audit 8c3aea2e N-7) or `{signedIn:true,address,expiresAt}`; a dead cookie is also cleared | 503 `AUTH_UNAVAILABLE` |
+| `GET /api/auth/session` | cookie | 200 `{signedIn:false}` (plus `expired:true` when the cookie's session ran out; a revoked, unknown or malformed cookie gets no reason: Swarm audit 8c3aea2e N-7) or `{signedIn:true,address,expiresAt}`; a dead cookie is refused, not cleared (Swarm audit 1ef8e8a6 AUD3-06: a late clear deleted a cookie another tab had just set) | 503 `AUTH_UNAVAILABLE` |
 | `POST /api/auth/logout` | Origin | 204, session revoked, both cookies cleared, open challenges of this flow invalidated; idempotent | 403 `ORIGIN_NOT_ALLOWED`, 429 |
-| `POST /api/auth/logout-all` | Origin, JSON, a live session | 200 `{revoked}`: every live session of the session's address revoked, its open challenges (and this flow's) invalidated, both cookies cleared; never rate limited (added 2026-09-29, swarm review F-4) | 400 `BAD_REQUEST`, 401 `AUTH_REQUIRED`/`SESSION_EXPIRED` (ends nobody), 403 `ORIGIN_NOT_ALLOWED` |
-| `GET /api/me/home` | session | 200 `{address,seats:[{tokenId,agentId,online,lastOnlineAt,counts}],eligible,size|null,block,checkedAt}` | 401 `AUTH_REQUIRED` / `SESSION_EXPIRED`, 429, 503 `OWNERSHIP_UNAVAILABLE` (never "you own nothing") |
+| `POST /api/auth/logout-all` | Origin, JSON, a live session | 200 `{revoked}`: every live session of the session's address revoked, its open challenges (and this flow's) invalidated, both cookies cleared; never rate limited (added 2026-09-29, swarm review F-4) | 400 `BAD_REQUEST`, 401 `AUTH_REQUIRED`/`SESSION_EXPIRED` (ends nobody, clears no cookie: AUD3-06), 403 `ORIGIN_NOT_ALLOWED` |
+| `GET /api/me/home` | session | 200 `{address,seats:[{tokenId,agentId,online,lastOnlineAt,counts}],eligible,size|null,block,checkedAt}` | 401 `AUTH_REQUIRED` / `SESSION_EXPIRED` (no Set-Cookie: AUD3-06), 429, 503 `OWNERSHIP_UNAVAILABLE` (never "you own nothing") |
 | `GET /api/wallet/:address/assets` | none (public chain data) | 200 `{address,seats:[{tokenId,image,agentId,online,counts}],characters:{collections:[],items:[]},fetchedAt}`, `Cache-Control: public, max-age=300` | 400 `BAD_REQUEST`, 429, 503 `OWNERSHIP_UNAVAILABLE` |
 
 Rate limits (per client key, `rateLimitKey`): `AUTH_LIMITER` (id 4103, 20/60 s) on challenge, verify, logout and
@@ -157,7 +157,8 @@ Durable Object / external verifier (more moving parts for a 5 ms job).
 - Session valid while `revoked_at IS NULL AND expires_at > now`; absolute 7 days, no sliding renewal, no re-sign while
   valid. Logout sets `revoked_at` (server-side revocation, the cookie alone is worthless afterwards).
 - CSRF: every POST requires an `Origin` header in the allow-list (missing → 403) and `Content-Type: application/json`;
-  verify also needs the flow cookie. GETs change nothing (`/api/auth/session` may only clear a dead cookie).
+  verify also needs the flow cookie. GETs change nothing, a dead cookie included: only a sign-in and the explicit logouts
+  write the session cookie (AUD3-06; the server refuses a dead token on every request, checked against D1).
 - Localhost: `__Host-` + `Secure` cookies are accepted on `http://localhost` / `127.0.0.1` by Chromium (secure
   context); the local E2E confirms it in headless Edge.
 
@@ -578,8 +579,11 @@ without it); timing guards remain timing-based (relative, best of up to five fre
   (reason: the refusing layer or bucket: `auth`, `verify`, `network`, `global`, `code_share`, `code_cap`,
   `network_contract`, `address`, `budget`, `budget_known`, `budget_lane`, `rpc`, `home`, `api`, `missing:<BINDING>`,
   `error`), and a surge `{evt:'auth_surge', route, reason:'address_surge', addr
-  (the address's first 6 characters: '0x' and 4 hex digits), colo, net}`. About the client a line carries exactly `net`,
-  a network key derived from its IP (IPv4 /24, IPv6 /48, `net:unknown` without one), and on surge lines `addr`; no line
+  (the address's first 6 characters: '0x' and 4 hex digits), colo, net}`; since Swarm audit 1ef8e8a6 (§17), a claim kept
+  counted after its key refused it writes `{evt:'index_lane_kept'|'erc1271_claim_kept', route, reason:'release_cap'|
+  'release_failed', colo, net}`, at most one per claim. About the client a line carries exactly `net`, a network key
+  derived from its IP (IPv4 /24, IPv6 /48, `net:unknown` without one or for text that is not an address, §17), and on
+  surge lines `addr`; no line
   carries a full IP, a full address, a cookie, token, signature, message or nonce (Swarm retest W-2 wording). These are
   the lines this code writes; what Cloudflare records about an invocation on its own is not covered here. Workers Logs (observability, head sampling 0.2) keeps about one line in five, so
   monitoring reads counts as about 1/5 of the real number. D1 per
@@ -649,3 +653,97 @@ no transfer, forged sign-in or ownership-forgery path). Status, tests and residu
   own; never "another device" from `AUTH_REQUIRED` alone.
 - **Page and docs.** The Swarm Audit Record lists this audit under "Later review" / 「之後的審查」 (Worker 1a0dd495, not
   this version) with N-1..N-7 and the team's statuses; A-1's and A-6's lines name what N-4 and N-5 change.
+
+## 17. Swarm Report dcf922ca and Swarm audit 1ef8e8a6 follow-ups (2026-10-01; deployed in Worker `63c6c7bd`, 2026-10-02)
+
+Swarm Report dcf922ca (a limited retest; deployment match partial) and Swarm audit 1ef8e8a6 reviewed the code of Worker
+`bbf24001` (snapshot `8cad017`) and reported R-1 (Low) and #1..#9 (3 Low, 5 Info and a review record); the owner's
+handoff names them R3-R1 and AUD3-01..AUD3-09. Neither reported a new high or medium finding, a forged sign-in, a
+revived session, a foreign logout, foreign owner rights, other signing or an asset path; the Report kept the residuals
+stated before, among them F-1/S-1, A-1, F-2 and F-8. AUD3-02 and AUD3-05 are only partly fixed (below). Status, tests,
+residuals and the handoff's matrix T01..T41: `docs/security/AUDIT_REMEDIATION_STATUS.md` "Swarm reviews of Worker
+bbf24001". No migration, binding or limiter key is added.
+
+- **R3-R1, account events win over late wallet answers** (`src/world/auth.ts`). `accountChanged` counts every event
+  (`accountEvents`). A connect answer, or `bind()`'s `eth_accounts` answer, awaited while an event came is applied only if
+  it names the account the latest event set; otherwise the click ends with nothing set, asked or verified. A lock or
+  another wallet while the signature prompt is open verifies nothing (a wallet change that fires `providerChanged` is
+  ended by `gen` already; the wallet half of that check covers one that changes with no event). No prompt is ever
+  opened to recover; a normal connect that announces the same account goes on.
+- **AUD3-04, a confirmed logout ends older reads** (`src/world/auth.ts` `loggedOut`). A 2xx logout of this page's
+  (`signOut`, the account-switch logout, `providerChanged`, `revokeAbandoned`, and since `bd4f749` the sign-in click's
+  own logout of another address's session) makes every session and house read begun before it stale and ends a session
+  a read showed meanwhile, unless a newer flow began since it was sent. Since `10bb630` (the team's final check,
+  ADV-1/ADV-2) the click's logout, like the account switch's, names the session it ends, and its confirmation ends that
+  very session (same address and expiry) even after `gen` moved on, never a newer one; and it is told to other tabs
+  (`signed-out`). Since `f095642` (the team's re-check, ADVR-1) `signOut`'s logout names its session too (confirmed after
+  another flow began, it still ends that session, says "Signed out." and tells the other tabs), and `revokeAbandoned`'s
+  names the late session its verify returned. Since `7b2d74d` (the team's review of `066d109`, RC-1) that logout goes out
+  on the verify's headers again, and the body, read on its own, names the session it ends (read after the logout was
+  confirmed, it ends that very session then, nothing else).
+- **AUD3-05, an answer for another address is not "unreadable"** (`refreshHome`). The held house is dropped
+  (`home:'unavailable'`) and `checking` ends before the session is re-read. Until a read succeeds the panel still shows
+  the held session as signed in, without owner mode (the stated residual, ADV-4), which the audit expected the page to
+  stop showing: partly fixed (dropping or marking that session is the owner's choice).
+- **AUD3-06, a dead cookie is refused, not cleared** (`server/auth.ts`; §2 and §5 above). The session route, the
+  `/api/me/home` 401 and the logout-all 401 send no session Set-Cookie, so a late answer cannot delete a cookie another
+  tab has just set. Sign-in and the explicit logouts still write it; an explicit logout answered after another tab's
+  sign-in still clears that cookie (the stated residual). Since `10bb630` (ADV-3) the page tracks its own logouts (and
+  an abandoned flow's verify) until handled, and a click waits for them before any challenge or connect prompt, at most
+  `LOGOUT_WAIT_MS` (5 s), so its own logouts cannot clear the cookie of its next sign-in. Since `f095642` (ADVR-5) the
+  wait is shown (My wallet says it waits for a log-out, its sign button off) and one that runs out asks nothing and ends
+  with `logout-slow` (that log-out has not been answered); before, nothing was shown and it ended with `session-unknown`.
+  Since `7b2d74d` (RC-2) that line is a state of its own (`AuthState.waiting`, shown in the notice's place), no longer
+  the notice `logout-pending`, which a session or house read failing during the wait replaced.
+- **AUD3-07, logout-all names an expiry** (`logoutAllRequest`, `signOut`). A 401 `SESSION_EXPIRED` sets `expired` and
+  `ended:'expired'`; any other 401 names no cause. A refused logout-all re-reads the session once (the browser may hold
+  another tab's new cookie) and only then says other devices were not signed out.
+- **AUD3-01, a failed lane read keeps the first proof** (`server/ownership.ts` `home`). An `OwnershipUnavailable` from the
+  lane's rebuild leaves the request's first proof and its sightings: 200 `limited`, never 503; the lane stays spent.
+  Any other error (D1 failing, say) propagates as before: 503.
+- **AUD3-02, a refused lane claim is released** (`server/auth.ts` `INDEX_LANE … RETURNING rowid`, `INDEX_LANE_RELEASE`).
+  A claim whose `chain:index:lane` key refused (or failed) is dated back (out of the site-wide count at once, its network
+  may claim again after 30 s) and marked `released:`, at most 20 per 6 s site-wide; past that, or if the release fails,
+  it holds its network for the minute and the site-wide count for its 6 s slice, as before, and an `index_lane_kept`
+  line says why. The cron prunes a released row 30 s earlier. Partly fixed: about 80 claims in one 6 s slice at one
+  location (60 before) still fill the site-wide ceiling for every other location for that slice.
+- **AUD3-03, a refused contract claim is released** (`server/auth.ts` `RELEASE_CONTRACT`, `RELEASE_CONTRACT_0004`,
+  `SignatureGate.release`). A claim whose key did not admit the check (no `eth_call` sent) is cleared on its own nonce and
+  claim time; `checked_at` and the burn stay. A check that was sent counts whatever the answer. A failed release keeps
+  the claim and writes an `erc1271_claim_kept` line.
+- **AUD3-08, the whole address is parsed** (`worker/app.ts` `rateLimitKey`). Canonical dotted IPv4; IPv6 with at most one
+  `::` and a dotted quad only last; `::ffff:0:0/96` in either form is its IPv4; any other dotted tail stays IPv6; the
+  rest of the zero /64 and anything that is not an address share `ip:unknown` (`net:unknown`). Canonical keys and the
+  N-5 nesting are unchanged.
+- **Assumption, not verified:** the releases of AUD3-02 and AUD3-03 assume a refused call to a Cloudflare rate-limit
+  binding takes nothing from anyone (the repository's fixed-window model); the measured bounds if it does count are in
+  the cost comment of `server/auth.ts` and the status doc.
+- **The team's mutation check** (after `d429ec3`, not an outside review). Eleven one-check weakenings of these fixes
+  passed every test, and AUD3-04 had left out the sign-in click's own logout; `bd4f749` covers that path and adds the
+  tests that now fail each weakening (the status doc lists them). The other fixes' code is unchanged.
+- **The team's final check** (after the merge at `125248c`, not an outside review). ADV-1..ADV-3, gaps in the sign-in
+  click's logouts present since `f4272c5`, are closed in `10bb630` (`src/world/auth.ts`, nine tests; above); ADV-4 and
+  the record points change four site statuses (AUD3-02 partly fixed, AUD3-04, AUD3-05 and AUD3-06). The Worker bundle
+  is unchanged: the dry-run gives `a7bb8087…` at `f2db1f5`, at `125248c`, at `10bb630` and with this record.
+- **The team's re-check** (after `2f5d6c1`, not an outside review). ADVR-1 (ADV-1 only partly fixed: the sign-out's and
+  an abandoned flow's logouts did not name their session) and ADVR-5 (the wait showed nothing, and one that ran out gave
+  the wrong reason) are closed in `f095642` (`src/world/auth.ts`, `src/world/WalletPanel.tsx`; eleven tests: three
+  `ADV-n` and eight guards, seven for weakenings no test caught before (ADVR-2..ADVR-4) and one for the waiting notice's
+  end); DR-1..DR-4 correct the record, AUD3-05 partly fixed among them. The Worker bundle is still `a7bb8087…` with
+  that record, `066d109` (its `server/auth.ts` change is comments only).
+- **The team's review of `066d109`** (not an outside review). RC-1 (a regression of `f095642` in an edge case: an
+  abandoned flow's late session was logged out only after its verify body, so a body that stalled after its headers
+  left that session live and held every click until its wait ran out) and RC-2 (a session or house read failing during
+  the wait replaced the waiting notice, beside a sign button that was on) are closed in `7b2d74d` (`src/world/auth.ts`,
+  `src/world/WalletPanel.tsx`; eleven tests: five `ADV-n`, four of them failing on `066d109` and one for a line of
+  `f095642` no test covered (RC-3), and six guards, five for weakenings of `f095642` no test caught (RC-4, RC-5; M20
+  among them, for which the review had found no reachable consequence) and one for the ends of the new waiting state);
+  DOC-1..DOC-3 correct the record. No status on the site changes. The Worker bundle: still `a7bb8087…` (283,716 bytes) at `7b2d74d` and with its record.
+- **The team's review of `13449f2`** (not an outside review). CF-1, CF-2: guards for two lines of `revokeAbandoned` (a late
+  body ends only the session it names, and only after a reached logout). CF-3: `signOut`'s branch for a sign-out a newer
+  flow overtook now reads the session afresh after a refused "Log out all devices" (401), as the live path does (it kept
+  a session another device had ended, in owner mode, until the owner re-check). CF-4, CF-5 correct the record. Closed in
+  `901420a` (three tests; the M20 guard now expects `ended: 'revoked'`). No full review followed (the owner's choice).
+  No status on the site changes. The Worker bundle: still `a7bb8087…` (283,716 bytes) at `901420a`.
+- **Page and docs.** The Swarm Audit Record lists both reviews under "Reviews of Worker bbf24001" / 「Worker bbf24001
+  的審查」 (Worker bbf24001, not this version) with R3-R1, AUD3-01..AUD3-09 and the team's statuses.

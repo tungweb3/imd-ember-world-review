@@ -1,64 +1,59 @@
-# PUBLIC_CONTENT_LIST：本 repo 公開的內容清單
+# PUBLIC_CONTENT_LIST：公開內容清單
 
-本 repo 的所有檔案都應視為任何人可讀、可下載、可被 Swarm 與 GitHub 保存。這份清單列出公開了什麼、沒有公開什麼，以及其中值得注意的識別資訊。本 repo 的前三個 commit（`c2a8c33`，第一次送審版本；`b6e986b`；`ae1d41a`，上一次的審查對象）仍在歷史中，內容見各自 commit 的這份清單。
+固定 source `c491ff3` 共 **604** 個 tracked 檔案；以下 **92** 個收錄於 source/，另 **512** 個保留。公開 source 中 **76** 個原樣、**16** 個遮蔽；其中 **11** 個為 LOW_ENTROPY，不公開原始 blob id／SHA-256。部署對照為 Worker `acdbb2bd`、部署來源 `ddb10e2`；見 [SCOPE.md](SCOPE.md)、[DEPLOYMENT_MATCH.md](DEPLOYMENT_MATCH.md)、[REDACTIONS.md](REDACTIONS.md)。
 
-## 1. 公開的資料夾與檔案數（本 commit）
+92 是來源檔數；說明、manifests 與 TESTS 證據另計。逐檔內容與 public SHA-256 以整包清單及 manifests 為準。
 
-總共 116 個檔案（不含 `.git/`；上一個 commit 為 109 個）。
+## source/ 的 92 檔
 
-| 位置 | 檔案數 | 內容 |
-|---|---|---|
-| 根目錄 | 15 | `README.md`、`LICENSE`、`SCOPE.md`、`ROUTES.md`、`WALLET_METHODS.md`、`SIWE.md`、`OWNERSHIP_AND_HOMES.md`、`DEPENDENCIES.md`、`DATA_SCHEMA.md`、`DEPLOYMENT_MATCH.md`、`REDACTIONS.md`、`PUBLIC_CONTENT_LIST.md`（本檔）、`SHA256SUMS`、`.gitignore`、`.gitattributes` |
-| `manifests/` | 8 | 重建與線上雜湊（`build-sha256.txt`、`build-sha256.lf-run.txt`、`live-sha256.txt`、`compare.txt`）、部署紀錄的 `SHA256SUMS` 副本（`deploy-record-SHA256SUMS.txt`）、公開與保留檔案的 git blob 清單、保留檔案的 SHA-256 清單 |
-| `TESTS/` | 15 | 測試說明、`npm test` 原始輸出（加替身與不加替身）、「進入我的家」授權測試的輸出、N-1～N-7 測試的輸出（`n-tests-output.txt`，本 commit 新增）、`tsc` 輸出、Worker 重建輸出、兩份 `npm audit` JSON、SIWE 樣本產生腳本與輸出、`stubs/households.ts` 與 `stubs/layout.ts`（測試用替身，不含幾何）、`probes/` 的探測腳本與輸出 |
-| `source/` | 78 | commit f4272c5 中與錢包登入、屋主權限相關的原始碼、完整伺服器端、相關文件與部署證據（見下；8 個檔案有遮蔽，其餘 70 個與 git blob 相同，見 `REDACTIONS.md` 第 1 節）。其中每個會進入 Worker 或前端 build 的檔案都與部署的 commit 2e4e830 相同 |
+| 路徑群組 | 數量 | 檔案 |
+|---|---:|---|
+| 根目錄 | 8 | .gitignore、.nvmrc、index.html、package.json、package-lock.json、tsconfig.json、vite.config.ts、wrangler.jsonc |
+| worker/ | 2 | app.ts、index.ts |
+| server/ | 9 | auth.ts、chain-mock.ts、d1.ts、gateway.ts、member.ts、ownership.ts、presence.ts、vite-plugin.ts、world-api.ts |
+| src/ | 1 | main.tsx |
+| src/world/ | 23 | HomePanels.tsx、MemberPanel.tsx、WalletPanel.tsx、auditRecord.ts、auth.ts、cadence.ts、collections.ts、homeEntry.ts、houseSize.ts、i18n.tsx、links.ts、market.ts、member.ts、memberName.ts、model.ts、moves.ts、publicHashes.ts、publicUrl.ts、reviewRecord.ts、siwe.ts、status.ts、wallet.ts、walletView.ts |
+| migrations/ | 6 | 0001_wallet_login.sql、0002_sign_in_budgets.sql、0003_sign_in_layers.sql、0004_index_candidates.sql、0005_lanes_and_subnets.sql、0006_members.sql |
+| public/ | 1 | _headers |
+| scripts/ | 3 | deploy.mjs、deploy-evidence.mjs、member-moderate.mjs |
+| docs/wallet-login/ | 1 | DESIGN_W1_v001.md |
+| docs/security/ | 2 | AUDIT_REMEDIATION_STATUS.md、MINT_BOUNDARY.md |
+| docs/security/deploy-evidence/ | 15 | 完整檔名如下 |
+| tests/ | 15 | auth.test.mjs、d1-sqlite.mjs、dependencies.test.mjs、deploy-evidence.test.mjs、deploy.test.mjs、headers.test.mjs、home-entry.test.mjs、member-client.test.mjs、member.test.mjs、ownership.test.mjs、presence.test.mjs、review-record.test.mjs、wallet-client.test.mjs、wallet-harness.mjs、worker.test.mjs |
+| tests/fixtures/ | 6 | activity-0759z.json、cold-home.mjs、cold-verify.mjs、member-panel.mjs、swarm-2026-09-27.json、wallet-panel.mjs |
+| **合計** | **92** | |
 
-`source/` 的 78 個檔案（標「新」的 6 個是本 commit 新增；收錄理由見 `SCOPE.md` 第 6.1 節）：
+十五份部署證據頁均在 docs/security/deploy-evidence/：
 
-| 子資料夾 | 檔案 |
-|---|---|
-| 根 | `.gitignore`、`.nvmrc`、`index.html`、`package.json`、`package-lock.json`、`tsconfig.json`、`vite.config.ts`、`wrangler.jsonc`（遮蔽） |
-| `worker/` | `app.ts`、`index.ts` |
-| `server/` | `auth.ts`、`chain-mock.ts`、`d1.ts`、`gateway.ts`、`ownership.ts`、`presence.ts`、`vite-plugin.ts`、`world-api.ts` |
-| `src/` | `main.tsx` |
-| `src/world/` | 錢包／登入與屋主權限：`auth.ts`、`siwe.ts`、`wallet.ts`、`WalletPanel.tsx`、`walletView.ts`、`reviewRecord.ts`、`auditRecord.ts`、`moves.ts`（註解遮蔽）、`homeEntry.ts`、`HomePanels.tsx`、`i18n.tsx`；Worker 執行期依賴：`cadence.ts`、`collections.ts`（註解遮蔽）、`houseSize.ts`、`links.ts`、`market.ts`、`model.ts`、`status.ts`（`siwe.ts` 兩邊都用）；公開靜態檔的雜湊檔名：`publicHashes.ts`、`publicUrl.ts` |
-| `migrations/` | `0001_wallet_login.sql`（註解遮蔽）、`0002_sign_in_budgets.sql`、`0003_sign_in_layers.sql`、`0004_index_candidates.sql`、`0005_lanes_and_subnets.sql`（新：兩個可為 NULL 的欄位與 `index_lanes` 表，N-4／N-5／N-6） |
-| `public/` | `_headers` |
-| `scripts/` | `deploy.mjs`、`deploy-evidence.mjs` |
-| `docs/wallet-login/` | `DESIGN_W1_v001.md`（遮蔽） |
-| `docs/security/` | `AUDIT_REMEDIATION_STATUS.md`（公開版，遮蔽）、`MINT_BOUNDARY.md`（日後 Mint 頁面的邊界問題與 S-2 清單，不含任何 Mint 程式） |
-| `docs/security/deploy-evidence/` | 10 頁部署證據：`20260928T210413Z-1a0ba21.md`、`20260929T050441Z-2da46cd.md`、`20260929T172429Z-5398b90.md`、`20260929T195417Z-4321bb4.md`、`20260930T064805Z-df8ea90.md`，以及 5 頁新的 `20260930T145241Z-007ee80.md`、`20260930T154746Z-a77f91b.md`、`20260930T185800Z-41ae386.md`、`20260930T221950Z-0d57791.md`、`20261001T040934Z-2e4e830.md`。內容是從團隊部署紀錄取出的結構化欄位，加上團隊手填的部分：來源 commit、紀錄 id、部署時間、Worker version id、Worker bundle 與前端檔案的 SHA-256、migration 檔名與雜湊及正式 D1 已套用的清單（人工填寫）、limiter 綁定與鍵、WAF 規則的描述與 rule id；`1a0ba21` 與 `2e4e830` 兩頁另有部署後的實測紀錄（`2e4e830` 那頁也記載 0005 的套用與讀回），`2da46cd`、`5398b90` 兩頁附有事後產生時的說明。手填的部分都是團隊說明。沒有 log 文字 |
-| `tests/` | `auth.test.mjs`、`wallet-client.test.mjs`、`ownership.test.mjs`、`presence.test.mjs`、`worker.test.mjs`、`headers.test.mjs`、`deploy.test.mjs`、`deploy-evidence.test.mjs`（同一行的兩個測試字串遮蔽）、`home-entry.test.mjs`、`review-record.test.mjs`（兩行禁止字 regex 與它們的斷言訊息遮蔽）、`dependencies.test.mjs`、`wallet-harness.mjs`、`d1-sqlite.mjs`。N-1～N-7 的新測試都寫在這些已公開的檔案裡 |
-| `tests/fixtures/` | `cold-home.mjs`、`cold-verify.mjs`、`swarm-2026-09-27.json`、`activity-0759z.json`、`wallet-panel.mjs` |
+- 20260928T210413Z-1a0ba21.md
+- 20260929T050441Z-2da46cd.md
+- 20260929T172429Z-5398b90.md
+- 20260929T195417Z-4321bb4.md
+- 20260930T064805Z-df8ea90.md
+- 20260930T145241Z-007ee80.md
+- 20260930T154746Z-a77f91b.md
+- 20260930T185800Z-41ae386.md
+- 20260930T221950Z-0d57791.md
+- 20261001T040934Z-2e4e830.md
+- 20261001T111020Z-7da33f2.md
+- 20261001T191028Z-9ad115a.md
+- 20261002T040044Z-9f069dd.md
+- 20261002T060718Z-f36144a.md
+- 20261003T005417Z-ddb10e2.md
 
-## 2. 不公開的
+相對前次公開的 `8cad017`（78 個 source 檔），本版新增 **14 檔**：四份部署證據 `docs/security/deploy-evidence/20261001T111020Z-7da33f2.md`、`20261001T191028Z-9ad115a.md`、`20261002T040044Z-9f069dd.md`、`20261002T060718Z-f36144a.md`，以及十個 M1 檔案 server/member.ts、src/world/memberName.ts、src/world/member.ts、src/world/MemberPanel.tsx、migrations/0006_members.sql、tests/member.test.mjs、tests/member-client.test.mjs、tests/fixtures/member-panel.mjs、scripts/member-moderate.mjs、docs/security/deploy-evidence/20261003T005417Z-ddb10e2.md。十個 M1 檔案中八檔有註解或證據文字遮蔽；MemberPanel.tsx 與 member-panel fixture 原樣保留。
 
-- commit f4272c5 中其餘 504 個檔案（3D 世界、地形與地形預烘、模型與下載佇列、美術、音樂、新手引導、城鎮的地標、船與纜車、平靜天氣開關、世界資料讀取狀態的顯示、Pepe 裝飾與雕像、非官方聲明與天氣說明的 UI、房屋分配與擺放、房屋內部與家具、主畫面 `WorldApp.tsx`、世界資料的讀取、其他測試與腳本、文件與圖檔、舊小遊戲殘留）：只公開**檔名與雜湊**（`manifests/withheld-source.txt`、`withheld-source-gitblobs.txt`）。注意：檔名本身會公開；與上一版相比新增的 20 個保留檔名（例如 `src/world/cableCar.ts`、`src/world/calmSky.ts`、`src/world/SourceNotes.tsx` 與一些 `tests/*.test.mjs`）也會公開。
-- 2026-09-30 曾上線、但不是本快照來源的 commit 的原始碼：`df8ea90`（06:48–09:27 UTC，已撤回）、`007ee80`、`a77f91b`、`41ae386`、`0d57791`（只有它們的部署證據頁公開）。
-- 私人 GitHub repo、部署紀錄本身（manifest 以外的 wrangler logs 等）、source map 與上傳的 bundle 本身（bundle 可由 `source/` 重建）、完整原始碼測試的原始 log（只公開它的 SHA-256，見 `README.md`「如何測試」）、持有人的審查規格與團隊內部的修正計畫（包括程式註解與文件中以章節或工具名稱引用的修正計畫、交叉檢查與交接文件）、Swarm 審查任務的付款資訊、持有人真錢包登入時的截圖或紀錄、任何 `.env`／`.dev.vars`／金鑰、正式資料庫的任何資料。
+## 這份清單會揭露的內容
 
-## 3. 值得注意的識別資訊
+- 六個 migrations，包括 0006 的全部八張表：members、wallet_identities、member_profiles、nickname_claims、profile_requests、profile_history、economy_accounts、life_state。後兩表的欄位、約束、預設值及初始化／讀取程式保留，註解遮蔽並未隱藏它們。詳見 [DATA_SCHEMA.md](DATA_SCHEMA.md)。
+- M1 會員與公開玩家名稱行為、與錢包地址的查詢關係、冷卻／保留及人工處置流程。MemberPanel.tsx:61 的既有 UI 文字仍公開；名稱查詢不回會員內部 id 或登入紀錄。
+- 公開名冊 fixture 的錢包地址、公開合約地址、端點、站點網址與 synthetic 測試字串；文件沒有將地址與特定人的身分連結。
+- 十五份部署證據的 source commit、版本識別、部署時間、bundle／前端雜湊、migration、limiter 與 WAF 描述。人工填寫的正式設定及套用狀態屬部署方自述；最新 0006 原始 SHA-256 已以 ORIGINAL-BLOB-WITHHELD 遮蔽，公開副本 SHA-256 可核對。
 
-| 項目 | 出現在 | 是否本來就公開 |
-|---|---|---|
-| 778 個錢包地址 | **只在** `source/tests/fixtures/swarm-2026-09-27.json`（IMD 公開名冊 API 的回應快照，檔內時間 2026-09-26T17:17Z；本版未改） | 是：公開 IMD 名冊 API 的資料。本 repo 沒有任何文件說明其中哪個地址屬於誰 |
-| 合約與基礎設施地址：IMD 席位 NFT `0x0000ec93…ec1d`、IMD 代幣 `0xd34a99bc…63b7`、Multicall3 `0xcA11bde0…CA11` | 原始碼與文件 | 是（公開合約） |
-| 測試用假地址 `0x…0004`、重複位元組地址（例如 `'0x'+'a1'.repeat(20)`） | 測試 | 是（虛構） |
-| 合成金鑰地址 `0x87364F8A…8449` | `TESTS/siwe-sample/`、`SIWE.md` | 是（本輪重新產生、只存在記憶體、已丟棄、不控制任何資產；先前幾輪的合成地址只在舊 commit 中） |
-| 保留 IP 與網段（`203.0.113.x`、`198.51.100.x`、`192.0.2.x`、`2001:db8:…`、`100.64.0.1`），包括 N-5 測試中同一個 /48 下的多個 `2001:db8:…` /64 | 測試、`TESTS/probes/`、`TESTS/siwe-sample/` | 是（文件用位址與共用位址，不指向任何人） |
-| 網域 `imdember.com`、`imd.stickember.com`（轉址），以及審查平台的公開連結（`explorer.imd.fun` 的 job 頁、`github.com/Identity-md/research` 的報告） | 多處 | 是 |
-| GitHub 帳號名稱 `tungweb3` | `LICENSE`、`README.md` 版權聲明 | 版權人名稱；本 repo 沒有把它和任何錢包地址或席位連在一起 |
-| git commit 的作者資訊 | 本 repo 的 commit metadata：作者 `tungweb3` 與其 GitHub noreply 地址；commit 訊息結尾的 trailer 行（例如 `Co-Authored-By`）也只含服務商的 noreply 地址 | noreply 地址不是個人信箱 |
-| Swarm job id `4bd31cfb-1151-497f-9b27-40e668dea372`、`e48d0a96-d3a5-42bb-859f-e0b0707fd9ad`、`519db624-a82f-4dfe-91b9-1a519d1d3dd1`、`8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b` 與它們的公開頁面 | 文件、`source/src/world/reviewRecord.ts`、`source/docs/security/AUDIT_REMEDIATION_STATUS.md`、`source/docs/wallet-login/DESIGN_W1_v001.md`、`MINT_BOUNDARY.md`；8c3aea2e 也出現在程式註解、migration 0005 的註解與測試中（N-1～N-7） | 是（公開的審查紀錄）。審查者在平台上的 seat 編號與付款錢包不收錄 |
-| Cloudflare rate limiter namespace id（4101–4104）、Worker 名稱 `imd-world`、D1 名稱 `imd-world`、Worker version id（`beac62be`、`f9b68223`、`50c688c9`、`c89f5915`、`1a0dd495`、`6e7e40cd`、`cc5cddb3`、`3e0f4eb3`、`5f9e6468`、`f152cd66`、`bbf24001` 等） | `source/wrangler.jsonc`、文件、10 頁部署證據、`manifests/compare.txt` | 不是機密；account_id／database_id 已遮蔽 |
-| CHAIN_LIMITER 與 API_LIMITER 內的常數鍵（`chain:erc1271`、`chain:erc1271:known`、`chain:erc1271:lane`、`chain:index`、本版新增的 `chain:index:lane`、`chain:assets`、`chain:code`） | 原始碼、文件、部署證據頁 | 是（限流鍵名稱，不是憑證） |
-| `imdember.com` zone 的 WAF rate limiting rule：名稱（`IMD API anti-flood`）、expression、門檻，以及 rule id `866d2fae97c942389a9fa9f15c411f46`；持有人 dashboard 截圖顯示的 Worker 清單、綁定名稱與 secret 名稱 | 文件；rule id 在 10 頁部署證據中的 8 頁（`2da46cd` 與 `5398b90` 兩頁該欄為 pending） | 持有人同意公開；rule id 是規則的識別碼，不是憑證。截圖本身、account id 與 secret 值都不收錄 |
-| 部署證據頁 `20260928T210413Z-1a0ba21.md` 的部署後實測：持有人用真實錢包（寫出錢包品牌與時間）登入一次、錢包畫面顯示的內容、D1 中新 session 的類型欄位；`20261001T040934Z-2e4e830.md` 的部署後實測（公開頁面與 API 的回應、從 `https://evil.example` 發出的 challenge 被拒），以及文件中持有人在 `bbf24001` 上用 MetaMask 登入與登出的說明（時間與錢包畫面上的文字） | 該兩頁、`README.md`「如何測試」 | 不含錢包地址、簽章或 cookie |
-| commit hash（本 repo 與私人 repo）、正式檔案與 Worker bundle 的雜湊、前端檔案樹摘要（Frontend tree digest）、migration 雜湊、部署時間，以及完整原始碼測試原始 log 的 SHA-256 | 文件、manifests、部署證據頁 | 是（審查必需） |
-| 私人 repo 的分支名稱（`main`、`review-fixes`、`backlog-0929`、`perf-0929`、`ui-0930`、`audit3-fixes`）與 tag 名稱（例如 `v2026.10.01-bbf24001`） | 文件、`manifests/compare.txt`、`source/docs/security/AUDIT_REMEDIATION_STATUS.md`、`source/docs/wallet-login/DESIGN_W1_v001.md`、部署證據頁、`source/tests/deploy-evidence.test.mjs`（測試資料） | 內部資訊，不含敏感內容 |
-| 團隊內部修正計畫的名稱與章節號（remediation document v1.0 §x，以及程式註解、測試與修正狀態文件中以工具名稱稱呼的修正計畫、交叉檢查與交接文件） | `source/docs/security/AUDIT_REMEDIATION_STATUS.md`、`source/docs/wallet-login/DESIGN_W1_v001.md`、程式註解、測試 | 只有名稱與章節號；文件本身不公開 |
-| 被保留檔案的檔名 | `manifests/withheld-*.txt` | 會公開檔名（不含內容） |
+## 保留內容與資料包說明
 
-## 4. 已確認不包含
+512 個保留 source 檔只提供清單及允許公開的完整性標記；檔名仍可見，包括 DESIGN_M1。文件本體、內部規格及未公開規劃不公開。保留的 3D／地形／美術／World 主畫面等使整站前端無法由此 subset 完整重建。
 
-私鑰、助記詞、`.env` 真值、`.dev.vars`、API／RPC key（包括 Alchemy 金鑰）、session cookie 值、Bearer token、有效的正式簽章、正式資料庫的資料列、個人 email（檔案內容中 email 樣式的字串只有兩個測試用的保留網域假地址：`source/tests/deploy.test.mjs:99` 的 `.invalid` 網域地址與 `source/tests/deploy-evidence.test.mjs:13` 的 `example.com` 網域地址（RFC 2606／6761）；commit metadata 只有 noreply 地址）、本機路徑（測試中的 Windows 使用者目錄與 `/home/…` 形式的路徑都是虛構的假路徑，使用者名稱是 `someone`；`TESTS/` 的原始輸出把暫存目錄換成 `<SCRATCH>`）、Cloudflare account id 或 database id 的任何片段、持有人或團隊自己的錢包地址（文件提到的真錢包測試都不記載地址；公開名冊快照中的地址見第 3 節）、使用者私人資料、瀏覽器 profile、HAR，以及未提交的內部草案與未來產品規劃的描述（唯一例外是持有人要求寫明的 Genesis Mint 邊界說明：日後 Mint 頁面在同一個 origin、使用本站登入狀態、上線前另行審查，World session 不等於使用者授權 Mint，見 `SCOPE.md` 第 3 節；`MINT_BOUNDARY.md` 只列出 Mint 自己的審查必須回答的問題，不含 Mint 的合約、授權設計或時程）。已遮蔽的位置見 `REDACTIONS.md` 第 1 節；檢查方式見 `REDACTIONS.md` 第 4 節。
+根目錄說明、manifests 與 TESTS 用於範圍、遮蔽、重現及證據。測試替身是受限支援材料，不是保留實作的替代版本；private review 手續檔、原始遮蔽文字／hash、私人 logs、正式資料及憑證未納入本包。E1 和 Mint 實作不含於本 World snapshot。
+
+公開 subset 加替身為 341 tests、337 pass、4 fail；M1 聚焦 33/33 通過，詳見 [TESTS/README.md](TESTS/README.md)。部署比對為 **partial**；沒有正式 D1、本版真實錢包或完整 3D 前端的實測證據。

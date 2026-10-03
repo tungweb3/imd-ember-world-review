@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {setup,fakeImd,START} from './wallet-harness.mjs';
 import {ReadGateway} from '../server/gateway.ts';
 import {recordPresence,PRUNE_CHALLENGES,PRUNE_SESSIONS,PRUNE_INDEX_LANES} from '../server/presence.ts';
-import {INSERT_CHALLENGE_0004,CLAIM_ERC1271_0004,CLAIM_CONTRACT_0004,CLAIM_LANE_0004} from '../server/auth.ts';
+import {INSERT_CHALLENGE,INSERT_CHALLENGE_0004,CLAIM_ERC1271_0004,CLAIM_CONTRACT_0004,CLAIM_LANE_0004} from '../server/auth.ts';
 import {openD1,migrationFiles} from './d1-sqlite.mjs';
 import {DatabaseSync} from 'node:sqlite';
 // The presence recorder runs the real migration SQL (node:sqlite) through the Worker's scheduled handler, fed by a fake
@@ -15,14 +15,17 @@ async function cron(w){const kept=[];await w.worker.scheduled({scheduledTime:w.c
 const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
 const owners=map=>Object.assign(Array(2000).fill(null),map);
 
-test('migrations: numbered files, applied in order, creating the five tables and the sign-in budget columns and indexes',()=>{
-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql']);
+test('migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes',()=>{
+  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql']);
   const db=openD1(),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
-  assert.deepEqual(tables,['index_candidates','index_lanes','login_challenges','seat_presence','sessions']);
+  assert.deepEqual(tables,['economy_accounts','index_candidates','index_lanes','life_state','login_challenges','member_profiles','members','nickname_claims','profile_history','profile_requests',
+    'seat_presence','sessions','wallet_identities']);
   const indexes=t=>db.raw.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL ORDER BY name").all(t).map(r=>r.name);
   assert.deepEqual(indexes('login_challenges'),['login_challenges_address','login_challenges_called_address','login_challenges_called_net','login_challenges_flow','login_challenges_issued','login_challenges_net']);
   assert.deepEqual(indexes('sessions'),['sessions_address','sessions_erc1271','sessions_expires','sessions_live']);
   assert.deepEqual(indexes('index_lanes'),['index_lanes_at','index_lanes_net']);
+  assert.deepEqual(indexes('nickname_claims'),['nickname_claims_member','nickname_claims_one_active']);
+  assert.deepEqual(indexes('profile_requests'),['profile_requests_recent']);assert.deepEqual(indexes('profile_history'),['profile_history_member']);
   assert.deepEqual(db.raw.prepare('SELECT name FROM pragma_table_info(?) ORDER BY cid').all('login_challenges').map(r=>r.name).slice(-2),['sub','called_via']);
 });
 
@@ -81,6 +84,24 @@ test('0005 is additive: on a live 0004 database every row of every table stays a
   assert.deepEqual([changed(INSERT_CHALLENGE_0004,'n2','b','o','f','m',t,t+1,'net:x',t-60_000,30,t-6_000,60,20),changed(INSERT_CHALLENGE_0004,'n3','c','o','f','m',t,t+1,'net:x',t-60_000,30,t-6_000,60,20),
     changed(CLAIM_ERC1271_0004,t,'n2','net:x',t-360_000,t-60_000,10,0),changed(CLAIM_CONTRACT_0004,t,'n2','net:x',t-60_000,3,'b',2),
     changed(CLAIM_ERC1271_0004,t,'n3','net:x',t-360_000,t-60_000,10,0),changed(CLAIM_LANE_0004,t,'n3','net:x',t-60_000,3,'c')],[1,1,1,1,1,1]);
+});
+
+test('0006 is additive: on a live 0005 database every row of every table stays as it was, the new tables start empty but for the seven system names, and the 0005 statements still run',()=>{
+  const db=new DatabaseSync(':memory:'),file=f=>readFileSync(new URL('../migrations/'+f,import.meta.url),'utf8');
+  for(const f of ['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql'])db.exec(file(f));
+  db.prepare("INSERT INTO login_challenges(nonce,address,origin,flow_hash,message,issued_at,accept_until,net,checked_at,called_at,sub,called_via) VALUES('n','a','o','f','m',1,2,'net:x',1,1,null,'pool')").run();
+  db.prepare("INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES('h','a',1,1,2,'n','EOA','ECDSA')").run();
+  db.prepare('INSERT INTO seat_presence(token_id,owner,last_online_at,updated_at) VALUES(1,null,1,1)').run();
+  db.prepare("INSERT INTO index_candidates(address,ids,read_at) VALUES('a','[\"1\"]',1)").run();
+  db.prepare("INSERT INTO index_lanes(net,sub,at) VALUES('net:x',null,1)").run();
+  const old=['login_challenges','sessions','seat_presence','index_candidates','index_lanes'],dump=()=>old.map(t=>db.prepare('SELECT * FROM '+t).all().map(r=>({...r})));
+  const columns=()=>old.map(t=>db.prepare('SELECT name FROM pragma_table_info(?)').all(t).map(r=>r.name));
+  const before=dump(),cols=columns();db.exec(file('0006_members.sql'));
+  assert.deepEqual(dump(),before);assert.deepEqual(columns(),cols,'no column added to an existing table');
+  for(const t of ['members','wallet_identities','member_profiles','profile_requests','profile_history','economy_accounts','life_state'])assert.equal(db.prepare('SELECT count(*) n FROM '+t).get().n,0,t);
+  assert.deepEqual(db.prepare("SELECT claim_type,count(*) n FROM nickname_claims GROUP BY claim_type").all().map(r=>({...r})),[{claim_type:'system',n:7}]);
+  const t=100_000,changed=(sql,...v)=>Number(db.prepare(sql).run(...v).changes);
+  assert.equal(changed(INSERT_CHALLENGE,'n2','b','o','f','m',t,t+1,'net:x',t-60_000,30,t-6_000,60,20,null),1,'the current challenge INSERT');
 });
 
 // A-2 (Swarm audit 519db624), across instances: the NFT-index answers kept in D1 (server/ownership.ts) are deleted by the

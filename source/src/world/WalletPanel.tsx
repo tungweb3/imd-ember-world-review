@@ -4,12 +4,14 @@ import type {Home} from './households.ts';
 import {useWorldText} from './i18n.tsx';
 import {HouseholdBlock,SIZE_NAMES,shortAddr} from './HomePanels.tsx';
 import {CHARACTER_COLLECTIONS} from './collections.ts';
-import {AuthClient,statusOf,statusText,chipText,noticeText,watchOwner,type AuthState,type AuthStatus} from './auth.ts';
+import {AuthClient,statusOf,statusText,chipText,noticeText,waitingText,watchOwner,type AuthState,type AuthStatus} from './auth.ts';
 import {wallets,unidentifiedNote,type WalletRegistry} from './wallet.ts';
 import {browserEnv} from './cadence.ts';
 import {moveGate,moveHint} from './moves.ts';
 import {seatRows,countsText,eligibleText,panelHome,houseNotes,signingText,presignText,logoutView,logoutDeviceLabel,runLogout,confirmOpen,endedText,type SeatRow,type LogoutAct} from './walletView.ts';
 import {AuditRecord} from './auditRecord.ts';
+import type {MemberClient} from './member.ts';
+import {MemberBlock} from './MemberPanel.tsx';
 // "My wallet" (W1, DESIGN_W1 §9): the chip in the tools bar and the drawer body. Sign-in state comes from AuthClient
 // (auth.ts); the assets list is public data (GET /api/wallet/:address/assets: IMD's roster) and needs no signature. The
 // drawer is modal, so nothing here overlaps the onboarding HUD, the speaker toggle, the world-time card or the minimap.
@@ -71,8 +73,10 @@ function useAssets(address:string|null,bump:number):AssetRead|null{
   return read;
 }
 
-export function WalletPanel({client,state,address,canSign,home,agents,error,onUseAddress,onForget,onTravel,onMove,onLocate}:{
-  client:AuthClient;state:AuthState;address:string|null;canSign:boolean;
+export function WalletPanel({client,member,state,address,canSign,home,agents,error,onUseAddress,onForget,onTravel,onMove,onLocate}:{
+  client:AuthClient;
+  /** The signed-in wallet's member and player name (member.ts); absent in the server-rendered fixture. */
+  member?:MemberClient|null;state:AuthState;address:string|null;canSign:boolean;
   /** The household to show: the owner's (signed in and verified) or the viewed wallet's, from the client's placement. */
   home:Home|null;agents:Map<string,Agent>;error:string|null;
   onUseAddress:(a:string)=>void;onForget:()=>void;onTravel:()=>void;onMove:()=>void;onLocate:(id:string)=>void}){
@@ -89,7 +93,8 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
   const registry=wallets(),found=useSyncExternalStore(registry.subscribe,()=>registry.state,()=>registry.state),hasProvider=found.any;
   const presign=(([what,where])=><p className="small-note presign">{what}<br/><b>{where}</b></p>)(presignText(location.host,say));
   // With several wallets and none chosen, the chooser comes first: no wallet is asked anything before the pick.
-  const signButton=(label:string)=>found.needsChoice?null:<>{presign}<button className="primary" disabled={busy} onClick={()=>void client.signIn()}>{label}</button></>;
+  // ADV-3: off too while a click waits for this page's own logout (the waiting line says so; another click would do nothing).
+  const signButton=(label:string)=>found.needsChoice?null:<>{presign}<button className="primary" disabled={busy||state.waiting} onClick={()=>void client.signIn()}>{label}</button></>;
   const refresh=<button className="secondary" disabled={state.checking} onClick={()=>{void client.refreshHome(true,true);setBump(b=>b+1);}}>{state.checking?text('確認中…','Checking…'):text('重新確認','Check again')}</button>;
   // F-4: "Log out this device" and "Log out all devices" (the second only through its inline confirm; walletView.ts).
   const act=(a:LogoutAct)=>()=>void runLogout(a,client,open=>setEverywhere(open?session:null));
@@ -103,7 +108,8 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
     <p className={'wallet-status '+DOT[st]} role="status"><i/>{statusText(st,state,say)}</p>
     {/* N-7: why the last session ended, under the status line; an expiry is the status line itself */}
     {!state.session&&state.ended&&state.ended!=='expired'&&<p className="small-note" role="status">{endedText(state.ended,say)}</p>}
-    {state.notice&&<p className="empty-state wallet-notice">{noticeText(state.notice,say)}</p>}
+    {/* ADV-3: while a click waits, that wait in the notice's place (a read failing meanwhile does not replace it) */}
+    {state.waiting?<p className="empty-state wallet-notice">{waitingText(say)}</p>:state.notice&&<p className="empty-state wallet-notice">{noticeText(state.notice,say)}</p>}
     <WalletChooser registry={registry} disabled={busy}/>
     {found.unidentified&&<p className="small-note">{unidentifiedNote(say)}</p>}
     {st==='visitor'&&(hasProvider?signButton(text('連接錢包並入住','Connect wallet')):<p className="small-note">{text('這個瀏覽器沒有偵測到錢包擴充功能；仍可用地址查看公開資產。','No wallet extension found in this browser. You can still view public assets by address.')}</p>)}
@@ -111,6 +117,7 @@ export function WalletPanel({client,state,address,canSign,home,agents,error,onUs
     {st==='mismatch'&&<>{signButton(text('用 ','Sign in as ')+shortAddr(state.account!)+text(' 重新簽名',''))}{signOut}</>}
     {st==='awaitingSignature'&&state.signing&&(([what,check])=><p className="small-note signing-summary" role="note">{what}<br/><b>{check}</b></p>)(signingText(state.signing,say))}
     {busy&&<button className="primary" disabled>{statusText(st,state,say)}</button>}
+    {member&&session&&st!=='mismatch'&&<MemberBlock client={member}/>}
 
     {st==='owner'&&me&&<section className="wallet-home">
       <h3>{text('我的家','My home')} · {me.size?(zh?SIZE_NAMES[me.size][0]+'屋':SIZE_NAMES[me.size][1]+' house'):''}</h3>

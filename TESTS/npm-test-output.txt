@@ -1,32 +1,37 @@
-2026-10-01T04:25:35Z
+2026-10-03T13:09:19Z
 
 > stickember-imd-world@0.1.0 test
 > node --test tests/*.test.mjs
 
-✔ sign-in: server-built SIWE message, one session cookie with every flag, token stored only as its hash (155.755ms)
-✔ every auth and /api/me response is no-store and carries no CORS header (36.2528ms)
+✔ sign-in: server-built SIWE message, one session cookie with every flag, token stored only as its hash (178.6428ms)
+✔ every auth and /api/me response is no-store and carries no CORS header (38.5728ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ every Worker route answers with HSTS: success, errors, 429, 503, 204 logout and the wallet assets route (43.7198ms)
+✔ every Worker route answers with HSTS: success, errors, 429, 503, 204 logout, the wallet assets route and the member routes (37.8553ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
-✔ forged signature, another key, and every altered message field are refused (401), with or without an RPC fallback (109.5542ms)
-✔ Origin: missing, foreign, and loopback-on-production are 403; loopback works only on a loopback URL; verify must match the challenge origin (27.4614ms)
-✔ flow cookie: missing or another browser's flow cannot use a challenge (login CSRF, cross-browser replay) (11.7321ms)
-✔ challenge lifetime: expired 410, replayed 409, superseded 409, unknown 409 (30.0979ms)
-✔ the SIWE Expiration Time is the challenge window (5 min), not the 7-day session, and the stored message must say so (25.1217ms)
-✔ F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; only that text verifies, the retired wording and any other is 401 (30.9482ms)
-✔ concurrent verifies of one signature create exactly one session (39.3551ms)
-✔ logout revokes the session server-side, clears both cookies, invalidates open challenges, and is idempotent (22.6571ms)
-✔ logout-all: one browser ends every live session of its address on every device, and its open challenges; others are untouched (53.1762ms)
-✔ logout-all needs a live session of its own: no, forged, revoked or expired cookies are 401 and end nobody; Origin, JSON and method rules hold; never rate limited (58.0656ms)
-✔ sessions end at 7 days (absolute, no renewal); a dead cookie is cleared (22.1439ms)
-✔ N-7: the session route names an expiry only for a session that ran out; a revoked, forged, malformed or missing cookie gets no reason (20.3948ms)
+✔ forged signature, another key, and every altered message field are refused (401), with or without an RPC fallback (159.2726ms)
+✔ Origin: missing, foreign, and loopback-on-production are 403; loopback works only on a loopback URL; verify must match the challenge origin (38.7175ms)
+✔ flow cookie: missing or another browser's flow cannot use a challenge (login CSRF, cross-browser replay) (32.3035ms)
+✔ challenge lifetime: expired 410, replayed 409, superseded 409, unknown 409 (61.732ms)
+✔ the SIWE Expiration Time is the challenge window (5 min), not the 7-day session, and the stored message must say so (29.414ms)
+✔ F-1: the statement names transfers, token or NFT approvals and transactions, keeps the 7 days; only that text verifies, the retired wording and any other is 401 (40.0425ms)
+✔ concurrent verifies of one signature create exactly one session (59.2224ms)
+✔ logout revokes the session server-side, clears both cookies, invalidates open challenges, and is idempotent (23.4878ms)
+✔ logout-all: one browser ends every live session of its address on every device, and its open challenges; others are untouched (59.4628ms)
+✔ logout-all needs a live session of its own: no, forged, revoked or expired cookies are 401 and end nobody; Origin, JSON and method rules hold; never rate limited (91.066ms)
+✔ sessions end at 7 days (absolute, no renewal); a dead cookie is refused, not cleared (35.4075ms)
+✔ N-7: the session route names an expiry only for a session that ran out; a revoked, forged, malformed or missing cookie gets no reason (25.2665ms)
+✔ AUD3-06: a late signed-out answer for a revoked cookie (session read, house 401, logout-all 401) does not delete the cookie another tab of the profile just set (the reproduction) (114.8093ms)
+✔ AUD3-06: the same for an expired cookie (SESSION_EXPIRED) (71.117ms)
+✔ AUD3-06: on the page, a session read sent with a dead cookie that lands after another tab’s sign-in leaves this browser signed in (40.6118ms)
+✔ AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in still clears that cookie, and the new session stays live at the server until it expires (23.3877ms)
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"RATE_LIMITED","reason":"verify","colo":null,"net":"net:unknown"}
-✔ only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401 (3.8134ms)
+✔ only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401 (6.621ms)
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
-✔ rate limits: sign-in answers 429 when exhausted and fails CLOSED when the binding throws; the read buckets fail open (23.6886ms)
+✔ rate limits: sign-in answers 429 when exhausted and fails CLOSED when the binding throws; the read buckets fail open (32.6112ms)
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
@@ -143,33 +148,44 @@
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:192.0.2.0/24"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"global","colo":null,"net":"net:100.64.20.0/24"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:198.51.100.0/24"}
-✔ challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing (510.7874ms)
-✔ F-5: a challenge flood starves neither its own verify nor anyone else; no neighbour can refuse a player's challenges; every refusal and surge is one line whose only client details are a network key and, on surges, a 6-character address prefix (239.109ms)
-✔ W-2: an IPv6 client's refusal line carries its /48 network key and nothing longer of its IP; the surge prefix is 6 characters (21.3549ms)
+✔ challenge budgets: a network gets NETWORK_CHALLENGE_BUDGET a minute, all clients CHALLENGE_BUDGET per 6 s; refusals are 429 SIGN_IN_BUSY and write nothing (660.7296ms)
+✔ F-5: a challenge flood starves neither its own verify nor anyone else; no neighbour can refuse a player's challenges; every refusal and surge is one line whose only client details are a network key and, on surges, a 6-character address prefix (249.1463ms)
+✔ W-2: an IPv6 client's refusal line carries its /48 network key and nothing longer of its IP; the surge prefix is 6 characters (29.2155ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"SIGN_IN_BUSY","reason":"network","colo":null,"net":"net:203.0.113.0/24"}
-✔ A-5: a challenge or verify whose body arrives late is counted when it arrives, and the contract check after its code read (81.6813ms)
-✔ A-1: garbage from a few other networks no longer holds a chosen smart wallet; its own network keeps one check of it a minute until the lane key (20 a minute per location) is spent, and the shared keys still see at most two checks per address (201.0519ms)
-✔ A-1: the residual at its stated cost: 9 /24s aiming garbage at 3 smart wallets every minute keep one of them out at a location; 8 /24s, or 9 at 2 wallets, do not (243.0244ms)
-✔ N-4: an owner’s own earlier check no longer uses up its lane: its retry, and a second device after its sign-in, sign in (the reproduction) (69.0395ms)
-✔ N-4: the lane stays one per /24 and address a minute, whoever sends the verifies: racing verifies take it once, verifies sent from other networks take no more, and garbage from the owner’s own /24 still holds it (the residual) (63.0733ms)
-✔ N-4: each contract check records how it was admitted, a shared (pool) check or a lane check (16.1129ms)
-✔ N-4/N-5: an IPv6 /48 makes at most two lane checks of one address a minute, from two different /64s (29.302ms)
-✔ N-4/N-5: the lane siege for IPv6 is at its stated cost: 5 /48s (two /64s each) aiming garbage at 3 smart wallets every minute keep one of them out at a location; 4 /48s do not, nor do 4 /48s of six /64s at one wallet (339.1721ms)
-✔ N-5: four smart wallets on four /64s of one /48 sign in within a minute (the reproduction) (47.3323ms)
-✔ N-5: one /64 cannot spend its /48’s shares for its neighbours, whichever address sends the verifies; rotating host bits inside it gains nothing (132.7488ms)
-✔ N-5: rotating /64s inside one /48 is still bounded: 6 contract checks, 20 code reads and 60 challenges a minute, however many /64s (291.4753ms)
-✔ N-5: IPv4 is unchanged, and nothing longer than an IPv6 /64 is stored or logged (149.9819ms)
-✔ N-5 (deployed ahead of 0005): challenges and ERC-1271 sign-in keep the 0004 rules and never answer 503; once 0005 is applied the new rules hold (216.7585ms)
-✔ A-6: a neighbour's challenges for a player's address never refuse that player; the /24 share stays the only network limit (110.6269ms)
-✔ A-7: while 20 networks keep the valve full, a network that has not asked in the last minute still gets its challenge (2380.8955ms)
+✔ A-5: a challenge or verify whose body arrives late is counted when it arrives, and the contract check after its code read (138.0425ms)
+✔ A-1: garbage from a few other networks no longer holds a chosen smart wallet; its own network keeps one check of it a minute until the lane key (20 a minute per location) is spent, and the shared keys still see at most two checks per address (274.4126ms)
+✔ A-1: the residual at its stated cost: 9 /24s aiming garbage at 3 smart wallets every minute keep one of them out at a location; 8 /24s, or 9 at 2 wallets, do not (212.5481ms)
+✔ N-4: an owner’s own earlier check no longer uses up its lane: its retry, and a second device after its sign-in, sign in (the reproduction) (46.0716ms)
+✔ N-4: the lane stays one per /24 and address a minute, whoever sends the verifies: racing verifies take it once, verifies sent from other networks take no more, and garbage from the owner’s own /24 still holds it (the residual) (39.6395ms)
+✔ N-4: each contract check records how it was admitted, a shared (pool) check or a lane check (13.0314ms)
+✔ N-4/N-5: an IPv6 /48 makes at most two lane checks of one address a minute, from two different /64s (21.216ms)
+✔ N-4/N-5: the lane siege for IPv6 is at its stated cost: 5 /48s (two /64s each) aiming garbage at 3 smart wallets every minute keep one of them out at a location; 4 /48s do not, nor do 4 /48s of six /64s at one wallet (216.9184ms)
+✔ N-5: four smart wallets on four /64s of one /48 sign in within a minute (the reproduction) (36.6101ms)
+✔ N-5: one /64 cannot spend its /48’s shares for its neighbours, whichever address sends the verifies; rotating host bits inside it gains nothing (97.2232ms)
+✔ N-5: rotating /64s inside one /48 is still bounded: 6 contract checks, 20 code reads and 60 challenges a minute, however many /64s (205.89ms)
+✔ N-5: IPv4 is unchanged, and nothing longer than an IPv6 /64 is stored or logged (118.8997ms)
+✔ N-5 (deployed ahead of 0005): challenges and ERC-1271 sign-in keep the 0004 rules and never answer 503; once 0005 is applied the new rules hold (152.5894ms)
+✔ AUD3-03: an ERC-1271 check the location key refused leaves no claim: the owner’s retries are refused by the key alone, and once it has room (5 s later) a fresh challenge signs in (the reproduction) (42.1972ms)
+✔ AUD3-03: the same on a database before 0005 (the 0004 claims and release) (42.1004ms)
+✔ AUD3-03: of two claims of one address, the one whose key refused is released and the admitted one is kept (9.0781ms)
+✔ AUD3-03: a release that fails keeps the claim counted (still 429 and burnt) and writes one erc1271_claim_kept line (26.5772ms)
+✔ AUD3-03: the release reads one row, by the challenge’s nonce, on a database with and without migrations/0005 (6.2336ms)
+✔ AUD3-03 guard: a check whose eth_call was sent and failed (node error, 503) stays counted: two such failures spend the address’s shared checks (24.8061ms)
+✔ AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released: once the key has room (5 s later) the owner signs in on that lane (25.2748ms)
+✔ AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503 and leaves no contract claim (12.8967ms)
+✔ AUD3-03 residual (a limiter that counts refused calls): after 7 /24s close chain:erc1271, 6 /24s each sending one garbage verify every 6 s keep a first-time smart wallet out for 3 minutes and 5 do not; under the fixed-window model none do (1371.0579ms)
+{"evt":"auth_refused","route":"/api/auth/challenge","status":429,"error":"RATE_LIMITED","reason":"auth","colo":null,"net":"net:unknown"}
+✔ AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row is its IPv4 /24 with no /64, and twenty-one different invalid texts share one AUTH_LIMITER key (the 21st is refused) (52.7749ms)
+✔ A-6: a neighbour's challenges for a player's address never refuse that player; the /24 share stays the only network limit (86.7219ms)
+✔ A-7: while 20 networks keep the valve full, a network that has not asked in the last minute still gets its challenge (1542.1603ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"network_contract","walletType":"CONTRACT","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:198.18.0.0/24"}
-✔ ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE and then one check per network; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt (111.353ms)
-✔ P3: garbage signatures for EOAs from 7 /24s never reach chain:erc1271, so a smart wallet still signs in; a no-code answer is cached briefly (106.9468ms)
+✔ ERC-1271 shares: a network gets ERC1271_CODE_SHARE claims and ERC1271_NETWORK_SHARE contract checks a minute, a contract address ERC1271_ADDRESS_SHARE and then one check per network; past any, 429 CHAIN_BUSY, nothing more read, the challenge burnt (88.0597ms)
+✔ P3: garbage signatures for EOAs from 7 /24s never reach chain:erc1271, so a smart wallet still signs in; a no-code answer is cached briefly (96.7887ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"code_share","colo":null,"net":"net:203.0.113.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"address","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
@@ -183,9 +199,9 @@
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:192.0.2.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget_known","walletType":"CONTRACT","colo":null,"net":"net:192.0.2.0/24"}
-✔ F-3: a /24's garbage leaves its other wallets alone, fake addresses never reach the contract budget, returning smart wallets keep a budget of their own, EOAs never wait (592.5595ms)
+✔ F-3: a /24's garbage leaves its other wallets alone, fake addresses never reach the contract budget, returning smart wallets keep a budget of their own, EOAs never wait (455.4272ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"error","colo":null,"net":"net:192.0.2.0/24"}
-✔ ERC-1271: the challenge is claimed before any read, so garbage retries, racing verifies and a failed burn all read the chain once (29.2404ms)
+✔ ERC-1271: the challenge is claimed before any read, so garbage retries, racing verifies and a failed burn all read the chain once (22.008ms)
 {"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:AUTH_LIMITER","colo":null,"net":"net:unknown"}
@@ -201,18 +217,18 @@
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
-✔ on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding makes exactly the routes that need it answer 503; loopback stays open (149.0886ms)
-✔ logout is never rate limited: after anonymous reads drain the bucket, or with the limiter refusing or down, it still revokes (46.3135ms)
+✔ on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding makes exactly the routes that need it answer 503; loopback stays open (125.0273ms)
+✔ logout is never rate limited: after anonymous reads drain the bucket, or with the limiter refusing or down, it still revokes (40.482ms)
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
-✔ /api/me/home is limited per session: one session re-checking too often does not starve another on the same IP, nor sign-in (39.4842ms)
+✔ /api/me/home is limited per session: one session re-checking too often does not starve another on the same IP, nor sign-in (34.5265ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","walletType":"CONTRACT","colo":null,"net":"net:198.18.15.0/24"}
-✔ ERC-1271 smart wallets: magic value signs in, anything else is 401, no key is 503; ERC-6492 wrappers are 400 (55.0564ms)
-✔ W-3: a contract wallet's eth_call failing at the node is 503 VERIFY_UNAVAILABLE with no session; a revert or a non-magic answer is 401 (238.6051ms)
+✔ ERC-1271 smart wallets: magic value signs in, anything else is 401, no key is 503; ERC-6492 wrappers are 400 (42.9708ms)
+✔ W-3: a contract wallet's eth_call failing at the node is 503 VERIFY_UNAVAILABLE with no session; a revert or a non-magic answer is 401 (183.6841ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:198.18.46.0/24"}
-✔ any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read (48.2388ms)
+✔ any failed signature check burns the challenge: its own flow cannot retry it, so one challenge buys at most one ERC-1271 read (34.7083ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
-✔ ERC-1271 checks spend the per-location CHAIN_LIMITER (chain:erc1271) before eth_call and fail closed; ECDSA sign-ins never touch it (49.2025ms)
+✔ ERC-1271 checks spend the per-location CHAIN_LIMITER (chain:erc1271) before eth_call and fail closed; ECDSA sign-ins never touch it (33.7379ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","colo":null,"net":"net:unknown"}
@@ -220,11 +236,11 @@
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
-✔ F-2: each session records EOA/ECDSA or CONTRACT/ERC1271; every way the ERC-1271 path can be unavailable is refused and makes no session (103.7123ms)
-✔ ERC-1271 needs code at the address and exactly the magic word: echoes, precompiles and padded answers are 401 (21.4365ms)
-✔ challenge always issues a new flow value; the one the browser brings only names the challenges it supersedes (20.1634ms)
-✔ malformed input is 400 and wrong methods 405; unknown account routes 404; the read API is untouched (6.5108ms)
-✔ the known-smart-wallet lookup and logout-all read through partial indexes: an address’s ECDSA or revoked sessions, however many, are never visited (25.1465ms)
+✔ F-2: each session records EOA/ECDSA or CONTRACT/ERC1271; every way the ERC-1271 path can be unavailable is refused and makes no session (103.7888ms)
+✔ ERC-1271 needs code at the address and exactly the magic word: echoes, precompiles and padded answers are 401 (22.5498ms)
+✔ challenge always issues a new flow value; the one the browser brings only names the challenges it supersedes (18.1499ms)
+✔ malformed input is 400 and wrong methods 405; unknown account routes 404; the read API is untouched (6.4115ms)
+✔ the known-smart-wallet lookup and logout-all read through partial indexes: an address’s ECDSA or revoked sessions, however many, are never visited (20.2522ms)
 {"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/logout","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
@@ -233,82 +249,144 @@
 {"evt":"auth_refused","route":"/api/auth/challenge","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/session","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"AUTH_UNAVAILABLE","reason":"AUTH_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ deployed before migrations/0003: sign-in is a logged 503 AUTH_UNAVAILABLE with no session and the challenge kept; once 0003 is applied it signs in (14.8429ms)
-✔ without D1 (the Vite dev server, a missing binding) sign-in and /api/me answer 503 AUTH_UNAVAILABLE (7.4082ms)
-verify handler: cold 14.4 (window-8 table alone 24.9) ms, warm 4.7 ms
-✔ one @noble/curves copy, _setWindowSize exists, and a cold verify in a fresh process stays far below the 50 ms CPU cap (589.1694ms)
-✔ F-6: no undici in the lockfile falls in GHSA-3wwx-pv8p-q78v (7.28.0-7.29.0) (1.9348ms)
-✔ F-6: the undici override is still needed (a dependency pins a vulnerable undici) (0.6474ms)
-✖ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (1205.1237ms)
-✔ outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts (363.7015ms)
-✔ hashTree lists every file under the tree, sorted, with POSIX paths relative to the base, size and SHA-256 (17.0242ms)
-✔ SHA256SUMS lines are sha256sum -c format, and the tree digest changes with any byte or any file name (7.2572ms)
-✔ a real deploy refuses a dirty tree; a dry run only records it (0.428ms)
-✔ record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler (2.7941ms)
-✔ deploy records are gitignored and importing the script deploys nothing (267.2324ms)
-✔ env files Vite would load are refused on a real deploy and listed by name on a dry run; others are ignored (31.4226ms)
-✔ the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip (696.5907ms)
-✔ the script runs main only as the started script, on any Node 24 (no import.meta.main), with Windows paths compared without case (0.545ms)
-✔ the script itself, run on a throwaway git repo: a failing test stops a dry run before tsc with no record; --skip-tests alone is refused (1465.9947ms)
-✔ every static response and the SPA fallback carry the security headers (2.6119ms)
-✔ the CSP allows the GLB texture path (blob:) and nothing that would let an injected script run (2.7209ms)
-✔ hashed build output is cached for a week, never immutable; everything else keeps the default revalidation (0.4781ms)
-✔ the world music is cached for a week like the hashed build, and the CSP lets it play from this origin only (0.4021ms)
-✔ HSTS: a year or more, every subdomain, no preload, and the same value on static files and Worker responses (0.4706ms)
-✔ the hashed copies of the models, decor and Pepe frame the page loads are cached for a week; their originals revalidate (0.9999ms)
-✔ group 5: enterGate is ok only in owner mode, for the session's own house (2.7948ms)
-✔ group 5: the real sign-in makes the gate ok for the owner's house only; a revoked session (401 from /api/me/home) closes it (232.9953ms)
-✖ the door: the Enter offer appears within 1.8 m of the owner's door spot, in front of the house (0.7233ms)
-✖ group 8: the ?interior= preview opens only in DEV or with ?debug=1, and grants nothing (3.5296ms)
-✔ group 5: the Enter action (the door pill and the household block) is offered for the owner's own house only (1.2125ms)
-✖ TEST-1: the render rules for the Enter action (the door pill, the household block, the scene's door check) (0.5635ms)
-✔ W-1: an Enter press opens the offered house only while enterGate is still ok at that moment (0.3741ms)
-✔ an owner of #361 and #921 (both online) gets one house of size ms, verified by ownerOf at a block, no second signature (157.7759ms)
-✔ /api/me/home answers for the session’s wallet only: an address in the query, a header or a body changes nothing (38.9226ms)
-✔ forged candidates are rejected by ownerOf: an index or swarm entry is only a candidate (26.672ms)
-✔ a sold seat drops within 30 s; the second-hand buyer counts it once it is online, even before IMD indexes the sale (75.8589ms)
-✔ /api/me/home: every NFT index read spends CHAIN_LIMITER (chain:index); refused, throwaway sessions cause no keyed read at all (147.8296ms)
-✔ home?fresh=1 and a refused budget: the stored index answer and IMD’s roster name the candidates, ownerOf proves them, and the view says limited (37.601ms)
-✔ A-2: a refused index reload keeps the last index answer as candidates, and ownerOf re-proves them each time (fresh and after 5 min) (26.7374ms)
+✔ deployed before migrations/0003: sign-in is a logged 503 AUTH_UNAVAILABLE with no session and the challenge kept; once 0003 is applied it signs in (19.7785ms)
+✔ without D1 (the Vite dev server, a missing binding) sign-in and /api/me answer 503 AUTH_UNAVAILABLE (8.0007ms)
+verify handler: cold 12.4 (window-8 table alone 21.9) ms, warm 4.5 ms
+✔ one @noble/curves copy, _setWindowSize exists, and a cold verify in a fresh process stays far below the 50 ms CPU cap (694.9425ms)
+✔ F-6: no undici in the lockfile falls in GHSA-3wwx-pv8p-q78v (7.28.0-7.29.0) (1.9634ms)
+✔ F-6: the undici override is still needed (a dependency pins a vulnerable undici) (0.7412ms)
+✖ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (1580.9098ms)
+✔ outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts (504.0368ms)
+✔ hashTree lists every file under the tree, sorted, with POSIX paths relative to the base, size and SHA-256 (21.4972ms)
+✔ SHA256SUMS lines are sha256sum -c format, and the tree digest changes with any byte or any file name (6.9792ms)
+✔ a real deploy refuses a dirty tree; a dry run only records it (0.37ms)
+✔ record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler (2.0425ms)
+✔ deploy records are gitignored and importing the script deploys nothing (397.651ms)
+✔ env files Vite would load are refused on a real deploy and listed by name on a dry run; others are ignored (42.0493ms)
+✔ the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip (1121.2137ms)
+✔ the script runs main only as the started script, on any Node 24 (no import.meta.main), with Windows paths compared without case (0.6893ms)
+✔ the script itself, run on a throwaway git repo: a failing test stops a dry run before tsc with no record; --skip-tests alone is refused (1613.9122ms)
+✔ every static response and the SPA fallback carry the security headers (2.2053ms)
+✔ the CSP allows the GLB texture path (blob:) and nothing that would let an injected script run (1.8991ms)
+✔ hashed build output is cached for a week, never immutable; everything else keeps the default revalidation (0.4391ms)
+✔ the world music is cached for a week like the hashed build, and the CSP lets it play from this origin only (0.3959ms)
+✔ HSTS: a year or more, every subdomain, no preload, and the same value on static files and Worker responses (0.4671ms)
+✔ the hashed copies of the models, decor and Pepe frame the page loads are cached for a week; their originals revalidate (1.214ms)
+✔ group 5: enterGate is ok only in owner mode, for the session's own house (1.983ms)
+✔ group 5: the real sign-in makes the gate ok for the owner's house only; a revoked session (401 from /api/me/home) closes it (211.0064ms)
+✖ the door: the Enter offer appears within 1.8 m of the owner's door spot, in front of the house (0.7455ms)
+✖ group 8: the ?interior= preview opens only in DEV or with ?debug=1, and grants nothing (36.787ms)
+✔ group 5: the Enter action (the door pill and the household block) is offered for the owner's own house only (0.8497ms)
+✖ TEST-1: the render rules for the Enter action (the door pill, the household block, the scene's door check) (1.2556ms)
+✔ W-1: an Enter press opens the offered house only while enterGate is still ok at that moment (0.5635ms)
+✔ the member follows the session: loaded when signed in, cleared when signed out, needs_name shown as such (136.4331ms)
+✔ an answer for the wallet the page has left is dropped; the new wallet’s own member shows (126.0926ms)
+✔ signed out and in again with the same wallet: an answer of the earlier sign-in never replaces a newer one (201.5235ms)
+✔ an answer naming another wallet than the page’s is not shown (the cookie changed under the page) (109.0843ms)
+✔ 503 and network failures are "unavailable", never "needs a name"; a retry loads it (48.0758ms)
+✔ a save whose answer is lost is retried once with the same request id: saved once, one cooldown (30.4107ms)
+✔ refusals: cooldown shows the server’s time, a version conflict reads the profile again, the form never asks the wallet (75.5995ms)
+✔ "not now" folds the card for that member on this browser only; no name is made (43.8257ms)
+✔ a page load reads with GET and creates with POST only once: an existing member spends no per-IP write budget (66.101ms)
+✔ clicking through houses asks for the name of the one the viewer stops at, not of every house passed (31.2272ms)
+✔ public names: one read per address a minute, a bad address asks nothing, a failure is no name (1.2569ms)
+✔ My wallet, as rendered: the first-name card says the name is public and tied to the wallet; each state says what it is (818.9452ms)
+✔ the house panel says whose home it is by the player name, with the short address kept below (713.4629ms)
+✔ E1 E3 E21 N01: a signed-in wallet gets exactly one member on first bootstrap, the same one after, from the session alone (169.8372ms)
+✔ E2 E15 E48 N02: no member without a live session; dead sessions are 401 and the cookie is left alone (54.6809ms)
+✔ writes need this site as Origin and a JSON request; refusals change nothing (28.8715ms)
+✔ E4 N12: two first bootstraps racing make one member; the loser rolls back whole and answers with the winner (38.3436ms)
+✔ a session row holding a mixed-case address (as an older row might) still resolves to the lowercase identity (27.2294ms)
+✔ E5 E11 E117: identities are eip155:1 only and canonical; another wallet gets another member (32.5798ms)
+✔ N03 N04 N05 E6: first name, public lookup, cooldown from the first name, and the member id never changes (28.2288ms)
+✔ N06 N07: names are unique site-wide by NFKC + ASCII case; the loser learns nothing about the holder (39.5035ms)
+✔ N08 N09: same value is a no-op; a case-only change is a change; the old name is kept 30 days for its member (74.7205ms)
+✔ N10 N11 E14: a form written for another member, or for an older profile, is refused and changes nothing (41.0046ms)
+✔ N13 N14: a retried request gets its first answer once; the same id with other content is a conflict (29.6154ms)
+✔ N15 E13: only the four fields are accepted; a member id, wallet, role or cooldown in the body is refused (27.2374ms)
+✔ N16 N17: format and reserved names are refused before any claim; the database holds the reserved names too (36.4869ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ N18: five name writes a minute per member reach the database; then 429 with Retry-After, refusals counted (25.2502ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"LIMITER_UNAVAILABLE","colo":null,"net":"net:203.0.113.0/24"}
+✔ the per-IP limit: member:<ip> keys on AUTH_LIMITER, checked before the session; a missing binding is 503 (19.8335ms)
+✔ N19 N20: moderation renames to 會員-<code>, quarantines the name, and lets the member rename without the cooldown (61.2779ms)
+✔ races inside the write: a name taken, or a version moved, after the checks rolls the whole batch back (83.9031ms)
+✔ E7 E49: logout and session expiry end nothing of the member: same member, coins and life after signing in again (24.096ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/world/names/:address","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ 503, not "new member": no database, or a database before migrations/0006; sign-in itself still works (33.6869ms)
+✔ the member routes leave the account routes as they were (19.072ms)
+✔ an owner of #361 and #921 (both online) gets one house of size ms, verified by ownerOf at a block, no second signature (160.5543ms)
+✔ /api/me/home answers for the session’s wallet only: an address in the query, a header or a body changes nothing (67.2981ms)
+✔ forged candidates are rejected by ownerOf: an index or swarm entry is only a candidate (33.6891ms)
+✔ a sold seat drops within 30 s; the second-hand buyer counts it once it is online, even before IMD indexes the sale (126.2606ms)
+✔ /api/me/home: every NFT index read spends CHAIN_LIMITER (chain:index); refused, throwaway sessions cause no keyed read at all (216.5072ms)
+✔ home?fresh=1 and a refused budget: the stored index answer and IMD’s roster name the candidates, ownerOf proves them, and the view says limited (39.9622ms)
+✔ A-2: a refused index reload keeps the last index answer as candidates, and ownerOf re-proves them each time (fresh and after 5 min) (30.5335ms)
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ A-2: another server instance, with an empty cache and chain:index refused or the index failing, still proves a seat only the index named, from the answer kept in D1 (111.5608ms)
-✔ A-2: a kept index answer is dated when its index read began, not its request: a request held before the index keeps its later answer over one read meanwhile (20.7803ms)
+✔ A-2: another server instance, with an empty cache and chain:index refused or the index failing, still proves a seat only the index named, from the answer kept in D1 (132.7126ms)
+✔ A-2: a kept index answer is dated when its index read began, not its request: a request held before the index keeps its later answer over one read meanwhile (29.6355ms)
 presence {"written":1,"at":1790596800000,"indexPruned":null,"lanesPruned":null}
-✔ deployed before migrations/0004: house reads, refused or failing index reads and the cron work as before the table (22.4798ms)
-✔ an hour of owner re-checks at 60 s costs 60 eth_calls but only 12 NFT index calls, and a sale still shows within one re-check (121.6483ms)
-✔ eligibility: a registered agent online now or within 24 h counts; offline longer or not an agent does not (16.3162ms)
+✔ deployed before migrations/0004: house reads, refused or failing index reads and the cron work as before the table (25.2285ms)
+✔ an hour of owner re-checks at 60 s costs 60 eth_calls but only 12 NFT index calls, and a sale still shows within one re-check (130.6361ms)
+✔ eligibility: a registered agent online now or within 24 h counts; offline longer or not an agent does not (18.2803ms)
 presence {"written":1,"at":1790597100001,"indexPruned":0,"lanesPruned":0}
-✔ a buyer never inherits the seller’s sighting: the seat counts once it is online under the buyer; never seen is its own reason (25.9ms)
-✔ house size follows the eligible count (1 s, 2–3 ms, 4–6 m, 7–9 l, 10+ xl); zero eligible is signed in without a house (114.5227ms)
+✔ a buyer never inherits the seller’s sighting: the seat counts once it is online under the buyer; never seen is its own reason (31.3569ms)
+✔ house size follows the eligible count (1 s, 2–3 ms, 4–6 m, 7–9 l, 10+ xl); zero eligible is signed in without a house (153.5952ms)
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ chain failures are 503 OWNERSHIP_UNAVAILABLE, never an empty house, and are not cached (37.254ms)
-✔ one address: ownership is read once per 30 s (in-flight shared); more than 200 candidates are split and pinned to one block (46.3681ms)
-✔ A-4: past the 256-candidate cap, seats whose agent can count are checked first, and a cut list says partial, never a complete zero (274.953ms)
-✔ A-4: under the cap a read is complete; far past it (600 or 301 candidates) the seat that counts is still found and the cost stays two eth_calls (114.5657ms)
-✔ N-3: past the 256-candidate cap, a seat that counts through its owner’s sighting in the last 24 h is still checked (the reproduction) (53.7333ms)
-✔ N-3: the cut follows the counting rule exactly: a sighting at 24 h counts, one just over does not, nor one under another owner, nor none; online now does; a seat sold since is dropped by ownerOf (184.2912ms)
-✔ N-3: the ranking read happens only past the cap, once per check, and only for registered seats not online now (60.8672ms)
-✔ N-3: the answer kept in D1 is cut the same way: another instance with chain:index refused still proves the recently seen seat (82.2036ms)
-✔ N-6: one IP’s throwaway sign-ins no longer keep a new buyer from their first seat discovery (the reproduction) (616.2372ms)
-✔ N-6: the lane is for a refused read that counts no seat: none when the roster or a kept answer already shows a seat that counts; one for a new buyer, a stale kept answer, or seats that do not count (106.3624ms)
-✔ N-6: one lane per network a minute, even when claims race (71.7019ms)
-✔ N-6: twenty other networks can still keep a refused read out at one location, and it reopens the next minute (the residual at its stated cost) (972.8149ms)
-✔ N-6: the lanes have a site-wide ceiling: 60 in 6 s; the 61st is refused with nothing written and no key asked, and the next slice admits again (866.5217ms)
-✔ N-6: an index read that failed (the budget allowed it) takes no lane: limited on the kept answer, with no lane row and no lane key (22.5715ms)
+✔ chain failures are 503 OWNERSHIP_UNAVAILABLE, never an empty house, and are not cached (46.9522ms)
+✔ one address: ownership is read once per 30 s (in-flight shared); more than 200 candidates are split and pinned to one block (61.2028ms)
+✔ A-4: past the 256-candidate cap, seats whose agent can count are checked first, and a cut list says partial, never a complete zero (296.6764ms)
+✔ A-4: under the cap a read is complete; far past it (600 or 301 candidates) the seat that counts is still found and the cost stays two eth_calls (139.5479ms)
+✔ N-3: past the 256-candidate cap, a seat that counts through its owner’s sighting in the last 24 h is still checked (the reproduction) (98.5503ms)
+✔ N-3: the cut follows the counting rule exactly: a sighting at 24 h counts, one just over does not, nor one under another owner, nor none; online now does; a seat sold since is dropped by ownerOf (313.33ms)
+✔ N-3: the ranking read happens only past the cap, once per check, and only for registered seats not online now (89.6823ms)
+✔ N-3: the answer kept in D1 is cut the same way: another instance with chain:index refused still proves the recently seen seat (98.7208ms)
+✔ N-6: one IP’s throwaway sign-ins no longer keep a new buyer from their first seat discovery (the reproduction) (515.1255ms)
+✔ N-6: the lane is for a refused read that counts no seat: none when the roster or a kept answer already shows a seat that counts; one for a new buyer, a stale kept answer, or seats that do not count (74.5266ms)
+✔ N-6: one lane per network a minute, even when claims race (43.1503ms)
+✔ N-6: twenty other networks can still keep a refused read out at one location, and it reopens the next minute (the residual at its stated cost) (745.4903ms)
+✔ N-6: the lanes have a site-wide ceiling: 60 in 6 s; the 61st is refused with nothing written and no key asked, and the next slice admits again (632.6981ms)
+✔ N-6: an index read that failed (the budget allowed it) takes no lane: limited on the kept answer, with no lane row and no lane key (16.0606ms)
+✔ N-6 (deployed ahead of 0005): no lane, and a refused read is limited as before, never 503 (21.6458ms)
+✔ AUD3-01: a lane read that fails (502) keeps the request’s first proof: 200 limited with seat 100 offline-24h, eligible 0, never 503 (the reproduction) (58.0542ms)
+✔ AUD3-01: the same for a timeout and for a malformed index body (35.3527ms)
+✔ AUD3-01: a lane rebuild whose ownerOf read fails keeps the first proof (18.2697ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:198.51.100.0/24"}
+✔ AUD3-01 guard: a first proof that cannot be made is still 503 and asks no lane (23.0864ms)
+{"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:198.51.100.0/24"}
+✔ AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild (D1 failing on its sightings read) still propagates: 503 (21.1211ms)
+✔ AUD3-02: a lane claim the location key refused does not keep the network out: once the key has room (31 s later) the same network’s lane reads the index (the reproduction) (18.418ms)
+✔ AUD3-02: claims refused by one location’s key no longer fill the site-wide ceiling for a buyer at another location (the reproduction) (667.3786ms)
+✔ AUD3-02: a key that throws is a refusal: nothing read, the row released, the read limited (14.8558ms)
+✔ AUD3-02: two /64s of one /48 claim at once; the key admits one: only the refused row is released, the admitted one keeps its minute (28.1547ms)
+✔ AUD3-02: a release that fails keeps the row for the minute (fail closed) and writes one index_lane_kept line (release_failed); nothing more is read (15.0622ms)
+✔ AUD3-02: with a D1 that applies the claim but returns no RETURNING row (changes 1), the claim’s own net, sub and at release exactly that row; another /64’s row of the /48 is untouched (21.3155ms)
+✔ AUD3-02: while the key refuses, releases are capped site-wide: 100 /24s at once give 20 released, 60 kept (one release_cap line each) and 20 refused in D1 with no key asked; 30 s later 20 released, 20 kept, 60 refused in D1 (886.5902ms)
+✔ AUD3-02: the release finds its row on index_lanes_net and reads the 6 s slice on index_lanes_at; INDEX_LANE stays a covering read (4.1618ms)
+✔ AUD3-02 guard: a network whose claims the key keeps refusing asks it at most twice a minute when it reads every second (82.3861ms)
+✔ AUD3-02 guard: a /64 whose claim was released cannot claim again within 30 s, and never takes its /48 neighbour’s slot (21.6735ms)
+✔ AUD3-02 guard: one admitted lane operation is up to NFT_PAGE_CAP (5) index pages and answers partial (23.4358ms)
 {"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/wallet/:address/assets","status":503,"error":"LIMITER_UNAVAILABLE","reason":"missing:CHAIN_LIMITER","colo":null,"net":"net:unknown"}
-✔ N-6 (deployed ahead of 0005): no lane, and a refused read is limited as before, never 503 (24.7773ms)
-✔ public assets: no session, 5-minute public cache, seats from IMD’s roster with no keyed read at all, characters empty until configured (207.941ms)
-✔ character NFTs, once configured: keyed reads only within the global budget (fail closed), cached 5 min, a failure not re-asked for 60 s (23.1951ms)
+✔ AUD3-02 residual (a limiter that counts refused calls): after 20 networks close the lane key, 10 /24s re-asking every 30 s keep a buyer out for 3 minutes and 9 do not (1769.1177ms)
+✔ public assets: no session, 5-minute public cache, seats from IMD’s roster with no keyed read at all, characters empty until configured (138.5467ms)
+✔ character NFTs, once configured: keyed reads only within the global budget (fail closed), cached 5 min, a failure not re-asked for 60 s (18.8501ms)
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ CHAIN_MOCK_OWNERS (local E2E) acts only on a loopback URL, never on imdember.com (29.4725ms)
-cold /api/me/home (20 seats): 29.9 ms (window-8 table 26.8)
-✔ a cold /api/me/home for a 20-seat holder costs less than two window-8 tables built under the same load (755.7386ms)
-✔ the Worker entry never loads layout.ts or households.ts; the client’s houseSize is the same function (485.2895ms)
+✔ CHAIN_MOCK_OWNERS (local E2E) acts only on a loopback URL, never on imdember.com (25.3652ms)
+cold /api/me/home (20 seats): 19.1 ms (window-8 table 27.4)
+✔ a cold /api/me/home for a 20-seat holder costs less than two window-8 tables built under the same load (727.3641ms)
+✔ the Worker entry never loads layout.ts or households.ts; the client’s houseSize is the same function (492.2603ms)
 presence {"written":1,"at":1790596800000,"indexPruned":1,"lanesPruned":0}
 presence {"written":0,"skipped":"workers-incomplete","at":1790596800000,"indexPruned":1,"lanesPruned":0}
 presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
@@ -318,144 +396,205 @@ presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPr
 presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
 presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
 presence {"written":1,"at":1790596560000,"indexPruned":0,"lanesPruned":0}
-presence run (parse 2 bodies + derive + 1 upsert): 11.0 / 14.9 / 10.5 / 12.3 / 8.5 ms
-✔ migrations: numbered files, applied in order, creating the five tables and the sign-in budget columns and indexes (9.084ms)
-✔ 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work (2.6932ms)
-✔ 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work (3.8351ms)
-✔ 0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty (5.1374ms)
-✔ 0005 is additive: on a live 0004 database every row of every table stays as it was, the new columns are empty, index_lanes starts empty, and the 0004 statements still run (14.515ms)
-✔ A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not (54.4531ms)
-✔ N-6: the cron deletes index-lane rows older than a minute and keeps the rest, by a range of index_lanes_at; a database before 0005 is left alone (13.1717ms)
-✔ a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched (26.4379ms)
-✔ a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs (13.0021ms)
-✔ an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one (10.6321ms)
-✔ an edge-cached roster is dated by its Age, not by the time the cron read it (6.1423ms)
-✔ no database: the cron does nothing and makes no upstream read (5.0545ms)
-✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (82.7176ms)
-✔ the Swarm Audit Record is a collapsed block naming scope, reviewed version, date, deployment match and the previous-review label (50.3403ms)
-✔ its job and report links open the real pages in a new tab with no referrer and no opener (5.9821ms)
-✔ every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open (18.4571ms)
-✔ the two re-reviews of Worker 50c688c9 are listed with their findings, and the page says this version was not re-reviewed (15.6014ms)
-✔ the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, and the page says this version was not re-reviewed (11.5193ms)
-✔ My wallet shows the record in every state, before sign-in too, and no longer the old one-line link (1.3442ms)
-✔ the remediation status doc agrees with the site’s record, names only real tests, and carries no forbidden word or personal detail (103.1901ms)
-✔ the future Mint boundary is written down: G-1..G-3 and the S-2 checklist, linked from the docs, claiming nothing about a Mint (2.1717ms)
-✔ first sign-in asks for exactly one signature, goes connect → sign → verify → owner, and a double click starts one flow (167.7245ms)
-✔ a reload restores the session from the cookie with no signature and no challenge, even when the click comes first (58.6191ms)
-✔ a rejected signature leaves a visitor with the owner-less notice, and nothing is retried by itself (49.5015ms)
-✔ switching A → B turns owner mode off at once and ends A at the server; B is merely connected (42.854ms)
-✔ A’s signature arriving after the switch to B is never sent to verify (60.9567ms)
-✔ A’s verify held before the server answers, then the switch to B: dropped, and no session of A survives (97.3362ms)
-✔ A’s verify held after the server answers, then the switch to B: dropped, and no session of A survives (90.4833ms)
+presence run (parse 2 bodies + derive + 1 upsert): 9.7 / 22.5 / 8.1 / 8.7 / 9.7 ms
+✔ migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes (9.6947ms)
+✔ 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work (2.7408ms)
+✔ 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work (3.2325ms)
+✔ 0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty (3.0874ms)
+✔ 0005 is additive: on a live 0004 database every row of every table stays as it was, the new columns are empty, index_lanes starts empty, and the 0004 statements still run (5.1237ms)
+✔ 0006 is additive: on a live 0005 database every row of every table stays as it was, the new tables start empty but for the seven system names, and the 0005 statements still run (6.8572ms)
+✔ A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not (48.9217ms)
+✔ N-6: the cron deletes index-lane rows older than a minute and keeps the rest, by a range of index_lanes_at; a database before 0005 is left alone (9.7574ms)
+✔ a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched (9.6857ms)
+✔ a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs (14.5406ms)
+✔ an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one (12.1936ms)
+✔ an edge-cached roster is dated by its Age, not by the time the cron read it (7.3609ms)
+✔ no database: the cron does nothing and makes no upstream read (8.4057ms)
+✔ recording a production-sized roster costs a few ms, far below the 50 ms CPU cap (86.4184ms)
+✔ the Swarm Audit Record is a collapsed block naming scope, reviewed version, date, deployment match and the previous-review label (24.1073ms)
+✔ its job and report links open the real pages in a new tab with no referrer and no opener (4.0318ms)
+✔ every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open (10.5293ms)
+✔ the two re-reviews of Worker 50c688c9 are listed with their findings, and the page says this version was not re-reviewed (21.6023ms)
+✔ the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, and the page says this version was not re-reviewed (28.2699ms)
+✔ the two reviews of Worker bbf24001 are listed with R3-R1 and AUD3-01..AUD3-09, and the page says this version was not re-reviewed (13.8925ms)
+✔ My wallet shows the record in every state, before sign-in too, and no longer the old one-line link (1.0836ms)
+✔ the remediation status doc agrees with the site’s record, names only real tests, and carries no forbidden word or personal detail (503.937ms)
+✔ the future Mint boundary is written down: G-1..G-3 and the S-2 checklist, linked from the docs, claiming nothing about a Mint (2.7755ms)
+✔ first sign-in asks for exactly one signature, goes connect → sign → verify → owner, and a double click starts one flow (194.6039ms)
+✔ a reload restores the session from the cookie with no signature and no challenge, even when the click comes first (68.0379ms)
+✔ a rejected signature leaves a visitor with the owner-less notice, and nothing is retried by itself (78.4643ms)
+✔ switching A → B turns owner mode off at once and ends A at the server; B is merely connected (61.4077ms)
+✔ A’s signature arriving after the switch to B is never sent to verify (63.3204ms)
+✔ A’s verify held before the server answers, then the switch to B: dropped, and no session of A survives (124.1826ms)
+✔ A’s verify held after the server answers, then the switch to B: dropped, and no session of A survives (123.7593ms)
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ a wallet with no IMD seat is signed in with no house, and a failing chain read is a different state (38.2457ms)
-✔ after 7 days the session is expired, on the next check and on the next visit; signing in again needs one signature (81.0671ms)
-✔ tabs follow each other through the channel by re-reading the server, and a forged message changes nothing (178.0555ms)
-✔ a visit whose wallet is on another account than the session is a mismatch until signed in again as that account (74.0723ms)
-✔ every state has its own chip and status wording in both languages (0.6428ms)
-✔ sign out ends the page’s session only when the server revoked it; a lost logout keeps it, says so, and a retry works (16.7236ms)
-✔ Sign out on all devices: every browser of the address is signed out, the other tab at once, the other device on its next read; a lost request keeps it and says so (131.9475ms)
-✔ My wallet: “Log out this device” ends only this browser; “Log out all devices” asks inline, and only its confirm ends every device (127.1127ms)
-✔ Sign out on all devices from a browser whose sign-in already ended: this page is signed out, says other devices were not, and a fresh sign-in can do it (36.2293ms)
-✔ with the sign-in bucket drained by cross-site reads (the reported attack), Sign out still revokes and a reload stays signed out (42.4909ms)
-✔ an account switch whose logout is lost shows the old session as a mismatch, never as signed out (62.9774ms)
+✔ a wallet with no IMD seat is signed in with no house, and a failing chain read is a different state (42.4114ms)
+✔ after 7 days the session is expired, on the next check and on the next visit; signing in again needs one signature (94.78ms)
+✔ tabs follow each other through the channel by re-reading the server, and a forged message changes nothing (236.7867ms)
+✔ a visit whose wallet is on another account than the session is a mismatch until signed in again as that account (89.4457ms)
+✔ every state has its own chip and status wording in both languages (0.6185ms)
+✔ sign out ends the page’s session only when the server revoked it; a lost logout keeps it, says so, and a retry works (23.8662ms)
+✔ Sign out on all devices: every browser of the address is signed out, the other tab at once, the other device on its next read; a lost request keeps it and says so (153.5225ms)
+✔ My wallet: “Log out this device” ends only this browser; “Log out all devices” asks inline, and only its confirm ends every device (133.5988ms)
+✔ Sign out on all devices from a browser whose sign-in already ended: this page is signed out, says other devices were not, and a fresh sign-in can do it (44.2461ms)
+✔ with the sign-in bucket drained by cross-site reads (the reported attack), Sign out still revokes and a reload stays signed out (56.9988ms)
+✔ an account switch whose logout is lost shows the old session as a mismatch, never as signed out (89.4137ms)
 {"evt":"auth_refused","route":"/api/auth/session","status":429,"error":"RATE_LIMITED","reason":"api","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/auth/session","status":429,"error":"RATE_LIMITED","reason":"api","colo":null,"net":"net:unknown"}
-✔ a reload whose session read fails (429) never asks for a signature while the session is valid (36.8355ms)
-✔ a reload whose session read fails (network) never asks for a signature while the session is valid (36.0943ms)
+✔ a reload whose session read fails (429) never asks for a signature while the session is valid (50.4364ms)
+✔ a reload whose session read fails (network) never asks for a signature while the session is valid (45.268ms)
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
 {"evt":"auth_refused","route":"/api/me/home","status":429,"error":"RATE_LIMITED","reason":"home","colo":null,"net":"net:unknown"}
-✔ owner mode ends when every re-check has failed for longer than 3 minutes, and comes back when one succeeds (15.3267ms)
+✔ owner mode ends when every re-check has failed for longer than 3 minutes, and comes back when one succeeds (31.1289ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":429,"error":"CHAIN_BUSY","reason":"budget","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
-✔ a smart wallet whose check the server's chain budget refused gets the busy notice, and its next click signs in (21.266ms)
-✔ an undeployed smart account gets its own notice, and one verify only (6.2565ms)
-✔ the owner re-check asks nothing while the tab is hidden and once when it is shown again (371.7996ms)
-✔ My-wallet rows after a sale show only the seats the server proved, with each reason worded and the count pluralised (13.0754ms)
-✔ a seat bought after sign-in shows on a reload or on Check again, with no second signature (82.8934ms)
-✔ the map marks the owner’s own household 「我家」 only in owner mode; otherwise the viewed wallet’s, as “this wallet’s home” (0.5881ms)
-✔ saved moves from older builds lose their message and signature on read, malformed ones are dropped, and a clean list is left alone (1.6716ms)
-✔ moving needs owner mode: a connected wallet, a switched account or another wallet’s house cannot move, and the move asks the wallet for nothing (20.3491ms)
-✔ W-1: a session past its expiresAt here is not owner mode: status, move gate, move and hint refuse; the client ends it on time and re-reads the server when shown again (183.483ms)
-✔ visibility-refresh-clears-stale-owner: a tab shown again after a “Log out all devices” elsewhere, or after the seat was sold, leaves owner mode (125.9621ms)
+✔ a smart wallet whose check the server's chain budget refused gets the busy notice, and its next click signs in (33.7699ms)
+✔ an undeployed smart account gets its own notice, and one verify only (11.946ms)
+✔ the owner re-check asks nothing while the tab is hidden and once when it is shown again (416.9948ms)
+✔ My-wallet rows after a sale show only the seats the server proved, with each reason worded and the count pluralised (23.5489ms)
+✔ a seat bought after sign-in shows on a reload or on Check again, with no second signature (101.66ms)
+✔ the map marks the owner’s own household 「我家」 only in owner mode; otherwise the viewed wallet’s, as “this wallet’s home” (0.9776ms)
+✔ saved moves from older builds lose their message and signature on read, malformed ones are dropped, and a clean list is left alone (1.2726ms)
+✔ moving needs owner mode: a connected wallet, a switched account or another wallet’s house cannot move, and the move asks the wallet for nothing (16.5344ms)
+✔ W-1: a session past its expiresAt here is not owner mode: status, move gate, move and hint refuse; the client ends it on time and re-reads the server when shown again (199.6757ms)
+✔ visibility-refresh-clears-stale-owner: a tab shown again after a “Log out all devices” elsewhere, or after the seat was sold, leaves owner mode (141.1565ms)
 {"evt":"auth_refused","route":"/api/auth/verify","status":503,"error":"VERIFY_UNAVAILABLE","reason":"rpc","walletType":"CONTRACT","colo":null,"net":"net:unknown"}
-✔ W-3 on the page: a node failure on a smart wallet’s check is “can’t be checked right now”, never a bad signature; the next click signs in with one new signature (34.3431ms)
-✔ F-7(e): a locked wallet (accountsChanged with no account) keeps the session and owner mode; only a log-out ends it (43.4399ms)
+✔ W-3 on the page: a node failure on a smart wallet’s check is “can’t be checked right now”, never a bad signature; the next click signs in with one new signature (25.0948ms)
+✔ F-7(e): a locked wallet (accountsChanged with no account) keeps the session and owner mode; only a log-out ends it (52.6611ms)
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ A-3: an older house read whose body arrives after a newer answer is dropped: it neither undoes a sale nor a recovery (96.4025ms)
-✔ A-8: a house read that was refused or cut off is “the check couldn’t be completed”, never “checked on chain: no seat” (1223.3066ms)
-✔ A-4: on the page, a read the NFT index cut short at its page cap says the list may be incomplete, not that the wallet names more than 256 seats (946.7909ms)
-✔ discovery: window.ethereum only without announcements, the single announced wallet, a choice among several remembered per browser (10.5465ms)
-✔ with several wallets, only the chosen one is asked anything; choosing another shows a mismatch and follows only its accounts (123.4389ms)
-✔ switching wallets while a signature is pending drops that flow: the late signature is never verified and nothing is signed in (62.236ms)
-✔ only the address that asked can end up signed in: a wallet signing with another key, or a verify answer for another address (76.7045ms)
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.18.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.19.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.20.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.21.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.22.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.23.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.24.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:198.18.25.0/24"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:unknown"}
-{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0xbc76","colo":null,"net":"net:unknown"}
-✔ the page checks the sign-in message before the wallet sees it: the real server message passes, every altered one ends the flow unsigned (69.8159ms)
-✔ while the wallet asks for the signature, the page shows a summary read from the checked message, and only then (80.2355ms)
-✔ a chain switch in the wallet changes nothing: still the owner, no re-login, no wallet or server request (37.7294ms)
-✔ a click waiting on the session read never reaches a wallet that was replaced meanwhile (47.3625ms)
-✔ a second provider announcing the chosen wallet’s rdns never takes over: the pick stays, the copy is flagged and never asked (83.6017ms)
-✔ a remembered wallet that has not announced is never replaced by whichever one did: the player is asked (56.1104ms)
-✔ a replaced wallet’s late answers change nothing: a slow eth_accounts, and accountsChanged from a wallet without removeListener (70.0753ms)
+✔ A-3: an older house read whose body arrives after a newer answer is dropped: it neither undoes a sale nor a recovery (109.1068ms)
+✔ A-8: a house read that was refused or cut off is “the check couldn’t be completed”, never “checked on chain: no seat” (1306.479ms)
+✔ A-4: on the page, a read the NFT index cut short at its page cap says the list may be incomplete, not that the wallet names more than 256 seats (850.571ms)
+✔ discovery: window.ethereum only without announcements, the single announced wallet, a choice among several remembered per browser (7.2358ms)
+✔ with several wallets, only the chosen one is asked anything; choosing another shows a mismatch and follows only its accounts (138.9958ms)
+✔ switching wallets while a signature is pending drops that flow: the late signature is never verified and nothing is signed in (68.1389ms)
+✔ only the address that asked can end up signed in: a wallet signing with another key, or a verify answer for another address (94.4463ms)
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.18.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.19.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.20.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.21.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.22.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.23.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.24.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:198.18.25.0/24"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:unknown"}
+{"evt":"auth_surge","route":"/api/auth/challenge","reason":"address_surge","addr":"0x49df","colo":null,"net":"net:unknown"}
+✔ the page checks the sign-in message before the wallet sees it: the real server message passes, every altered one ends the flow unsigned (51.173ms)
+✔ while the wallet asks for the signature, the page shows a summary read from the checked message, and only then (68.6899ms)
+✔ a chain switch in the wallet changes nothing: still the owner, no re-login, no wallet or server request (53.4453ms)
+✔ a click waiting on the session read never reaches a wallet that was replaced meanwhile (62.4244ms)
+✔ a second provider announcing the chosen wallet’s rdns never takes over: the pick stays, the copy is flagged and never asked (77.8589ms)
+✔ a remembered wallet that has not announced is never replaced by whichever one did: the player is asked (62.6873ms)
+✔ a replaced wallet’s late answers change nothing: a slow eth_accounts, and accountsChanged from a wallet without removeListener (96.9787ms)
 {"evt":"auth_refused","route":"/api/me/home","status":503,"error":"OWNERSHIP_UNAVAILABLE","reason":"OWNERSHIP_UNAVAILABLE","colo":null,"net":"net:unknown"}
-✔ under one’s own house, only an account without a session is told to sign in; a signed-in one is told why its seats do not count (40.6006ms)
-✔ N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped: owner mode stays and nothing asks the wallet (68.6475ms)
-✔ N-1: and the reverse: an older “signed in” read that arrives after a newer “signed out” revives nothing and reads no house (62.4949ms)
-✔ N-1: an older read that fails late (a lost connection, or a body cut off) after a newer answer changes nothing (117.4604ms)
-✔ N-1: a switch of account or a sign-out while a session read is on its way still drops it (139.0371ms)
-✔ N-1: a sign-in click waits for the newest session read, so a live session in the cookie jar is found and nothing is signed (215.2747ms)
-✔ N-1: an older read answered late with an error status (503 or 429) after a newer “signed in” changes nothing (159.754ms)
-✔ N-1: a house read of the replaced session that lands while another address signs in changes nothing (111.7242ms)
-✔ N-1: a house read begun for a session that a newer read then ends changes nothing when it lands (200, 429 or 401) (165.5965ms)
-✔ N-2: a challenge whose body arrives after the switch to another account asks the wallet nothing and verifies nothing (76.3234ms)
-✔ N-2: the same after a switch to another wallet with the same account, a sign-out, or the page closing: no prompt from the dead flow (162.5156ms)
-✔ N-2: a new sign-in started at once is untouched by the old flow’s late body or late refusal (169.967ms)
-✔ N-2: a wallet that locks while the challenge body is on its way is not asked to sign (48.8938ms)
-✔ N-2: a prompt already open when the flow is cancelled by a sign-out is answered into nothing (56.0476ms)
-✔ N-2: a dead flow’s verify refusal whose body lands after a new flow began leaves the new flow alone (106.965ms)
-✔ N-2: a click still waiting for a session read is ended by the page closing or a sign-out: no prompt, no challenge, no verify (226.4956ms)
-✔ N-7: a session revoked elsewhere (AUTH_REQUIRED) a day before its expiry is signed out, not expired (the reproduction) (21.9425ms)
-✔ N-7: a real expiry still reads as expired: SESSION_EXPIRED, a 401 at the held session’s expiresAt, and the W-1 timer (28.9544ms)
-✔ N-7: an expiry seen through a session read is still expired: with no hint, and when the server’s clock is ahead of the page’s (22.689ms)
-✔ N-7: My wallet says “Signed out.” after this page’s own sign-out and “You are no longer signed in” after a revocation, never why it cannot know (616.792ms)
-✔ worker answers the three read routes with JSON, API headers and no sensitive fields (68.9035ms)
-✔ worker rejects writes with 405, unknown API paths with 404 and gateway failures with 503 (16.2994ms)
-✔ everything outside /api/world/ goes to the ASSETS binding untouched (2.8722ms)
-✔ seat details are bounded to 256 per isolate, least recently read dropped first (312.4842ms)
-✔ the snapshot body is serialised once per data change and rebuilt when any source changes (19.1148ms)
-✔ per-IP rate limits: 429 JSON when a limiter refuses, open when it fails, 503 when production lacks the binding (4.7933ms)
-✔ the deployed worker sends upstream reads with edge-cache TTLs and an identifying User-Agent, kept alive by waitUntil (2.0264ms)
-✔ the Worker entry module exports only its default handler (workerd rejects any other export) (0.1287ms)
-✔ the Vite dev adapter runs the same handler and passes other paths on (1.5968ms)
-✔ rate limits key IPv6 clients by their /64, so rotating host bits within one block gains nothing (11.3569ms)
-✔ the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-mapped IPv6 as IPv4 (0.3417ms)
-✔ N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, IPv4-mapped and unknown clients have none (0.2525ms)
-✔ the Worker keeps a per-location shared copy of the snapshot, and a cold isolate answers from it at once (45.2001ms)
-✔ edgeCopy keys by the request origin, and a copy the Cache API does not have is undefined (0.6051ms)
-ℹ tests 216
+✔ under one’s own house, only an account without a session is told to sign in; a signed-in one is told why its seats do not count (32.5707ms)
+✔ N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped: owner mode stays and nothing asks the wallet (74.6689ms)
+✔ N-1: and the reverse: an older “signed in” read that arrives after a newer “signed out” revives nothing and reads no house (78.5637ms)
+✔ N-1: an older read that fails late (a lost connection, or a body cut off) after a newer answer changes nothing (140.0721ms)
+✔ N-1: a switch of account or a sign-out while a session read is on its way still drops it (172.2827ms)
+✔ N-1: a sign-in click waits for the newest session read, so a live session in the cookie jar is found and nothing is signed (251.6181ms)
+✔ N-1: an older read answered late with an error status (503 or 429) after a newer “signed in” changes nothing (187.5621ms)
+✔ N-1: a house read of the replaced session that lands while another address signs in changes nothing (183.9023ms)
+✔ N-1: a house read begun for a session that a newer read then ends changes nothing when it lands (200, 429 or 401) (194.5778ms)
+✔ N-2: a challenge whose body arrives after the switch to another account asks the wallet nothing and verifies nothing (92.566ms)
+✔ N-2: the same after a switch to another wallet with the same account, a sign-out, or the page closing: no prompt from the dead flow (199.3372ms)
+✔ N-2: a new sign-in started at once is untouched by the old flow’s late body or late refusal (200.4978ms)
+✔ N-2: a wallet that locks while the challenge body is on its way is not asked to sign (71.6702ms)
+✔ N-2: a prompt already open when the flow is cancelled by a sign-out is answered into nothing (63.6605ms)
+✔ N-2: a dead flow’s verify refusal whose body lands after a new flow began leaves the new flow alone (101.6786ms)
+✔ N-2: a click still waiting for a session read is ended by the page closing or a sign-out: no prompt, no challenge, no verify (304.2874ms)
+✔ N-7: a session revoked elsewhere (AUTH_REQUIRED) a day before its expiry is signed out, not expired (the reproduction) (28.3923ms)
+✔ N-7: a real expiry still reads as expired: SESSION_EXPIRED, a 401 at the held session’s expiresAt, and the W-1 timer (42.464ms)
+✔ N-7: an expiry seen through a session read is still expired: with no hint, and when the server’s clock is ahead of the page’s (26.8925ms)
+✔ N-7: My wallet says “Signed out.” after this page’s own sign-out and “You are no longer signed in” after a revocation, never why it cannot know (746.8927ms)
+✔ R3-R1: an accountsChanged(B) that arrives while eth_requestAccounts is pending wins over the late [A]: no prompt, no challenge, no verify, B stays connected (the reproduction) (67.3149ms)
+✔ R3-R1: a lock (accountsChanged([])) while the connect is pending ends the click: nothing asked, no account (69.5685ms)
+✔ R3-R1: a lock while the signature prompt is open verifies nothing (95.2892ms)
+✔ R3-R1: a slow eth_accounts answer that lands after a lock event changes nothing (63.0533ms)
+✔ R3-R1 guard: a normal first connect that emits accountsChanged for the same account completes with one prompt and one verify (41.689ms)
+✔ R3-R1 guard: B then A while pending: the latest event (A) agrees with the answer, so A signs in once (46.6327ms)
+✔ R3-R1 guard: a sign-out, the page closing or a wallet switch while the connect is pending: the late answer sets no account and asks nothing (195.5387ms)
+✔ R3-R1: a wallet that changes with no provider-change event while the prompt is open verifies nothing (93.5818ms)
+✔ AUD3-04: a session read begun while this page’s sign-out is on its way, answered after it, revives nothing: “Signed out.” stays (the reproduction) (109.5933ms)
+✔ AUD3-04: the same when the house read then fails or is refused: no session, house or hint of A is left (187.5498ms)
+✔ AUD3-04: an account switch’s logout and an abandoned flow’s logout end a read begun before them, and a session a read showed meanwhile (594.5524ms)
+✔ AUD3-04: a wallet (provider) switch’s logout during a flow ends a read begun before it, and a session a read showed meanwhile (401.942ms)
+✔ AUD3-04: the sign-in click’s own logout of another address’s session ends a session read begun while it was on its way, whether the house read then works or fails (325.2006ms)
+✔ AUD3-04: a house read sent while this page’s sign-out is on its way, answered after it, sets no house (77.1234ms)
+✔ AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent leaves that house applied and nothing checking (125.5793ms)
+✔ AUD3-05: a house read answered for the address another tab signed in, whose session re-read is refused (429), leaves no owner mode and nothing checking (the reproduction) (18.3248ms)
+✔ AUD3-05: the same for a 503 and a lost connection (33.3319ms)
+✔ AUD3-05 guard: once the session read works again, Check again finds the cookie’s session (B, a mismatch with account A) and nothing stays checking (22.9168ms)
+✔ AUD3-07: “Log out all devices” on a session the server says ran out reads as expired, and still says other devices were not signed out (the reproduction) (15.5058ms)
+✔ AUD3-07: when the follow-up session read fails (429, 503), the page still says other devices were not signed out, and a click reads the session again before it signs (30.6578ms)
+✔ AUD3-07 guard: an AUTH_REQUIRED or unreadable 401 stays “other devices were not signed out” with no cause claimed (26.0441ms)
+✔ AUD3-07 guard: a logout-all answer, or its follow-up read, that lands after the account switched changes nothing of the new state (201.6454ms)
+✔ AUD3-07: a house read in flight across a refused logout-all whose follow-up session read fails sets no house (72.7269ms)
+✔ AUD3-06: a refused logout-all (401) answered after another tab of the profile signed in leaves this page on that tab’s session, read afresh, and still says other devices were not signed out (55.3871ms)
+✔ ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current, ends A on the page: no session, house, hint or owner mode (the reproduction) (324.4472ms)
+✔ ADV-1 guard: a newer session the page holds when the click’s logout of A is confirmed (A signed in anew, or C, by another tab) is left alone (329.3227ms)
+✔ ADV-2: the sign-in click’s confirmed logout of A is told to the other tabs: one that showed A as owner reads the server and leaves owner mode, B not signed in (the reproduction) (47.9005ms)
+✔ ADV-3: an account switch’s logout still on its way when the click comes: the click waits for it, then B signs in with one prompt and one verify and keeps its cookie (the reproduction) (248.2969ms)
+✔ ADV-3: a click while this page’s sign-out is on its way waits for it, then signs B in, and B keeps its cookie (170.7943ms)
+✔ ADV-3: an abandoned flow’s verify still on its way when the click comes: the click waits until that late session is logged out, then B signs in and keeps its cookie (330.2471ms)
+✔ ADV-3: a logout of this page that does not answer never leads to a prompt: after LOGOUT_WAIT_MS the click ends asking nothing; once it answered, the next click signs B in (112.8589ms)
+✔ ADV-3 guard: another wallet chosen while the click waits for an account switch’s logout, after a read found A again: A ends on the page once that logout is confirmed (218.4932ms)
+✔ ADV-3 guard: after an account switch, and on a mismatch, the click signs B in with one prompt for B, one challenge and one verify, and B keeps its cookie (133.5825ms)
+✔ ADV-1: “Log out this device” confirmed after another wallet became current while a click waited for it ends A on the page, says “Signed out.” and tells the other tabs (573.4835ms)
+✔ ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout, ends on the page when that logout is confirmed after another wallet became current (157.494ms)
+✔ ADV-2 guard: the confirmed logout of a click that another wallet ended is still told to the other tabs (123.6795ms)
+✔ ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen: the next click, for that wallet’s account, waits for it, and that account keeps its cookie (187.9307ms)
+✔ ADV-3 guard: a wallet switch’s logout of the flow it ended still out: the click on the new wallet waits for it, and that account keeps its cookie (188.3158ms)
+✔ ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes: the click waits for that logout, and B keeps its cookie (250.9326ms)
+✔ ADV-3 guard: signed in already as the wallet’s account while this page’s logout is still out: the click re-checks the house at once and arms no wait (156.8752ms)
+✔ ADV-3 guard: a click waiting for this page’s logout goes on as soon as a read shows the wallet’s account signed in already (189.2083ms)
+✔ ADV-3 guard: a click whose own session read finds the session it showed gone waits for this page’s logout before it asks for a challenge (155.5112ms)
+✔ ADV-3: while a click waits for this page’s logout, My wallet says so and its sign button is off; a second click asks nothing; once answered, B signs in and the notice goes (764.9752ms)
+✔ ADV-3 guard: a click that waited for this page’s logout and then finds another wallet in use asks nothing and leaves no waiting notice (125.8622ms)
+✔ ADV-3: an abandoned flow’s verify whose body stalls after its headers: its late session is logged out on the headers, the click for B signs B in, and the body landing later leaves B alone (280.5289ms)
+✔ ADV-1: an abandoned flow’s late session whose verify body and logout answer land in either order after another wallet became current ends on the page once both are in, never before its logout is confirmed (498.2347ms)
+✔ ADV-1: an abandoned flow that dies while its verify body is read: its late session, shown by a read while a click waited, ends on the page when its logout is confirmed after another wallet became current (186.8549ms)
+✔ ADV-3: a session or house read that fails while a click waits for this page’s logout (503, 429, 500) leaves My wallet saying it waits, with its sign button off; once answered, the click asks B to sign (1103.7068ms)
+✔ ADV-3 guard: on a mismatch, a click that a switch to another account ends during its own session re-read leaves no waiting line, and My wallet’s sign button on (964.7798ms)
+✔ ADV-3 guard: “Log out this device”, or a switch to another account, while a click waits for this page’s logout takes the waiting line down at once, the sign button on (2373.1959ms)
+✔ ADV-3: the page’s teardown while a click waits for this page’s logout takes the waiting line down: a client started again shows none, the sign button on (1255.4047ms)
+✔ ADV-1 guard: a sign-out confirmed after another wallet became current leaves a newer session the page holds by then, and never says “Signed out.” for it, also after the next account switch (683.0304ms)
+✔ ADV-1 guard: a “Log out all devices” the server refused (this browser’s sign-in had ended), answered after another wallet became current while a click waited for it, says no “Signed out.” (659.9385ms)
+✔ ADV-1: a “Log out all devices” the server refused, answered after another wallet became current while a click waited for it, reads the session again: the session another device ended is not kept (691.8904ms)
+✔ ADV-1 guard: an abandoned flow’s verify body landing after its late logout was confirmed leaves another tab’s newer session the page holds (215.2586ms)
+✔ ADV-1 guard: an abandoned flow’s late logout that was lost: its verify body landing later leaves the still-live late session on the page (219.4896ms)
+✔ ADV-3 guard: a click that waits only for a session read, with no logout of this page out, shows no waiting line (551.6112ms)
+✔ ADV-3 guard: signed in already as the wallet’s account, a click that waits for a session read while this page’s logout is out shows no waiting line and asks nothing (597.522ms)
+✔ worker answers the three read routes with JSON, API headers and no sensitive fields (64.7807ms)
+✔ worker rejects writes with 405, unknown API paths with 404 and gateway failures with 503 (6.6197ms)
+✔ everything outside /api/world/ goes to the ASSETS binding untouched (1.8032ms)
+✔ seat details are bounded to 256 per isolate, least recently read dropped first (466.8278ms)
+✔ the snapshot body is serialised once per data change and rebuilt when any source changes (10.806ms)
+✔ per-IP rate limits: 429 JSON when a limiter refuses, open when it fails, 503 when production lacks the binding (5.6788ms)
+✔ the deployed worker sends upstream reads with edge-cache TTLs and an identifying User-Agent, kept alive by waitUntil (3.0236ms)
+✔ the Worker entry module exports only its default handler (workerd rejects any other export) (0.2962ms)
+✔ the Vite dev adapter runs the same handler and passes other paths on (2.0246ms)
+✔ rate limits key IPv6 clients by their /64, so rotating host bits within one block gains nothing (29.4396ms)
+✔ the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-mapped IPv6 as IPv4 (0.3675ms)
+✔ N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, IPv4-mapped and unknown clients have none (0.3151ms)
+✔ AUD3-08: address text is keyed by its real family: hex and dotted IPv4-mapped forms are that IPv4, other IPv6 with a dotted tail stays IPv6, the zero /64 and extra or invalid parts are the one unknown key (the reproduction) (1.0493ms)
+✔ the Worker keeps a per-location shared copy of the snapshot, and a cold isolate answers from it at once (51.5198ms)
+✔ edgeCopy keys by the request origin, and a copy the Cache API does not have is undefined (0.9256ms)
+ℹ tests 341
 ℹ suites 0
-ℹ pass 212
+ℹ pass 337
 ℹ fail 4
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 9241.8213
+ℹ duration_ms 28577.9519
 
 ✖ failing tests:
 
 test at tests\deploy-evidence.test.mjs:31:1
-✖ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (1205.1237ms)
+✖ deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text (1580.9098ms)
   AssertionError [ERR_ASSERTION]: file:///<SCRATCH>/scripts/deploy-evidence.mjs:75
     const commit=pick(m.commit,PATTERNS.commit);if(!commit)throw new Error('manifest.json has no valid commit');
                                                                  ^
@@ -487,7 +626,7 @@ test at tests\deploy-evidence.test.mjs:31:1
   }
 
 test at tests\home-entry.test.mjs:53:1
-✖ the door: the Enter offer appears within 1.8 m of the owner's door spot, in front of the house (0.7233ms)
+✖ the door: the Enter offer appears within 1.8 m of the owner's door spot, in front of the house (0.7455ms)
   Error: withheld: HOUSE_FOOTPRINT (households.ts) is not in this snapshot
       at Object.get (file:///<SCRATCH>/src/world/households.ts:8:60)
       at doorPoint (file:///<SCRATCH>/src/world/homeEntry.ts:36:95)
@@ -500,7 +639,7 @@ test at tests\home-entry.test.mjs:53:1
       at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
 
 test at tests\home-entry.test.mjs:62:1
-✖ group 8: the ?interior= preview opens only in DEV or with ?debug=1, and grants nothing (3.5296ms)
+✖ group 8: the ?interior= preview opens only in DEV or with ?debug=1, and grants nothing (36.787ms)
   Error [ERR_MODULE_NOT_FOUND]: Cannot find module '<SCRATCH>\src\world\interior\mockSeats.ts' imported from <SCRATCH>\tests\home-entry.test.mjs
       at finalizeResolution (node:internal/modules/esm/resolve:271:11)
       at moduleResolve (node:internal/modules/esm/resolve:865:10)
@@ -517,7 +656,7 @@ test at tests\home-entry.test.mjs:62:1
   }
 
 test at tests\home-entry.test.mjs:91:1
-✖ TEST-1: the render rules for the Enter action (the door pill, the household block, the scene's door check) (0.5635ms)
+✖ TEST-1: the render rules for the Enter action (the door pill, the household block, the scene's door check) (1.2556ms)
   Error: withheld: HOUSE_FOOTPRINT (households.ts) is not in this snapshot
       at Object.get (file:///<SCRATCH>/src/world/households.ts:8:60)
       at doorPoint (file:///<SCRATCH>/src/world/homeEntry.ts:36:95)

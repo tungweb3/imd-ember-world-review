@@ -1,6 +1,6 @@
 // Probe: which budgets gate the keyed Alchemy reads that a caller holding nothing can cause, and what a missing limiter
 // binding does. Real Worker handler (worker/app.ts createWorker via tests/wallet-harness.mjs), the harness's fake chain,
-// synthetic keys, node:sqlite running migrations/0001 + 0002 + 0003; no network, no real wallet.
+// synthetic keys, node:sqlite running this snapshot's migrations 0001 through 0006; no network, no real wallet.
 // Usage (inside a copy of source/ after npm ci; see TESTS/README.md): cp ../TESTS/probes/keyed-reads-probe.mjs tests/_probe.mjs && node tests/_probe.mjs; rm tests/_probe.mjs
 import {setup,newAccount,fakeChain} from './wallet-harness.mjs';
 const asked=[];

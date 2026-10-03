@@ -13,6 +13,7 @@ import {imdGatewayPlugin} from '../server/vite-plugin.ts';
 import {sha256,SIWE_STATEMENT,ERC6492_SUFFIX,INSERT_CHALLENGE,NETWORK_CHALLENGE_BUDGET,NETWORK_WINDOW_MS,CHALLENGE_BUDGET,CHALLENGE_BUDGET_WINDOW_MS,
   CHALLENGE_BUDGET_NETWORKS,FRESH_NETWORK_RESERVE,FRESH_NETWORKS,ADDRESS_SURGE,CLAIM_CONTRACT,CLAIM_LANE,ERC1271_CODE_SHARE,ERC1271_NETWORK_SHARE,ERC1271_ADDRESS_SHARE,CODE_CAP,NO_CODE_TTL_MS,
   KNOWN_ERC1271,REVOKE_ALL_SESSIONS} from '../server/auth.ts';
+import * as AUTH from '../server/auth.ts';
 import {ALCHEMY_RPC_URL} from '../server/ownership.ts';
 // Every rule runs through the real Worker handler (createWorker → handleAccountApi) against the real migration SQL on
 // node:sqlite, with keys generated per run. Nothing here re-derives what the server computes; it signs, sends and
@@ -21,6 +22,8 @@ const MIN=60_000,DAY=86_400_000,NL=String.fromCharCode(10);
 const body=r=>r.clone().json();
 const sessionCount=db=>db.raw.prepare('SELECT count(*) n FROM sessions').get().n;
 const randomSignature=()=>'0x'+Buffer.from(crypto.getRandomValues(new Uint8Array(65))).toString('hex');
+/** The session cookie lines a response sets (AUD3-06: only sign-in and explicit logouts write it). */
+const SESSION_SET=r=>r.headers.getSetCookie().filter(c=>c.startsWith('__Host-imd_session='));
 /** A browser on a network of its own (a /24 per call), for tests that make more ERC-1271 checks than one network's
  *  per-minute share (ERC1271_NETWORK_SHARE) and are not about that share. */
 let spreadAt=0;const spread=w=>w.browser(undefined,undefined,'198.18.'+(++spreadAt%250)+'.1');
@@ -68,15 +71,17 @@ test('every auth and /api/me response is no-store and carries no CORS header',as
   assert.equal(responses.preflight.status,405);assert.equal(responses.home401.status,401);
 });
 
-test('every Worker route answers with HSTS: success, errors, 429, 503, 204 logout and the wallet assets route',async()=>{
+test('every Worker route answers with HSTS: success, errors, 429, 503, 204 logout, the wallet assets route and the member routes',async()=>{
   const hsts='max-age=31536000; includeSubDomains',w=setup({env:{AUTH_LIMITER:{limit:async()=>({success:false})}}}),a=newAccount();
   const open=setup(),b=open.browser();await b.signIn(a);
   const noDb={...open.env};delete noDb.DB;
-  const responses={home:await b.get('/api/me/home'),assets:await b.get('/api/wallet/'+a.address+'/assets'),logout:await b.post('/api/auth/logout'),
+  const responses={home:await b.get('/api/me/home'),assets:await b.get('/api/wallet/'+a.address+'/assets'),
+    memberBootstrap:await b.post('/api/me/bootstrap'),memberProfile:await b.get('/api/me/profile'),names:await b.get('/api/world/names/'+a.address),
+    memberLimited:await w.browser().post('/api/me/bootstrap'),namesBad:await b.get('/api/world/names/0x12'),logout:await b.post('/api/auth/logout'),
     unknown:await b.get('/api/auth/other'),badWallet:await b.get('/api/wallet/0x12/assets'),limited:await w.browser().post('/api/auth/challenge',{address:a.address}),
     noDb:await open.worker.fetch(new Request('https://imdember.com/api/auth/session'),noDb,{waitUntil(){}}),
     world404:await open.call(new Request('https://imdember.com/api/world/nope')),world405:await open.call(new Request('https://imdember.com/api/world/snapshot',{method:'POST'}))};
-  assert.deepEqual(Object.fromEntries(Object.entries(responses).map(([k,r])=>[k,r.status])),{home:200,assets:200,logout:204,unknown:404,badWallet:404,limited:429,noDb:503,world404:404,world405:405});
+  assert.deepEqual(Object.fromEntries(Object.entries(responses).map(([k,r])=>[k,r.status])),{home:200,assets:200,memberBootstrap:200,memberProfile:200,names:200,memberLimited:429,namesBad:400,logout:204,unknown:404,badWallet:404,limited:429,noDb:503,world404:404,world405:405});
   for(const [k,r] of Object.entries(responses))assert.equal(r.headers.get('strict-transport-security'),hsts,k);
 });
 
@@ -254,8 +259,8 @@ test('logout-all: one browser ends every live session of its address on every de
   assert.deepEqual(out.headers.getSetCookie().sort(),['__Host-imd_flow=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0','__Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0']);
   assertNoStoreNoCors(out,'logout-all');
   assert.deepEqual(live(),[other.address.toLowerCase()],'only the other address is still signed in');
-  // The other device learns it on its next read: signed out, its dead cookie cleared.
-  const s=await two.get('/api/auth/session');assert.deepEqual(await body(s),{signedIn:false});assert.equal(two.jar.has('__Host-imd_session'),false);
+  // The other device learns it on its next read: signed out; its dead cookie is refused, not cleared (AUD3-06).
+  const s=await two.get('/api/auth/session');assert.deepEqual([await body(s),SESSION_SET(s)],[{signedIn:false},[]]);
   const thief=w.browser();thief.jar.set('__Host-imd_session',kept);assert.equal((await thief.get('/api/me/home')).status,401);
   // Challenges for the address that were open at that moment are dead, whoever holds them.
   for(const [b,c] of [[two,pending],[elsewhere,late]]){const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await a.signMessage({message:c.message})});
@@ -279,7 +284,7 @@ test('logout-all needs a live session of its own: no, forged, revoked or expired
   // A session that ran out cannot end the live one that came after it.
   const expired=w.browser();await expired.signIn(a);w.clock.advance(7*DAY);const fresh=w.browser();await fresh.signIn(a);
   const r=await expired.post('/api/auth/logout-all');assert.deepEqual([r.status,(await body(r)).error],[401,'SESSION_EXPIRED']);
-  assert.equal(expired.jar.has('__Host-imd_session'),false,'the dead cookie is cleared');
+  assert.deepEqual(SESSION_SET(r),[],'AUD3-06: a refused logout-all clears no cookie');
   assert.equal((await fresh.get('/api/me/home')).status,200);
   // A valid cookie sent from a foreign or missing Origin, or as a simple form post, or with GET, ends nothing.
   for(const origin of [null,'https://evil.example','http://localhost:8792']){
@@ -296,7 +301,7 @@ test('logout-all needs a live session of its own: no, forged, revoked or expired
   }
 });
 
-test('sessions end at 7 days (absolute, no renewal); a dead cookie is cleared',async()=>{
+test('sessions end at 7 days (absolute, no renewal); a dead cookie is refused, not cleared',async()=>{
   const w=setup(),a=newAccount(),b=w.browser();await b.signIn(a);
   w.clock.advance(7*DAY-1);
   assert.equal((await body(await b.get('/api/auth/session'))).signedIn,true);
@@ -304,7 +309,7 @@ test('sessions end at 7 days (absolute, no renewal); a dead cookie is cleared',a
   w.clock.advance(1);
   const s=await b.get('/api/auth/session');
   assert.deepEqual(await body(s),{signedIn:false,expired:true},'N-7: the route says the session ran out');
-  assert.ok(s.headers.getSetCookie().includes('__Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0'));
+  assert.deepEqual(SESSION_SET(s),[],'AUD3-06: the read clears no cookie');
   const expired=w.browser();await expired.signIn(a);w.clock.advance(7*DAY);
   const r=await expired.get('/api/me/home');assert.equal(r.status,401);assert.equal((await body(r)).error,'SESSION_EXPIRED');
 });
@@ -318,7 +323,64 @@ test('N-7: the session route names an expiry only for a session that ran out; a 
   w.clock.advance(7*DAY);
   const read=async b=>{const r=await b.get('/api/auth/session');return [await body(r),r.headers.getSetCookie().includes('__Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0')];};
   assert.deepEqual({ran:await read(ran),revoked:await read(revoked),forged:await read(forged),malformed:await read(malformed),none:await read(w.browser())},
-    {ran:[{signedIn:false,expired:true},true],revoked:[{signedIn:false},true],forged:[{signedIn:false},true],malformed:[{signedIn:false},true],none:[{signedIn:false},false]});
+    {ran:[{signedIn:false,expired:true},false],revoked:[{signedIn:false},false],forged:[{signedIn:false},false],malformed:[{signedIn:false},false],none:[{signedIn:false},false]});   // AUD3-06: none clears the cookie
+});
+
+// AUD3-06 (Swarm audit 1ef8e8a6 #6, Info): answers that only report "no live session" cleared the session cookie, and a
+// browser applies Set-Cookie by name in arrival order, so one sent with a dead cookie that landed after another tab of the
+// profile had signed in deleted the new cookie (and the new session lived on at the server with no holder).
+/** Each passive route's answer for a dead cookie, sent before this browser signs in again and applied after (as a
+ *  browser applies a late response): [status, body, its session Set-Cookie, the new cookie still held, /api/me/home
+ *  with it, the dead token replayed from another browser: /api/me/home and the session route]. `end` kills the cookie. */
+async function lateAnswers(end){
+  const out={};
+  for(const [name,path,init] of [['session','/api/auth/session',{}],['home','/api/me/home',{}],['logout-all','/api/auth/logout-all',{method:'POST',body:{}}]]){
+    const w=setup(),a=newAccount(),b=w.browser();await b.signIn(a);const dead=b.jar.get('__Host-imd_session');await end(w,a);
+    const held=await b.send(b.request(path,init));                                     // sent with the dead cookie, not applied yet
+    await b.signIn(a);const fresh=b.jar.get('__Host-imd_session');b.keep(held);          // another tab signs in; then the answer lands
+    const replay=w.browser();replay.jar.set('__Host-imd_session',dead);
+    out[name]=[held.status,await body(held),SESSION_SET(held),b.jar.get('__Host-imd_session')===fresh,(await b.get('/api/me/home')).status,
+      (await replay.get('/api/me/home')).status,await body(await replay.get('/api/auth/session'))];
+  }
+  return out;
+}
+test('AUD3-06: a late signed-out answer for a revoked cookie (session read, house 401, logout-all 401) does not delete the cookie another tab of the profile just set (the reproduction)',async()=>{
+  const out=await lateAnswers(async(w,a)=>{const other=w.browser();await other.signIn(a);assert.equal((await other.post('/api/auth/logout-all')).status,200);});
+  assert.deepEqual(out,{session:[200,{signedIn:false},[],true,200,401,{signedIn:false}],home:[401,{error:'AUTH_REQUIRED'},[],true,200,401,{signedIn:false}],
+    'logout-all':[401,{error:'AUTH_REQUIRED'},[],true,200,401,{signedIn:false}]});
+});
+
+test('AUD3-06: the same for an expired cookie (SESSION_EXPIRED)',async()=>{
+  const out=await lateAnswers(async w=>{w.clock.advance(7*DAY);});
+  assert.deepEqual(out,{session:[200,{signedIn:false,expired:true},[],true,200,401,{signedIn:false,expired:true}],home:[401,{error:'SESSION_EXPIRED'},[],true,200,401,{signedIn:false,expired:true}],
+    'logout-all':[401,{error:'SESSION_EXPIRED'},[],true,200,401,{signedIn:false,expired:true}]});
+});
+
+test('AUD3-06: on the page, a session read sent with a dead cookie that lands after another tab’s sign-in leaves this browser signed in',async()=>{
+  const {AuthClient}=await import('../src/world/auth.ts');
+  const w=setup(),a=newAccount(),b=w.browser();await b.signIn(a);
+  const other=w.browser();await other.signIn(a);await other.post('/api/auth/logout-all');                  // this browser's session ended elsewhere
+  let land;const landed=new Promise(r=>{land=r;});let hold=true;
+  const page=new AuthClient({fetch:async(path,init={})=>{const r=await b.send(b.request(path,{method:init.method??'GET',body:init.body,headers:init.headers}));
+      if(hold&&path==='/api/auth/session'){hold=false;await landed;}return b.keep(r);},
+    provider:()=>null,hint:{get:()=>null,set:()=>{}},now:w.clock.now,origin:b.origin,env:{set:()=>0,clear:()=>{},onVisible:()=>()=>{}}});
+  const read=page.restore();                                                                         // sent now, with the dead cookie
+  await b.signIn(a);const fresh=b.jar.get('__Host-imd_session');land();await read;                  // another tab signs in; then the answer lands
+  const kept=b.jar.get('__Host-imd_session')===fresh;await page.restore();
+  assert.deepEqual([kept,page.state.session?.address],[true,a.address.toLowerCase()]);
+});
+
+// Guard (T13, the stated residual): an explicit log-out still clears the session cookie, so one whose answer lands after
+// another tab's sign-in still deletes that tab's new cookie, and the new session lives on at the server until it expires.
+// Fails with clearSession() dropped from the logout 204.
+test('AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in still clears that cookie, and the new session stays live at the server until it expires',async()=>{
+  const w=setup(),a=newAccount(),b=w.browser();await b.signIn(a);
+  const held=await b.send(b.request('/api/auth/logout',{method:'POST',body:{}}));
+  await b.signIn(a);const fresh=b.jar.get('__Host-imd_session');b.keep(held);
+  const holder=w.browser();holder.jar.set('__Host-imd_session',fresh);                               // the new token, held by nobody else
+  const before=[held.status,SESSION_SET(held),b.jar.has('__Host-imd_session'),(await holder.get('/api/me/home')).status];
+  w.clock.advance(7*DAY);const r=await holder.get('/api/me/home');
+  assert.deepEqual([...before,r.status,(await body(r)).error],[204,['__Host-imd_session=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0'],false,200,401,'SESSION_EXPIRED']);
 });
 
 test('only a session opens /api/me: a connected address, a forged cookie or a guessed token gets 401',async()=>{
@@ -752,6 +814,148 @@ test('N-5 (deployed ahead of 0005): challenges and ERC-1271 sign-in keep the 000
   assert.equal(await attempt(hosts[3],wallets[3],signed),'200 ok','the fourth /64 signs in once 0005 is applied');
   const late=[];for(const {b,c} of early){const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:'0x12'});late.push(r.status+' '+(await body(r)).error);}
   assert.deepEqual(late,[...Array(6).fill(NO),'429 CHAIN_BUSY'],'challenges issued before 0005 have no /64: counted at the /48 only, still 6 a minute');
+});
+
+/** Swarm audit 1ef8e8a6 #3's setting: X, a contract wallet signing in here for the first time (its isValidSignature
+ *  answers the magic word), and its owner on 198.51.100.20; 'chain:erc1271' refuses until key.open. attempt(): a fresh
+ *  challenge signed by the owner (ECDSA does not match X), then the same nonce verified again: ['status error reason of a
+ *  429', the re-verify's status]. */
+function contractOwner(t,{db}={}){
+  const lines=[];t.mock.method(console,'log',line=>{lines.push(line);});
+  const w=setup(db?{env:{DB:db}}:{}),owner=newAccount(),X='0x'+'5a'.repeat(20),key={open:false};
+  w.env.CHAIN_LIMITER={limit:async({key:k})=>({success:k!=='chain:erc1271'||key.open})};w.chain.state.contracts.set(X,()=>'0x1626ba7e');
+  const attempt=async()=>{const b=w.browser(undefined,undefined,'198.51.100.20'),c=await body(await b.post('/api/auth/challenge',{address:X}));
+    lines.length=0;const signature=await owner.signMessage({message:c.message}),r=await b.post('/api/auth/verify',{nonce:c.nonce,signature});
+    const said=r.status+' '+((await body(r)).error??'ok')+(r.status===429?' '+JSON.parse(lines.at(-1)).reason:'');
+    return [said,(await b.post('/api/auth/verify',{nonce:c.nonce,signature})).status];};
+  const ethCalls=()=>w.chain.state.calls.filter(c=>c.url===ALCHEMY_RPC_URL&&JSON.parse(c.body).method==='eth_call').length;
+  const claimed=()=>(db??w.db).raw.prepare('SELECT count(*) n FROM login_challenges WHERE called_at IS NOT NULL').get().n;
+  return {w,lines,key,attempt,ethCalls,claimed};
+}
+/** The Audit's sequence: three attempts while the key refuses, then one 5 s later with the key open. */
+async function keyRefusedThrice(t,db){
+  const {w,key,attempt,ethCalls,claimed}=contractOwner(t,{db});
+  const refused=[await attempt(),await attempt(),await attempt()],before=[claimed(),ethCalls()];
+  w.clock.advance(5_000);key.open=true;return {refused,before,later:await attempt(),after:ethCalls()};
+}
+
+// AUD3-03 (Swarm audit 1ef8e8a6 #3, Low): a contract check claimed in D1 (called_at, CLAIM_CONTRACT or CLAIM_LANE) stayed
+// claimed when the location key then refused it, so a smart-wallet owner's own retries used up the address's two shared
+// checks and its network's lane with no eth_call made, and it waited out the minute after the key had room again.
+test('AUD3-03: an ERC-1271 check the location key refused leaves no claim: the owner’s retries are refused by the key alone, and once it has room (5 s later) a fresh challenge signs in (the reproduction)',async t=>{
+  assert.deepEqual(await keyRefusedThrice(t),{refused:Array(3).fill(['429 CHAIN_BUSY budget',409]),before:[0,0],later:['200 ok',403],after:1});
+});
+
+test('AUD3-03: the same on a database before 0005 (the 0004 claims and release)',async t=>{
+  const old=openD1(['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql']);
+  assert.deepEqual(await keyRefusedThrice(t,old),{refused:Array(3).fill(['429 CHAIN_BUSY budget',409]),before:[0,0],later:['200 ok',403],after:1});
+});
+
+test('AUD3-03: of two claims of one address, the one whose key refused is released and the admitted one is kept',async t=>{
+  t.mock.method(console,'log',()=>{});
+  const w=setup(),X='0x'+'5a'.repeat(20);let checks=0;
+  w.env.CHAIN_LIMITER={limit:async({key})=>({success:key!=='chain:erc1271'||++checks!==1})};             // refuses the first check only
+  w.chain.state.contracts.set(X,()=>'0xffffffff');
+  const two=[];for(const ip of ['198.51.100.20','198.51.100.21']){const b=w.browser(undefined,undefined,ip);two.push({b,c:await body(await b.post('/api/auth/challenge',{address:X}))});}
+  const answers=await Promise.all(two.map(async({b,c})=>[c.nonce,(await b.post('/api/auth/verify',{nonce:c.nonce,signature:'0x12'})).status]));
+  const row=n=>Object.values(w.db.raw.prepare('SELECT called_at,called_via FROM login_challenges WHERE nonce=?').get(n));
+  assert.deepEqual(answers.map(([n,s])=>[s,row(n)]).sort(),[[401,[START,'pool']],[429,[null,null]]]);
+});
+
+test('AUD3-03: a release that fails keeps the claim counted (still 429 and burnt) and writes one erc1271_claim_kept line',async t=>{
+  const {w,lines,attempt}=contractOwner(t),prepare=w.env.DB.prepare;
+  w.env.DB.prepare=sql=>{if(sql===AUTH.RELEASE_CONTRACT)throw new Error('D1 down');return prepare(sql);};
+  const logged=async()=>{const out=await attempt();return [...out,lines.map(l=>JSON.parse(l))];};
+  const tries=[await logged(),await logged(),await logged()],name=l=>l.evt+' '+l.reason;
+  assert.deepEqual(tries[0][2][0],{evt:'erc1271_claim_kept',route:'/api/auth/verify',reason:'release_failed',colo:null,net:'net:198.51.100.0/24'});
+  // Both kept claims still spend X's two shared checks and this /24's lane: the third attempt is refused for the address.
+  assert.deepEqual({tries:tries.map(([said,again,l])=>[said,again,l.map(name)]),rows:w.db.raw.prepare('SELECT called_via FROM login_challenges WHERE called_at IS NOT NULL').all().map(r=>r.called_via)},
+    {tries:[...Array(2).fill(['429 CHAIN_BUSY budget',409,['erc1271_claim_kept release_failed','auth_refused budget']]),['429 CHAIN_BUSY address',409,['auth_refused address']]],rows:['pool','pool']});
+});
+
+// The cost comment's "reads 1": both releases find this challenge's row by its nonce (the primary key), nothing else.
+test('AUD3-03: the release reads one row, by the challenge’s nonce, on a database with and without migrations/0005',()=>{
+  const plans=[[openD1(),AUTH.RELEASE_CONTRACT],[openD1(['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql']),AUTH.RELEASE_CONTRACT_0004]]
+    .map(([db,sql])=>db.raw.prepare('EXPLAIN QUERY PLAN '+sql).all('n',1).map(r=>r.detail).join(' | '));
+  for(const plan of plans)assert.match(plan,/^SEARCH login_challenges USING INDEX sqlite_autoindex_login_challenges_1 \(nonce=\?\)$/,plan);
+});
+
+// Guard (T28): a check whose eth_call was sent stays counted whatever its outcome (here the node failing: 503), so there
+// is no free retry: two such failures spend the address's shared checks. Fails with a release in the 'unavailable' path.
+test('AUD3-03 guard: a check whose eth_call was sent and failed (node error, 503) stays counted: two such failures spend the address’s shared checks',async t=>{
+  const {w,key,attempt,ethCalls,claimed}=contractOwner(t);key.open=true;
+  w.chain.state.intercept=method=>method==='eth_call'?Response.json({jsonrpc:'2.0',id:1,error:{code:-32603,message:'internal error'}}):undefined;
+  assert.deepEqual([await attempt(),await attempt(),await attempt(),ethCalls(),claimed()],
+    [['503 VERIFY_UNAVAILABLE',409],['503 VERIFY_UNAVAILABLE',409],['429 CHAIN_BUSY address',409],2,2]);
+});
+
+// The lane half of AUD3-03 (CLAIM_LANE, called_via 'lane'): X's two shared checks are spent by garbage verifies from
+// another /24 (both admitted, both counted), so the owner's check is a lane check, and 'chain:erc1271:lane' refuses it.
+// Fails with the lane claim's claimedAt not recorded (the release matches nothing: the lane claim stays counted and the
+// owner is refused for the address 5 s later).
+test('AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released: once the key has room (5 s later) the owner signs in on that lane',async t=>{
+  const lines=[];t.mock.method(console,'log',l=>{lines.push(l);});
+  const w=setup(),owner=newAccount(),X='0x'+'5a'.repeat(20),key={lane:false},genuine=new Set();
+  w.env.CHAIN_LIMITER={limit:async({key:k})=>({success:k!=='chain:erc1271:lane'||key.lane})};
+  w.chain.state.contracts.set(X,(hash,signature)=>genuine.has(signature.toLowerCase())?'0x1626ba7e':'0xffffffff');
+  const attempt=async(ip,good)=>{const b=w.browser(undefined,undefined,ip),c=await body(await b.post('/api/auth/challenge',{address:X}));
+    let signature=randomSignature();if(good){signature=await owner.signMessage({message:c.message});genuine.add(signature.toLowerCase());}
+    lines.length=0;const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature});
+    return r.status+' '+((await body(r)).error??'ok')+(r.status===429?' '+JSON.parse(lines.at(-1)).reason:'');};
+  const via=()=>w.db.raw.prepare('SELECT called_via FROM login_challenges WHERE called_at IS NOT NULL ORDER BY rowid').all().map(r=>r.called_via);
+  const spent=[await attempt('203.0.113.9'),await attempt('203.0.113.9')];
+  const refused=await attempt('198.51.100.20',true),claims=via();
+  w.clock.advance(5_000);key.lane=true;const later=await attempt('198.51.100.20',true);
+  assert.deepEqual({spent,refused,claims,later,after:via()},
+    {spent:['401 SIGNATURE_INVALID','401 SIGNATURE_INVALID'],refused:'429 CHAIN_BUSY budget_lane',claims:['pool','pool'],later:'200 ok',after:['pool','pool','lane']});
+});
+
+// LimiterMissing from the budget (CHAIN_LIMITER binding missing) propagates as 503, after the finally has released the
+// claim. Fails with the release made only for a refused budget (a missing binding leaves the claim).
+test('AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503 and leaves no contract claim',async t=>{
+  t.mock.method(console,'log',()=>{});
+  const w=setup(),owner=newAccount(),X='0x'+'5a'.repeat(20);w.chain.state.contracts.set(X,()=>'0x1626ba7e');delete w.env.CHAIN_LIMITER;
+  const b=w.browser(undefined,undefined,'198.51.100.20'),c=await body(await b.post('/api/auth/challenge',{address:X}));
+  const r=await b.post('/api/auth/verify',{nonce:c.nonce,signature:await owner.signMessage({message:c.message})});
+  const claimed=w.db.raw.prepare('SELECT count(*) n FROM login_challenges WHERE called_at IS NOT NULL').get().n;
+  assert.deepEqual([r.status,(await body(r)).error,claimed],[503,'LIMITER_UNAVAILABLE',0]);
+});
+
+/** A rate-limit binding that counts every call, refused ones too, in a sliding 60 s window: the pessimistic reading of
+ *  Cloudflare's binding (windowLimiter is the repository's model: a fixed window where a refused call changes nothing). */
+const slidingLimiter=(limit,now)=>{const calls=new Map(),keys=[];
+  return {keys,async limit({key}){keys.push(key);const t=now(),l=(calls.get(key)??[]).filter(c=>c>t-60_000);l.push(t);calls.set(key,l);return {success:l.length<=limit};}};};
+
+// AUD3-03's limiter assumption (BLOCKED_EVIDENCE): a released claim lets a /24 ask a refusing chain:erc1271 key again; if
+// the binding counted refused calls, those asks could keep it closed. Measured through the Worker: 7 /24s close the key
+// (20 checks admitted, the 21st refused), then each of k /24s sends one garbage verify every 6 s, and the owner of a
+// first-time smart wallet tries every 15 s, for 3 minutes.
+test('AUD3-03 residual (a limiter that counts refused calls): after 7 /24s close chain:erc1271, 6 /24s each sending one garbage verify every 6 s keep a first-time smart wallet out for 3 minutes and 5 do not; under the fixed-window model none do',async t=>{
+  t.mock.method(console,'log',()=>{});
+  const signsIn=async(k,model)=>{const w=setup();w.env.CHAIN_LIMITER=model(20,w.clock.now);
+    const owner=newAccount(),genuine=new Set(),baits=Array.from({length:12},(_,i)=>'0x'+(0xb0+i).toString(16).repeat(20)),X='0x'+'5a'.repeat(20);
+    for(const a of [...baits,X])w.chain.state.contracts.set(a,(hash,signature)=>genuine.has(signature.toLowerCase())?'0x1626ba7e':'0xffffffff');
+    let host=0;const attempt=async(net,address,sign=()=>randomSignature())=>{const b=w.browser(undefined,undefined,net+'.'+(1+host++%200)),c=await body(await b.post('/api/auth/challenge',{address}));
+      return (await b.post('/api/auth/verify',{nonce:c.nonce,signature:await sign(c.message)})).status;};
+    const signed=async m=>{const s=await owner.signMessage({message:m});genuine.add(s.toLowerCase());return s;},T=w.clock.now();
+    for(let i=0;i<21;i++)await attempt('100.64.'+Math.floor(i/3),baits[i%12]);
+    for(let s=1;s<=180;s++){w.clock.set(T+s*1000);
+      for(let j=0;j<k;j++)if(s%6===j%6)await attempt('100.65.'+j,baits[(s+j)%12]);
+      if(s%15===0&&await attempt('198.51.100',X,signed)===200)return s;}
+    return null;};
+  assert.deepEqual({sliding6:await signsIn(6,slidingLimiter),sliding5:await signsIn(5,slidingLimiter),fixed6:await signsIn(6,windowLimiter)},{sliding6:null,sliding5:60,fixed6:60});
+});
+
+// AUD3-08 (Swarm audit 1ef8e8a6 #8, Info, hardening): rateLimitKey took any trailing dotted quad as IPv4, missed the hex
+// IPv4-mapped form and gave any other text a key of its own; every D1 share, the challenge's /64 and the limiter keys are
+// built on it. No production request was shown to reach it (Cloudflare sends dotted IPv4 and compressed IPv6).
+test('AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row is its IPv4 /24 with no /64, and twenty-one different invalid texts share one AUTH_LIMITER key (the 21st is refused)',async()=>{
+  const w=setup(),limiter=windowLimiter(20,w.clock.now);w.env.AUTH_LIMITER=limiter;
+  const ask=ip=>w.browser(undefined,undefined,ip).post('/api/auth/challenge',{address:newAccount().address});
+  const mapped=await ask('::ffff:cb00:7101'),row=w.db.raw.prepare('SELECT net,sub FROM login_challenges WHERE nonce=?').get((await body(mapped)).nonce);
+  const texts=Array.from({length:21},(_,i)=>['not-an-ip-'+i,'1.2.3.4.'+i,'fe80::'+i+'%eth0'][i%3]),statuses=[];
+  limiter.keys.length=0;for(const ip of texts)statuses.push((await ask(ip)).status);
+  assert.deepEqual([mapped.status,[row.net,row.sub],statuses,[...new Set(limiter.keys)]],[200,['net:203.0.113.0/24',null],[...Array(20).fill(200),429],['ip:unknown']]);
 });
 
 // A-6 (Swarm audit 519db624): the per-(address, network) cooldown counted every challenge naming the address from the

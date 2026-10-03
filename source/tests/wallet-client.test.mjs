@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setup,newAccount,fakeImd,fakeChain,windowLimiter,openLimiter,START} from './wallet-harness.mjs';
-import {AuthClient,statusOf,ownerAddress,statusText,chipText,noticeText,watchOwner,OWNER_RECHECK_MS} from '../src/world/auth.ts';
+import {AuthClient,statusOf,ownerAddress,statusText,chipText,noticeText,waitingText,watchOwner,OWNER_RECHECK_MS,LOGOUT_WAIT_MS} from '../src/world/auth.ts';
 import {seatRows,countsText,eligibleText,recheckNote,emptySeatsText,panelHome,houseNotes,markedHome,markerLabel,signingText,presignText,logoutView,runLogout,confirmOpen,endedText} from '../src/world/walletView.ts';
 import {ERC6492_SUFFIX} from '../server/auth.ts';
 import {readMoves,commitMove,moveGate,moveHint,movesKey} from '../src/world/moves.ts';
@@ -1328,4 +1328,1110 @@ test('N-7: My wallet says “Signed out.” after this page’s own sign-out and
   for(const [h,say] of [[expiredEn,en],[expiredZh,zh]]){const line=endedText('expired',say);
     assert.ok(h.includes(`<p class="wallet-status warn" role="status"><i></i>${line}</p>`),h.slice(0,600));assert.equal(h.split(line).length,2,'said once, as the status line');}
   for(const h of html)assert.doesNotMatch(h,/another device|其他裝置/);
+});
+
+// Swarm Report dcf922ca R-1 (R3-R1) and Swarm Audit 1ef8e8a6 #4, #5, #7 (AUD3-04, AUD3-05, AUD3-07), both of the public
+// snapshot 8cad017: the page's own account events, sign-outs and house reads, in the orders the reviewers found. The real
+// AuthClient on the real Worker; what is held (a wallet answer, a reply, a prompt) is released in the order the finding
+// needs. `ID: …` fails on f4272c5; `ID guard: …` passes there and names the mutation of the fix it kills.
+/** R3-R1: holds the wallet's eth_requestAccounts answer, read when the page asked (the account then), until `answer()`;
+ *  `asked` resolves once the page is waiting for it. */
+function heldConnect(wallet){
+  const h={};h.asked=new Promise(r=>{h.ready=r;});const request=wallet.request;
+  wallet.request=async q=>{if(q.method!=='eth_requestAccounts')return request(q);const v=await request(q);return new Promise(r=>{h.answer=()=>r(v);h.ready();});};
+  return h;
+}
+const LOGOUT=p=>p==='/api/auth/logout',SESSION_COOKIE='__Host-imd_session';
+/** One gate per kind of request, armed by `arm(kind)`: the next matching request is held until `open(kind)`. */
+function gates(){
+  const armed=new Set(),open=new Map();
+  return {arm:k=>armed.add(k),disarm:k=>armed.delete(k),held:k=>open.has(k),open:k=>{const f=open.get(k);open.delete(k);f?.();},
+    wait:async(k,match,p)=>{if(!armed.has(k)||!match(p))return;armed.delete(k);await new Promise(r=>open.set(k,r));}};
+}
+
+test('R3-R1: an accountsChanged(B) that arrives while eth_requestAccounts is pending wins over the late [A]: no prompt, no challenge, no verify, B stays connected (the reproduction)',async()=>{
+  const A=newAccount(),B=newAccount(),bAddr=B.address.toLowerCase(),w=world(),b=w.browser(),wallet=fakeWallet(A),held=heldConnect(wallet),signs=prompts(wallet);
+  wallet.signAs=A;                                                                        // as the Report's probe: A's key would sign A's message
+  const t=tab(w,b,wallet);await settle();
+  const flow=t.client.signIn();await held.asked;                                         // the connect is pending (phase idle, no session)
+  wallet.switchTo(B);assert.equal(t.client.state.account,bAddr);                         // the wallet says B
+  held.answer();await flow;await settle();                                               // then the late answer: [A]
+  const s=t.client.state;
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/challenge'),posts(t.calls,'/api/auth/verify'),s.account,s.session,s.notice,statusOf(s,w.clock.now())],[[],0,0,bAddr,null,null,'connected']);
+  // Nothing asked the wallet again; the player's next click signs in B, with one prompt for B.
+  wallet.signAs=undefined;await t.client.signIn();
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/verify'),t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],[[bAddr],1,bAddr,'signedInNoHouse']);
+  t.stop();
+});
+
+test('R3-R1: a lock (accountsChanged([])) while the connect is pending ends the click: nothing asked, no account',async()=>{
+  const A=newAccount(),w=world(),b=w.browser(),wallet=fakeWallet(A),held=heldConnect(wallet),signs=prompts(wallet);
+  const t=tab(w,b,wallet);await settle();
+  const flow=t.client.signIn();await held.asked;
+  wallet.emit('accountsChanged',[]);held.answer();await flow;await settle();
+  const s=t.client.state;
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/challenge'),posts(t.calls,'/api/auth/verify'),s.account,s.session,statusOf(s,w.clock.now())],[[],0,0,null,null,'visitor']);
+  t.stop();
+});
+
+test('R3-R1: a lock while the signature prompt is open verifies nothing',async()=>{
+  const A=newAccount(),w=world(),b=w.browser(),wallet=fakeWallet(A),signs=prompts(wallet);let open;wallet.gate=new Promise(r=>open=r);
+  const t=tab(w,b,wallet);await settle();
+  const flow=t.client.signIn();await until(()=>signs.length===1);                       // A's prompt is open
+  wallet.emit('accountsChanged',[]);assert.equal(t.client.state.account,null,'locked');
+  open();await flow;await settle();                                                      // the prompt already open is answered
+  const s=t.client.state;
+  assert.deepEqual([wallet.signed,posts(t.calls,'/api/auth/verify'),s.phase,s.session,s.account,statusOf(s,w.clock.now())],[1,0,'idle',null,null,'visitor']);
+  assert.equal((await b.get('/api/auth/session').then(r=>r.json())).signedIn,false);
+  t.stop();
+});
+
+test('R3-R1: a slow eth_accounts answer that lands after a lock event changes nothing',async()=>{
+  const A=newAccount(),w=world(),wallet=fakeWallet(A),request=wallet.request;let release;const held=new Promise(r=>release=r);
+  wallet.granted=true;wallet.request=async q=>{const v=await request(q);if(q.method==='eth_accounts')await held;return v;};   // read [A], answered late
+  const t=tab(w,w.browser(),wallet);await settle();
+  wallet.emit('accountsChanged',[]);release();await settle();
+  assert.deepEqual([t.client.state.account,statusOf(t.client.state,w.clock.now())],[null,'visitor']);
+  t.stop();
+});
+
+// Guard (T02): fails with the check after eth_requestAccounts reduced to `seen!==this.accountEvents` (any event ends the click).
+test('R3-R1 guard: a normal first connect that emits accountsChanged for the same account completes with one prompt and one verify',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),held=heldConnect(wallet),signs=prompts(wallet);
+  const t=tab(w,b,wallet);await settle();
+  const flow=t.client.signIn();await held.asked;
+  wallet.emit('accountsChanged',[A.address]);held.answer();await flow;                  // granted: the wallet announces A, then answers [A]
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/challenge'),posts(t.calls,'/api/auth/verify'),t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],[[a],1,1,a,'owner']);
+  t.stop();
+});
+
+// Guard: fails with the same reduction, and with the answer compared with the first event of the await instead of the
+// latest state (B): the latest event (A) agrees with the answer, so A signs in once.
+test('R3-R1 guard: B then A while pending: the latest event (A) agrees with the answer, so A signs in once',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),held=heldConnect(wallet),signs=prompts(wallet);
+  const t=tab(w,b,wallet);await settle();
+  const flow=t.client.signIn();await held.asked;
+  wallet.switchTo(B);wallet.switchTo(A);held.answer();await flow;
+  assert.deepEqual([signs,posts(t.calls,'/api/auth/verify'),t.client.state.account,t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],[[a],1,a,a,'owner']);
+  t.stop();
+});
+
+// Guard (T04): fails with the `if(g!==this.gen)return;` after eth_requestAccounts removed (the late answer sets A).
+test('R3-R1 guard: a sign-out, the page closing or a wallet switch while the connect is pending: the late answer sets no account and asks nothing',async()=>{
+  const A=newAccount(),B=newAccount(),w=world();
+  for(const cancel of ['sign out','close','wallet']){
+    const b=w.browser(),wa=fakeWallet(A),wb=fakeWallet(B),held=heldConnect(wa),signs=[prompts(wa),prompts(wb)],subs=new Set();let current=wa;
+    const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+    const t=tab(w,b,null,{registry});await settle();
+    const flow=t.client.signIn();await held.asked;
+    if(cancel==='sign out')await t.client.signOut();else if(cancel==='close')t.stop();else{current=wb;for(const fn of subs)fn();}
+    held.answer();await flow;await settle();
+    assert.deepEqual([t.client.state.account,...signs,posts(t.calls,'/api/auth/challenge'),posts(t.calls,'/api/auth/verify'),wb.asked],[null,[],[],0,0,cancel==='wallet'?['eth_accounts']:[]],cancel);
+    if(cancel!=='close')t.stop();
+  }
+});
+
+// The check after personal_sign compares the wallet too. A wallet change that fires providerChanged is caught by gen
+// already; this pins the other half, a provider that changes with no event while the prompt is open (on f4272c5, and
+// with that check reduced to the account alone, the signature is verified and a session made).
+test('R3-R1: a wallet that changes with no provider-change event while the prompt is open verifies nothing',async()=>{
+  const A=newAccount(),B=newAccount(),w=world(),b=w.browser(),wa=fakeWallet(A),wb=fakeWallet(B);let current=wa,open;wa.gate=new Promise(r=>open=r);
+  const t=tab(w,b,null,{registry:{current:()=>current,subscribe:()=>()=>{}}});await settle();
+  const flow=t.client.signIn();await until(()=>wa.asked.includes('personal_sign'));     // A's prompt is open
+  current=wb;open();await flow;await settle();                                           // the page now sees another wallet; A's prompt is answered
+  assert.deepEqual([wa.signed,posts(t.calls,'/api/auth/verify'),t.client.state.session,t.client.state.phase],[1,0,null,'idle']);
+  assert.equal((await b.get('/api/auth/session').then(r=>r.json())).signedIn,false);
+  t.stop();
+});
+
+test('AUD3-04: a session read begun while this page’s sign-out is on its way, answered after it, revives nothing: “Signed out.” stays (the reproduction)',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
+  const t=tab(w,b,fakeWallet(A),{hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('read',SESSION,p)});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  g.arm('logout');const out=t.client.signOut();await until(()=>g.held('logout'));      // the logout on its way, not at the server yet
+  g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));         // a session read (another tab's message): the Worker answers A, held
+  g.open('logout');await out;                                                            // the server revokes A and clears the cookie
+  assert.deepEqual([t.client.state.session,t.client.state.ended],[null,'signed-out']);
+  const n=t.calls.length;g.open('read');await read;await settle();await settle();
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.ended,statusOf(s,w.clock.now()),t.hint.get(),t.calls.slice(n)],[null,null,'signed-out','connected',null,[]]);
+  t.stop();
+});
+
+test('AUD3-04: the same when the house read then fails or is refused: no session, house or hint of A is left',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const how of ['lost','429']){
+    const b=w.browser(),g=gates();let failing=false;
+    const t=tab(w,b,fakeWallet(A),{hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('read',SESSION,p),drop:p=>failing&&how==='lost'&&HOME(p),
+      rewrite:(p,r)=>failing&&how==='429'&&HOME(p)?Response.json({error:'RATE_LIMITED'},{status:429}):r});
+    await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+    g.arm('logout');const out=t.client.signOut();await until(()=>g.held('logout'));
+    g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));
+    g.open('logout');await out;failing=true;g.open('read');await read;await settle();await settle();
+    const s=t.client.state;
+    assert.deepEqual([s.session,s.home,s.ended,s.checking,statusOf(s,w.clock.now()),t.hint.get()],[null,null,'signed-out',false,'connected',null],how);
+    t.stop();
+  }
+});
+
+test('AUD3-04: an account switch’s logout and an abandoned flow’s logout end a read begun before them, and a session a read showed meanwhile',async()=>{
+  for(const path of ['switch','abandon'])for(const when of ['after','before']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),name=path+', read '+when;
+    const t=tab(w,b,wallet,{hold:p=>g.wait('logout',LOGOUT,p),holdReply:async p=>{await g.wait('verify',VERIFY,p);await g.wait('read',SESSION,p);}});
+    if(path==='switch'){                                                                  // A signed in; the wallet switches to B: A's logout on its way
+      await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+      g.arm('logout');wallet.switchTo(B);
+    }else{                                                                                // A's verify is answered (A's session made), its reply held; the switch abandons the flow
+      g.arm('verify');const flow=t.client.signIn();await until(()=>g.held('verify'));
+      wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();
+      g.arm('logout');g.open('verify');await flow;                                          // the late success brings A's cookie: revoked by a second logout, on its way
+    }
+    await until(()=>g.held('logout'));assert.ok(b.jar.has(SESSION_COOKIE),name+': A’s cookie is still live');
+    if(when==='after'){g.arm('read');void t.client.restore();await until(()=>g.held('read'));}   // a session read (another tab's message): the Worker answers A, held
+    else{await t.client.restore();await until(()=>!t.client.state.checking);
+      assert.deepEqual([t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],[a,'mismatch'],name+': the read showed A while the logout was out');}
+    const n=t.calls.length;g.open('logout');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();   // the server revokes A
+    if(when==='after'){g.open('read');await settle();await settle();}
+    const s=t.client.state;
+    assert.deepEqual([s.session,s.home,s.account,s.ended,statusOf(s,w.clock.now()),t.hint.get(),t.calls.slice(n)],[null,null,bAddr,null,'connected',null,[]],name);
+    t.stop();
+  }
+});
+
+// The same for providerChanged's logout (another wallet chosen while a flow runs). A's prompt is open when another tab of
+// the profile signs A in, so the cookie is A's when the switch's logout goes out.
+test('AUD3-04: a wallet (provider) switch’s logout during a flow ends a read begun before it, and a session a read showed meanwhile',async()=>{
+  for(const when of ['after','before']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
+    const wa=fakeWallet(A),wb=fakeWallet(B),subs=new Set();let current=wa,open;wa.gate=new Promise(r=>open=r);wb.granted=true;
+    const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+    const t=tab(w,b,null,{registry,hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('read',SESSION,p)});await settle();
+    const flow=t.client.signIn();await until(()=>wa.asked.includes('personal_sign'));   // A's prompt is open
+    assert.equal((await b.signIn(A)).verify.status,200);                                  // another tab of this profile signs A in
+    g.arm('logout');current=wb;for(const fn of subs)fn();await until(()=>g.held('logout'));   // the wallet switches to B: the flow's logout on its way
+    if(when==='after'){g.arm('read');void t.client.restore();await until(()=>g.held('read'));}   // a session read: the Worker answers A, held
+    else{await t.client.restore();await until(()=>!t.client.state.checking);
+      assert.deepEqual([t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],[a,'mismatch'],when+': the read showed A while the logout was out');}
+    const n=t.calls.length;g.open('logout');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();   // the server revokes A
+    if(when==='after'){g.open('read');await settle();await settle();}
+    open();await flow;await settle();                                                    // A's prompt answered late: nothing verified
+    const s=t.client.state;
+    assert.deepEqual([s.session,s.home,s.account,s.ended,statusOf(s,w.clock.now()),t.hint.get(),posts(t.calls,'/api/auth/verify'),t.calls.slice(n)],[null,null,bAddr,null,'connected',null,0,[]],when);
+    t.stop();
+  }
+});
+
+// And for the sign-in click's own logout of another address's session (the page holds A's session, the wallet says B):
+// a session read begun while that logout was on its way, answered after the click ended without signing (B's prompt
+// rejected), is not applied. On f4272c5 and d429ec3 it put A back: with the house read failing the page showed A's
+// session (mismatch) with no live session at the server and no cookie; with it working, a house read went out and the
+// page said "no longer signed in" over the click's own outcome.
+test('AUD3-04: the sign-in click’s own logout of another address’s session ends a session read begun while it was on its way, whether the house read then works or fails',async()=>{
+  const out={};
+  for(const house of ['works','lost']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
+    assert.equal((await b.signIn(A)).verify.status,200);                                  // this profile holds A's session
+    const wallet=fakeWallet(B);wallet.granted=true;wallet.reject=true;let failing=false;
+    const t=tab(w,b,wallet,{hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('read',SESSION,p),drop:p=>failing&&HOME(p)});
+    await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch');
+    assert.deepEqual([t.client.state.session?.address,t.client.state.account],[a,bAddr],house);
+    g.arm('logout');const click=t.client.signIn();await until(()=>g.held('logout'));     // the click's logout of A, not at the server yet
+    g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));         // a session read (another tab's message): the Worker answers A, held
+    failing=house==='lost';g.open('logout');await click;                                 // A revoked, the cookie cleared; B's prompt rejected
+    assert.deepEqual([t.client.state.session,t.client.state.notice,statusOf(t.client.state,w.clock.now()),b.jar.has(SESSION_COOKIE)],[null,'sign-rejected','connected',false],house);
+    const n=t.calls.length;g.open('read');await read;await settle();await settle();
+    const s=t.client.state;
+    out[house]=[s.session?.address===a?'A':s.session,s.home===null||s.home==='unavailable'?s.home:'a house',s.ended,s.notice,statusOf(s,w.clock.now()),t.hint.get()?.address===a?'A':t.hint.get(),t.calls.slice(n)];
+    t.stop();
+  }
+  const clean=[null,null,null,'sign-rejected','connected',null,[]];
+  assert.deepEqual(out,{works:clean,lost:clean});
+});
+
+// loggedOut drops house reads too (homeGen), not only session reads: a house read sent while the sign-out is on its way
+// and answered after it is not applied. Fails with loggedOut's homeGen++ removed (A's house stays on a signed-out page).
+test('AUD3-04: a house read sent while this page’s sign-out is on its way, answered after it, sets no house',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
+  const t=tab(w,b,fakeWallet(A),{hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('home',HOME,p)});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');w.clock.advance(20_000);   // past HOME_MIN_GAP_MS
+  g.arm('logout');const out=t.client.signOut();await until(()=>g.held('logout'));       // the sign-out on its way
+  g.arm('home');const read=t.client.restore();await until(()=>g.held('home'));         // a session read applied (A still live), its house read answered, held
+  g.open('logout');await out;g.open('home');await read;await settle();
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.ended,s.checking,statusOf(s,w.clock.now()),t.hint.get()],[null,null,'signed-out',false,'connected',null]);
+  t.stop();
+});
+
+// Guard (T08, handoff §6.3): fails with loggedOut's generation check removed (a superseded logout's completion drops B's
+// house read and ends B's session on the page). Since ADV-3 a click no longer signs B in while A's logout is out (it
+// waits for it), so B's session here is the one another tab of the profile set, and the click only re-checks its house
+// (B is signed in already: nothing is asked for, so it does not wait).
+test('AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent leaves that house applied and nothing checking',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates();
+  const t=tab(w,b,wallet,{holdReply:async p=>{await g.wait('logout',LOGOUT,p);await g.wait('home',HOME,p);}});
+  await t.client.signIn();assert.equal(t.client.state.session.address,a);
+  g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));                 // A's logout: revoked at the server, its reply held
+  assert.equal((await b.signIn(B)).verify.status,200);await t.client.restore();         // another tab of the profile signs B in; this page reads it
+  assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  g.arm('home');const flow=t.client.signIn();await until(()=>g.held('home'));           // the click re-checks B's house: answered, held
+  g.open('logout');await settle();                                                       // A's logout lands (its Max-Age=0 also drops B's cookie here: T13's residual)
+  g.open('home');await flow;await settle();
+  const s=t.client.state;
+  assert.deepEqual([s.session?.address,s.checking,s.home?.seats?.map(x=>x.tokenId),statusOf(s,w.clock.now())],[bAddr,false,['921'],'owner']);
+  t.stop();
+});
+
+test('AUD3-05: a house read answered for the address another tab signed in, whose session re-read is refused (429), leaves no owner mode and nothing checking (the reproduction)',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser();let refuse=false;
+  const t=tab(w,b,fakeWallet(A),{rewrite:(p,r)=>refuse&&SESSION(p)?Response.json({error:'RATE_LIMITED'},{status:429}):r});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  assert.equal((await b.signIn(B)).verify.status,200);                                    // another tab of this browser profile signs in B: the cookie is B's
+  refuse=true;await t.client.refreshHome(true,true);                                      // Check again: the house answers for B; the session re-read gets 429
+  const s=t.client.state;
+  assert.deepEqual([statusOf(s,w.clock.now()),ownerAddress(s,w.clock.now()),s.checking,s.home,s.sessionKnown],['ownershipUnavailable',null,false,'unavailable',false]);
+  t.stop();
+});
+
+test('AUD3-05: the same for a 503 and a lost connection',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const how of ['503','lost']){
+    const b=w.browser();let failing=false;
+    const t=tab(w,b,fakeWallet(A),{drop:p=>failing&&how==='lost'&&SESSION(p),rewrite:(p,r)=>failing&&how==='503'&&SESSION(p)?Response.json({error:'AUTH_UNAVAILABLE'},{status:503}):r});
+    await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+    assert.equal((await b.signIn(B)).verify.status,200);
+    failing=true;await t.client.refreshHome(true,true);
+    const s=t.client.state;
+    assert.deepEqual([statusOf(s,w.clock.now()),ownerAddress(s,w.clock.now()),s.checking,s.home],['ownershipUnavailable',null,false,'unavailable'],how);
+    t.stop();
+  }
+});
+
+// Guard (T10): fails with the mismatch branch returning without restore() (the page keeps A's session, unconfirmed).
+test('AUD3-05 guard: once the session read works again, Check again finds the cookie’s session (B, a mismatch with account A) and nothing stays checking',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser();let refuse=false;
+  const t=tab(w,b,fakeWallet(A),{rewrite:(p,r)=>refuse&&SESSION(p)?Response.json({error:'RATE_LIMITED'},{status:429}):r});
+  await t.client.signIn();assert.equal((await b.signIn(B)).verify.status,200);
+  refuse=true;await t.client.refreshHome(true,true);refuse=false;
+  w.clock.advance(20_000);await t.client.refreshHome(true,true);                        // Check again, the session read working
+  const s=t.client.state;
+  assert.deepEqual([statusOf(s,w.clock.now()),s.session?.address,s.account,s.home?.address?.toLowerCase(),s.checking,ownerAddress(s,w.clock.now())],['mismatch',bAddr,a,bAddr,false,null]);
+  t.stop();
+});
+
+test('AUD3-07: “Log out all devices” on a session the server says ran out reads as expired, and still says other devices were not signed out (the reproduction)',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),pageNow=w.clock.now();
+  const t=tab(w,w.browser(),fakeWallet(A),{env:fakeEnv(),now:()=>pageNow});await t.client.signIn();
+  assert.equal(statusOf(t.client.state,pageNow),'owner');
+  w.clock.advance(7*DAY+1);                                                               // the Worker's clock is past the expiry; the page's is not
+  const n=t.calls.length;await t.client.signOut(true);
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.expired,s.ended,s.notice,s.leaving,statusOf(s,pageNow),t.calls.slice(n)],[null,true,'expired','signout-all-stale',false,'expired',['POST /api/auth/logout-all','GET /api/auth/session']]);
+  t.stop();
+});
+
+test('AUD3-07: when the follow-up session read fails (429, 503), the page still says other devices were not signed out, and a click reads the session again before it signs',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const status of [429,503]){
+    w.clock.set(START);let lag=0,refuse=false;const wallet=fakeWallet(A);
+    const t=tab(w,w.browser(),wallet,{env:fakeEnv(),now:()=>w.clock.now()-lag,rewrite:(p,r)=>refuse&&SESSION(p)?Response.json({error:status===429?'RATE_LIMITED':'AUTH_UNAVAILABLE'},{status}):r});
+    await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+    lag=7*DAY+1;w.clock.advance(7*DAY+1);                                                 // the page's clock stays behind the Worker's
+    refuse=true;const n=t.calls.length;await t.client.signOut(true);refuse=false;
+    const s=t.client.state;
+    assert.deepEqual([s.session,s.expired,s.ended,s.notice,s.sessionKnown,s.leaving,t.calls.slice(n)],[null,true,'expired','signout-all-stale',false,false,['POST /api/auth/logout-all','GET /api/auth/session']],String(status));
+    lag=0;const m=t.calls.length;await t.client.signIn();                                  // the click: the session first, then one signature
+    assert.deepEqual([t.calls.slice(m),wallet.signed,t.client.state.session?.address,statusOf(t.client.state,w.clock.now())],
+      [['GET /api/auth/session','POST /api/auth/challenge','POST /api/auth/verify','GET /api/me/home'],2,a,'owner'],String(status));
+    t.stop();
+  }
+});
+
+// Guard (T15): fails with every 401 of logout-all read as 'expired' (a revocation, or a body nobody can read, would claim
+// an expiry).
+test('AUD3-07 guard: an AUTH_REQUIRED or unreadable 401 stays “other devices were not signed out” with no cause claimed',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+  for(const how of ['AUTH_REQUIRED','unreadable']){
+    const laptop=w.browser(),t=tab(w,laptop,fakeWallet(A),{rewrite:(p,r)=>how==='unreadable'&&p==='/api/auth/logout-all'&&r.status===401?new Response('<html>401</html>',{status:401}):r});
+    await t.client.signIn();
+    const copy=w.browser();copy.jar.set(SESSION_COOKIE,laptop.jar.get(SESSION_COOKIE));
+    assert.equal((await copy.post('/api/auth/logout')).status,204,'the laptop cookie is ended elsewhere');
+    await t.client.signOut(true);
+    const s=t.client.state;
+    assert.deepEqual([s.session,s.expired,s.ended,s.notice,statusOf(s,w.clock.now())],[null,false,null,'signout-all-stale','connected'],how);
+    t.stop();
+  }
+});
+
+// Guard (T15): 'answer' (a SESSION_EXPIRED one) fails with signOut's generation check after the logout-all request removed
+// (B's new state would read as expired); 'follow-up read' fails with the check after the follow-up session read removed
+// (the old notice lands on the new flow's open prompt).
+test('AUD3-07 guard: a logout-all answer, or its follow-up read, that lands after the account switched changes nothing of the new state',async()=>{
+  for(const late of ['answer','follow-up read']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}});
+    const laptop=w.browser(),wallet=fakeWallet(A),signs=prompts(wallet),g=gates();let lag=0;const now=()=>w.clock.now()-lag;
+    const t=tab(w,laptop,wallet,{env:fakeEnv(),now,holdReply:async p=>{await g.wait('all',q=>q==='/api/auth/logout-all',p);await g.wait('read',SESSION,p);}});
+    await t.client.signIn();
+    if(late==='answer'){
+      lag=7*DAY+1;w.clock.advance(7*DAY+1);                                                 // as AUD3-07's reproduction: the server says SESSION_EXPIRED
+      g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));         // the 401 is answered, held
+      wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();
+      g.open('all');await out;await settle();
+      const s=t.client.state;
+      assert.deepEqual([s.account,s.session,s.notice,s.expired,s.ended,s.leaving,statusOf(s,now())],[bAddr,null,null,false,null,false,'connected'],late);
+    }else{
+      const copy=w.browser();copy.jar.set(SESSION_COOKIE,laptop.jar.get(SESSION_COOKIE));assert.equal((await copy.post('/api/auth/logout')).status,204);
+      g.arm('read');const out=t.client.signOut(true);
+      await until(()=>g.held('read')||t.client.state.notice==='signout-all-stale');        // the follow-up read, answered and held (f4272c5 sends none)
+      g.disarm('read');                                                                     // f4272c5: no follow-up read took the gate
+      wallet.switchTo(B);await t.client.restore();                                          // B is merely connected; another tab's message: a newer read
+      let open;wallet.gate=new Promise(r=>open=r);const flow=t.client.signIn();await until(()=>signs.length===2);   // B's click: its prompt is open
+      g.open('read');await out;await settle();
+      const s=t.client.state;
+      assert.deepEqual([s.phase,s.notice,s.signing?.address.toLowerCase(),s.account,s.leaving],['awaitingSignature',null,bAddr,bAddr,false],late);
+      open();await flow;
+      assert.deepEqual([t.client.state.session?.address,t.client.state.notice,statusOf(t.client.state,w.clock.now())],[bAddr,null,'signedInNoHouse'],late);
+    }
+    t.stop();
+  }
+});
+
+// A refused logout-all drops the house read in flight (homeGen) before its follow-up session read: when that read fails
+// (429), nothing else would. Fails with that homeGen++ removed (A's house lands on the signed-out page).
+test('AUD3-07: a house read in flight across a refused logout-all whose follow-up session read fails sets no house',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),laptop=w.browser(),g=gates();let refuse=false;
+  const t=tab(w,laptop,fakeWallet(A),{hold:p=>g.wait('all',q=>q==='/api/auth/logout-all',p),holdReply:p=>g.wait('home',HOME,p),
+    rewrite:(p,r)=>refuse&&SESSION(p)?Response.json({error:'RATE_LIMITED'},{status:429}):r});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');w.clock.advance(20_000);
+  g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));          // logout-all on its way
+  g.arm('home');const read=t.client.restore();await until(()=>g.held('home'));         // a house read answered for A, held
+  const copy=w.browser();copy.jar.set(SESSION_COOKIE,laptop.jar.get(SESSION_COOKIE));
+  assert.equal((await copy.post('/api/auth/logout')).status,204,'the laptop cookie is ended elsewhere');
+  refuse=true;g.open('all');await out;refuse=false;                                     // 401; the follow-up session read is refused (429)
+  g.open('home');await read;await settle();
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.notice,s.checking,statusOf(s,w.clock.now())],[null,null,'signout-all-stale',false,'connected']);
+  t.stop();
+});
+
+// T12/T15, the page side of AUD3-06 with AUD3-07's follow-up read: a refused logout-all clears no cookie any more, so the
+// one the browser holds when the 401 lands may be the one another tab of the profile has just set; this page reads it
+// afresh instead of taking the 401 for "no session" (on f4272c5 the late 401's Max-Age=0 deleted that cookie, and the
+// page stayed signed out over it).
+test('AUD3-06: a refused logout-all (401) answered after another tab of the profile signed in leaves this page on that tab’s session, read afresh, and still says other devices were not signed out',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),laptop=w.browser(),g=gates();
+  const t=tab(w,laptop,fakeWallet(A),{holdReply:p=>g.wait('all',q=>q==='/api/auth/logout-all',p)});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  const copy=w.browser();copy.jar.set(SESSION_COOKIE,laptop.jar.get(SESSION_COOKIE));
+  assert.equal((await copy.post('/api/auth/logout')).status,204,'the laptop cookie is ended elsewhere');
+  g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));          // the 401 is answered, held
+  assert.equal((await laptop.signIn(A)).verify.status,200);const fresh=laptop.jar.get(SESSION_COOKIE);   // another tab of this profile signs in
+  await t.client.restore();                                                              // its 'signed-in' message: this page reads the session
+  g.open('all');await out;await until(()=>!t.client.state.checking);                    // then the refused logout-all lands
+  const s=t.client.state;
+  assert.deepEqual([statusOf(s,w.clock.now()),s.session?.address,s.notice,laptop.jar.get(SESSION_COOKIE)===fresh,(await laptop.get('/api/me/home')).status],
+    ['owner',a,'signout-all-stale',true,200]);
+  t.stop();
+});
+
+// The final check of 125248c (ADV-1..ADV-3, probes P13..P15). One registry-driven page: the profile holds A's session,
+// the chosen wallet is on B (a mismatch), and `pickNew()` makes another wallet current (a pick, or a late EIP-6963 one).
+function chosenWallets(w,b,{A,B,granted=null,...opts}){
+  const wb=fakeWallet(B),wn=fakeWallet(A),subs=new Set();let current=wb;wb.granted=true;wn.granted=granted==='A';
+  const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}},t=tab(w,b,null,{registry,...opts});
+  return {t,wb,wn,pickNew:()=>{current=wn;for(const fn of subs)fn();},signs:()=>[...wb.asked,...wn.asked].filter(m=>m==='personal_sign').length};
+}
+
+// ADV-1 (P14): another wallet becomes current while the click's own logout of A is on its way. The click is busy, so
+// providerChanged takes a generation but, with no flow yet, sends no logout and clears nothing; on 125248c (and f4272c5)
+// the click's confirmed logout then skipped loggedOut (its generation was old), and the page kept A's session, house and
+// hint (owner mode once the new wallet named A) after the server had revoked A.
+test('ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current, ends A on the page: no session, house, hint or owner mode (the reproduction)',async()=>{
+  const out={};
+  for(const granted of ['none','A']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates();
+    assert.equal((await b.signIn(A)).verify.status,200);                                  // this profile holds A's session
+    const {t,pickNew,signs}=chosenWallets(w,b,{A,B,granted,hold:p=>g.wait('logout',LOGOUT,p)});
+    await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+    g.arm('logout');const click=t.client.signIn();await until(()=>g.held('logout'));     // the click's logout of A, not at the server yet
+    pickNew();await settle();                                                             // another wallet is current (none granted, or A)
+    g.open('logout');await click;await settle();await settle();                           // A revoked, the cookie cleared
+    const s=t.client.state;
+    out[granted]=[s.session,s.home,s.checking,statusOf(s,w.clock.now()),t.hint.get(),signs(),posts(t.calls,'/api/auth/challenge'),b.jar.has(SESSION_COOKIE),
+      (await b.get('/api/auth/session').then(r=>r.json())).signedIn];
+    t.stop();
+  }
+  assert.deepEqual(out,{none:[null,null,false,'visitor',null,0,0,false,false],A:[null,null,false,'connected',null,0,0,false,false]});
+});
+
+// Guard (ADV-1): the click's confirmed logout ends only the very session it was sent for. Passes on 125248c (the old
+// generation's answer was dropped); fails with the session compared by address only ('A again': another tab signed A
+// in anew, a later expiresAt) or not at all ('C'). That late 204 still deletes the newer cookie in this browser (T13's
+// residual, AUD3-06): this pins what the page shows.
+test('ADV-1 guard: a newer session the page holds when the click’s logout of A is confirmed (A signed in anew, or C, by another tab) is left alone',async()=>{
+  const out={};
+  for(const newer of ['A again','C']){
+    const A=newAccount(),B=newAccount(),C=newAccount(),w=world(),b=w.browser(),g=gates(),who=(newer==='C'?C:A).address.toLowerCase();
+    assert.equal((await b.signIn(A)).verify.status,200);
+    const {t,pickNew,signs}=chosenWallets(w,b,{A,B,holdReply:p=>g.wait('logout',LOGOUT,p)});
+    await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+    const first=t.client.state.session;
+    g.arm('logout');const click=t.client.signIn();await until(()=>g.held('logout'));     // A revoked at the server, the answer held
+    pickNew();await settle();w.clock.advance(60_000);
+    assert.equal((await b.signIn(newer==='C'?C:A)).verify.status,200);await t.client.restore();   // another tab signs in; this page reads it
+    const held=t.client.state.session;assert.ok(held&&held.expiresAt!==first.expiresAt,newer);
+    g.open('logout');await click;await settle();await settle();
+    const s=t.client.state;
+    out[newer]=[s.session?.address===who&&s.session.expiresAt===held.expiresAt,t.hint.get()?.expiresAt===held.expiresAt,signs()];
+    t.stop();
+  }
+  assert.deepEqual(out,{'A again':[true,true,0],C:[true,true,0]});
+});
+
+// ADV-2 (P15): another tab of the profile holds A as owner; this tab's wallet is on B. The click logs A out (revoked,
+// cookie cleared), then B's prompt is rejected. On 125248c the click told no other tab, so that tab stayed in owner mode
+// for A until its next re-check; a sign-out and an account switch already told them.
+test('ADV-2: the sign-in click’s confirmed logout of A is told to the other tabs: one that showed A as owner reads the server and leaves owner mode, B not signed in (the reproduction)',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),name='imd-auth-test-'+Math.random();
+  assert.equal((await b.signIn(A)).verify.status,200);
+  const wa=fakeWallet(A),wb=fakeWallet(B);wa.granted=wb.granted=true;wb.reject=true;
+  const other=tab(w,b,wa,{channel:name}),me=tab(w,b,wb,{channel:name}),reads=()=>other.calls.filter(c=>c==='GET /api/auth/session').length;
+  await until(()=>statusOf(other.client.state,w.clock.now())==='owner'&&statusOf(me.client.state,w.clock.now())==='mismatch'&&!me.client.state.checking);
+  const n=reads();await me.client.signIn();await until(()=>other.client.state.session===null);
+  const s=other.client.state;
+  assert.deepEqual([me.client.state.notice,statusOf(me.client.state,w.clock.now()),s.session,statusOf(s,w.clock.now()),reads()-n,b.jar.has(SESSION_COOKIE)],
+    ['sign-rejected','connected',null,'connected',1,false]);
+  other.stop();me.stop();
+});
+
+// ADV-3 (P13): the account switch's logout (sent with A's cookie) is not waited for, and on 125248c the click that signs
+// B in did not wait for it either. 'answer': its 204 landing after B's verify deleted B's new cookie (the page showed B
+// as owner with no cookie, B's session left live at the server). 'request': reaching the server after B's verify (the
+// cookie read on arrival), it revoked B's new session and left A's. Now the click asks nothing until it has answered.
+test('ADV-3: an account switch’s logout still on its way when the click comes: the click waits for it, then B signs in with one prompt and one verify and keeps its cookie (the reproduction)',async()=>{
+  const out={};
+  for(const held of ['answer','request']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),signs=prompts(wallet);
+    const gate=p=>g.wait('logout',LOGOUT,p),t=tab(w,b,wallet,held==='answer'?{holdReply:gate}:{hold:gate});
+    await t.client.signIn();const aJar=new Map(b.jar);
+    g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));                 // the switch's logout of A, held
+    const n=t.calls.length,click=t.client.signIn();await settle();await settle();
+    const waited=[t.calls.slice(n),signs.length];                                        // nothing asked while it is out
+    g.open('logout');await click;await settle();
+    const s=t.client.state,stale=w.browser();stale.jar=aJar;
+    out[held]=[...waited,signs.map(x=>x===a?'A':x===bAddr?'B':x),posts(t.calls,'/api/auth/verify'),s.session?.address===bAddr,statusOf(s,w.clock.now()),b.jar.has(SESSION_COOKIE),
+      (await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()===bAddr,(await stale.get('/api/me/home')).status];
+    t.stop();
+  }
+  const ok=[[],1,['A','B'],2,true,'owner',true,true,401];
+  assert.deepEqual(out,{answer:ok,request:ok});
+});
+
+// ADV-3: the same for this page's own sign-out (a mismatch shows "Sign in as B" beside "Log out this device"): on
+// 125248c the click went ahead while the sign-out was out, and that logout's late 204 deleted B's new cookie.
+test('ADV-3: a click while this page’s sign-out is on its way waits for it, then signs B in, and B keeps its cookie',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates();
+  assert.equal((await b.signIn(A)).verify.status,200);
+  const wallet=fakeWallet(B);wallet.granted=true;const t=tab(w,b,wallet,{holdReply:p=>g.wait('logout',LOGOUT,p)});
+  await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+  g.arm('logout');const out=t.client.signOut();await until(()=>g.held('logout'));       // "Log out this device": A revoked, the answer held
+  const n=t.calls.length,click=t.client.signIn();await settle();await settle();
+  const waited=t.calls.slice(n);
+  g.open('logout');await out;await click;await settle();
+  const s=t.client.state;
+  assert.deepEqual([waited,wallet.signed,posts(t.calls,'/api/auth/logout'),s.session?.address===bAddr,statusOf(s,w.clock.now()),b.jar.has(SESSION_COOKIE),
+    (await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()===bAddr],[[],1,1,true,'owner',true,true]);
+  t.stop();
+});
+
+// ADV-3: an abandoned flow's verify is waited for too: its late success brings A's cookie and is then logged out
+// (revokeAbandoned), and either answer, landing after B's verify, would replace or delete B's cookie (on 125248c A's
+// late cookie replaced B's and its logout then cleared it: the page ended signed out with B's session left live).
+test('ADV-3: an abandoned flow’s verify still on its way when the click comes: the click waits until that late session is logged out, then B signs in and keeps its cookie',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),signs=prompts(wallet);
+  const t=tab(w,b,wallet,{holdReply:p=>g.wait('verify',VERIFY,p)});await settle();
+  g.arm('verify');const flow=t.client.signIn();await until(()=>g.held('verify'));      // A's verify: A's session made at the server, the answer held
+  wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();   // the switch abandons the flow
+  const n=t.calls.length,click=t.client.signIn();await Promise.race([click,new Promise(r=>setTimeout(r,200))]);
+  const waited=t.calls.slice(n);
+  g.open('verify');await flow;await click;await settle();
+  const s=t.client.state,live=w.db.raw.prepare('SELECT lower(address) a FROM sessions WHERE revoked_at IS NULL').all().map(r=>r.a===bAddr?'B':r.a===a?'A':r.a);
+  assert.deepEqual([waited,signs.map(x=>x===a?'A':x===bAddr?'B':x),posts(t.calls,'/api/auth/verify'),posts(t.calls,'/api/auth/logout'),s.session?.address===bAddr,
+    statusOf(s,w.clock.now()),b.jar.has(SESSION_COOKIE),(await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()===bAddr,live],
+    [[],['A','B'],2,2,true,'owner',true,true,['B']]);
+  t.stop();
+});
+
+// ADV-3: the wait is bounded. A logout that does not answer (a hung connection) ends the click after LOGOUT_WAIT_MS with
+// nothing asked: no challenge, prompt or verify, and "that log-out hasn't been answered yet, so no signature was
+// requested" (since the re-check of 2f5d6c1, ADVR-5; before, "couldn't check whether you're already signed in", which
+// was not the reason). Once it has answered, the next click signs B in as usual. On 125248c the click asked for B's
+// signature at once.
+test('ADV-3: a logout of this page that does not answer never leads to a prompt: after LOGOUT_WAIT_MS the click ends asking nothing; once it answered, the next click signs B in',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),signs=prompts(wallet),env=fakeEnv();
+  const t=tab(w,b,wallet,{env,hold:p=>g.wait('logout',LOGOUT,p)});
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));                 // the switch's logout of A: no answer
+  const n=t.calls.length,asked=wallet.asked.filter(m=>m!=='eth_accounts').length,click=t.client.signIn();
+  await until(()=>env.live().some(x=>x.ms===LOGOUT_WAIT_MS));const bound=env.live().find(x=>x.ms===LOGOUT_WAIT_MS);
+  assert.ok(bound,'the click waits, and only so long');assert.equal(t.client.state.waiting,true);env.fire(bound);await click;await settle();
+  const s=t.client.state;
+  assert.deepEqual([t.calls.slice(n),signs.length,wallet.asked.filter(m=>m!=='eth_accounts').length-asked,s.phase,s.notice,s.waiting,s.session,statusOf(s,w.clock.now())],
+    [[],1,0,'idle','logout-slow',false,null,'connected']);
+  assert.deepEqual([noticeText('logout-slow',(zh,en)=>en),noticeText('logout-slow',zh=>zh)],['A log-out (or a cancelled sign-in) this page sent earlier hasn’t been answered yet, so no signature was requested. Try again in a moment.',
+    '這個頁面先前送出的登出（或已取消的登入）還沒有得到回應，所以沒有要求簽名；請稍後再按一次。']);
+  g.open('logout');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();await t.client.signIn();
+  assert.deepEqual([signs.map(x=>x===a?'A':x===bAddr?'B':x),statusOf(t.client.state,w.clock.now()),t.client.state.notice,b.jar.has(SESSION_COOKIE)],[['A','B'],'owner',null,true]);
+  t.stop();
+});
+
+// Guard (ADV-3 with ADV-1's rule): a click waiting for the switch's logout is busy but idle, so another wallet chosen
+// then takes a generation and sends no logout of its own; a read that found A before that logout reached the server
+// must still end when it is confirmed (the logout names the session it ended). Passes on 125248c (the click was in its
+// prompt by then, and the wallet switch's own logout ended A); fails with the switch's logout naming no session (owner
+// mode for revoked A).
+test('ADV-3 guard: another wallet chosen while the click waits for an account switch’s logout, after a read found A again: A ends on the page once that logout is confirmed',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
+  const wa=fakeWallet(A),wn=fakeWallet(A),subs=new Set();let current=wa,open;wn.granted=true;
+  const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+  const t=tab(w,b,null,{registry,hold:p=>g.wait('logout',LOGOUT,p)});await settle();
+  await t.client.signIn();assert.equal(statusOf(t.client.state,w.clock.now()),'owner');wa.gate=new Promise(r=>open=r);
+  g.arm('logout');wa.switchTo(B);await until(()=>g.held('logout'));                     // the switch's logout of A, not at the server yet
+  const click=t.client.signIn();await settle();await settle();                           // the click for B (now: waits; on 125248c: B's prompt open)
+  await t.client.restore();assert.equal(t.client.state.session?.address,a);              // a read (another tab's message) still finds A
+  current=wn;for(const fn of subs)fn();await until(()=>t.client.state.account===a);      // another wallet, A granted, is chosen
+  g.open('logout');await until(()=>!b.jar.has(SESSION_COOKIE));open();await click;await settle();await settle();
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.checking,statusOf(s,w.clock.now()),t.hint.get(),(await b.get('/api/auth/session').then(r=>r.json())).signedIn],[null,null,false,'connected',null,false]);
+  t.stop();
+});
+
+// Guard (ADV-3): nothing held. After an account switch (its logout answered, or still out at the click and answering at
+// once) and on a mismatch (the click logs A out itself), B signs in with one prompt for B, one challenge and one verify,
+// and keeps its cookie. Passes on 125248c; fails if a click that waited for a logout does not go on once it answered.
+test('ADV-3 guard: after an account switch, and on a mismatch, the click signs B in with one prompt for B, one challenge and one verify, and B keeps its cookie',async()=>{
+  const out={};
+  for(const path of ['switch','switch, at once','mismatch']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),signs=prompts(wallet);
+    let t,aJar;
+    if(path!=='mismatch'){t=tab(w,b,wallet);await t.client.signIn();aJar=new Map(b.jar);wallet.switchTo(B);
+      if(path==='switch'){await until(()=>!b.jar.has(SESSION_COOKIE));await settle();}}
+    else{assert.equal((await b.signIn(A)).verify.status,200);aJar=new Map(b.jar);wallet.account=B;wallet.granted=true;t=tab(w,b,wallet);
+      await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);}
+    const n=t.calls.length,asked=signs.length;await t.client.signIn();
+    const stale=w.browser();stale.jar=aJar;
+    out[path]=[signs.slice(asked).map(x=>x===bAddr?'B':x),t.calls.slice(n).filter(c=>c.startsWith('POST ')),statusOf(t.client.state,w.clock.now()),b.jar.has(SESSION_COOKIE),
+      (await stale.get('/api/me/home')).status];
+    t.stop();
+  }
+  const switched=[['B'],['POST /api/auth/challenge','POST /api/auth/verify'],'owner',true,401];
+  assert.deepEqual(out,{switch:switched,'switch, at once':switched,mismatch:[['B'],['POST /api/auth/logout','POST /api/auth/challenge','POST /api/auth/verify'],'owner',true,401]});
+});
+
+// The team's re-check of 2f5d6c1 (ADVR-1..ADVR-5, probes Q1..Q12). ADV-1's rule reaches the two logouts 10bb630 left
+// out (this page's own sign-out and an abandoned flow's late session): a click waiting for a logout is busy but idle, so
+// another wallet chosen then takes a generation, sends no logout and clears nothing, and that logout's confirmation was
+// the only thing left to end the session on the page. The holds and the wait's re-checks get guards; the wait is shown.
+
+// ADV-1 (Q1): "Log out this device" on a mismatch (the profile holds A, the chosen wallet is on B), the click for B (it
+// waits for that logout), then another wallet becomes current (none granted, or A). On 2f5d6c1 the confirmed sign-out
+// returned as "a newer flow decides": A's session, house and hint stayed (owner mode once the new wallet named A), no
+// "Signed out.", and another tab stayed owner for revoked A, until the next re-check.
+test('ADV-1: “Log out this device” confirmed after another wallet became current while a click waited for it ends A on the page, says “Signed out.” and tells the other tabs',async()=>{
+  const out={};
+  for(const granted of ['none','A'])for(const held of ['answer','request']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates(),name='imd-auth-test-'+Math.random();
+    assert.equal((await b.signIn(A)).verify.status,200);                                  // this profile holds A's session
+    const wa=fakeWallet(A);wa.granted=true;const other=tab(w,b,wa,{channel:name}),gate=p=>g.wait('logout',LOGOUT,p);
+    const {t,pickNew,signs}=chosenWallets(w,b,{A,B,granted,channel:name,...held==='answer'?{holdReply:gate}:{hold:gate}});
+    await until(()=>statusOf(other.client.state,w.clock.now())==='owner'&&statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+    g.arm('logout');const out1=t.client.signOut();await until(()=>g.held('logout'));     // "Log out this device": A's logout on its way
+    const click=t.client.signIn();await settle();                                         // the click for B waits for it (busy, idle)
+    pickNew();await settle();                                                             // another wallet is current: the click ends
+    g.open('logout');await out1;await click;await until(()=>other.client.state.session===null);   // A revoked, the cookie cleared
+    const s=t.client.state;
+    out[granted+', '+held]=[s.session,s.home,s.checking,s.ended,s.leaving,s.notice,statusOf(s,w.clock.now()),t.hint.get(),signs(),posts(t.calls,'/api/auth/logout'),
+      b.jar.has(SESSION_COOKIE),(await b.get('/api/auth/session').then(r=>r.json())).signedIn,statusOf(other.client.state,w.clock.now())];
+    other.stop();t.stop();
+  }
+  const done=st=>[null,null,false,'signed-out',false,null,st,null,0,1,false,false,'connected'];
+  assert.deepEqual(out,{'none, answer':done('visitor'),'none, request':done('visitor'),'A, answer':done('connected'),'A, request':done('connected')});
+});
+
+// ADV-1 (Q2): an abandoned flow's late session. A's verify is answered after the switch to B, so its cookie arrives and
+// the page logs it out (revokeAbandoned; that logout held). The click for B waits; a read (another tab's message) shows
+// that late session; another wallet, A granted, becomes current (owner mode for it); then that logout is confirmed. On
+// 2f5d6c1 nothing ended it on the page: owner mode, house and hint for a session the server had revoked.
+test('ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout, ends on the page when that logout is confirmed after another wallet became current',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates();
+  const wa=fakeWallet(A),wn=fakeWallet(A),subs=new Set();let current=wa;wn.granted=true;
+  const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+  const t=tab(w,b,null,{registry,hold:p=>g.wait('logout',LOGOUT,p),holdReply:p=>g.wait('verify',VERIFY,p)});await settle();
+  g.arm('verify');const flow=t.client.signIn();await until(()=>g.held('verify'));      // A's verify: A's session made at the server, the answer held
+  wa.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();   // the switch abandons the flow (its logout, no cookie yet)
+  g.arm('logout');g.open('verify');await flow;await until(()=>g.held('logout'));       // the late answer brings A's cookie; its logout on its way
+  assert.ok(b.jar.has(SESSION_COOKIE),'A’s late cookie arrived');
+  const click=t.client.signIn();await settle();                                         // the click for B waits for that logout
+  await t.client.restore();await until(()=>!t.client.state.checking);assert.equal(t.client.state.session?.address,a,'a read shows A’s late session');
+  current=wn;for(const fn of subs)fn();await until(()=>statusOf(t.client.state,w.clock.now())==='owner');   // another wallet, A granted: owner mode for it
+  g.open('logout');await click;await until(()=>!b.jar.has(SESSION_COOKIE));await settle();   // the late session revoked, the cookie cleared
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.checking,statusOf(s,w.clock.now()),t.hint.get(),wa.signed+wn.signed,(await b.get('/api/auth/session').then(r=>r.json())).signedIn],
+    [null,null,false,'connected',null,1,false]);
+  t.stop();
+});
+
+// Guard (ADV-2, Q10): the click's confirmed logout of A is told to the other tabs even when the click has ended (another
+// wallet chosen while that logout was out: ADV-1's case). Fails with the broadcast limited to a click still live.
+test('ADV-2 guard: the confirmed logout of a click that another wallet ended is still told to the other tabs',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates(),name='imd-auth-test-'+Math.random();
+  assert.equal((await b.signIn(A)).verify.status,200);
+  const wa=fakeWallet(A);wa.granted=true;const other=tab(w,b,wa,{channel:name});
+  const {t,pickNew}=chosenWallets(w,b,{A,B,channel:name,holdReply:p=>g.wait('logout',LOGOUT,p)});
+  await until(()=>statusOf(other.client.state,w.clock.now())==='owner'&&statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+  g.arm('logout');const click=t.client.signIn();await until(()=>g.held('logout'));     // the click's logout of A: A revoked, the answer held
+  pickNew();await settle();g.open('logout');await click;await until(()=>other.client.state.session===null);
+  assert.deepEqual([statusOf(t.client.state,w.clock.now()),statusOf(other.client.state,w.clock.now()),other.client.state.session,b.jar.has(SESSION_COOKIE)],['visitor','connected',null,false]);
+  other.stop();t.stop();
+});
+
+// Guards (ADV-3, Q3, Q4, Q8): every logout the page does not wait for itself is held, so a click waits for its answer
+// even when nothing else orders it before the new verify (each logout's answer held here). Each fails with its logout not
+// held: the new account signs in, then that answer's Max-Age=0 deletes the new cookie (as on 125248c, for Q3 and Q4).
+test('ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen: the next click, for that wallet’s account, waits for it, and that account keeps its cookie',async()=>{
+  const A=newAccount(),B=newAccount(),C=newAccount(),c=C.address.toLowerCase(),w=world(),b=w.browser(),g=gates();
+  assert.equal((await b.signIn(A)).verify.status,200);                                  // this profile holds A's session
+  const wb=fakeWallet(B),wc=fakeWallet(C),subs=new Set();let current=wb;wb.granted=wc.granted=true;
+  const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+  const t=tab(w,b,null,{registry,holdReply:p=>g.wait('logout',LOGOUT,p)});
+  await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+  g.arm('logout');const first=t.client.signIn();await until(()=>g.held('logout'));     // the click's logout of A: A revoked, the answer held
+  current=wc;for(const fn of subs)fn();await until(()=>t.client.state.account===c);    // another wallet, C granted: that click ends
+  const n=t.calls.length,click=t.client.signIn();await settle();await settle();
+  const waited=t.calls.slice(n);
+  g.open('logout');await first;await click;await settle();
+  assert.deepEqual([waited,wc.signed,t.client.state.session?.address,b.jar.has(SESSION_COOKIE),(await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()],[[],1,c,true,c]);
+  t.stop();
+});
+
+test('ADV-3 guard: a wallet switch’s logout of the flow it ended still out: the click on the new wallet waits for it, and that account keeps its cookie',async()=>{
+  const B=newAccount(),C=newAccount(),bAddr=B.address.toLowerCase(),c=C.address.toLowerCase(),w=world(),b=w.browser(),g=gates();
+  const wb=fakeWallet(B),wc=fakeWallet(C),subs=new Set();let current=wb,open;wb.granted=wc.granted=true;wb.gate=new Promise(r=>open=r);
+  const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+  const t=tab(w,b,null,{registry,holdReply:p=>g.wait('logout',LOGOUT,p)});await until(()=>t.client.state.account===bAddr&&t.client.state.sessionKnown);
+  const flow=t.client.signIn();await until(()=>wb.asked.includes('personal_sign'));     // B's prompt is open
+  g.arm('logout');current=wc;for(const fn of subs)fn();await until(()=>g.held('logout'));   // C chosen: the flow's logout, its answer held
+  open();await flow;await until(()=>t.client.state.account===c);                       // B's prompt answered into nothing
+  const n=t.calls.length,click=t.client.signIn();await settle();await settle();
+  const waited=t.calls.slice(n);
+  g.open('logout');await click;await settle();
+  assert.deepEqual([waited,wb.signed,wc.signed,posts(t.calls,'/api/auth/verify'),t.client.state.session?.address,b.jar.has(SESSION_COOKIE),
+    (await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()],[[],1,1,1,c,true,c]);
+  t.stop();
+});
+
+test('ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes: the click waits for that logout, and B keeps its cookie',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),signs=prompts(wallet);
+  const t=tab(w,b,wallet,{holdReply:async p=>{await g.wait('verify',VERIFY,p);await g.wait('logout',LOGOUT,p);}});await settle();
+  g.arm('verify');const flow=t.client.signIn();await until(()=>g.held('verify'));      // A's verify: A's session made at the server, the answer held
+  wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();await settle();   // the switch abandons the flow; its logout answered
+  g.arm('logout');g.open('verify');await flow;await until(()=>g.held('logout'));       // A's late cookie; its logout revokes it, the answer held
+  const n=t.calls.length,click=t.client.signIn();await settle();await settle();
+  const waited=t.calls.slice(n);
+  g.open('logout');await click;await settle();
+  const s=t.client.state;
+  assert.deepEqual([waited,signs.map(x=>x===a?'A':x===bAddr?'B':x),s.session?.address===bAddr,statusOf(s,w.clock.now()),b.jar.has(SESSION_COOKIE),
+    (await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()===bAddr],[[],['A','B'],true,'owner',true,true]);
+  t.stop();
+});
+
+// Guards (ADV-3, Q6, Q7, Q12): the wait is only for a click that asks for a cookie, and it is checked again whenever that
+// can change. Q6 fails with every click waiting (asks() always true), Q7 with the wait not ending once a read shows the
+// wallet's account signed in already, Q12 with the wait after the click's own session read reduced to that read.
+test('ADV-3 guard: signed in already as the wallet’s account while this page’s logout is still out: the click re-checks the house at once and arms no wait',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),env=fakeEnv();
+  const t=tab(w,b,wallet,{env,holdReply:p=>g.wait('logout',LOGOUT,p)});await settle();
+  await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
+  assert.equal((await b.signIn(B)).verify.status,200);await t.client.restore();         // another tab of the profile signs B in; this page reads it
+  assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  const n=t.calls.length,click=t.client.signIn();await settle();await settle();
+  const r=[t.calls.slice(n),env.live().some(x=>x.ms===LOGOUT_WAIT_MS),t.client.state.notice,wallet.signed];
+  g.open('logout');await click;await settle();
+  assert.deepEqual(r,[['GET /api/me/home'],false,null,1]);
+  t.stop();
+});
+
+test('ADV-3 guard: a click waiting for this page’s logout goes on as soon as a read shows the wallet’s account signed in already',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),env=fakeEnv();
+  const t=tab(w,b,wallet,{env,holdReply:async p=>{await g.wait('logout',LOGOUT,p);await g.wait('read',SESSION,p);}});await settle();
+  await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
+  assert.equal((await b.signIn(B)).verify.status,200);                                  // another tab of the profile signs B in
+  g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));         // a read (that tab's message): it answers B, held
+  const n=t.calls.length,click=t.client.signIn();await settle();                       // the click waits (the read, and the logout)
+  g.open('read');await read;await until(()=>t.calls.length-n===2&&!t.client.state.checking);   // the read's house read, then the click's re-check
+  const r=[statusOf(t.client.state,w.clock.now()),t.calls.slice(n),wallet.signed];
+  g.open('logout');await click;await settle();
+  assert.deepEqual(r,['owner',['GET /api/me/home?fresh=1','GET /api/me/home'],1]);
+  t.stop();
+});
+
+test('ADV-3 guard: a click whose own session read finds the session it showed gone waits for this page’s logout before it asks for a challenge',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),signs=prompts(wallet);
+  let fail=false;const t=tab(w,b,wallet,{holdReply:p=>g.wait('logout',LOGOUT,p),drop:p=>SESSION(p)&&fail&&!(fail=false)});await settle();
+  await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
+  assert.equal((await b.signIn(B)).verify.status,200);await t.client.restore();         // another tab of the profile signs B in; this page reads it
+  fail=true;await t.client.restore();                                                    // a read fails: B still shown, the session unknown
+  assert.deepEqual([statusOf(t.client.state,w.clock.now()),t.client.state.sessionKnown],['owner',false]);
+  const copy=w.browser();copy.jar.set(SESSION_COOKIE,b.jar.get(SESSION_COOKIE));assert.equal((await copy.post('/api/auth/logout')).status,204,'B is logged out elsewhere');
+  const n=t.calls.length,click=t.client.signIn();await settle();await settle();         // B shown: no wait; its session read finds none, so it waits now
+  const waited=t.calls.slice(n);
+  g.open('logout');await click;await settle();
+  assert.deepEqual([waited,signs.map(x=>x===a?'A':x===bAddr?'B':x),statusOf(t.client.state,w.clock.now()),b.jar.has(SESSION_COOKIE),
+    (await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()===bAddr],[['GET /api/auth/session'],['A','B'],'owner',true,true]);
+  t.stop();
+});
+
+// ADV-3 (the re-check's ADVR-5): the wait is shown. On 2f5d6c1 a click waited up to 5 s with nothing on the page (idle,
+// no notice, My wallet's sign button enabled; a second click did nothing), and a wait that ran out said "couldn't check
+// whether you're already signed in", which was not the reason (the wording of that end: the next test).
+test('ADV-3: while a click waits for this page’s logout, My wallet says so and its sign button is off; a second click asks nothing; once answered, B signs in and the notice goes',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),signs=prompts(wallet),en=(z,x)=>x,zh=z=>z;
+  const t=tab(w,b,wallet,{holdReply:p=>g.wait('logout',LOGOUT,p)});await settle();
+  await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
+  const n=t.calls.length,click=t.client.signIn();await settle();await t.client.signIn();          // the click waits; a second click meanwhile
+  const s=t.client.state,during={state:structuredClone(s),now:w.clock.now()};
+  assert.deepEqual([s.phase,s.waiting,s.notice,statusOf(s,w.clock.now()),t.calls.slice(n),signs.length],['idle',true,null,'connected',[],1]);
+  const pending=[waitingText(en),waitingText(zh)];
+  assert.deepEqual(pending,['Waiting for a log-out (or a cancelled sign-in) this page sent earlier to be answered; your wallet is asked nothing until then.',
+    '正在等這個頁面先前送出的登出（或已取消的登入）得到回應；在那之前不會向錢包要求任何東西。']);
+  const [html,zhtml]=await panels([{...during,lang:'en'},{...during,lang:'zh'}]);
+  for(const [page,text,label] of [[html,pending[0],'Sign in to move in'],[zhtml,pending[1],'簽名驗證入住']])
+    assert.ok(page.includes(`<p class="empty-state wallet-notice">${text}</p>`)&&page.includes(`<button class="primary" disabled="">${label}</button>`),page.slice(0,1500));
+  g.open('logout');await click;await settle();
+  assert.deepEqual([t.client.state.waiting,t.client.state.notice,statusOf(t.client.state,w.clock.now()),signs.map(x=>x===a?'A':x===bAddr?'B':x),posts(t.calls,'/api/auth/challenge'),b.jar.has(SESSION_COOKIE)],
+    [false,null,'owner',['A','B'],2,true]);
+  t.stop();
+});
+
+// Guard (ADV-3): a click that waited and then finds another wallet in use (one that changed with no provider-change event)
+// ends asking nothing, and leaves no "waiting" notice behind. Fails with that end keeping the notice.
+test('ADV-3 guard: a click that waited for this page’s logout and then finds another wallet in use asks nothing and leaves no waiting notice',async()=>{
+  const A=newAccount(),B=newAccount(),C=newAccount(),w=world(),b=w.browser(),g=gates();
+  const wa=fakeWallet(A),wc=fakeWallet(C);let current=wa;wc.granted=true;
+  const t=tab(w,b,null,{registry:{current:()=>current,subscribe:()=>()=>{}},holdReply:p=>g.wait('logout',LOGOUT,p)});await settle();
+  await t.client.signIn();g.arm('logout');wa.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
+  const n=t.calls.length,click=t.client.signIn();await settle();
+  current=wc;g.open('logout');await click;await settle();                                // the page now sees another wallet (no event); the logout answered
+  assert.deepEqual([t.calls.slice(n),wc.asked,t.client.state.notice,!!t.client.state.waiting,t.client.state.phase],[[],[],null,false,'idle']);
+  t.stop();
+});
+
+// The team's review of 066d109 (RC-1..RC-5, its probes P1b..P9b; not an outside review). RC-1: since f095642 an
+// abandoned flow's late verify success read its body (to name the late session) before it sent that session's logout,
+// the verify still held meanwhile. RC-2: a session or house read that failed while a click waited replaced the waiting
+// notice (one notice slot), so the page said "unavailable" beside a sign button that was on and did nothing. RC-3..RC-5:
+// lines of f095642 that no test pinned. Since this review the late session's logout goes out on the verify's headers and
+// the wait is a field of its own (`waiting`), shown in the notice's place; `ID: …` below failed on 066d109 (except the
+// RC-3 test, which passes there and fails on 2f5d6c1), and each `ID guard: …` passes there and fails under the weakening
+// it names (the refused “Log out all devices” guard: its expected end changed with the review of 13449f2, CF-3).
+/** My wallet's notice line, and its sign buttons (the primary ones), as rendered. */
+const noticeLine=html=>(html.match(/<p class="empty-state wallet-notice">([^<]*)<\/p>/)??[])[1]??null;
+const signButtons=html=>html.match(/<button class="primary"[^>]*>[^<]*<\/button>/g)??[];
+
+// ADV-3 (RC-1): the late success of an abandoned flow is logged out on its headers, which bring its cookie. On 066d109 a
+// body that stalled after them kept that logout back: A's late session stayed live at the server with its cookie in this
+// browser, and the click for B waited LOGOUT_WAIT_MS and ended with 'logout-slow', asking nothing (2f5d6c1 sent it on the
+// headers). The body, landing later, names the session that logout ended, and never ends B's.
+test('ADV-3: an abandoned flow’s verify whose body stalls after its headers: its late session is logged out on the headers, the click for B signs B in, and the body landing later leaves B alone',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),h=heldBodies(VERIFY),env=fakeEnv(),signs=prompts(wallet);
+  const t=tab(w,b,wallet,{env,holdReply:p=>g.wait('verify',VERIFY,p),rewrite:h.rewrite});await settle();
+  const liveA=()=>w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL AND lower(address)=?').get(a).n;
+  g.arm('verify');const pending=h.next(),flow=t.client.signIn();await until(()=>g.held('verify'));   // A's verify: A's session made at the server, the answer held
+  wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();   // the switch abandons the flow
+  g.open('verify');const body=await Promise.race([pending,new Promise(r=>setTimeout(()=>r(null),1000))]);await settle();await settle();   // the headers land (A's late cookie), the body is held
+  const onHeaders=[!!body,posts(t.calls,'/api/auth/logout'),b.jar.has(SESSION_COOKIE),liveA()];
+  const n=t.calls.length,click=t.client.signIn();
+  await until(()=>env.live().some(x=>x.ms===LOGOUT_WAIT_MS)||signs.length>1);const bound=env.live().find(x=>x.ms===LOGOUT_WAIT_MS);if(bound)env.fire(bound);
+  await click;await settle();
+  const s=t.client.state,clicked=[t.calls.slice(n),signs.map(x=>x===a?'A':x===bAddr?'B':x),s.notice,statusOf(s,w.clock.now()),s.session?.address===bAddr,b.jar.has(SESSION_COOKIE)];
+  body?.open();await flow;await settle();await settle();                                 // the body lands: it names A's late session
+  const u=t.client.state,after=[statusOf(u,w.clock.now()),u.session?.address===bAddr,t.hint.get()?.address===bAddr,b.jar.has(SESSION_COOKIE),
+    (await b.get('/api/auth/session').then(r=>r.json())).address?.toLowerCase()===bAddr,liveA()];
+  assert.deepEqual({onHeaders,clicked,after},{onHeaders:[true,2,false,0],
+    clicked:[['POST /api/auth/challenge','POST /api/auth/verify','GET /api/me/home'],['A','B'],null,'owner',true,true],after:['owner',true,true,true,true,0]});
+  t.stop();
+});
+
+// ADV-1 (RC-1): the late session's logout goes out before its body names it, so the two can land in either order. A read
+// shows the late session while the click for B waits, and another wallet, A granted, becomes current (owner mode for it;
+// that takes a generation, so only the named session can end). Body first: the page keeps that session until its logout
+// is confirmed (a logout that fails leaves it, as for any sign-out). Logout first: it ends when the body names it. On
+// 066d109 no logout went out before the body.
+test('ADV-1: an abandoned flow’s late session whose verify body and logout answer land in either order after another wallet became current ends on the page once both are in, never before its logout is confirmed',async()=>{
+  const out={};
+  for(const order of ['body first','logout first']){
+    const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates(),h=heldBodies(VERIFY);
+    const wa=fakeWallet(A),wn=fakeWallet(A),subs=new Set();let current=wa;wn.granted=true;
+    const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+    const t=tab(w,b,null,{registry,hold:p=>g.wait('late',LOGOUT,p),holdReply:p=>g.wait('verify',VERIFY,p),rewrite:h.rewrite});await settle();
+    g.arm('verify');const flow=t.client.signIn();await until(()=>g.held('verify'));      // A's verify: A's session made at the server, the answer held
+    wa.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle(); // the switch abandons the flow (its logout answered)
+    g.arm('late');const pending=h.next();g.open('verify');                                 // the headers land (A's late cookie), the body is held
+    const body=await Promise.race([pending,new Promise(r=>setTimeout(()=>r(null),1000))]);await until(()=>g.held('late'));
+    const sent=g.held('late');                                                             // the late session's logout, held before the server
+    const click=t.client.signIn();await settle();                                          // the click for B waits for it
+    await t.client.restore();await until(()=>!t.client.state.checking);const shown=t.client.state.session?.address===a;   // a read shows A's late session
+    current=wn;for(const fn of subs)fn();await until(()=>statusOf(t.client.state,w.clock.now())==='owner');   // another wallet, A granted: owner mode for it
+    const mid=[];
+    if(order==='body first'){body?.open();await flow;await settle();await settle();mid.push(statusOf(t.client.state,w.clock.now()));g.open('late');}
+    else{g.open('late');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();body?.open();await flow;}
+    await until(()=>!t.client.state.session);await click;await settle();
+    const s=t.client.state;
+    out[order]=[sent,shown,...mid,s.session,statusOf(s,w.clock.now()),t.hint.get(),b.jar.has(SESSION_COOKIE),(await b.get('/api/auth/session').then(r=>r.json())).signedIn];
+    t.stop();
+  }
+  assert.deepEqual(out,{'body first':[true,true,'owner',null,'connected',null,false,false],'logout first':[true,true,null,'connected',null,false,false]});
+});
+
+// ADV-1 (RC-3): the same rule when the abandoned flow dies while its verify body is read (its headers came in while it
+// was live): the late session's logout names it. The switch's logout and that one are held before the server; a read
+// shows the late session while the click for B waits; another wallet, A granted, becomes current; then both logouts
+// reach the server. On 2f5d6c1, and with that logout naming no session, the page kept owner mode, the house and the hint
+// for the revoked late session.
+test('ADV-1: an abandoned flow that dies while its verify body is read: its late session, shown by a read while a click waited, ends on the page when its logout is confirmed after another wallet became current',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates(),h=heldBodies(VERIFY);
+  const wa=fakeWallet(A),wn=fakeWallet(A),subs=new Set();let current=wa;wn.granted=true;
+  const registry={current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}};
+  const t=tab(w,b,null,{registry,hold:async p=>{await g.wait('switch',LOGOUT,p);await g.wait('late',LOGOUT,p);},rewrite:h.rewrite});await settle();
+  const pending=h.next(),flow=t.client.signIn(),body=await pending;                       // A's verify: its headers in (A's cookie), its body held
+  assert.ok(b.jar.has(SESSION_COOKIE),'A’s cookie came with the headers');
+  g.arm('switch');wa.switchTo(B);await until(()=>g.held('switch'));                       // the switch ends the flow; its logout held before the server
+  const click=t.client.signIn();await settle();                                           // the click for B waits
+  g.arm('late');body.open();await flow;await until(()=>g.held('late'));                   // the body names A's late session; its logout held before the server
+  await t.client.restore();await until(()=>!t.client.state.checking);
+  assert.equal(t.client.state.session?.address,a,'a read shows A’s late session');
+  current=wn;for(const fn of subs)fn();await until(()=>statusOf(t.client.state,w.clock.now())==='owner');   // another wallet, A granted: owner mode for it
+  g.open('late');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();g.open('switch');await click;await settle();await settle();
+  const s=t.client.state;
+  assert.deepEqual([s.session,s.home,s.checking,statusOf(s,w.clock.now()),t.hint.get(),(await b.get('/api/auth/session').then(r=>r.json())).signedIn],[null,null,false,'connected',null,false]);
+  t.stop();
+});
+
+// ADV-3 (RC-2): while a click waits, My wallet says so and its sign button is off, whatever a read does meanwhile. On
+// 066d109 the wait was a notice, and a session read (another tab's message, the tab shown again) or a house read (the
+// owner re-check, "Check again") that failed then replaced it: "unavailable", "too many attempts" or "did not complete"
+// beside a sign button that was on and did nothing, and the same click then asked the wallet by itself. My wallet is
+// rendered through tests/fixtures/wallet-panel.mjs.
+test('ADV-3: a session or house read that fails while a click waits for this page’s logout (503, 429, 500) leaves My wallet saying it waits, with its sign button off; once answered, the click asks B to sign',async()=>{
+  const en=(z,x)=>x,zh=z=>z,runs=[];
+  for(const kind of ['session 503','session 429','house 429','house 500']){
+    const [what,code]=kind.split(' '),status=Number(code),A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates();
+    assert.equal((await b.signIn(A)).verify.status,200);                                  // this profile holds A's session
+    const wallet=fakeWallet(B);wallet.granted=true;const signs=prompts(wallet),error={503:'AUTH_UNAVAILABLE',429:'RATE_LIMITED',500:'INTERNAL'}[status];let refuse=false;
+    const t=tab(w,b,wallet,{holdReply:p=>g.wait('logout',LOGOUT,p),rewrite:(p,r)=>refuse&&(what==='session'?SESSION(p):HOME(p))?Response.json({error},{status}):r});
+    await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+    g.arm('logout');const out=t.client.signOut();await until(()=>g.held('logout'));       // "Log out this device": A's logout, its answer held
+    const click=t.client.signIn();await settle();                                         // the click for B waits for it
+    refuse=true;if(what==='session')await t.client.restore();else{w.clock.advance(16_000);await t.client.refreshHome();}refuse=false;
+    const s=t.client.state,run={kind,state:structuredClone(s),now:w.clock.now(),during:[s.notice,s.waiting,signs.length]};runs.push(run);
+    g.open('logout');await out;await click;await settle();
+    const u=t.client.state;run.after=[u.waiting,u.notice,statusOf(u,w.clock.now()),signs.map(x=>x===bAddr?'B':x)];
+    t.stop();
+  }
+  const pages=await panels(runs.flatMap(r=>[{state:r.state,lang:'en',now:r.now},{state:r.state,lang:'zh',now:r.now}]));
+  const seen=Object.fromEntries(runs.map((r,i)=>[r.kind,[...r.during,noticeLine(pages[2*i]),noticeLine(pages[2*i+1]),
+    [...signButtons(pages[2*i]),...signButtons(pages[2*i+1])].map(x=>x.includes(' disabled=""')),r.after]]));
+  const waits=notice=>[notice,true,0,waitingText(en),waitingText(zh),[true,true],[false,null,'owner',['B']]];
+  assert.deepEqual(seen,{'session 503':waits('auth-unavailable'),'session 429':waits('rate-limited'),'house 429':waits('rate-limited'),'house 500':waits('failed')});
+});
+
+// Guard (ADV-3, RC-4): the waiting line is set only for a click still live. A click whose own session re-read (the
+// session unknown after a lost read) is under way when a switch to another account ends it must not put the line up
+// once that read lands: nothing would take it down, and My wallet would say it waits, its sign button off, until the
+// wallet changed again. Fails with the line set without `live()`.
+test('ADV-3 guard: on a mismatch, a click that a switch to another account ends during its own session re-read leaves no waiting line, and My wallet’s sign button on',async()=>{
+  const A=newAccount(),B=newAccount(),C=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates();
+  assert.equal((await b.signIn(A)).verify.status,200);                                    // this profile holds A's session
+  const wallet=fakeWallet(B);wallet.granted=true;const signs=prompts(wallet);let fail=false;
+  const t=tab(w,b,wallet,{holdReply:async p=>{await g.wait('read',SESSION,p);await g.wait('logout',LOGOUT,p);},drop:p=>SESSION(p)&&fail&&!(fail=false)});
+  await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+  fail=true;await t.client.restore();assert.equal(t.client.state.sessionKnown,false);      // a read is lost: the session unknown
+  g.arm('read');const click=t.client.signIn();await until(()=>g.held('read'));             // "Sign in as B" re-reads it first (held)
+  g.arm('logout');wallet.switchTo(C);await until(()=>g.held('logout'));                   // the switch to C ends the click; its logout of A held
+  g.open('read');await settle();await settle();g.open('logout');await click;await settle();
+  const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]);
+  assert.deepEqual([!!s.waiting,s.notice,statusOf(s,w.clock.now()),signs.length,noticeLine(html),signButtons(html)],[false,null,'connected',0,null,['<button class="primary">Sign in to move in</button>']]);
+  t.stop();
+});
+
+/** A click for B waiting for an account switch's logout of A (held before the server) while a read shows A again ("Sign
+ *  in as B"), then `end` ends it; My wallet, rendered before and after. The logout is answered only after that. */
+async function endTheWait(end){
+  const A=newAccount(),B=newAccount(),C=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),g=gates();
+  const t=tab(w,b,wallet,{hold:p=>g.wait('logout',LOGOUT,p)});await settle();
+  await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, held before the server
+  const click=t.client.signIn();await settle();                                            // the click for B waits for it
+  await t.client.restore();await until(()=>!t.client.state.checking);                      // a read (another tab's message) still finds A: "Sign in as B"
+  const view=async()=>{const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]);
+    return [statusOf(s,w.clock.now()),noticeLine(html),signButtons(html).map(x=>x.includes(' disabled=""'))];};
+  const before=await view();let stop=t.stop,leaving=null;
+  if(end==='sign-out')leaving=t.client.signOut();else if(end==='switch')wallet.switchTo(C);else{t.stop();stop=t.client.start();}
+  await until(()=>!t.client.state.leaving);await settle();await settle();
+  const after=await view();
+  g.open('logout');await leaving;await click;await settle();stop();
+  return [...before,...after];
+}
+const waitingThenNot=st=>['mismatch',waitingText((z,x)=>x),[true],st,null,[false]];
+
+// Guard (ADV-3): what ends a waiting click takes its waiting line down at once: "Log out this device" and a switch to
+// another account (each takes a generation). The click is still inside its wait then (the logout it waits for is held),
+// so nothing else would. Fails with either end leaving `waiting` set.
+test('ADV-3 guard: “Log out this device”, or a switch to another account, while a click waits for this page’s logout takes the waiting line down at once, the sign button on',async()=>{
+  assert.deepEqual({'sign-out':await endTheWait('sign-out'),switch:await endTheWait('switch')},{'sign-out':waitingThenNot('connected'),switch:waitingThenNot('connected')});
+});
+
+// ADV-3: so does the page's teardown: a client started again (React Refresh, StrictMode) shows no waiting line for the
+// click the teardown ended. On 066d109 'logout-pending' stayed, the sign button off, until the wallet changed (the
+// review's probe P6; not raised as a finding, since the page starts its client once outside development).
+test('ADV-3: the page’s teardown while a click waits for this page’s logout takes the waiting line down: a client started again shows none, the sign button on',async()=>{
+  assert.deepEqual(await endTheWait('teardown'),waitingThenNot('mismatch'));
+});
+
+// Guards (ADV-1, RC-5): a sign-out confirmed after another wallet became current says "Signed out." only when it ended
+// the session it named. Another tab's newer session (C), held by then, stays with nothing said, and no "Signed out."
+// shows after the wallet then names another account (which ends C here). Fails with "Signed out." set whatever
+// `loggedOut` did, with `loggedOut` reporting that it applied when it did nothing, or with the wallet change leaving
+// the waiting line of the click it ended.
+test('ADV-1 guard: a sign-out confirmed after another wallet became current leaves a newer session the page holds by then, and never says “Signed out.” for it, also after the next account switch',async()=>{
+  const A=newAccount(),B=newAccount(),C=newAccount(),D=newAccount(),c=C.address.toLowerCase(),w=world(),b=w.browser(),g=gates();
+  assert.equal((await b.signIn(A)).verify.status,200);                                    // this profile holds A's session
+  const {t,pickNew,wn}=chosenWallets(w,b,{A,B,holdReply:p=>g.wait('logout',LOGOUT,p)});
+  await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch'&&!t.client.state.checking);
+  g.arm('logout');const out=t.client.signOut();await until(()=>g.held('logout'));         // "Log out this device": A revoked, the answer held
+  const click=t.client.signIn();await settle();w.clock.advance(60_000);                   // the click for B waits for it
+  assert.equal((await b.signIn(C)).verify.status,200);await t.client.restore();           // another tab of the profile signs C in; this page reads it
+  const held=t.client.state.session;assert.equal(held?.address,c);
+  pickNew();await settle();g.open('logout');await out;await click;await settle();        // another wallet (none granted); then A's logout is answered
+  const s=t.client.state,first=[s.session?.address===c&&s.session.expiresAt===held.expiresAt,s.ended,t.hint.get()?.address===c,s.leaving,s.notice,!!s.waiting];
+  wn.account=D;wn.granted=true;for(const fn of wn.listeners)fn([D.address]);await settle();await settle();   // that wallet now names D: C ends on the page
+  const u=t.client.state,[html]=await panels([{state:u,lang:'en',now:w.clock.now()}]);
+  assert.deepEqual({first,then:[u.session,u.ended,html.includes('<p class="small-note" role="status">Signed out.</p>')]},{first:[true,null,true,false,null,false],then:[null,null,false]});
+  t.stop();
+});
+
+// Guard (ADV-1): "Log out all devices" refused because this browser's sign-in had already ended (401: nobody was signed
+// out), answered after another wallet became current while a click waited for it, says no "Signed out.": that would read
+// as if the other devices were signed out (AUD3-07's point). Fails with the branch for a sign-out a newer flow overtook
+// taking any answer but a 2xx as a confirmed one. Since the review of 13449f2 (CF-3) the session is then read afresh, so
+// the page says what that read found: revoked (by the other device), not signed out by this page.
+test('ADV-1 guard: a “Log out all devices” the server refused (this browser’s sign-in had ended), answered after another wallet became current while a click waited for it, says no “Signed out.”',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates(),ALL=p=>p==='/api/auth/logout-all';
+  assert.equal((await b.signIn(A)).verify.status,200);                                    // this profile holds A's session
+  const wa=fakeWallet(A),wb=fakeWallet(B),wn=fakeWallet(A),subs=new Set();let current=wa;wa.granted=wb.granted=true;
+  const pick=x=>{current=x;for(const fn of subs)fn();},t=tab(w,b,null,{registry:{current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}},holdReply:p=>g.wait('all',ALL,p)});
+  await until(()=>statusOf(t.client.state,w.clock.now())==='owner');
+  const elsewhere=w.browser();assert.equal((await elsewhere.signIn(A)).verify.status,200);
+  assert.equal((await elsewhere.post('/api/auth/logout-all')).status,200);                // another device logs A out everywhere: this page does not know yet
+  g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));           // "Log out all devices": refused (401), the answer held
+  pick(wb);await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch');          // a wallet on B is chosen: "Sign in as B"
+  const click=t.client.signIn();await settle();pick(wn);await settle();                   // the click waits for that answer; another wallet becomes current
+  g.open('all');await out;await click;await settle();
+  const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]);
+  assert.deepEqual([s.ended,s.leaving,html.includes('<p class="small-note" role="status">Signed out.</p>')],['revoked',false,false]);
+  t.stop();
+});
+
+// The team's review of 13449f2 (CF-1..CF-5; not an outside review). The `ID: …` test below fails on 13449f2; each `ID
+// guard: …` passes there and fails under the weakening it names.
+// ADV-1 (CF-3): the same refused "Log out all devices" read to its end. The live path reads the
+// session after a refused logout-all (R-1, AUD3-07); the branch for a sign-out a newer flow overtook did not, so the page
+// kept A's session, revoked at the server by the other device's logout-all, in owner mode with no notice until the owner
+// re-check. It now reads the session too: the newest read says signed out. Nothing is asked of the wallet (the switch
+// ended the click), and no "Signed out." is said (nobody was signed out by this page). Fails on 13449f2.
+test('ADV-1: a “Log out all devices” the server refused, answered after another wallet became current while a click waited for it, reads the session again: the session another device ended is not kept',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),g=gates(),ALL=p=>p==='/api/auth/logout-all';
+  assert.equal((await b.signIn(A)).verify.status,200);                                    // this profile holds A's session
+  const wa=fakeWallet(A),wb=fakeWallet(B),wn=fakeWallet(A),subs=new Set();let current=wa;wa.granted=wb.granted=wn.granted=true;
+  const asked=[prompts(wa),prompts(wb),prompts(wn)];
+  const pick=x=>{current=x;for(const fn of subs)fn();},t=tab(w,b,null,{registry:{current:()=>current,subscribe:fn=>{subs.add(fn);return()=>subs.delete(fn);}},holdReply:p=>g.wait('all',ALL,p)});
+  await until(()=>statusOf(t.client.state,w.clock.now())==='owner');
+  const elsewhere=w.browser();assert.equal((await elsewhere.signIn(A)).verify.status,200);
+  assert.equal((await elsewhere.post('/api/auth/logout-all')).status,200);                // another device logs A out everywhere: this page does not know yet
+  g.arm('all');const out=t.client.signOut(true);await until(()=>g.held('all'));           // "Log out all devices": refused (401), the answer held
+  pick(wb);await until(()=>statusOf(t.client.state,w.clock.now())==='mismatch');          // a wallet on B is chosen: "Sign in as B"
+  const click=t.client.signIn();await settle();pick(wn);await settle();await settle();    // the click waits for that answer; another wallet, A granted, becomes current
+  g.open('all');await out;await click;await settle();await until(()=>!t.client.state.checking);await settle();
+  const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]);
+  assert.deepEqual([statusOf(s,w.clock.now()),s.session,s.home,s.ended,s.leaving,t.hint.get(),html.includes('<p class="small-note" role="status">Signed out.</p>'),
+    (await b.get('/api/auth/session').then(r=>r.json())).signedIn,asked.flat()],['connected',null,null,'revoked',false,null,false,false,[]]);
+  t.stop();
+});
+
+// Guards (ADV-1, the review of 13449f2: CF-1, CF-2): an abandoned flow's verify body that lands after its late logout
+// ends that very session and nothing else, and only once that logout was confirmed. Its verify answered and held, the
+// switch to B abandons the flow, the headers land (the late logout goes out on them), the body is held.
+async function lateBody({lose=false}={}){
+  const A=newAccount(),B=newAccount(),C=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),c=C.address.toLowerCase();
+  const w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates(),h=heldBodies(VERIFY);
+  let dropNext=false;
+  const t=tab(w,b,wallet,{holdReply:p=>g.wait('verify',VERIFY,p),rewrite:h.rewrite,drop:p=>LOGOUT(p)&&dropNext&&!(dropNext=false)});await settle();
+  g.arm('verify');const pending=h.next(),flow=t.client.signIn();await until(()=>g.held('verify'));   // A's verify: A's session made at the server, the answer held
+  wallet.switchTo(B);await until(()=>posts(t.calls,'/api/auth/logout')===1);await settle();          // the switch abandons the flow (its logout answered)
+  dropNext=lose;g.open('verify');const body=await pending;                                          // the headers land (A's late cookie), the body is held
+  await until(()=>posts(t.calls,'/api/auth/logout')===2);await settle();await settle();               // the late logout: confirmed, or lost
+  const liveA=()=>w.db.raw.prepare('SELECT count(*) n FROM sessions WHERE revoked_at IS NULL AND lower(address)=?').get(a).n;
+  return {C,a,c,w,b,t,flow,body,liveA};
+}
+// CF-1: the late logout confirmed; another tab of this profile signs C in and this page reads it (wallet on B: a
+// mismatch); then A's body lands. C stays. Fails with the late body's end taking the revoke's generation (which nothing
+// has taken since), so ending whatever session the page holds.
+test('ADV-1 guard: an abandoned flow’s verify body landing after its late logout was confirmed leaves another tab’s newer session the page holds',async()=>{
+  const x=await lateBody();
+  assert.equal(x.b.jar.has(SESSION_COOKIE),false,'the late logout was confirmed');
+  x.w.clock.advance(60_000);assert.equal((await x.b.signIn(x.C)).verify.status,200);     // another tab of this profile signs C in
+  await x.t.client.restore();await until(()=>!x.t.client.state.checking);
+  const held=x.t.client.state.session;assert.equal(held?.address,x.c);
+  x.body.open();await x.flow;await settle();await settle();                               // A's body lands: it names A's late session
+  const s=x.t.client.state;
+  assert.deepEqual([s.session,x.t.hint.get()?.address,s.ended,statusOf(s,x.w.clock.now())],[held,x.c,null,'mismatch']);
+  x.t.stop();
+});
+// CF-2: the late logout is lost (network); a read shows A's late session (still live at the server, its cookie here);
+// then the body lands. The page keeps showing it (a logout that did not reach the server ends nothing: SEC-1 / CORR-01).
+// Fails with a lost late logout counted as a confirmation.
+test('ADV-1 guard: an abandoned flow’s late logout that was lost: its verify body landing later leaves the still-live late session on the page',async()=>{
+  const x=await lateBody({lose:true});
+  await x.t.client.restore();await until(()=>!x.t.client.state.checking);
+  assert.equal(x.t.client.state.session?.address,x.a,'a read shows A’s late session');
+  x.body.open();await x.flow;await settle();await settle();
+  const s=x.t.client.state,server=await x.b.get('/api/auth/session').then(r=>r.json());
+  assert.deepEqual([s.session?.address,statusOf(s,x.w.clock.now()),server.signedIn,String(server.address).toLowerCase(),x.liveA()],[x.a,'mismatch',true,x.a,1]);
+  x.t.stop();
+});
+
+// Guards (ADV-3, RC-5): the waiting line is for a click held up by this page's own logout that would ask the wallet
+// something. A click waiting only for a session read (no logout out), or one whose wallet's account is signed in
+// already (it asks nothing) while a logout is out, shows none. Fail with the line set for any wait, or without `asks()`.
+test('ADV-3 guard: a click that waits only for a session read, with no logout of this page out, shows no waiting line',async()=>{
+  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A),g=gates();
+  const t=tab(w,b,wallet,{holdReply:p=>g.wait('read',SESSION,p)});await settle();
+  g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));            // a session read on its way (held)
+  const click=t.client.signIn();await settle();
+  const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]),during=[!!s.waiting,s.notice,noticeLine(html)];
+  g.open('read');await read;await click;
+  assert.deepEqual([during,statusOf(t.client.state,w.clock.now()),wallet.signed],[[false,null,null],'owner',1]);
+  t.stop();
+});
+
+test('ADV-3 guard: signed in already as the wallet’s account, a click that waits for a session read while this page’s logout is out shows no waiting line and asks nothing',async()=>{
+  const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),wallet=fakeWallet(A),g=gates();
+  const t=tab(w,b,wallet,{holdReply:async p=>{await g.wait('logout',LOGOUT,p);await g.wait('read',SESSION,p);}});await settle();
+  await t.client.signIn();g.arm('logout');wallet.switchTo(B);await until(()=>g.held('logout'));   // the switch's logout of A, its answer held
+  assert.equal((await b.signIn(B)).verify.status,200);await t.client.restore();           // another tab of the profile signs B in; this page reads it
+  assert.equal(statusOf(t.client.state,w.clock.now()),'owner');
+  g.arm('read');const read=t.client.restore();await until(()=>g.held('read'));            // another read on its way (held)
+  const click=t.client.signIn();await settle();
+  const s=t.client.state,[html]=await panels([{state:s,lang:'en',now:w.clock.now()}]),during=[!!s.waiting,s.notice,noticeLine(html)];
+  g.open('read');await read;await click;g.open('logout');await settle();
+  assert.deepEqual([during,statusOf(t.client.state,w.clock.now()),wallet.signed],[[false,null,null],'owner',1]);
+  t.stop();
 });

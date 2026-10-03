@@ -1,14 +1,14 @@
-# SHA-256 of dist/ rebuilt from git -c core.autocrlf=true archive 2e4e830b367f651e3c880587c1a4b465d1bfcd91 (npm ci + npm run build = tsc --noEmit && vite build, node v24.19.0, npm 11.17.0; 2026-10-01T04:28:02Z). All 100 files are byte-identical to the deploy record (deploy-record-SHA256SUMS.txt).
+# SHA-256 of dist/ rebuilt from git -c core.autocrlf=true archive ddb10e28a867998323164e7585635efedfcf7788 (npm ci + npm run build = tsc --noEmit && vite build, node v24.19.0, npm 11.17.0; 2026-10-03T13:13:05Z). All 102 files are byte-identical to the deploy record (deploy-record-SHA256SUMS.txt).
 # sha256  size  path
 da0b20c41097f419435a68e5ff5d668424ad79402565a1611a594e5ea07ec29e  3861  _headers
-5077095b0b0fee5b68ad02328bc5d2304de7822f90ed933f54780c8880041630  93255  assets/InteriorView-4LZmFcoq.js
+4a64e1f3f47df59ea7f6e369691a78aab8791addbcb33d4d9f332de04e70e84c  93242  assets/InteriorView-DM8tQpsI.js
 b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217  14128  assets/cinzel-latin-400-normal-DnUIPmzd.woff2
 61efc27ceb7d08bb841652fa8979c0b6833b92548b7f9544c07968a6c02f28e4  15204  assets/cinzel-latin-600-normal-Dd5YO2UX.woff2
 b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669  41076  assets/decor/pepe/flags.b9ba8791e7.webp
 99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3  215970  assets/decor/pepe/murals.99dc8eaf72.webp
 fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea  55390  assets/decor/pepe/posters.fa83db53c5.webp
-4d1e832e229e0ea91b5af4b907c915489babf94db21f015c8eb72bf1510e0b32  57205  assets/index-B1zoY2Mz.css
-b6d39838089b2707778990485570b6069054bdea22298bc2062b41a17f198d3d  1432648  assets/index-C1BrxBtd.js
+6799cd5de49639b854270820c090bf5983b22d7d81b58818b9a427e48c1152ec  58227  assets/index-BZpalHf7.css
+f9cf6a67132706372b2917efdfffe22c6cda0402ae2c7e4ec32bf3aee6c71588  1482070  assets/index-BoNTm1MM.js
 3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3  408512  assets/models/houses/house_lisbon_l.3f1df81bff.glb
 8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6  437756  assets/models/houses/house_lisbon_m.8d013b5cae.glb
 a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93  373904  assets/models/houses/house_lisbon_ms.a65c7fca14.glb
@@ -33,8 +33,9 @@ a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995  319388  assets
 649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5  382320  assets/models/landmarks/landmark_oracle.649809a666.glb
 5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b  584400  assets/models/landmarks/landmark_pepe_statue.5b3f3acb36.glb
 c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af  206196  assets/models/props/boat.c19d20ecc1.glb
+6b44d9d4d3ea6988f440e9cc6cb7051aca0b60e331360472cbc5bc86bdc78094  207588  assets/models/props/boat_shelter.6b44d9d4d3.glb
 93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37  65974  assets/references/imd/pepe-idle.93e67adf9a.webp
-b79d0a4b5aaf65e626e6097beb5c71b2fbc0ff3586ab96dff19707770b6a3e7a  698912  assets/terrain-phone.b79d0a4b5a.bin
+489f67dc470887d0ead51ddaab0ff01a94f15e73701b410f9b73174bfe815748  698912  assets/terrain-phone.489f67dc47.bin
 5f942b7366c84cec00e5915b387b2d5df66f160110f3d7e1b03ee33933f8e7cf  2593017  audio/music/after_the_rain_a.5f942b7366.mp3
 a10b3caf5520f005c7a0c7ac9b6b93880739702879c674e015d9a6011c666e82  2797817  audio/music/ember_boats_a.a10b3caf55.mp3
 1e01e650cf2e32b2ea56a44d7e20b8e67df03bb368e129ee64d76268990399bf  2411205  audio/music/frosthollow_lullaby_a.1e01e650cf.mp3
@@ -59,7 +60,7 @@ b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669  41076  decor/p
 99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3  215970  decor/pepe/murals.webp
 fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea  55390  decor/pepe/posters.webp
 104dcbb66bf8987bec7e1b606d962a0adc409c23dd78496d1d4cb9b83560a909  513  favicon.svg
-62af24a41f3825ffd8b8c68b8d2032205b58a82cbb92618fed599609163e49c9  2634  index.html
+b51fd33164084511d9fb0dc3a23cadfcecbb6965d74a0e418761b7a1bee0205a  2634  index.html
 e7440e690fe3f0671e13dfc72980d0387e304e3e2673486be0369b4e65323c38  4475  licenses/cinzel-OFL.txt
 3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3  408512  models/houses/house_lisbon_l.glb
 8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6  437756  models/houses/house_lisbon_m.glb
@@ -97,6 +98,7 @@ a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995  319388  models
 649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5  382320  models/landmarks/landmark_oracle.glb
 5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b  584400  models/landmarks/landmark_pepe_statue.glb
 c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af  206196  models/props/boat.glb
+6b44d9d4d3ea6988f440e9cc6cb7051aca0b60e331360472cbc5bc86bdc78094  207588  models/props/boat_shelter.glb
 93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37  65974  references/imd/pepe-idle.webp
 e142d6d788cb5f80ad2dbbbee6c010c420fd247e19d7b6b5c561c7d84f03d856  394498  references/imd/pepe.webp
 55ae744d250b53fe9de705688a62072224628bd8b00785dad642ebce276f8b63  4537  third-party-licenses.txt

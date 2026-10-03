@@ -28,7 +28,7 @@ export type SeatFloor={floorEth:number;floorUsd?:number;marketplace:string;fetch
 export type MarketExtras={floorEnabled:boolean;floor?:SeatFloor};
 /** What the client's market read returns: the quote sample, with the Worker's extras merged in when it has them. */
 export type MarketSample=SourceSample&{extras?:MarketExtras};
-export type Weather='sunny'|'fair'|'overcast'|'rain'|'storm'|'thunderstorm'|'unknown';
+export type Weather='brilliant'|'sunny'|'overcast'|'rain'|'storm'|'thunderstorm'|'unknown';
 const finite=(x:unknown)=>typeof x==='number'&&Number.isFinite(x)?x:null;
 const positive=(x:unknown)=>{const n=finite(x);return n!==null&&n>=0?n:null;};
 const decimal=(x:unknown)=>{const n=typeof x==='string'&&x.trim()?Number(x):finite(x);return n!==null&&Number.isFinite(n)&&n>0?n:null;};
@@ -67,11 +67,13 @@ export function ethUsd(quote:MarketQuote|null|undefined):number|null {
 export function withUsd(floor:SeatFloor,quote:MarketQuote|null|undefined):SeatFloor {
   const rate=ethUsd(quote);return rate===null?floor:{...floor,floorUsd:floor.floorEth*rate};
 }
-/** The 24h change's tier (owner, 2026-09-28): ≥ +5 sunny, 0…+5 fair, −3…0 overcast, −12…−3 rain, −22…−12 storm (heavy
- *  rain and wind), ≤ −22 thunderstorm. A value exactly on a falling boundary takes the worse tier (−3 rain, −12 storm). */
+/** The 24h change's tier (owner, 2026-10-01, replacing the 2026-09-28 tiers): ≥ +10 brilliant (大晴天, a brighter sky
+ *  with fireworks now and then, skyShow.ts), 0…+10 sunny (晴朗), −5…0 overcast (陰天), −12…−5 rain, −22…−12 storm
+ *  (heavy rain and wind), ≤ −22 thunderstorm. A value exactly on a falling boundary takes the worse tier (−5 rain, −12
+ *  storm, −22 thunderstorm); exactly 0 is sunny and exactly +10 brilliant. The old 0…+5 fair tier (薄雲) is gone. */
 export function weatherForChange(change:number|null):Weather {
   if(change===null||!Number.isFinite(change))return 'unknown';
-  return change>=5?'sunny':change>=0?'fair':change>-3?'overcast':change>-12?'rain':change>-22?'storm':'thunderstorm';
+  return change>=10?'brilliant':change>=0?'sunny':change>-5?'overcast':change>-12?'rain':change>-22?'storm':'thunderstorm';
 }
 /** A floor older than this is hidden rather than shown as current. */
 export const FLOOR_MAX_AGE_MS=2*60*60_000;
@@ -93,30 +95,36 @@ export function marketView(sample:MarketSample|null,now=Date.now()) {
     mood:marketMood(fresh?quote?.change?.h1:null)} as const;
 }
 /** Each 24h tier's own rain and wind, 0..1: gentle rain; heavy rain with wind (storm); torrential in a thunderstorm. */
-export const WEATHER_RAIN:Record<Weather,number>={sunny:0,fair:0,overcast:0,rain:.3,storm:.65,thunderstorm:1,unknown:0};
-export const WEATHER_WIND:Record<Weather,number>={sunny:0,fair:0,overcast:0,rain:0,storm:.5,thunderstorm:.65,unknown:0};
+export const WEATHER_RAIN:Record<Weather,number>={brilliant:0,sunny:0,overcast:0,rain:.3,storm:.65,thunderstorm:1,unknown:0};
+export const WEATHER_WIND:Record<Weather,number>={brilliant:0,sunny:0,overcast:0,rain:0,storm:.5,thunderstorm:.65,unknown:0};
 const unit=(x:number)=>Number.isFinite(x)?Math.min(1,Math.max(0,x)):0;
 /** Rain on screen, 0..1 (skin/weather.ts turns it into streak count, length, speed, haze, wet ground and ripples): the
- *  24h tier's own rain plus a shower of up to .3 when the last hour fell (marketMood). 0 means no rain drawn. */
+ *  24h tier's own rain plus a shower when the last hour fell more than 5 % (marketMood): .075 just past it, up to .3 (as
+ *  much as the rain tier's own) at −10 % or worse. 0 means no rain drawn. */
 export function rainIntensity(weather:Weather,mood:{rain:number}):number {
   return Math.min(1,(WEATHER_RAIN[weather]??0)+.3*unit(mood.rain));
 }
 /** A shower from the falling hour on a dry 24h sky: rain is drawn (rainIntensity > 0) though the tier has none of its own.
- *  The weather card and the Observatory name it, so rain under "Fair skies" reads as meant, not as a fault. */
+ *  The weather card and the Observatory name it, so rain under "Clear skies" reads as meant, not as a fault. */
 export function showerOver(weather:Weather,mood:{rain:number}):boolean {return weather!=='unknown'&&!(WEATHER_RAIN[weather]>0)&&rainIntensity(weather,mood)>0;}
 export const SHOWER_LABEL={en:'shower',zh:'陣雨'} as const;
 /** Wind for the rain, 0..1: the tier's own (storms) with the 1h mood's wind blowing on top of it. */
 export function rainWind(weather:Weather,mood:{wind:number}):number {
   const own=WEATHER_WIND[weather]??0;return own+(1-own)*unit(mood.wind);
 }
-/** Rain and wind, 0..1, from the 1h change (the sky keeps following the 24h change): rain only on a falling hour, full
- *  at −4 % or worse; wind with the size of the move either way, full at ±6 %. Calm when unknown. */
+/** The 1h shower (owner, 2026-10-01, replacing "any falling hour, full at −4 %"): none unless the last hour fell by more
+ *  than SHOWER_FROM (−5 % exactly, or anything milder, brings none); just past it a light but visible shower, SHOWER_LIGHT
+ *  of the most, growing in a straight line to the most at SHOWER_FULL or worse. */
+export const SHOWER_FROM=-5,SHOWER_FULL=-10,SHOWER_LIGHT=.25;
+/** Rain and wind, 0..1, from the 1h change (the sky keeps following the 24h change): the shower above, and wind with the
+ *  size of the move either way, full at ±6 %. Calm when unknown. */
 export function marketMood(change1h:number|null|undefined):{rain:number;wind:number} {
   const c=finite(change1h);if(c===null)return {rain:0,wind:0};
-  return {rain:Math.min(1,Math.max(0,-c/4)),wind:Math.min(1,Math.abs(c)/6)};
+  const rain=c<SHOWER_FROM?Math.min(1,SHOWER_LIGHT+(1-SHOWER_LIGHT)*(SHOWER_FROM-c)/(SHOWER_FROM-SHOWER_FULL)):0;
+  return {rain,wind:Math.min(1,Math.abs(c)/6)};
 }
 export const WEATHER_LABELS:Record<Weather,{en:string;zh:string;icon:string}>={
-  sunny:{en:'Clear skies',zh:'晴朗',icon:'☀'},fair:{en:'Fair skies',zh:'薄雲',icon:'☀'},overcast:{en:'Overcast',zh:'陰天',icon:'☁'},
+  brilliant:{en:'Brilliant sky',zh:'大晴天',icon:'☀'},sunny:{en:'Clear skies',zh:'晴朗',icon:'☀'},overcast:{en:'Overcast',zh:'陰天',icon:'☁'},
   rain:{en:'Rain',zh:'雨天',icon:'☂'},storm:{en:'Storm',zh:'風暴',icon:'☂'},thunderstorm:{en:'Thunderstorm',zh:'雷雨',icon:'⛈'},
   unknown:{en:'Awaiting market data',zh:'等待行情',icon:'◌'}
 };

@@ -216,7 +216,7 @@ test('rate limits key IPv6 clients by their /64, so rotating host bits within on
     assert.equal(rateLimitKey(ip),'ip6:2001:db8:1:2::/64',ip);
   assert.equal(rateLimitKey('2001:db8:1:3::1'),'ip6:2001:db8:1:3::/64');
   assert.equal(rateLimitKey('2001:db8::1:2:3:4:5'),'ip6:2001:db8:0:1::/64');
-  assert.equal(rateLimitKey('::1'),'ip6:0:0:0:0::/64');
+  assert.equal(rateLimitKey('::1'),'ip:unknown','AUD3-08: the zero /64 holds no public client');
   // Through the Worker, with a fixed-window limiter of 60 per key like SEAT_LIMITER, from 100 addresses of one /64.
   const counts=new Map(),seatLimiter={limit:async({key})=>{counts.set(key,(counts.get(key)??0)+1);return {success:counts.get(key)<=60};}};
   const up=upstream(),w=createWorker(new ReadGateway(up.fetcher,()=>1000)),{env}=assetsEnv({SEAT_LIMITER:seatLimiter}),statuses={};
@@ -233,7 +233,7 @@ test('the sign-in budgets key a client by its network: IPv4 /24, IPv6 /48, IPv4-
   for(const ip of ['203.0.113.9','203.0.113.250','::ffff:203.0.113.1'])assert.equal(networkKey(ip),'net:203.0.113.0/24',ip);
   assert.equal(networkKey('203.0.114.9'),'net:203.0.114.0/24');assert.equal(networkKey(null),'net:unknown');
   for(const ip of ['2001:db8:1:2::1','2001:db8:1:ffff::9','2001:0DB8:0001:0:0:0:0:1','2001:db8:1::'])assert.equal(networkKey(ip),'net6:2001:db8:1::/48',ip);
-  assert.equal(networkKey('2001:db8:2::1'),'net6:2001:db8:2::/48');assert.equal(networkKey('::1'),'net6:0:0:0::/48');
+  assert.equal(networkKey('2001:db8:2::1'),'net6:2001:db8:2::/48');assert.equal(networkKey('::1'),'net:unknown');   // AUD3-08
 });
 // N-5 (Swarm audit 8c3aea2e): inside an IPv6 /48 network key, the subscriber is its /64 (the per-IP limiter's unit);
 // the sign-in budgets give each /64 at most one /24's share (server/auth.ts). IPv4 has one level.
@@ -242,6 +242,22 @@ test('N-5: the subscriber key is the IPv6 /64 inside the /48 network key; IPv4, 
   assert.equal(subnetKey('2001:db8:1:b::2'),'net6:2001:db8:1:b::/64');
   for(const ip of ['203.0.113.9','::ffff:192.0.2.1',null])assert.equal(subnetKey(ip),null,String(ip));
   for(const ip of ['2001:db8:1:a::1','2001:db8:1:b::2'])assert.equal(networkKey(ip),'net6:2001:db8:1::/48','the network key is unchanged: '+ip);
+});
+// AUD3-08 (Swarm audit 1ef8e8a6 #8, Info, hardening): the IPv4 test was an unanchored trailing dotted quad, the hex form of
+// an IPv4-mapped address was not recognised, ::1 and :: shared one /64 with it, and any other text was a key of its own.
+// No production request was shown to reach this (Cloudflare sends dotted IPv4 and compressed IPv6).
+test('AUD3-08: address text is keyed by its real family: hex and dotted IPv4-mapped forms are that IPv4, other IPv6 with a dotted tail stays IPv6, the zero /64 and extra or invalid parts are the one unknown key (the reproduction)',()=>{
+  const keys=ip=>[rateLimitKey(ip),networkKey(ip),subnetKey(ip)],v4=['ip:203.0.113.1','net:203.0.113.0/24',null],unknown=['ip:unknown','net:unknown',null];
+  const cases={'::ffff:cb00:7101':v4,'::FFFF:CB00:7101':v4,'::ffff:203.0.113.1':v4,'0:0:0:0:0:ffff:cb00:7101':v4,'0:0:0:0:0:ffff:203.0.113.1':v4,
+    '64:ff9b::192.0.2.33':['ip6:64:ff9b:0:0::/64','net6:64:ff9b:0::/48','net6:64:ff9b:0:0::/64'],
+    '2001:db8::1.2.3.4':['ip6:2001:db8:0:0::/64','net6:2001:db8:0::/48','net6:2001:db8:0:0::/64'],
+    '2001:db8:1:2:3:4:1.2.3.4':['ip6:2001:db8:1:2::/64','net6:2001:db8:1::/48','net6:2001:db8:1:2::/64']};
+  for(const ip of ['::','::1','::192.0.2.33','::c000:221','::ffff:0:192.0.2.33','::ffff:203.0.113.01','1.2.3.4::','a:b:1.2.3.4::','2001:db8:1.2.3.4::','1.2.3.4::1',
+    '1:2:3:4:5:6:7:1.2.3.4','1:2:3:4:5:6:7::8','1:2:3:4:5:6:7:8:9','2001:db8::12345','1.2.3.4.5','1.2.3.256','01.2.3.4','1.2.3','1::2::3','fe80::1%eth0',
+    ' 203.0.113.9','not-an-ip',
+    // Fewer than eight groups with no '::', a second '::' after eight groups, and a mapped-looking tail after ::1:ffff.
+    '1:2:3:4:5:6:7','beef','dead:beef','1:2:3:4:5:6:7:8::1::2','0:0:0:0:1:ffff:cb00:7101'])cases[ip]=unknown;
+  assert.deepEqual(Object.fromEntries(Object.keys(cases).map(ip=>[ip,keys(ip)])),cases);
 });
 
 // The Cache API as workerd has it, in miniature: one store per location, keyed by URL, honouring max-age.

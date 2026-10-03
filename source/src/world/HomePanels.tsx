@@ -3,6 +3,7 @@ import type {Home,HouseSize} from './households.ts';
 import type {HomePose} from './layout.ts';
 import {useWorldText} from './i18n.tsx';
 import {walletUrl} from './links.ts';
+import {useHouseName} from './MemberPanel.tsx';
 
 export const SIZE_NAMES:Record<HouseSize,[string,string]>={s:['小型','Small'],ms:['中小型','Small-medium'],m:['中型','Medium'],l:['大型','Large'],xl:['超大型','Extra large']};
 export const shortAddr=(a:string)=>a.slice(0,6)+'…'+a.slice(-4);
@@ -11,9 +12,10 @@ const toLodge=(p:{x:number;z:number})=>Math.round(Math.hypot(p.x-6,p.z-31));
 /** One household (wallet): its agents, house size, and whether it is the viewer's. */
 /** onEnter: only for the signed-in owner's own house (homeEntry.ts offersEnter); nobody else gets an Enter action. */
 export function HouseholdBlock({home,agents,mine,onLocate,onEnter}:{home:Home;agents:Map<string,Agent>;mine:boolean;onLocate:(id:string)=>void;onEnter?:()=>void}){
-  const {text,zh}=useWorldText(),size=SIZE_NAMES[home.size];
+  const {text,zh}=useWorldText(),size=SIZE_NAMES[home.size],name=useHouseName(home.owner);
+  // The owner's player name when there is one ("EmberCat 的家"; the short address stays on the next line).
   return <section className="household">
-    <h3>{mine?text('你的家','Your home'):text('這一戶','This household')} · {zh?size[0]:size[1]}{text('屋',' house')}</h3>
+    <h3>{name?<><bdi className="house-owner-name">{name}</bdi>{text(' 的家','’s home')}</>:mine?text('你的家','Your home'):text('這一戶','This household')} · {zh?size[0]:size[1]}{text('屋',' house')}</h3>
     <p className="small-note">{text('錢包','Wallet')} {walletUrl(home.owner)?<a href={walletUrl(home.owner)!} target="_blank" rel="noreferrer" aria-label={text('在 IMD Explorer 查看這個錢包','This wallet on IMD Explorer')}><code>{shortAddr(home.owner)}</code> ↗</a>:<code>{shortAddr(home.owner)}</code>} · {home.agents.length} {text('位 agent 同住','agents live here')} · {text('離守印者聚落','from the lodge')} {toLodge(home)} m</p>
     <ul className="household-agents">{home.agents.map(id=>{const a=agents.get(id);return <li key={id}><button onClick={()=>onLocate(id)}>
       <i className={a?.presence==='online'?(isWorking(a)?'working':'online'):'offline'}/>#{id}<small>{a?.runtimes.join(' / ')||''}</small></button></li>;})}</ul>

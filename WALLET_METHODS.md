@@ -1,112 +1,124 @@
-# WALLET_METHODS：錢包方法清冊
+# WALLET_METHODS：錢包方法、流程與證據界線
 
-這份清冊回答審查重點的第 1 項（持有人審查規格中的錢包方法清冊要求）：連線、登入、恢復 session、登出、進入「我家」與「進入我的家」各流程，實際能呼叫哪些 wallet RPC 方法與 payload。
+## 1. 本次目標與清冊結論
 
-**結論（與上一輪審查版本相同）：用戶端只呼叫三個 EIP-1193 方法：`eth_accounts`、`eth_requestAccounts`、`personal_sign`。其中 `personal_sign` 只用於 SIWE 登入，而且只在頁面端檢查通過之後。** 沒有交易、沒有 typed data、沒有 Permit／Permit2、沒有 approve／setApprovalForAll、沒有批次呼叫、沒有切換鏈、沒有 session key 或委派。「登出所有裝置」與「進入我的家」都不呼叫錢包；本版用戶端的 N-1（session 讀取只套用最新一次、登入點擊先等它）、N-2（challenge 回應到達後、簽名提示之前再確認流程、錢包與帳號；被取消的流程不跳簽名）與 N-7（session 結束原因的說明文字）都沒有新增錢包呼叫，N-2 只會讓簽名提示比以前少。登入簽章是身分驗證，不是資產授權。這個結論已在本 commit 的 `source/`（取自私人 repo commit `f4272c5`；進入前端建置的檔案與正式版本 `bbf24001` 的來源 `2e4e830` 相同），以及 2026-10-01T04:24:59Z～04:25:11Z 下載的正式主 bundle 與房屋內部 chunk 上重新確認（第 3 節）。
+固定 Worker `acdbb2bd-8add-4b15-bfa6-a31266c83520`，LIVE `ddb10e28a867998323164e7585635efedfcf7788`，source main `c491ff3c9edf9d0eb39a9233ccfff101a7c8133c`；D1 0001–0006。這份是團隊的 source／下載檔核對紀錄，**不是外部複查通過**。
 
-## 1. 原始碼中全部的 provider 呼叫
+公開 `source/src` 中的 EIP-1193 provider request 只有三個常數方法，全部在 `src/world/auth.ts`：
 
-`source/src/` 內全部的 EIP-1193 `.request(` 只有三處，都在 `src/world/auth.ts`：
+| 當前 source | 方法／params | 觸發與提示 |
+| --- | --- | --- |
+| `source/src/world/auth.ts:205` | `eth_accounts`，無 params | bind provider；只讀已授權帳號，不開提示 |
+| `source/src/world/auth.ts:307` | `eth_requestAccounts`，無 params | 本人點登入、沒有已知 account；可開連線提示 |
+| `source/src/world/auth.ts:338` | `personal_sign`，`[hexUtf8(message),account]` | 同次登入、精確 SIWE 檢查通過，開簽名提示 |
 
-| 行 | 方法 | params | 何時呼叫 | 會跳出錢包提示？ |
-|---|---|---|---|---|
-| `auth.ts:171` | `eth_accounts` | 無 | 頁面載入、或換了錢包（EIP-6963 選擇）時 `bind()`（`auth.ts:169-173`） | 否（只讀已授權的帳號） |
-| `auth.ts:256` | `eth_requestAccounts` | 無 | 使用者點「登入」、等到最新的 session 讀取結束（N-1），而且目前沒有已知帳號時 | 是（連線請求） |
-| `auth.ts:278` | `personal_sign` | `[hexUtf8(message), account]`，`message` 是伺服器 `POST /api/auth/challenge` 回傳、由伺服器產生、**並已通過頁面端 `checkSignInMessage` 逐行檢查**的 SIWE 原文 | 同一次登入點擊，伺服器確認此帳號沒有有效 session、challenge 回應到達後確認仍是同一流程、同一錢包、同一帳號（N-2，`auth.ts:271`），而且頁面檢查通過之後（`auth.ts:269-276`；頁面檢查在 `auth.ts:274`）；這些檢查到 `personal_sign` 之間沒有 await | 是（簽名請求） |
+`hexUtf8` 是 UTF-8 text → hex（`source/src/world/auth.ts:83`）。message 來自 server challenge，nonce／目前 origin／account／11 行格式先由 `checkSignInMessage` 檢查（`source/src/world/auth.ts:334`、`source/src/world/siwe.ts:16`）。
 
-事件：只監聽 `accountsChanged`（`auth.ts:172`）。**不監聽 `chainChanged`**，也不呼叫 `eth_chainId`：SIWE 訊息固定 `Chain ID: 1`，`personal_sign` 與錢包目前所在的鏈無關（`auth.ts:167-168` 註解）。
+這三個呼叫沒有發送 transaction、typed data、Permit／Permit2、approval、批次呼叫、切鏈、session key 或 delegation。新增 M1 命名不增加 wallet call（`source/src/world/member.ts:3`）。靜態 source／bundle 檢查不能單獨保證注入程式、惡意 provider 或全部 runtime 路徑；未公開 UI code 的界線見第 6 節。
 
-一次登入點擊最多只會跳出一次簽名提示。伺服器給的訊息不是本站的那一則時，**連一次都不會**（`message-mismatch`）。流程在 challenge 回應到達之前被取消（登出、換錢包、頁面卸載、新的流程，或流程進行中的換帳號），或回應到達時錢包或帳號已和送出 challenge 時不同（包括錢包鎖住），同樣**一次都不會**，也不送 verify（N-2，`auth.ts:243-251,269-271`）。流程被取消時已經打開的簽名視窗，頁面無法關閉；它的回應被丟棄、不送 verify（`auth.ts:280`）。伺服器拒絕簽章（401）、預算忙碌（429）或暫時無法驗證（503）時，流程結束並顯示提示，**不自動重試**；伺服器已作廢那個 challenge，下一次點擊會拿新的訊息、要求新的簽名（`auth.ts:267,284,333-337`、`SIWE.md` 第 3 節）。
+## 2. Provider、事件與帳號順序
 
-錢包探索（`src/world/wallet.ts`，本版未改，與上一輪審查版本逐位元組相同）：
+- EIP-6963：發出 `eip6963:requestProvider`，收 `eip6963:announceProvider`（`source/src/world/wallet.ts:54`）。
+- 每個 provider 物件一筆；rdns 重複會警告，不把另一個物件靜默取代既有 provider（`source/src/world/wallet.ts:57`、`source/src/world/wallet.ts:78`）。
+- 使用者 choose 的是 provider 物件。記住的 rdns 只有恰好一個宣告者才自動使用；沒記住且只有一個宣告者也可自動用（`source/src/world/wallet.ts:72`、`source/src/world/wallet.ts:81`）。
+- 有宣告者但需要選擇時 current 為 null；完全沒有宣告者才退回 window.ethereum，UI 告知辨識不了擴充功能（`source/src/world/wallet.ts:65`、`source/src/world/wallet.ts:88`）。
+- 圖示只接受 ≤64 kB 的 data:image 類型，透過 img 顯示（`source/src/world/wallet.ts:35`）。
+- AuthClient 只監聽 `accountsChanged`，沒有監聽 `chainChanged`、沒有 eth_chainId；SIWE chainId 固定1（`source/src/world/auth.ts:200`、`source/src/world/auth.ts:206`）。
+- 每個 accountsChanged（含重複 account、鎖錢包）先遞增 accountEvents。過時 eth_accounts／connect 答案不能蓋掉較新的 event（`source/src/world/auth.ts:204`、`source/src/world/auth.ts:312`、`source/src/world/auth.ts:396`）。
+- challenge body 回來及簽名回來都再確認 gen／provider／account。已取消但已打開的錢包提示無法關閉，回應不送 verify（`source/src/world/auth.ts:331`、`source/src/world/auth.ts:340`）。
 
-- 發出 `eip6963:requestProvider`，監聽 `eip6963:announceProvider`（`wallet.ts:54-60`）。
-- 每個 provider 物件一筆；同一 `rdns` 有多個 provider 時標記為 `duplicates`，UI 顯示警告（`wallet.ts:24-25,78-83`）。
-- 只有點選（`choose()`，`wallet.ts:72-76`）會把使用中的錢包換成另一個已宣告的錢包。自動選擇只有兩種情況：記住的選擇（rdns）恰好對應一個已宣告錢包時套用它；沒有記住的選擇、而且只有一個錢包宣告時使用它。之後若又有第二個錢包宣告，選擇會退回「需要選擇」，不會自動換成別的錢包。
-- 沒有任何錢包宣告時退回 `window.ethereum`（`wallet.ts:65-70`）；這時「我的錢包」面板會顯示一行提醒（`wallet.ts:28-29,87-89`；`WalletPanel.tsx:108`）。這只是提示，不改變任何呼叫。
-- 錢包圖示只接受 `data:image/(png|jpeg|gif|webp|svg+xml)` 且 ≤ 64 kB，經由 `<img>` 顯示（`wallet.ts:33-42`）。
+R3-R1 的順序修正尚未外部複查。本次只有合成 wallet ordering；wallet 回傳舊帳號卻沒有 accountsChanged 時，頁面無法辨識它是過時答案。
 
-## 2. 各流程逐步
+## 3. 每個使用流程會問什麼
 
-| 流程 | 步驟 | 錢包方法 | 伺服器請求 |
-|---|---|---|---|
-| 首次進站（未連線） | 讀 session、讀已授權帳號 | `eth_accounts`（不提示） | `GET /api/auth/session` |
-| 連線＋登入（同一次點擊，`signIn()`，`auth.ts:240-293`） | ⓪ 等到最新的 session 讀取結束，狀態不明就先重讀（N-1）→ ① 需要時請求帳號 → ② 若此帳號已有 session，直接讀家，不簽 → ③ 若有別的地址的 session，先登出 → ④ 取 challenge → ⑤ **確認流程、錢包、帳號沒變（N-2），再由頁面檢查訊息**，任何一項不符就結束 → ⑥ 顯示摘要並簽名 → ⑦ verify | ① `eth_requestAccounts` ⑥ `personal_sign` | ⓪ `GET /api/auth/session`（如需要）④ `POST /api/auth/challenge {address}` ⑦ `POST /api/auth/verify {nonce,signature}`，之後 `GET /api/me/home` |
-| challenge 被預算拒絕（429） | 在第 ⑤ 步之前就結束，顯示「登入服務此刻太忙」 | 只有 ①（如需要） | ④ |
-| 訊息不是本站的那一則 | 第 ⑤ 步結束，顯示 `message-mismatch` | 只有 ①（如需要），**沒有** `personal_sign` | ④ |
-| 登入中途被取消（N-2） | 第 ⓪～⑤ 步之間登出、換錢包、頁面卸載或開始新流程，或從 ④ 起換帳號（持有另一個地址的 session 時，⓪ 起就算）：流程結束，不再問錢包、不再讀 session；④ 的回應到達時錢包或帳號已不同（包括錢包鎖住）也不跳簽名。沒有 session 時，⓪ 的等待中換帳號只會讓這次點擊改用新帳號 | 只有 ①（如已發生），**沒有** `personal_sign` | ④（如已送出）；流程中換帳號、換錢包或登出時另有 `POST /api/auth/logout` |
-| 重新整理頁面（恢復 session） | 讀 cookie session，再讀家；只套用最新一次 session 讀取（N-1） | `eth_accounts`（不提示）；**不簽名** | `GET /api/auth/session`、`GET /api/me/home` |
-| 分頁回到前景（W-1） | 到期的 session 立刻在本頁結束；有 session 時最多每 15 秒重讀一次（`auth.ts:142-147`） | **無** | `GET /api/auth/session`，之後 `GET /api/me/home` |
-| session 被別處結束或到期（N-7） | 頁面顯示「登入狀態已失效，請重新登入。」或「登入已到期，請重新登入。」 | **無** | 由 `GET /api/auth/session` 或 `GET /api/me/home` 的回應得知 |
-| 進入「我家」／回家 | 開面板或地圖標記；鏡頭移動 | 無 | `GET /api/me/home`（最少間隔 15 秒；分頁可見時屋主模式每 60 秒） |
-| 進入我的家（房屋內部） | `enterableHome` 不為 null 時才出現按鈕；載入房屋內部 chunk 與同 origin 的靜態模型，用已讀到的席位資料繪製 | **無** | **無新的 API 請求**（只有靜態檔 `assets/InteriorView-4LZmFcoq.js`、`models/interior/*.glb`） |
-| 搬家 | `moveGate` 檢查屋主模式，選地塊，寫 localStorage | **無** | **無** |
-| 查看任一錢包（輸入地址） | 顯示公開名冊的席位 | 無 | `GET /api/wallet/:address/assets` |
-| 登出此裝置 | 伺服器撤銷後才在頁面上登出，顯示「已登出。」（N-7） | 無 | `POST /api/auth/logout` |
-| 登出所有裝置 | 行內確認後，伺服器撤銷該地址所有 session | 無 | `POST /api/auth/logout-all` |
-| 錢包切換帳號 A→B | 關閉屋主模式，登出 A 的 session 與進行中的流程 | 無（只收 `accountsChanged` 事件） | `POST /api/auth/logout`；失敗則重讀 session 並顯示 mismatch |
-| 使用者改選另一個錢包 | 作廢進行中的流程，重新 bind | `eth_accounts`（不提示） | 進行中時 `POST /api/auth/logout` |
-| 拒絕連線／拒絕簽名 | 顯示提示，**不自動重試** | — | — |
+| 流程 | 錢包呼叫 | API／本機行為 |
+| --- | --- | --- |
+| 載入頁面／恢復 session | eth_accounts；不簽名 | GET /api/auth/session，成功 session 再讀 /api/me/home |
+| 同一帳號已登入，再按登入 | 無新簽名 | 重讀家，`source/src/world/auth.ts:315` |
+| 新登入 | 必要時 eth_requestAccounts；最多一次 personal_sign | 先等 session read／本頁 logout，challenge→訊息檢查→verify→home |
+| session 未知或 logout 超過等待期限 | 不開新的 wallet prompt | session-unknown／logout-slow；`source/src/world/auth.ts:299`、`source/src/world/auth.ts:302` |
+| challenge／訊息不合、流程取消 | 沒有 personal_sign（若尚未打開） | 流程結束；不自動重試 |
+| 簽名拒絕／verify 拒絕 | 不自動再簽 | 顯示原因；下次本人點擊取得新 challenge |
+| 分頁回前景／到期／被撤銷 | 無 | session／home 讀取、到期計時器；`source/src/world/auth.ts:155`、`source/src/world/auth.ts:161` |
+| 回家／我家標記／家重查 | 無 | 依已驗 home／名冊決定畫面；home polling |
+| 搬家 | 無 | commitMove 再驗 owner；只寫本機 moves storage |
+| Enter 自己的家 | 無 | enterAtPress 再驗；載入靜態 InteriorView chunk／模型，公開 gate 不發 API |
+| 看任一地址資產 | 無 | 公開 GET /api/wallet/:address/assets，不證明屋主 |
+| 登出此裝置 | 無 | POST /api/auth/logout；成功後清本頁身份 |
+| 登出全部裝置 | 無 | POST /api/auth/logout-all；伺服器以 live session address 撤銷 |
+| 換帳號 A→B／改選 provider | 不另簽；新 bind 可能 eth_accounts | 舊流程失效／logout；失敗就讀回 session，可能 mismatch |
+| M1 取自己的會員／名稱 | 無 | 先 GET /api/me/profile；僅404才POST /api/me/bootstrap |
+| M1 保存／改名 | 無 | PUT /api/me/profile，session＋actor＋version＋requestId |
+| 房屋公開名稱 | 無 | 延遲400ms查 names，頁面快取1分鐘；不授屋主權 |
+| 「稍後取名」 | 無 | 本機 member skip key；不建立／保留假名稱 |
 
-團隊端說明（不是本輪的檢查）：持有人 2026-10-01 04:16 與 04:19 UTC 在 `bbf24001` 上用 MetaMask（一個沒有席位的錢包）登入；錢包顯示來自 imdember.com 的「Sign-in request」、Ethereum、「No changes」、statement 全文、Version 1、Chain ID 1；頁面隨後顯示登入 7 天與「Checked on chain: this wallet holds no IMD seat right now」；按「Log out this device」後顯示「Signed out.」（N-7）。
+相關 source：`source/src/world/auth.ts:280`、`source/src/world/auth.ts:365`、`source/src/world/moves.ts:64`、`source/src/world/homeEntry.ts:30`、`source/src/world/member.ts:60`、`source/src/world/member.ts:77`、`source/src/world/member.ts:118`。
 
-## 3. 正式檔案上的重新計數（可自行驗證）
+本次沒有 Owner 真錢包測試。舊交接記錄的 MetaMask Sign-in request／No changes／登出只屬 `bbf24001`，不是 `acdbb2bd` 的實測。
 
-2026-10-01T04:24:59Z 下載的正式主 bundle `https://imdember.com/assets/index-C1BrxBtd.js`（SHA-256 `b6d39838089b2707778990485570b6069054bdea22298bc2062b41a17f198d3d`，1,432,648 bytes）與 04:25:11Z 下載的房屋內部 chunk `https://imdember.com/assets/InteriorView-4LZmFcoq.js`（SHA-256 `5077095b0b0fee5b68ad02328bc5d2304de7822f90ed933f54780c8880041630`，93,255 bytes），兩者都與部署紀錄及團隊重建結果相同：
+## 4. 已下載正式檔案的靜態重新計數
 
-| 字串 | 主 bundle | 房屋內部 chunk |
-|---|---|---|
-| `.request(`（全部） | **3**：`` .request({method:`eth_accounts`}) ``、`` .request({method:`eth_requestAccounts`}) ``、`` .request({method:`personal_sign`,params:[…]}) `` | 3，全部是繪製迴圈自己的 `this.request()`（排程重畫），不是 EIP-1193 |
-| `eth_accounts`、`eth_requestAccounts`、`personal_sign` | 各 1 | 0 |
-| `eth_sendTransaction`、`eth_sendRawTransaction`、`eth_signTransaction` | 0 | 0 |
-| `eth_signTypedData`、`signTypedData`、`` eth_sign` ``、`eth_sign"` | 0 | 0 |
-| `Permit2`、`permit`（不分大小寫） | 0 | 0 |
-| `setApprovalForAll` | 0 | 0 |
-| `approve`（不分大小寫） | 2，只在 UI 文字：`The wallet did not approve the connection.`，以及簽名前說明中的「授權（approve）」 | 0 |
-| 函式選擇器 `0x095ea7b3`（approve）、`0xa22cb465`（setApprovalForAll）、`0xd505accf`（permit） | 0 | 0 |
-| `wallet_sendCalls`、`wallet_getCallsStatus`、`wallet_grantPermissions`、`wallet_requestPermissions` | 0 | 0 |
-| `wallet_switchEthereumChain`、`wallet_addEthereumChain`、`wallet_watchAsset`、`eth_chainId`、`chainChanged` | 0 | 0 |
-| `sendAsync` | 0 | 0 |
-| `accountsChanged` | 2（註冊與移除監聽） | 0 |
-| `eip6963:requestProvider`／`eip6963:announceProvider` | 1／2 | 0／0 |
-| `WebSocket`、`EventSource`、`eval(`、`new Function`、`document.cookie`、`document.write` | 0 | 0 |
-| `import(` | 1：`` import(`./InteriorView-4LZmFcoq.js`) `` | 0 |
-| `fetch`、`localStorage`、`BroadcastChannel`、`postMessage` | （主 bundle 有，見 `SCOPE.md` 第 6.3 節） | 0 |
+團隊在 2026-10-03T13:01:16Z～13:01:40Z完成允許的五個低頻 GET，本頁只讀其已保存 body，沒有再連網。
 
-每一個數字都與上一輪（2026-09-30T11:57:38Z 下載的 `index-BFVt9xb_.js`，SHA-256 `ec1f3da36a0141f0308e384284e41cc97f344d7fbed594ede9071994c7ea58d2`，與 `InteriorView-wZGOk4w6.js`）的計數相同：三個錢包方法與它們的呼叫點沒有增減。原始碼端，`src/world/auth.ts` 本版改的是 N-1、N-2、N-7 的狀態處理（上表的三個呼叫只是行號位移：`eth_accounts` 156 → 171、`eth_requestAccounts` 228 → 256、`personal_sign` 247 → 278），`src/world/wallet.ts` 沒有改。兩版 bundle 的其餘差異（N-1、N-2、N-7 之外，還有兩版之間幾次只改前端的部署帶來的世界與畫面改動）這裡沒有逐字比對。
+| 檔案 | bytes／SHA-256 |
+| --- | --- |
+| /assets/index-BoNTm1MM.js | 1,482,070；`f9cf6a67132706372b2917efdfffe22c6cda0402ae2c7e4ec32bf3aee6c71588` |
+| /assets/InteriorView-DM8tQpsI.js | 93,242；`4a64e1f3f47df59ea7f6e369691a78aab8791addbcb33d4d9f332de04e70e84c` |
 
-重現方法（任何人都可以做）：
+以下是**literal substring 次數**，不等於執行次數或所有可能 runtime method。
 
-```sh
-curl -s -o index.html https://imdember.com/
-grep -o 'assets/[^"]*' index.html                      # 目前的主 JS 與 CSS 檔名
-curl -s -o index.js https://imdember.com/assets/index-C1BrxBtd.js
-grep -o 'InteriorView-[A-Za-z0-9_-]*\.js' index.js       # 房屋內部 chunk 的檔名
-curl -s -o interior.js https://imdember.com/assets/InteriorView-4LZmFcoq.js
-sha256sum index.js interior.js
-grep -o -E '.{0,25}\.request\(.{0,40}' index.js interior.js
-for w in eth_sendTransaction signTypedData Permit2 setApprovalForAll wallet_sendCalls \
-         wallet_switchEthereumChain eth_chainId chainChanged 0x095ea7b3 0xa22cb465 WebSocket EventSource; do
-  printf '%s\t%s\t%s\n' "$w" "$(grep -o -F "$w" index.js | wc -l)" "$(grep -o -F "$w" interior.js | wc -l)"; done
-```
+| 字串／模式 | index JS | InteriorView |
+| --- | --- | --- |
+| `.request(` | 3；3個均是上述provider方法 | 3；都是內部繪製排程的this.request() |
+| eth_accounts／eth_requestAccounts／personal_sign | 各1 | 各0 |
+| eth_sendTransaction／eth_sendRawTransaction／eth_signTransaction | 各0 | 各0 |
+| eth_signTypedData／signTypedData | 各0 | 各0 |
+| Permit2；permit（不分大小寫） | 各0 | 各0 |
+| setApprovalForAll | 0 | 0 |
+| approve（不分大小寫） | 2；兩個都是說明文字 | 0 |
+| 0x095ea7b3／0xa22cb465／0xd505accf | 各0 | 各0 |
+| wallet_sendCalls／wallet_getCallsStatus | 各0 | 各0 |
+| wallet_grantPermissions／wallet_requestPermissions | 各0 | 各0 |
+| wallet_switchEthereumChain／wallet_addEthereumChain／wallet_watchAsset | 各0 | 各0 |
+| eth_chainId／chainChanged／sendAsync | 各0 | 各0 |
+| accountsChanged | 2（註冊／移除） | 0 |
+| eip6963:requestProvider／eip6963:announceProvider | 1／2 | 0／0 |
+| WebSocket／EventSource／eval(／new Function | 各0 | 各0 |
+| document.cookie／document.write | 各0 | 各0 |
+| import( | 1（InteriorView chunk） | 0 |
+| fetch／localStorage／BroadcastChannel／postMessage | 87／17／2／3 | 各0 |
 
-注意：壓縮後的 bundle 用反引號字串（`` `eth_accounts` ``），搜尋時不要假設是雙引號。正式站日後換版時檔名會改變，請先從 `https://imdember.com/` 取得目前的檔名與雜湊。
+兩個 approve 字串是「授權（approve）」說明與「The wallet did not approve the connection.」，沒有 approve 呼叫。InteriorView 的三個 request 是繪製 scheduler，不是 EIP-1193。
 
-【限制】靜態計數排除不了「方法名稱在執行期組字串」的寫法；但全部 EIP-1193 呼叫點只有 3 處，而且方法名稱都是字面常數。
+四個正式靜態檔與部署紀錄 hash 相符、24個靜態標頭比較相同；五個 GET 均沒有 Set-Cookie。**整體 deployment match 仍 partial**，不因此證明正在跑的 Worker／D1／secret／binding／limiter 行為。
 
-## 4. 伺服器端的鏈上呼叫
+可以在已保存檔案上重算 substring／SHA，不必再向正式站要求請求。Report 本次僅允許首頁、指定 index JS／InteriorView／CSS、session 各一次，不包括真錢包、登入或新的 M1 GET。
 
-伺服器沒有私鑰，也不送交易。它對 Alchemy（以太坊主網）只用兩個 JSON-RPC 方法，外加 Alchemy 的 NFT 索引 REST：
+## 5. Server 的鏈上讀取不是錢包交易
 
-| 呼叫 | 用途 | 前提 | 位置 |
-|---|---|---|---|
-| `eth_getCode` | verify 時判斷地址是否為合約（決定是否走 ERC-1271） | ECDSA 不符；該地址不在 60 秒「沒有 code」快取中、不是已知智慧錢包；已認領這個 challenge（網段份額內；IPv6 另有 /64 份額，N-5）且每據點 `chain:code` 允許 | `server/auth.ts:378-390` |
-| `eth_call` → 地址的 `isValidSignature(bytes32,bytes)`（view） | ERC-1271 合約錢包驗簽，回傳必須完全等於 magic word；節點錯誤是 503、只有 revert 是 401（W-3） | 地址有 code（或為已知智慧錢包），合約查核份額（或 A-1／N-4 的 lane 查核）與 `chain:erc1271`（或 `chain:erc1271:known`、`chain:erc1271:lane`）都允許；每個 challenge 最多一次 | `server/auth.ts:391-398` |
-| `eth_call` → Multicall3 `aggregate3`（內含 `ownerOf` 與 `getBlockNumber`） | 所有權證明 | 有候選席位（最多 256 個，超過時先依計入規則排序，A-4、N-3） | `server/ownership.ts:52-70` |
-| `GET …/nft/v3/getNFTsForOwner` | 所有權候選（不是證明） | 每次都先扣 `CHAIN_LIMITER`（`chain:index`）；被拒則不讀，改用 IMD 名冊與保留的索引答案（A-2：D1 `index_candidates`，不需金鑰）；被拒而且答案沒有計入任何席位時，請求者網段的索引 lane（N-6：D1 `index_lanes` 計數後扣 `chain:index:lane`）可放行一次讀取 | `server/ownership.ts:17,74-96,239-253,278-288`、`server/auth.ts:617-624` |
+| Server 呼叫 | 用途與前提 | source |
+| --- | --- | --- |
+| eth_getCode | 非ECDSA、非no-code快取、非已知ERC1271；claim／code cap允許 | `source/server/auth.ts:439` |
+| eth_call → isValidSignature | contract share／location key允許；完整magic word才認可 | `source/server/auth.ts:452` |
+| eth_call → Multicall3 aggregate3 | ownerOf＋getBlockNumber；candidate cap256／每chunk200，同一block | `source/server/ownership.ts:54` |
+| Alchemy getNFTsForOwner REST | 只發現候選；先chain:index，或符合條件的index lane；最多5頁 | `source/server/ownership.ts:74`、`source/server/ownership.ts:224` |
+| 空 character list | 目前CHARACTER_COLLECTIONS空，因此不發角色NFT索引讀取 | `source/src/world/collections.ts:6`、`source/server/ownership.ts:311` |
 
-Alchemy 金鑰是 Worker secret `ALCHEMY_API_KEY`，只放在 `Authorization` 標頭，不會送到瀏覽器（`server/ownership.ts:13,39-44,83`；CSP `connect-src` 也不允許瀏覽器連 Alchemy API）。
+Alchemy秘密只由Worker server使用，透過Authorization header；此包未含真實secret（`source/server/ownership.ts:43`、`source/server/ownership.ts:83`）。Server source 未要求用戶錢包為上述讀取付款或送交易；RPC效力仍依供應商及部署設定，未以此文件查證正式憑證。
 
-## 5. 註解：Worker bundle 中的 `privateKey`
+## 6. Browser storage、M1 與驗證限制
 
-從本快照 `source/` 重建的 Worker bundle（`index.js`，280,605 bytes，SHA-256 `018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c`，與部署紀錄中實際上傳的 bundle 相同；重建步驟見 `DEPLOYMENT_MATCH.md` 第 3 節，輸出見 `TESTS/worker-dry-run-output.txt`）中，`privateKey` 區分大小寫出現 13 處，不分大小寫 38 處（多出的是 `normPrivateKeyToScalar`、`randomPrivateKey` 等），與上一輪相同。全部是打包進來的 `@noble/curves`／viem 函式庫程式碼，不是金鑰材料；伺服器原始碼沒有呼叫任何簽名 API。
+| key／通道 | 用途，不能當權限來源 | source |
+| --- | --- | --- |
+| ember-world-wallet | 最後查看／連線地址 | `source/src/world/wallet.ts:11` |
+| ember-world-wallet-choice | EIP-6963 rdns選擇；不是私鑰或session | `source/src/world/wallet.ts:11` |
+| ember-world-session-hint | address／expiry，沒有token；到期顯示提示 | `source/src/world/auth.ts:86` |
+| ember-world-moves-v1-live／mock | 本機位置；舊signature/message在讀入時丟棄 | `source/src/world/moves.ts:12`、`source/src/world/moves.ts:17` |
+| imd.member.skip.<publicMemberId> | M1「稍後命名」卡折疊；不是免登入／保留名額 | `source/src/world/member.ts:29`、`source/src/world/member.ts:73` |
+| imd-ember-auth BroadcastChannel | 通知其他分頁重讀server；不信任通知自帶的身份 | `source/src/world/WalletPanel.tsx:22`、`source/src/world/auth.ts:191` |
+
+M1 player name 顯示於會員／錢包及房屋面板（`source/src/world/MemberPanel.tsx:94`、`source/src/world/WalletPanel.tsx:120`、`source/src/world/HomePanels.tsx:15`）。名稱、publicMemberId、skip key 都不能授予 owner／Enter／move；既有 session＋ownerOf＋eligibility gate 才是來源。
+
+此包未公開WorldApp、完整layout／households、室內原始碼與美術；公開client有未公開的imports。測試stub可讓指定logic／React fixture執行，不提供完整app build、場景幾何或真錢包流程。Live兩個bundle的計數也無法排除執行期組method、注入JS或之後換版。
+
+R3-R1、AUD3-01～08與追加修正仍待外部複查；M1從未Swarm審查。測試摘要：`公開無 stubs：161 run／157 pass／4 fail；公開加 stubs：341／337／4（3 項 withheld UI／geometry、1 項 deploy-evidence 私有歷史依賴）；focused 90/90、N 43/43、M1 server/client 33/33、Enter group 5 3/3。完整私有 source archive：1009／1008／1，亦為歷史依賴；npm audit production／all 均 0。全套公開測試不是全通，完整 UI／tsc 受 withheld imports 限制`，看新TESTS log，不把「Completed／accepted」或此清冊當安全背書。Genesis Mint與Coin E1的簽名／交易功能不由本頁涵蓋。

@@ -1,0 +1,52 @@
+2026-10-03T13:10:12Z
+✔ the member follows the session: loaded when signed in, cleared when signed out, needs_name shown as such (51.9222ms)
+✔ an answer for the wallet the page has left is dropped; the new wallet’s own member shows (117.5631ms)
+✔ signed out and in again with the same wallet: an answer of the earlier sign-in never replaces a newer one (187.3572ms)
+✔ an answer naming another wallet than the page’s is not shown (the cookie changed under the page) (93.9603ms)
+✔ 503 and network failures are "unavailable", never "needs a name"; a retry loads it (32.9434ms)
+✔ a save whose answer is lost is retried once with the same request id: saved once, one cooldown (16.6436ms)
+✔ refusals: cooldown shows the server’s time, a version conflict reads the profile again, the form never asks the wallet (46.182ms)
+✔ "not now" folds the card for that member on this browser only; no name is made (46.8079ms)
+✔ a page load reads with GET and creates with POST only once: an existing member spends no per-IP write budget (63.251ms)
+✔ clicking through houses asks for the name of the one the viewer stops at, not of every house passed (45.5704ms)
+✔ public names: one read per address a minute, a bad address asks nothing, a failure is no name (0.6652ms)
+✔ My wallet, as rendered: the first-name card says the name is public and tied to the wallet; each state says what it is (415.6297ms)
+✔ the house panel says whose home it is by the player name, with the short address kept below (440.9247ms)
+✔ E1 E3 E21 N01: a signed-in wallet gets exactly one member on first bootstrap, the same one after, from the session alone (66.5755ms)
+✔ E2 E15 E48 N02: no member without a live session; dead sessions are 401 and the cookie is left alone (19.1285ms)
+✔ writes need this site as Origin and a JSON request; refusals change nothing (10.5835ms)
+✔ E4 N12: two first bootstraps racing make one member; the loser rolls back whole and answers with the winner (21.138ms)
+✔ a session row holding a mixed-case address (as an older row might) still resolves to the lowercase identity (11.3305ms)
+✔ E5 E11 E117: identities are eip155:1 only and canonical; another wallet gets another member (13.8521ms)
+✔ N03 N04 N05 E6: first name, public lookup, cooldown from the first name, and the member id never changes (12.6956ms)
+✔ N06 N07: names are unique site-wide by NFKC + ASCII case; the loser learns nothing about the holder (18.0322ms)
+✔ N08 N09: same value is a no-op; a case-only change is a change; the old name is kept 30 days for its member (41.25ms)
+✔ N10 N11 E14: a form written for another member, or for an older profile, is refused and changes nothing (16.7867ms)
+✔ N13 N14: a retried request gets its first answer once; the same id with other content is a conflict (9.4824ms)
+✔ N15 E13: only the four fields are accepted; a member id, wallet, role or cooldown in the body is refused (8.4954ms)
+✔ N16 N17: format and reserved names are refused before any claim; the database holds the reserved names too (16.9477ms)
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:unknown"}
+✔ N18: five name writes a minute per member reach the database; then 429 with Retry-After, refusals counted (11.9003ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":429,"error":"NAME_RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":429,"error":"RATE_LIMITED","colo":null,"net":"net:203.0.113.0/24"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"LIMITER_UNAVAILABLE","colo":null,"net":"net:203.0.113.0/24"}
+✔ the per-IP limit: member:<ip> keys on AUTH_LIMITER, checked before the session; a missing binding is 503 (9.615ms)
+✔ N19 N20: moderation renames to 會員-<code>, quarantines the name, and lets the member rename without the cooldown (24.9976ms)
+✔ races inside the write: a name taken, or a version moved, after the checks rolls the whole batch back (40.226ms)
+✔ E7 E49: logout and session expiry end nothing of the member: same member, coins and life after signing in again (12.0984ms)
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/profile","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/world/names/:address","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+{"evt":"member_refused","route":"/api/me/bootstrap","status":503,"error":"PROFILE_UNAVAILABLE","colo":null,"net":"net:unknown"}
+✔ 503, not "new member": no database, or a database before migrations/0006; sign-in itself still works (16.3294ms)
+✔ the member routes leave the account routes as they were (9.1941ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2029.8007

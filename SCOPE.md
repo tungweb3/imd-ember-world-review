@@ -1,179 +1,44 @@
-# SCOPE：審查範圍、World/Mint 邊界與已公開的原始碼
+# SCOPE：本次 World 公開審查範圍
 
-對象：https://imdember.com 正式 World，Worker version `bbf24001-7eec-4f93-b312-a22e299ab275`，部署的來源 commit `2e4e830b367f651e3c880587c1a4b465d1bfcd91`。本快照的 `source/` 取自其後的 commit `f4272c513e2052fb0bea6d2e8512180256a60919`，兩者在每個會進入 Worker 或前端 build 的公開檔案上相同（之後只改了 `docs/security/AUDIT_REMEDIATION_STATUS.md`、`docs/wallet-login/DESIGN_W1_v001.md`、`tests/review-record.test.mjs`，並新增一頁部署證據 `20261001T040934Z-2e4e830.md`）。
-行號都指本快照 `source/` 內的檔案（除 `REDACTIONS.md` 第 1 節列出的 8 個檔案的遮蔽外，內容與 commit f4272c5 的 git blob 逐位元組相同；遮蔽不改變行數）。被保留檔案的行號以 commit f4272c5 為準，屬團隊端證據。
+目標是 World 的資料讀取、錢包登入、session、席位／房屋權限及 M1 會員公開名稱。部署紀錄的 Worker 為 `acdbb2bd-8add-4b15-bfa6-a31266c83520`、部署來源為 `ddb10e28a867998323164e7585635efedfcf7788`；本快照從固定 Git source `c491ff3c9edf9d0eb39a9233ccfff101a7c8133c` 取檔。快照 source 與部署來源是不同識別值。
 
-本 repo 的前三個 commit 是先前的審查對象：`c2a8c33`（來源 0def8cb、Worker beac62be，Swarm job 4bd31cfb）、`b6e986b`（來源 2da46cd、Worker 50c688c9，Swarm Report e48d0a96 與 Audit 519db624）與 `ae1d41a`（來源 4321bb4、Worker 1a0dd495，Swarm Audit 8c3aea2e）。之後的變更與每個 Swarm 發現的對應，見 `README.md`「自送審版本以來的變更」。
+修補狀態與正式設定由維護者提供。本版包含前輪修補及仍未解決的限制；新增 M1 未經外部審查確認，先前審查只適用各自的版本。見 `source/docs/security/AUDIT_REMEDIATION_STATUS.md:18–37`、`source/src/world/reviewRecord.ts` 與[最新部署證據](source/docs/security/deploy-evidence/20261003T005417Z-ddb10e2.md)。
 
-## 1. 納入與排除（依持有人審查規格的範圍分類）
+## 公開內容與完整性
 
-| 分類 | 本輪處理 | 本快照位置 |
-|---|---|---|
-| World 錢包連線與登入 | 納入：Connect、頁面端訊息檢查、SIWE、challenge、verify、session、logout、logout-all、過期（含本機時鐘上的到期）與恢復、session 結束原因的顯示（到期、失效、已登出）、登入的分層速率與預算限制（含 IPv6 /48 與其中 /64 的份額） | `SIWE.md`、`WALLET_METHODS.md`、`ROUTES.md` |
-| World 帳號狀態 | 納入：首次連線、換帳號、換鏈、多分頁、拒簽、晚回應（較舊的 session 讀取與房屋讀取結果被丟棄）、登入中途取消（換帳號、換錢包、登出、頁面關閉後不再要求簽名）、登出所有裝置 | `SIWE.md` 第 7 節 |
-| IMD 與房屋 | 納入：目前持有席位、`ownerOf`、候選來源（IMD 名冊、NFT 索引、索引被拒時保存在 D1 的上一次答案、索引被拒時每網段的探索 lane）與候選上限的排序、「我家」、一錢包一房與席位數、轉手後權限更新、「進入我的家」的閘門 | `OWNERSHIP_AND_HOMES.md`、`DATA_SCHEMA.md` |
-| World API／WebSocket | 納入：上述功能的後端授權、快取、NFT 轉手後的更新。**沒有 WebSocket**（見第 5 節） | `ROUTES.md` |
-| 必要 World 網站安全 | 納入：middleware、依賴、第三方 script、XSS／CSRF／Origin、資料暴露；也包括 Worker 端的共用快取（只放公開的世界資料） | `DEPENDENCIES.md`、`ROUTES.md` |
-| Genesis Mint 專用功能 | **排除**：Solidity mint 合約、authorize／finalize、signer 生命週期、鑄造交易、部署管理 | 本檔第 3 節（邊界證據）；`source/docs/security/MINT_BOUNDARY.md` 只列邊界問題 |
-| Genesis 永久內容 | **排除**：metadata 凍結、模型核准、GLB／PNG 鑄造驗收、IPFS／pinning | 同上 |
-| World 的 3D、地形、美術、音樂、新手引導、城鎮的地標與纜車、房屋分配與擺放規則、房屋內部的繪製、主畫面接線、世界資料的讀取 | **不公開原始碼**（持有人決定），但逐檔列出雜湊；它們都在公開的正式前端檔案裡，可從 bundle 檢查 | 第 6 節、`manifests/withheld-source.txt` |
+固定 source 有 **604** 個 tracked 檔案；公開其中 **92** 個、保留 **512** 個。92 中 **76** 個與原始 blob 相同、**16** 個經遮蔽；其中 **11** 個標為 LOW_ENTROPY，原始 blob id／SHA-256 不公開。92 是 source 檔數，未計根目錄說明、manifests 或 TESTS。
 
-## 2. 目前正式上線的 World 功能（以 2e4e830 為準）
+清單見 [PUBLIC_CONTENT_LIST.md](PUBLIC_CONTENT_LIST.md)；逐檔核對依 manifests、整包 SHA-256 清單及 [REDACTIONS.md](REDACTIONS.md)。保留檔名仍可見。0006 的八張表全部公開，含 economy_accounts 與 life_state 的欄位、約束、預設值及現行程式；註解遮蔽沒有移除 SQL 行為。DESIGN_M1 文件本體保留，公開 source 註解中的相應引用已遮蔽。
 
-已上線：
+## 可直接審查的程式
 
-1. **瀏覽世界**：3D 村莊依公開 IMD agent 網路資料繪製，不需登入、不需錢包。資料經 `/api/world/*`（唯讀代理；Worker 在每個據點的 Cache API 保存一份公開資料的共用副本，`worker/app.ts:40-58`）或瀏覽器直接讀 DEX Screener 行情。城鎮的地標、船站與纜車都只是畫面與本機互動，不碰登入或所有權（程式不公開）。
-2. **查看任一錢包（未驗證）**：輸入或連接一個地址，可看該地址在 IMD 公開名冊裡的席位與「這個錢包的家」。只是公開資料的顯示，**沒有任何屋主權利**（`GET /api/wallet/:address/assets`，`source:'imd'`）。
-3. **錢包登入（SIWE）**：一次點擊完成連線與簽名。頁面讀完伺服器給的訊息後，先確認這次流程、錢包與帳號都沒有改變（N-2），再逐行檢查訊息，不符就不要求簽名；簽名視窗開著時顯示從訊息讀回的摘要；session 7 天。challenge 受 D1 內的每網段與全站預算限制（IPv4 每 /24；IPv6 每 /48 為兩倍，其中每個 /64 另有 ERC-1271 份額上限；全站上限中保留一部分給最近一分鐘沒發過的網段；不會因為地址而拒絕）；verify 判定的驗簽失敗會作廢該 challenge（`SIWE.md`）。
-4. **登出**：「登出此裝置」（`POST /api/auth/logout`）與「登出所有裝置」（`POST /api/auth/logout-all`，行內再確認一次）。session 結束時，「我的錢包」分別顯示登入已到期、登入狀態已失效或已登出（`src/world/walletView.ts:56-60`、`src/world/WalletPanel.tsx:104-105`；N-7）。
-5. **屋主模式（owner mode）**：登入後伺服器以 `ownerOf` 驗證該 session 地址的席位；至少一個席位計入、而且 session 在本機時鐘上尚未到期時（`src/world/auth.ts:62-75`），地圖上該錢包的房子標為「我家」，可以「回家」（移動鏡頭）、「搬家」與「進入我的家」。
-6. **搬家（僅本機）**：需要屋主模式；結果只存在這個瀏覽器的 localStorage，只改變自己畫面上的房子位置，不寫伺服器、不呼叫錢包、不簽章。
-7. **進入我的家（房屋內部，僅本機繪製）**：只有 `homeEntry.ts` 的 `enterGate` 為 `ok`（屋主模式、session 未過期、家的讀取結果屬於 session 地址、房子屬於該地址）時，頁面才在門口或房屋區塊提供「進入我的家」，按下時再檢查一次（`enterAtPress`，`src/world/homeEntry.ts:26-30`）。房屋內部是延遲載入的 chunk，只用已經讀到的 `/api/me/home` 席位資料繪製（另外只載入同 origin 的靜態模型 `/models/interior/*.glb`），不發出新的 API 請求、不呼叫錢包、不寫伺服器（`OWNERSHIP_AND_HOMES.md` 第 5 節）。
-8. **我的錢包面板**：列出 session 地址經驗證的席位及是否計入；錢包沒有以 EIP-6963 表明身分時顯示一行提醒（`WalletPanel.tsx:108`）；鏈上查核不完整（索引查詢被拒，或候選被截斷）時顯示說明，而且不會說成「沒有席位」（`WalletPanel.tsx:118,124,134`，文字在 `walletView.ts:27-55`）；角色 NFT（Pepe）欄位顯示「即將推出」（`WalletPanel.tsx:145`，`CHARACTER_COLLECTIONS=[]`）；底部是收合的「審查紀錄／Swarm Audit Record」（`WalletPanel.tsx:159`），本版起也列出 Audit 8c3aea2e，並寫明它看的是 Worker `1a0dd495`。
-9. **在線紀錄與清理**：cron 每 15 分鐘把 IMD 名冊列為在線的席位寫入 D1 `seat_presence`，並刪除簽發超過 10 分鐘、從未使用的 challenge，已結束超過一天的 challenge 與 session，讀取超過 8 天的索引答案 `index_candidates`，以及（本版新增）超過一分鐘的探索 lane 列 `index_lanes`（`server/presence.ts:28-66`）。
+- Worker entry、路由順序、gateway、內部快取、Origin／limiter、安全標頭及 cron。
+- SIWE challenge／verify、EOA／已部署 ERC-1271、session／登出、錢包資產、ownerOf 確認的房屋權限及索引候選／預算。
+- M1 bootstrap、讀取／改名、公開名稱查詢、名稱正規化／唯一性、冷卻／舊名保留、版本／帳號切換／重試防護及人工名稱處置 SQL 產生器。
+- 六個 D1 migrations、公開 client／React 面板、部署工具、測試與 fixtures。細節見 [DATA_SCHEMA.md](DATA_SCHEMA.md)、[ROUTES.md](ROUTES.md)。
 
-目前**沒有**：伺服器端的房屋登記與伺服器端搬家、一個錢包多間房、角色 NFT（Pepe）collection、任何 mint、資產授權、付款、session key 或執行委派。與規格驗收基準的差異整理在第 4 節。
+會員從有效 session 的登入地址解析；member_id 不授予 NFT 或房屋權限。economy_accounts／life_state 在 bootstrap 初始化並出現在自己的 profile 摘要；本版沒有啟用生命週期狀態推進，沒有 economy 更新或 Mint route（`source/server/member.ts:60–73,135–154`）。
 
-## 3. World/Mint 邊界
+## Worker 閉包與重建邊界
 
-結論分兩層：
+逐層核對 worker/index.ts 的相對 value imports，在完整固定 source 及公開 92 檔中都是 **18 檔**；公開清單無缺項。另有 type-only 的 server/d1.ts，亦已公開：
 
-- **目前正式部署（已檢視）**：imdember.com 上的 World **沒有接入 Genesis Mint**。World 的原始碼、前端檔案、Worker bundle 與路由設定裡都沒有 Mint 程式或 Mint API。
-- **日後的 Genesis Mint（持有人說明；本輪沒有檢視）**：持有人先前已說明，日後的 Mint 頁面會在 `imdember.com`（與 World **同一個 origin**），並**使用本站的 SIWE 登入狀態**；Mint 會在上線前另外審查。團隊的原則（公開版修正狀態文件引述）：World 的登入 session 不能直接當成「使用者已授權 Mint」；Mint 是否需要獨立且明確的簽名或交易確認，由 Mint 自己的規格與審查決定。Report e48d0a96 的 G-1～G-3 與 S-2 清單寫在 `source/docs/security/MINT_BOUNDARY.md`（本版未改）；那一頁只列問題，不審查也不描述任何 Mint 程式。
-
-| 面向 | 目前正式部署（imdember.com） | 日後 Genesis Mint 頁面（持有人說明，未檢視） | 證據與類型 |
-|---|---|---|---|
-| origin | World 只在 `imdember.com`（`wrangler.jsonc:32` custom domain；`workers_dev:false`、`preview_urls:false`，`:35-36`）。`www.imdember.com` 回 301、`imd.stickember.com` 回 302 到 `https://imdember.com/`（較早一輪的公開 HEAD 觀測，本輪沒有重測）。對該 Worker 的 workers.dev 主機名稱 GET 回 404（團隊端觀測，較早一輪） | `imdember.com` 上的頁面，同一個 origin | 設定可自行驗證；Mint 部分為持有人說明 |
-| session／cookie | `__Host-imd_session`、`__Host-imd_flow`：`__Host-` 前綴、`Path=/`、無 `Domain`，只屬於 `imdember.com`（`server/auth.ts:22,314`）。同 origin 的任何頁面都會帶這兩個 cookie | 使用本站的 SIWE 登入狀態（同 origin，即同一組 cookie）；G-1：World session 不是 Mint 授權（`MINT_BOUNDARY.md:19-24`） | cookie 設定可自行驗證；Mint 部分為持有人說明與團隊文件 |
-| 前端 | 沒有 Mint 程式。正式主 JS（`index-C1BrxBtd.js`，SHA-256 `b6d39838…8d3d`）與房屋內部 chunk（`InteriorView-4LZmFcoq.js`，`5077095b…1630`）中 `ipfs`、`tokenURI`、`finalize`、`eth_sendTransaction`、`signTypedData`、`wallet_switchEthereumChain`、`WebSocket`、`EventSource` 都是 0 次；`.request({method:` 恰好 3 處（都在主 JS）。不區分大小寫的 `genesis` 共 4 處：主 JS 2 處（雕像模型的來源／出處說明字串），chunk 2 處（UI 文字「Pepe Genesis 尚未鑄造，這座櫃子之後會放你的收藏」的中英文）；`authorize` 3 處都在主 JS，是 SIWE statement 與簽名前說明的「does not authorize」／「authorizes no」；`mint` 主 JS 12 處（three.js 的 `numIntersection`／`cubeUV_minTileSize`、CSS 色名 `mintcream`、「minted seat」說明文字）、chunk 1 處（上述 UI 文字）；`import(` 主 JS 1 處，就是載入房屋內部 chunk 的 `import(\`./InteriorView-4LZmFcoq.js\`)` | 本輪不存在；上線前另行審查 | 可自行驗證（下載正式檔案，2026-10-01T04:24:59Z 與 04:25:11Z 取得；計數與上一輪相同，`WALLET_METHODS.md` 第 3 節） |
-| 後端路由 | 程式層面：Worker 只有 `handleAccountApi`（`/api/auth/*`、`/api/me/*`、`/api/wallet/*`）與 `handleWorldApi`（`/api/world/*`），兩者都回 `null` 時一律轉交 `env.ASSETS.fetch`，沒有任何 Mint handler（`worker/app.ts:116-124`、`server/auth.ts:560-573`、`server/world-api.ts:44-47`）。共用快取鍵在 `/api/world/_shared/v1/…` 之下，用戶端請求這個路徑是 404（`worker/app.ts:40-45`）。本版沒有新增路由。平台層面：依 `wrangler.jsonc:26,30`（`run_worker_first` 四組前綴、SPA fallback），`/api/mint` 這類路徑應由 Static Assets 直接回 `index.html`、不執行 Worker；**這一點是依設定推論，沒有用實際請求驗證** | 本輪不存在；上線前另行審查 | 程式可自行驗證；Worker bundle 可自行重建（`DEPLOYMENT_MATCH.md` 第 3 節）；平台行為為推論 |
-| 資料層 | repo 內只有這個 Worker 綁定 D1 `imd-world`（`wrangler.jsonc:63`，ID 已遮蔽）。本版的 migration 0005 只在同一個資料庫新增兩個欄位與一個表。IMD 帳號的 Workers & Pages 只有 `imd-world`（imdember.com）一個應用程式：持有人提供的 Cloudflare dashboard 截圖（2026-09-29，較早一輪）確認（reviewer 無法獨立驗證）；本輪沒有用 wrangler 查詢 | 登入狀態存於 D1 `imd-world` 的 `sessions`；Mint 頁面如何讀取未說明；上線前另行審查 | 設定可自行驗證；帳號內容為持有人提供的截圖 |
-| 簽名服務 | **沒有簽名服務**，伺服器沒有私鑰。Worker 的 `Env` 只有 `ASSETS`、4 個 rate limiter、`ALCHEMY_API_KEY`、`DB`、`CHAIN_MOCK_OWNERS`（`worker/app.ts:19-20`）。伺服器只「驗」簽：`recoverMessageAddress` 與 ERC-1271 `isValidSignature`（view call）（`server/auth.ts:374-399`） | 本輪不存在（沒有 Mint 合約或 signer）；Mint 合約上線前另行審查 | 可自行驗證 |
-
-補充：
-
-- （團隊端）在 f4272c5 的 117 個被保留程式檔（第 6.3 節）中，`tokenURI`、`/api/mint`、`finalize`、`ipfs`、`signTypedData`、`eth_sendTransaction` 都是 0 次；沒有 Mint 合約、mint／authorize／finalize 路由、IPFS 上傳、signer 或 Mint UI。房屋內部的「Pepe 櫃」只顯示「尚未鑄造」的文字，不呼叫錢包也不讀鏈（chunk 中 `.request(` 的 3 處都是繪製迴圈自己的 `this.request()`，見 `WALLET_METHODS.md` 第 3 節）。
-- Pepe 角色 collection：`src/world/collections.ts:6` 是空陣列；伺服器在清單為空時直接回 `{items:[],state:'ok'}`，不做需要金鑰的鏈上讀取（`server/ownership.ts:304-305`）。
-
-## 4. 房屋規則與規格差異
-
-**產品規則**（持有人決定）：一個錢包一間房，房內可以有多個席位；房子大小跟著該錢包目前計入的席位數變。審查規格中「一個錢包可以有多間房」這句**不採用**。reviewer 應檢查實作是否符合「一錢包一房、多席位」，而不是以「多間房」作為缺陷依據。
-
-實作（公開部分）：
-
-- 房子大小：1 個 → s、2–3 → ms、4–6 → m、7–9 → l、10 以上 → xl（`src/world/houseSize.ts:6`）。
-- 伺服器 `/api/me/home` 計算的 `eligible`／`size` 只計入：經 `ownerOf` 驗證持有、是 agent（有 agentId）、且目前在線或 24 小時內在這個持有人名下出現過的席位（計入規則只寫一次：`server/ownership.ts:142-145`；套用在 `:270-274`、`:289-291`）。候選超過 256 個時，依同一條規則先檢查會計入的席位，再檢查其他已註冊的席位，並標為 `partial`（`server/ownership.ts:146-148,228-238,255-256`；A-4、N-3）。
-- 地圖上的房子由用戶端依公開 IMD 名冊計算，每個錢包一間；分配與擺放規則的原始碼不公開（第 6 節），行為說明見 `OWNERSHIP_AND_HOMES.md` 第 5 節。
-
-**與規格驗收基準的差異**（第一列是持有人已定案的產品規則，是審查基準而不是缺陷；其餘各列持有人尚未正式簽核，reviewer 應把它們當成已揭露的差異）：
-
-| 規格項目 | 目前實作 | 位置 |
-|---|---|---|
-| 規格中「一個錢包可以有多間房」與「多間房屋」的敘述 | **不採用**：一錢包一房，房內多席位 | `src/world/houseSize.ts:1-3` 註解；`server/ownership.ts:278-291` |
-| 規格中的「主要住所」 | **不適用**：一錢包只有一間房 | — |
-| 規格中「玩家能實際進入有權使用的房屋」 | 屋主可以「進入我的家」，只限 session 地址自己的房子；閘門是用戶端的 `enterGate`（按下時再檢查一次），背後的權限來自伺服器 session＋`ownerOf`。房屋內部只在本機繪製，沒有伺服器端的「進屋」狀態 | `src/world/homeEntry.ts:11-30`；`OWNERSHIP_AND_HOMES.md` 第 5 節 |
-| 規格中「不能只增加前端標籤就視為完成」 | 「我家」與「進入我的家」是**前端標記與前端閘門**；背後的權限判斷（屋主模式）來自伺服器 session＋`ownerOf`，但屋主模式不會啟用任何伺服器端寫入 | `src/world/walletView.ts:64-71`、`src/world/auth.ts:57-75`、`homeEntry.ts:11-18` |
-| 搬家（規格未明訂） | 只存在本機瀏覽器的 localStorage，其他玩家看不到，不寫伺服器 | `src/world/moves.ts:62-70` |
-
-## 5. #361／#921 與 WebSocket
-
-- **#361、#921 沒有任何特權。** 它們是規格指定的測試座位案例，在 World 裡只是「特色守印者」的展示位置。所有引用都只影響畫面，全部在被保留的前端檔案內（團隊端證據；reviewer 可在正式 bundle 中檢查），例如 `layout.ts:720` 的 `FEATURED_HOMES` 展示座標、地圖 beacon 的順序、首個畫面的鏡頭目標、場景標籤與一行 UI 文字；房屋內部的預覽用假席位（`src/world/interior/mockSeats.ts:10`，只在開發模式或 `?debug=1` 的預覽中使用，不屬於任何房子，`homeEntry.ts:53-59`）的前兩個編號也是 361、921。
-- 已公開的 `server/`、`worker/` 沒有以席位編號做任何判斷；唯一出現 361 的地方是 `server/chain-mock.ts:4` 的註解，拿它當只在 loopback 生效的測試替身設定範例。測試（`tests/ownership.test.mjs`、`tests/wallet-client.test.mjs`、`tests/home-entry.test.mjs` 等）用 361、921 當合成案例，持有人是每次隨機產生的測試金鑰。
-- **沒有 WebSocket 或任何持續連線。** 公開的 `src/`、`server/`、`worker/`、重建的 Worker bundle 與正式前端檔案都沒有 `WebSocket`、`EventSource` 或 `WebSocketPair`。多分頁同步只用本機 `BroadcastChannel('imd-ember-auth')`（`src/world/WalletPanel.tsx:20`），而且只觸發重新向伺服器讀 session，不信任訊息內容（`src/world/auth.ts:158`）；同時進行的 session 讀取只採用最新一次的結果（`src/world/auth.ts:187-206`，N-1）。分頁可見時，屋主狀態每 60 秒以 `GET /api/me/home` 重查（輪詢，不是推播；`src/world/auth.ts:108,342-348`）；分頁重新顯示時結束已到期的 session 並重讀伺服器（`src/world/auth.ts:142-147`）。
-
-## 6. 公開與保留的原始碼
-
-### 6.1 已公開（`source/`，78 個檔案）
-
-- **Worker 與伺服器（全部）**：`worker/index.ts`、`worker/app.ts`（rate limit、網段鍵與 IPv6 /64 的 subscriber 鍵 `subnetKey`、`verify:` 與 `chain:code` 鍵、缺綁定時 fail closed、chain access、世界資料的共用快取）、`server/auth.ts`（SIWE、session、cookie、Origin、分層登入預算（含 IPv6 /48 與 /64 的巢狀份額、只計 lane 查核的 ERC-1271 lane、索引探索 lane 的 D1 計數）、logout-all、refusal log、帳號路由）、`server/ownership.ts`、`server/presence.ts`、`server/d1.ts`、`server/world-api.ts`、`server/gateway.ts`、`server/chain-mock.ts`（只在 loopback 生效的測試替身）、`server/vite-plugin.ts`（本機開發伺服器接線）
-- **Worker 在執行期 import 的 `src/world/` 模組**：`cadence.ts`、`collections.ts`、`houseSize.ts`、`links.ts`、`market.ts`、`model.ts`、`siwe.ts`、`status.ts`。Worker 的 import 範圍與上一版相同：重建的 Worker bundle 的 sourcemap 列出的專案檔案正好是 `worker/` 兩個、`server/` 六個（`auth`、`ownership`、`presence`、`gateway`、`world-api`、`chain-mock`；不含型別專用的 `d1.ts` 與開發用的 `vite-plugin.ts`）加這 8 個模組，共 16 個（`DEPLOYMENT_MATCH.md` 第 3 節）
-- **用戶端錢包／登入與屋主權限**：`src/world/auth.ts`（登入狀態機）、`siwe.ts`（頁面端檢查與摘要）、`wallet.ts`（EIP-6963）、`WalletPanel.tsx`、`walletView.ts`（屋主標記、簽名摘要、查核不完整時的說明、session 結束原因的文字、登出按鈕）、`reviewRecord.ts`、`auditRecord.ts`（審查紀錄）、`moves.ts`（搬家閘門）、`homeEntry.ts`（「進入我的家」閘門）、`HomePanels.tsx`（`WalletPanel` 用到的房屋區塊與「進入我的家」按鈕）、`i18n.tsx`、進入點 `src/main.tsx`、`publicHashes.ts`／`publicUrl.ts`（公開靜態檔的雜湊檔名）
-- **資料層**：`migrations/0001_wallet_login.sql`、`0002_sign_in_budgets.sql`、`0003_sign_in_layers.sql`、`0004_index_candidates.sql`、`0005_lanes_and_subnets.sql`
-- **設定**：`index.html`、`public/_headers`、`package.json`、`package-lock.json`、`tsconfig.json`、`vite.config.ts`、`wrangler.jsonc`（遮蔽）、`.nvmrc`、`.gitignore`
-- **部署出處與證據腳本**：`scripts/deploy.mjs`（部署前先跑完整測試）、`scripts/deploy-evidence.mjs`
-- **測試**：`tests/{auth,wallet-client,ownership,presence,worker,headers,deploy,deploy-evidence,home-entry,review-record,dependencies}.test.mjs`、`tests/wallet-harness.mjs`、`tests/d1-sqlite.mjs`、`tests/fixtures/{cold-home.mjs,cold-verify.mjs,swarm-2026-09-27.json,activity-0759z.json,wallet-panel.mjs}`
-- **文件**：`docs/wallet-login/DESIGN_W1_v001.md`（有遮蔽）、`docs/security/AUDIT_REMEDIATION_STATUS.md`（公開版，有遮蔽；`tests/review-record.test.mjs` 會讀它）、`docs/security/MINT_BOUNDARY.md`、`docs/security/deploy-evidence/` 的 10 頁部署證據
-
-本版新增的 6 個檔案（上一版 72 個）與收錄理由。本版沒有新增公開的用戶端或伺服器程式檔：N-1～N-7 的程式修正都在已經公開的檔案裡（`server/auth.ts`、`server/ownership.ts`、`server/presence.ts`、`worker/app.ts`、`src/world/auth.ts`、`walletView.ts`、`WalletPanel.tsx`），另加上表中的 migration 0005；新的測試也都寫在已公開的測試檔裡。
-
-| 檔案 | 收錄理由 |
+| 群組 | 閉包檔案 |
 |---|---|
-| `migrations/0005_lanes_and_subnets.sql` | N-4／N-5／N-6：`login_challenges` 新增兩個可為 NULL 的欄位 `sub`（提出 challenge 的 IPv6 /64，不含主機位元）與 `called_via`（`pool`／`lane`），以及新表 `index_lanes` 與它的兩個索引；只增不改。Worker 用它們；`tests/d1-sqlite.mjs` 對每個用 D1 的測試套用全部 migration，`tests/auth.test.mjs:751` 也直接讀它（「0005 之前部署」的測試）。沒有它無法重現 D1 schema 與測試 |
-| `docs/security/deploy-evidence/20260930T145241Z-007ee80.md`、`20260930T154746Z-a77f91b.md`、`20260930T185800Z-41ae386.md`、`20260930T221950Z-0d57791.md`、`20261001T040934Z-2e4e830.md` | `1a0dd495` 之後五次部署的結構化欄位（版本、雜湊、migration、limiter 綁定與鍵、WAF 規則與它的 rule id），由 `scripts/deploy-evidence.mjs` 從團隊的部署紀錄產生，不含 log 文字；`2e4e830` 那頁另記 0005 的套用與部署後的實測。`AUDIT_REMEDIATION_STATUS.md` 引用它們，`tests/review-record.test.mjs:255-257` 檢查狀態文件提到的每一頁都存在。內容是團隊端證據 |
+| Worker（2） | worker/index.ts、worker/app.ts |
+| Server（7） | server/gateway.ts、world-api.ts、auth.ts、member.ts、ownership.ts、presence.ts、chain-mock.ts |
+| 共用 World（9） | src/world/cadence.ts、collections.ts、houseSize.ts、links.ts、market.ts、memberName.ts、model.ts、siwe.ts、status.ts |
 
-選擇原則：判斷「連錢包、簽名登入與屋主權限是否安全」所需的程式、完整的伺服器端（讓 reviewer 能重建 Worker bundle），以及讓這些程式的測試能執行的最小依賴。
+package.json、lockfile 及 TypeScript／Vite／Wrangler 設定公開；npm 依賴與檢查見 [DEPENDENCIES.md](DEPENDENCIES.md)。本輪公開 subset 的 Worker dry-run 重建為 **303,128 bytes**、SHA-256 `cf720c698417726ce75cd3b4740314489ed816ba98a763e74d8118b8be136518`，與部署紀錄一致（部署證據第 13、63 行）。本輪完整 source 執行的是前端 build，未執行其 Worker dry-run；本次記錄見 [TESTS/README.md](TESTS/README.md)。重建相同不證明正式 Worker 完整執行設定。
 
-### 6.2 保留（504 個檔案）
+整站前端無法由此 subset 重建：`source/src/main.tsx:3–8` 匯入保留的 WorldApp、bridge、terrain 等。公開 client／面板可局部檢查，替身不證明保留的 UI／幾何正確。
 
-3D 場景、地形（含地形預烘 `skin/terrainBake.ts`、`skin/terrainField.ts` 與分段計算 `skin/terrainTask.ts`）、模型與模型下載佇列、天氣（含「為什麼是這種天氣」`weatherWhy.ts` 與本版期間新增的平靜天氣開關 `calmSky.ts`）、城鎮的地標、船與纜車（`cableCar.ts`、`skin/cableCar.ts`）、美術、音樂、新手引導、標籤、觀測站、地圖 UI、世界資料讀取狀態的顯示（`SourceNotes.tsx`）、Pepe 裝飾與雕像、非官方聲明的 UI（`unofficial.ts`）、房屋分配與擺放（`households.ts`、`layout.ts`、`layoutBaked.ts`、`collision.ts` 與其測試）、房屋內部的繪製與家具（`src/world/interior/*`、`HomeDoor.tsx`、`public/models/interior/*`）、`WorldApp.tsx`（主畫面接線）、世界資料的讀取與資料模式（`bridge.ts`、`dataMode.ts`）、舊的 StickEmber 小遊戲殘留（**不在正式 bundle 裡**）、其他測試、腳本、文件與圖檔。與上一版相比新增 20 個保留檔案（上述纜車、平靜天氣、`SourceNotes.tsx`，以及城鎮變更的測試與 fixture），沒有保留檔案被移除或改為公開；另有 59 個保留檔案的內容改變（城鎮配置、地標、模型、天氣與音樂等，包括 `WorldApp.tsx`、`scene.ts`、`layout.ts`、`collision.ts`）。依團隊說明，這些改動都不碰登入或所有權；正式 bundle 中的錢包方法計數與上一輪相同（`WALLET_METHODS.md` 第 3 節）。清單與 SHA-256：`manifests/withheld-source.txt`；git blob id：`manifests/withheld-source-gitblobs.txt`（都以 commit f4272c5 為準）。
+## 未含內容與證據限制
 
-### 6.3 被裁切的模組關係（誠實揭露）
+512 個保留檔包括 3D／地形／模型與美術、World 主畫面、房屋配置／內部呈現、其他測試與內部文件。E1、Genesis Mint、Mint 合約／授權服務／交易流程、3D 資產權利政策、內部規格及未公開規劃不在此次範圍。公開 MINT_BOUNDARY.md 是邊界說明，不是 Mint 實作或安全背書。
 
-已公開 → 被保留（公開檔案 import 了未公開檔案；關係與上一版相同，只有 `tests/ownership.test.mjs` 的行號移動）：
+未收錄憑證、.env／.dev.vars、正式 D1 資料、私人部署原始 logs、真實錢包測試影像或完整私人 source。fixtures 含公開鏈上地址及合成資料，文件沒有將地址與持有人身分連結。
 
-| 公開檔案 | import 種類 | 被保留檔案 | 影響 |
-|---|---|---|---|
-| `src/main.tsx:3-8` | value | `src/world/WorldApp.tsx`、`bridge.ts`、`dataMode.ts`、`skin/terrainTask.ts`、`screenSpace.ts`，以及 Vite 在 build 時產生的虛擬模組 `virtual:baked-terrain` | 前端無法從 `source/` 建置 |
-| `vite.config.ts:9-11` | value | `scripts/content-hash.ts`、`src/world/skin/terrainField.ts`、`src/world/skin/terrainBake.ts` | 同上（build 設定本身） |
-| `src/world/homeEntry.ts:5-6` | value（`HOUSE_FOOTPRINT`、`HOUSE_SIZES`、`lotPoint`） | `src/world/households.ts`、`src/world/layout.ts` | 門口位置的幾何（`doorPoint`、`atDoor`、`doorLanding`）需要被保留的房屋尺寸與擺放；授權閘門（`enterGate`、`enterableHome`、`enterAtPress`、`offersEnter`、`blockEnter`、`doorOffer`）不用它們。測試用替身見 `TESTS/stubs/` |
-| `src/world/walletView.ts:3` | type-only（`Home`） | `src/world/households.ts` | 只影響型別檢查 |
-| `src/world/WalletPanel.tsx:3` | type-only（`Home`） | `src/world/households.ts` | 同上 |
-| `src/world/HomePanels.tsx:2-3` | type-only（`Home`、`HouseSize`、`HomePose`） | `src/world/households.ts`、`src/world/layout.ts` | 同上 |
-| `tests/ownership.test.mjs:11` | value（`houseSize`） | `src/world/households.ts` | 該檔只是轉出公開的 `houseSize.ts`；替身即可執行 |
-| `tests/home-entry.test.mjs:70` | 動態 import（`mockSeats`） | `src/world/interior/mockSeats.ts` | 只有 `?interior=` 預覽那一項測試需要，本快照無法執行 |
+2026-10-03 13:01:16Z–13:01:40Z 的公開 GET 5/5 成功、靜態檔 SHA-256 4/4 比對成功、靜態標頭 24/24 相同；匿名 session 回 signedIn:false／no-store，五回答無 Set-Cookie。這只證明所讀檔與匿名端點當時的回答；未讀正式 D1、未測本版真實錢包或所有會員路由。**Deployment match = partial**；remote migrations、limiter／WAF、secrets、log sampling 仍含部署方自述。
 
-另外一個不是檔案、而是 git 歷史的依賴：`tests/deploy-evidence.test.mjs:54` 執行 `git rev-parse 132228c`（Worker `1a0dd495` 的程式），`:58` 執行 `git rev-parse 3f661eb`（Report 的修正，早於 A-1），兩者都是私人 repo 的 commit，用來比較 A-1、N-6 前後證據頁列出的 limiter 鍵與 migration。本快照複製出的 repo 沒有這些 commit，所以該測試在本快照失敗；團隊的 checkout 中它通過（團隊端）。
-
-**本快照的失敗與上表的對應**（2026-10-01 的執行，原始輸出在 `TESTS/`）：
-
-| 執行 | 結果 | 失敗的原因 |
-|---|---|---|
-| `npx tsc --noEmit`（不加替身，04:25:50Z） | exit 2，16 行錯誤（與上一輪相同） | 全部來自被保留的 import：`src/main.tsx` 6 行（第 3–8 行）、`homeEntry.ts` 2 行（第 5–6 行）、`HomePanels.tsx` 2 行（第 2–3 行）加上連帶產生的 1 個 TS7006（第 18 行）、`WalletPanel.tsx` 1 行（第 3 行）、`walletView.ts` 1 行（第 3 行）、`vite.config.ts` 3 行（第 9–11 行）（`TESTS/tsc-noEmit-output.txt`） |
-| `npm test` 加上兩個替身（04:25:35Z） | 216 項、212 通過、4 失敗 | `home-entry.test.mjs:53`「the door…」與 `:91`「TEST-1: the render rules…」：替身不提供 `HOUSE_FOOTPRINT`／`lotPoint`；`home-entry.test.mjs:62`「group 8: the ?interior= preview…」：缺 `mockSeats.ts`；`deploy-evidence.test.mjs:31`「deploy evidence from a real deploy record…」：缺私人 git 歷史（上段）（`TESTS/npm-test-output.txt`） |
-| `npm test` 不加替身（04:25:24Z） | 111 項、107 通過、4 失敗 | `ownership.test.mjs`（第 11 行 import `households.ts`）、`home-entry.test.mjs` 與 `wallet-client.test.mjs`（經 `homeEntry.ts:5-6`）三個檔案無法載入；加上同一項 deploy-evidence 測試（`TESTS/npm-test-output.no-stub.txt`） |
-
-Worker 不 import 任何被保留的檔案（`tests/ownership.test.mjs:658`「the Worker entry never loads layout.ts or households.ts…」以實際載入固定這一點）。
-
-被保留 → 已公開（未公開檔案使用公開模組；團隊端，f4272c5）：
-
-| 被保留檔案 | 使用的公開模組 |
-|---|---|
-| `src/world/WorldApp.tsx` | `WalletPanel.tsx`（`WalletPanel`、`WalletChip`、`createAuth`、`useAuth`）、`auth.ts`（`ownerAddress`）、`wallet.ts`、`walletView.ts`（`markedHome`、`markerLabel`）、`moves.ts`（`readMoves`、`commitMove`、`moveGate`）、`homeEntry.ts`（`enterableHome`、`enterAtPress`、`blockEnter`、`doorOffer`、`interiorPreview`）、`HomePanels.tsx`，以及世界資料用的 `model.ts`、`market.ts`、`links.ts`、`cadence.ts`（含本版期間新增的 `startWorldPoll`、`showLoading`）、`i18n.tsx` |
-| `src/world/SourceNotes.tsx`（本版期間新增） | 世界資料讀取狀態的顯示：`cadence.ts`（`showLoading`）、`model.ts`、`links.ts`、`status.ts`、`i18n.tsx`；不使用任何錢包或登入模組 |
-| `src/world/HomeDoor.tsx` | `homeEntry.ts`（`chunkLoader`），延遲載入 `src/world/interior/InteriorView.tsx` |
-| `src/world/scene.ts` | `homeEntry.ts`（`nearOwnDoor`、`doorPoint`、`doorLanding`） |
-| `src/world/interior/*` | `auth.ts` 的型別（`AuthState`、`MeSeat`）、`walletView.ts`（`countsText`）；席位資料來自 `WorldApp` 傳入的屋主狀態（即 `/api/me/home` 的結果） |
-| `src/world/households.ts` | `model.ts`、`houseSize.ts`、`moves.ts`（型別） |
-| `src/world/assets.ts`、`pepeDecor.ts`、`Observatory.ts`、`skin/houses.ts` | `publicUrl.ts`（雜湊檔名） |
-
-表中以外的被保留檔案只使用世界資料與顯示用的公開模組（`i18n.tsx`、`market.ts`、`model.ts`、`links.ts`、`cadence.ts`、`status.ts`）；表中的檔案另外也使用這些模組與 `houseSize.ts`。沒有被保留的檔案使用 `siwe.ts`、`reviewRecord.ts` 或 `auditRecord.ts`，`wallet.ts` 只有 `WorldApp.tsx` 使用。
-
-**`WorldApp.tsx` 的錢包與「進入」接線**：原始碼不公開，但編譯後的程式完整存在於公開的正式主 bundle `https://imdember.com/assets/index-C1BrxBtd.js`（SHA-256 `b6d39838…8d3d`），reviewer 可以直接讀。可用下列字串定位（壓縮後的字串用反引號）：
-
-| 在 bundle 中搜尋 | 對應的接線 |
-|---|---|
-| `` eip6963:requestProvider ``、`` personal_sign ``、`` imd-ember-auth ``、`` ember-world-session-hint `` | 公開的 `wallet.ts`／`auth.ts`／`WalletPanel.tsx` 編譯後的位置 |
-| `` /api/me/home ``、`` /api/auth/logout-all `` | 屋主狀態重查、登出所有裝置 |
-| `` ember-world-moves-v1 `` | 搬家的本機儲存 |
-| `` Enter your home `` | 「進入我的家」的兩個按鈕（房屋區塊與門口提示），只在 `enterableHome` 不為 null 時出現 |
-| `` InteriorView-4LZmFcoq.js `` | 房屋內部 chunk 的唯一一個動態 `import(` |
-| `` get(`debug`) `` | `?interior=` 預覽只在 `?debug=1`（或開發模式）開啟，只用假資料，不屬於任何房子（`homeEntry.ts:53-59`） |
-| `` get(`mode`) ``、`` get(`wallet`) `` | `?mode=mock` 假資料模式；`?wallet=0x…` 只移動鏡頭，不給任何權利 |
-
-`commitMove` 與 `enterGate` 都自己再檢查一次屋主狀態，不依賴呼叫端（`src/world/moves.ts:64-66`、`src/world/homeEntry.ts:11-30`）。無論 `WorldApp` 怎麼接線，屋主模式都不會啟用任何伺服器寫入（`OWNERSHIP_AND_HOMES.md` 第 5 節）。
-
-對被保留檔案做的檢查（團隊端，2026-10-01，在 f4272c5 的 117 個被保留程式檔上執行，也就是 `manifests/withheld-source.txt` 中 `tests/` 以外的 `.ts`、`.tsx`、`.mjs`、`.js`；reviewer 可在正式 bundle 上複查）：`window.ethereum`、`eip6963`、`personal_sign`、`eth_`、`/api/auth`、`/api/me`、`/api/wallet`、`document.cookie`、`innerHTML`、`dangerouslySetInnerHTML`、`eval(`、`new Function`、`BroadcastChannel`、`WebSocket`、`EventSource` 都是 **0 次**。`postMessage` 1 次：`src/world/skin/terrainTask.ts:35`，同一頁內 `MessageChannel` 的兩端互傳 `null`，用來讓出一次事件迴圈，不是跨視窗訊息。`.request(` 3 次，全部是房屋內部繪製迴圈自己的 `this.request()`（`src/world/interior/room.ts:124,312,343`），不是 EIP-1193。`import(` 只有：`HomeDoor.tsx:9` 的房屋內部 chunk、`scene.ts:274,954` 兩處只在開發模式的 `devCapture`（production build 會移除）、`skin/devCapture.ts:38` 的 three.js，以及三個離線腳本（`interior-glb.mjs`、`pepe-decor.mjs`、`pepe-frame.mjs`）的 `sharp`。`fetch(` 只出現在 `src/world/bridge.ts`（`/api/world/*` 資料與 DEX Screener 行情）、`src/world/assets.ts:73`（同 origin 的模型檔）、`src/world/skin/terrainTask.ts:21`（同 origin 的預烘地形檔）、只在開發模式的 `skin/devCapture.ts`，以及兩個不進 bundle 的離線腳本（`capture-imd.mjs`、`found_homes.mjs`，讀 `api.imd.fun`）；`modelFetch.ts:1` 是註解，`musicPlayer.ts` 的 `prefetch` 是 `HTMLAudioElement` 預載，不是 `fetch(`。localStorage 只用於偏好設定（音效、平靜天氣開關、地圖收合、首次導覽、慶祝紀錄、效能指標）與 `WorldApp.tsx:55` 的搬家儲存（另有兩個離線腳本 `build-map-handoff.mjs`、`export_plan.mjs` 在說明文字中提到它）。正式主 bundle 中的 `innerHTML`（5 處）與 `dangerouslySetInnerHTML`（12 處）都在打包進來的 React DOM 程式碼內，數量與上一輪相同；房屋內部 chunk 兩者都是 0。
-
-## 7. 未知與限制
-
-- **Genesis Mint**：持有人說明日後的 Mint 頁面會在同一個 origin、使用本站的 SIWE 登入狀態；本輪 World 沒有任何 Mint 程式、路由、合約、signer 或 UI（第 3 節）。`MINT_BOUNDARY.md` 只列問題，不是任何 Mint 的審查。
-- **本版的修正沒有經過重新審查**：N-1～N-7 的修正狀態、殘餘與門檻都是團隊說明；Audit 8c3aea2e 看的是 Worker `1a0dd495`（`README.md`「自送審版本以來的變更」）。
-- **正式執行的版本**：目前執行 `bbf24001` 是團隊說明，本輪沒有用 wrangler 查詢部署狀態。2026-09-30 06:48 到 2026-10-01 04:10 UTC 之間執行過 `6e7e40cd`（來源 `df8ea90`，09:27 以 `wrangler rollback` 撤回）、`cc5cddb3`（`007ee80`）、`3e0f4eb3`（`a77f91b`）、`5f9e6468`（`41ae386`）、`f152cd66`（`0d57791`）：Worker bundle 都與 `1a0dd495` 相同、前端不同；那些來源 commit 不在本快照，那段時間的前端檔案也不在本輪比對之內（`README.md`「部署經過」）。
-- 其他 Worker／Pages：持有人提供的 Cloudflare dashboard 截圖（2026-09-29，較早一輪）顯示 IMD 帳號只有 `imd-world` 一個應用程式（reviewer 無法獨立驗證）。
-- 邊緣限流：`imdember.com` zone 的 Cloudflare WAF rate limiting rule「IMD API anti-flood」（`/api/` 每 IP 每 10 秒 20 次，Block 10 秒；rule id `866d2fae97c942389a9fa9f15c411f46`，記在部署證據頁；rule id 是 2026-09-29 從 dashboard 讀取，之後的部署沒有重讀）；設定與實測為團隊端證據（`ROUTES.md` 第 4 節）。
-- 正式 D1 的 schema 是否與 `migrations/0001`～`0005` 相同：本輪禁止查詢正式資料庫；「0003 在部署 f9b68223 之前、0004 在部署 1a0dd495 之前、0005 在部署 bbf24001 之前套用」都是團隊端說明。若 0003 沒有套用，verify 的 session INSERT 會因 `wallet_type` 欄位不存在而失敗，登入回 503 `AUTH_UNAVAILABLE` 並寫一行 log（不會放行，`server/auth.ts:518-522`）。若 0004 沒有套用，`index_candidates` 的讀寫失敗會被忽略，退回每個 instance 自己的索引答案，房屋讀取與 cron 不會失敗（`server/ownership.ts:162-163,172-184`、`server/presence.ts:59-60`）。若 0005 沒有套用，challenge 的 INSERT 與 ERC-1271 的 claim 退回 0004 的 statements（舊規則，包括一個 IPv6 /48 每分鐘 30 個 challenge；`server/auth.ts:172-178,217-226,442,487,492-494`），沒有探索 lane（`server/auth.ts:618-624`），lane 列的清理失敗被忽略（`server/presence.ts:59-60`），都不回 503（測試 `tests/auth.test.mjs:732`、`tests/ownership.test.mjs:571`、`tests/presence.test.mjs:100`）。
-- 4 個 rate limiter 在正式環境：`API_LIMITER` 4101、`SEAT_LIMITER` 4102、`AUTH_LIMITER` 4103、`CHAIN_LIMITER` 4104 與 D1 `imd-world`（`DB`），與 `wrangler.jsonc` 一致：持有人提供的截圖（2026-09-29，較早一輪）確認（reviewer 無法獨立驗證）；部署證據頁也列出同樣的綁定（團隊端）。本版沒有新增綁定：A-1 的 `chain:erc1271:lane` 與 N-6 的 `chain:index:lane` 都是 `CHAIN_LIMITER` 裡的鍵（`server/auth.ts:271`），`verify:` 鍵共用 `AUTH_LIMITER`，`chain:code` 共用 `API_LIMITER`（`worker/app.ts:87-90`）。
-- `CHAIN_LIMITER`、`AUTH_LIMITER` 與 `chain:code` 是**每個 Cloudflare 據點**各自計數，不是全球，而且是最終一致的；全球性的只有 D1 內的預算（含 N-6 的 `index_lanes`；`SIWE.md` 第 6 節）。N-5 中 IPv6 /64 的 challenge 層就是 `AUTH_LIMITER`，所以也是每據點。文件與測試中的攻擊門檻（例如 A-1、A-7、N-4、N-5、N-6）是本機精確 limiter 的結果，在邊緣不一定成立。
-- Cloudflare 實際執行的 Worker 程式碼與機密設定：外部無法取得；上傳的 bundle 可自行重建比對（`DEPLOYMENT_MATCH.md`）。
-- 前端：`WorldApp.tsx`、房屋擺放、房屋內部、城鎮內容、世界資料讀取與地形的程式不公開，前端無法從 `source/` 重建，只能對公開的正式檔案檢查。
-- 瀏覽器與真實錢包 E2E：本快照沒有執行；團隊端只有持有人在 `bbf24001` 上用真錢包登入與登出的檢查（2026-10-01 04:16 與 04:19 UTC，團隊說明；`README.md`「如何測試」）。
+公開 subset 加替身為 **341 tests、337 pass、4 fail**；M1 聚焦測試 **33/33** 通過。完整 source archive 為 **1009 tests、1008 pass、1 fail**，失敗涉及歷史 deploy-evidence；不能宣稱完整全部通過。指令、輸出、替身與其他聚焦結果見 [TESTS/README.md](TESTS/README.md)。此資料包本身不是新的外部審查結論。

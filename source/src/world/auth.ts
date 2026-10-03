@@ -19,9 +19,10 @@ export type MeHome={address:string;seats:MeSeat[];eligible:number;size:HouseSize
 export type Session={address:string;expiresAt:number};
 /** Spec 7.1: the nine states the chip and the panel show. */
 export type AuthStatus='visitor'|'connected'|'awaitingSignature'|'verifying'|'owner'|'signedInNoHouse'|'expired'|'ownershipUnavailable'|'mismatch';
-/** Why the last click did not end signed in, or signed out (shown once, never retried by itself). */
+/** Why the last click did not end signed in, or signed out (shown once, never retried by itself); 'logout-slow' when a
+ *  click's wait for this page's own logout (ADV-3, AuthState.waiting) ran out. */
 export type Notice='message-mismatch'|'no-wallet'|'connect-rejected'|'sign-rejected'|'rate-limited'|'busy'|'auth-unavailable'|'verify-unavailable'|'challenge-lost'|
-  'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed'|'signout-all-stale';
+  'signature-invalid'|'failed'|'unsupported-wallet'|'session-unknown'|'signout-failed'|'signout-all-stale'|'logout-slow';
 /** Why the page's last session ended (N-7): 'expired' it ran out (a SESSION_EXPIRED, or its expiresAt reached on this
  *  clock); 'revoked' the server no longer knows it (AUTH_REQUIRED, or a session read says signed out: a logout-all or a
  *  logout elsewhere, a cookie the server dropped; which one, the page cannot tell); 'signed-out' this page's own sign-out. */
@@ -51,8 +52,13 @@ export type AuthState={
    *  shown beside the prompt (F-1 UX). Null in every other phase. */
   signing:SignInSummary|null;
   checking:boolean;notice:Notice|null;
+  /** ADV-3: a sign-in click waits for this page's own logout (or an abandoned flow's verify) before it asks the wallet
+   *  anything; My wallet says so in place of the notice, and its sign button is off. A field of its own, so a session or
+   *  house read that fails meanwhile (its notice) cannot take it down (the review of 066d109, RC-2); it ends with the
+   *  wait: the click going on or running out, and every switch, sign-out or teardown that ends the click. */
+  waiting:boolean;
 };
-export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,ended:null,restored:false,sessionKnown:false,leaving:false,signing:null,checking:false,notice:null};
+export const INITIAL:AuthState={account:null,session:null,phase:'idle',home:null,expired:false,ended:null,restored:false,sessionKnown:false,leaving:false,signing:null,checking:false,notice:null,waiting:false};
 
 /** The state the chip shows, derived from the facts only (so no two fields can disagree). Owner = the server read the
  *  session's seats and at least one counts, the connected wallet (if any) is the session's, and the session's expiresAt
@@ -102,17 +108,24 @@ export type AuthDeps={fetch:(path:string,init?:RequestInit)=>Promise<Response>;
   origin?:string};
 const JSON_POST=(body:unknown):RequestInit=>({method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),credentials:'same-origin'});
 const code=async(r:Response)=>{try{const v=await r.clone().json();return typeof v?.error==='string'?v.error as string:null;}catch{return null;}};
+/** The session a verify's 2xx body names (lowercase address and expiresAt), or undefined if it names none. */
+const sessionIn=async(r:Response):Promise<Session|undefined>=>{try{const v=await r.json() as {address?:unknown;expiresAt?:unknown};
+  return isAddress(v?.address)&&typeof v.expiresAt==='number'?{address:v.address.toLowerCase(),expiresAt:v.expiresAt}:undefined;}catch{return undefined;}};
 /** Re-read /api/me/home no more often than this unless the click is the refresh button (20 per session per minute);
  *  owner mode re-checks this often while the tab is visible; a house older than OWNER_STALE_MS (every re-check since
  *  failed, e.g. 429) no longer grants owner mode (CORR-05, spec D07). */
 export const HOME_MIN_GAP_MS=15_000,OWNER_RECHECK_MS=60_000,OWNER_STALE_MS=3*OWNER_RECHECK_MS;
+/** ADV-3: how long a sign-in click waits for this page's logouts still on their way before it ends, asking nothing. */
+export const LOGOUT_WAIT_MS=5_000;
 
 export class AuthClient{
   private s:AuthState=INITIAL;private listeners=new Set<()=>void>();
   /** Bumped by every new click, account switch and sign-out: a response of an older generation is dropped. */
   private gen=0;private busy=false;private homeAt=0;private homeOkAt=0;private homeGen=0;private channel:Channel|null=null;private unsub:()=>void=()=>{};
-  /** The provider whose accountsChanged this client follows, and a counter that drops a replaced provider's eth_accounts. */
-  private bound:Provider|null=null;private binds=0;
+  /** The provider whose accountsChanged this client follows, and a counter that drops a replaced provider's eth_accounts.
+   *  R3-R1: accountEvents counts every accountsChanged it heard (a repeat and a lock too): a wallet answer about accounts
+   *  that was awaited while one arrived is older than it, so it is applied only if it names the account the latest set. */
+  private bound:Provider|null=null;private binds=0;private accountEvents=0;
   /** The newest session read: a click waits until none is running, so a reload with a live cookie never asks for a signature. */
   private restoring:Promise<void>|null=null;private deps:AuthDeps;
   /** N-1: numbers every session read; only the newest one's answer, failure or body is applied (one overtaken by a newer
@@ -121,6 +134,10 @@ export class AuthClient{
   private sessionReads=0;
   /** W-1: the timer that ends the session here at its expiresAt, and when the last session read began. */
   private expiry:{session:Session;timer:unknown}|null=null;private sessionAt=-Infinity;
+  /** ADV-3: this page's requests whose answer still writes the session cookie when it lands: every logout (a switch's,
+   *  an abandoned flow's, a sign-out's, a click's own; its Max-Age=0 deletes whatever cookie the browser holds by then),
+   *  and a verify until its flow has kept its session or logged it out. Each entry settles after its own handler ran. */
+  private unsettled=new Set<Promise<unknown>>();
   constructor(deps:AuthDeps){this.deps=deps;}
   get state(){return this.s;}
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};};
@@ -148,6 +165,22 @@ export class AuthClient{
   private get hint(){return this.deps.hint??localHint;}
   private now(){return (this.deps.now??Date.now)();}
   private broadcast(kind:'signed-in'|'signed-out'){try{this.channel?.postMessage(kind);}catch{/* closed */}}
+  /** Keeps `p` in `unsettled` until it settles (ADV-3); returns `p`. */
+  private hold<T>(p:Promise<T>){const q=p.then(()=>{},()=>{});this.unsettled.add(q);void q.then(()=>{this.unsettled.delete(q);});return p;}
+  /** A logout this page does not wait for, `then` run on its answer (both held in `unsettled`, ADV-3). */
+  private sendLogout(then:(ok:boolean)=>void){this.hold(this.logoutRequest().then(then));}
+  /** N-1: no session read running; ADV-3: and, while `matters()`, nothing in `unsettled`. False when something there is
+   *  still out after LOGOUT_WAIT_MS (a read is always waited for: it ends by itself). */
+  private async quiet(matters:()=>boolean){
+    let timer:unknown=null,late=false,wake=()=>{};const bound=new Promise<void>(r=>{wake=r;});
+    try{for(;;){
+      if(this.restoring){await this.restoring;continue;}
+      if(!this.unsettled.size||!matters())return true;if(late)return false;
+      timer??=this.env.set(()=>{late=true;wake();},LOGOUT_WAIT_MS);
+      const seen=[...this.unsettled];                                                  // dropped once settled, so this loop never spins
+      await Promise.race([Promise.all(seen).then(()=>{for(const q of seen)this.unsettled.delete(q);}),bound]);
+    }}finally{if(timer!==null)this.env.clear(timer);}
+  }
 
   /** Page load: the session from the cookie (no signature, ever), the wallet's already-granted account (no prompt), the
    *  account switches, and the other tabs. Returns the teardown, which first ends an in-flight sign-in (N-2: the page's
@@ -160,7 +193,7 @@ export class AuthClient{
     const off=this.deps.onProviderChange?.(()=>this.providerChanged())??(()=>{});
     const offVisible=this.env.onVisible(()=>this.visible());
     void this.restore();
-    return ()=>{this.gen++;this.busy=false;if(this.s.phase!=='idle')this.set({phase:'idle'});
+    return ()=>{this.gen++;this.busy=false;if(this.s.phase!=='idle'||this.s.waiting)this.set({phase:'idle',waiting:false});
       off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
       if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
   }
@@ -168,7 +201,8 @@ export class AuthClient{
    *  followed: the SIWE message is always chainId 1 and personal_sign does not depend on the wallet's chain. */
   private bind(p:Provider|null){
     this.unsub();this.unsub=()=>{};this.bound=p;const b=++this.binds;if(!p)return;
-    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b===this.binds&&a&&!this.s.account)this.set({account:a});}).catch(()=>{});
+    const e=this.accountEvents;                                                        // R3-R1: an event while it was asked is newer than its answer
+    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b===this.binds&&e===this.accountEvents&&a&&!this.s.account)this.set({account:a});}).catch(()=>{});
     if(p.on){const h=(v:unknown)=>{if(b===this.binds)this.accountChanged(firstAccount(v));};p.on('accountsChanged',h);this.unsub=()=>p.removeListener?.('accountsChanged',h);}
   }
   /** Another wallet is in use (the player's EIP-6963 choice, or one that announced late). A flow started with the old one
@@ -179,8 +213,8 @@ export class AuthClient{
     const p=this.deps.provider();if(p===this.bound)return;
     const flow=this.s.phase!=='idle';
     if(flow||this.busy){this.gen++;this.busy=false;}
-    this.set({account:null,phase:'idle',...flow?{notice:null}:{}});
-    if(flow)void this.logoutRequest().then(ok=>{if(!ok)void this.restore();});
+    this.set({account:null,phase:'idle',waiting:false,...flow?{notice:null}:{}});           // a click it ends waits no more
+    const g=this.gen;if(flow)this.sendLogout(ok=>{if(ok)this.loggedOut(g);else void this.restore();});
     this.bind(p);
   }
   /** GET /api/auth/session; a signed-in answer is followed by the home read. */
@@ -217,7 +251,9 @@ export class AuthClient{
       const r=await this.deps.fetch(fresh?'/api/me/home?fresh=1':'/api/me/home',{credentials:'same-origin'});
       if(stale())return;
       if(r.ok){const home=await r.json() as MeHome;if(stale())return;
-        if(this.s.session&&home.address.toLowerCase()!==this.s.session.address){await this.restore();return;}  // another tab switched the cookie
+        // Another tab switched the cookie. AUD3-05: an answer for another address is not "unreadable for now": the held
+        // session's house and the check end here (unconfirmed, never owner mode), and only then is the session re-read.
+        if(this.s.session&&home.address.toLowerCase()!==this.s.session.address){this.set({home:'unavailable',checking:false});await this.restore();return;}
         this.homeOkAt=this.now();this.set({home,checking:false});return;}
       const c=await code(r);if(stale())return;
       // N-7: expired only when the session ran out (SESSION_EXPIRED, or the held session's expiresAt reached here); any
@@ -236,30 +272,54 @@ export class AuthClient{
    *  (CORR-02). A rejected signature ends the flow as `connected` with a notice: nothing is retried by itself. After every
    *  await the flow writes state or opens a wallet prompt only while it is the live flow (gen), with the same wallet and
    *  the same account (N-2: a challenge body that arrives after a switch, a sign-out or the page's teardown asks nothing,
-   *  and a click still waiting for a session read when one of them happens is ended by it too). */
+   *  and a click still waiting for a session read when one of them happens is ended by it too). R3-R1: the wallet's own
+   *  answers are no newer than its events: a connect answered for another account than an accountsChanged that came
+   *  meanwhile, or a lock while the prompt was open, ends the click with nothing set, asked or verified (never a prompt to
+   *  recover: the next click starts from the account the wallet named last). ADV-3: no challenge is asked for while a
+   *  logout this page sent, or an abandoned flow's verify, is still on its way (bounded: LOGOUT_WAIT_MS). */
   async signIn(){
     if(this.busy)return;
     const p=this.deps.provider();if(!p){this.set({notice:'no-wallet'});return;}
     this.busy=true;const epoch=this.gen,live=()=>epoch===this.gen;                   // no session read bumps gen
-    while(this.restoring)await this.restoring;                                         // N-1: the newest read, however many began meanwhile
-    if(live()&&!this.s.sessionKnown){await this.restore();while(this.restoring)await this.restoring;}
+    // N-1: the newest read, however many began meanwhile. ADV-3: and, unless the wallet's account is signed in already
+    // (no cookie is asked for then), no logout of this page still on its way (a switch's, an abandoned flow's, a
+    // sign-out's): its answer's Max-Age=0 would delete the cookie this sign-in sets. One still out after LOGOUT_WAIT_MS
+    // ends the click with nothing asked (the next click waits for it again). Checked again after every await. While a
+    // logout holds the click up the page says so (`waiting`; the panel's sign button is off), and a wait that runs out
+    // says that logout has not been answered ('logout-slow'), not that the session could not be read.
+    const asks=()=>!this.s.account||this.s.session?.address!==this.s.account,out=()=>!!this.restoring||this.unsettled.size>0&&asks();
+    const wait=async()=>{let ok=true;while(ok&&out()){if(live()&&this.unsettled.size>0&&asks()&&!this.s.waiting)this.set({waiting:true});ok=await this.quiet(asks);}return ok;};
+    let quiet=await wait();
+    if(quiet&&live()&&!this.s.sessionKnown){await this.restore();quiet=await wait();}
     // N-2: a sign-out, an account or wallet switch or the page's teardown while the click waited ended it too (each bumps
-    // gen and clears busy, so busy is left alone here: a newer click may hold it). It asks nothing, reads nothing more.
+    // gen and clears busy, so busy is left alone here: a newer click may hold it; and `waiting`, so it is left alone too).
+    // It asks nothing, reads nothing more.
     if(!live())return;
-    const g=++this.gen;                                                                // no await since the loop: no read can start in between
+    if(this.s.waiting)this.set({waiting:false});                                       // the wait is over, however the click goes on or ends below
+    if(!quiet){this.busy=false;this.set({notice:'logout-slow'});return;}
+    const g=++this.gen;                                                                // no await since the wait: no read or logout can start in between
     if(this.deps.provider()!==p){this.busy=false;return;}                               // the wallet changed while waiting
     if(!this.s.sessionKnown){const n=this.s.notice;this.busy=false;this.set({notice:n==='rate-limited'||n==='auth-unavailable'?n:'session-unknown'});return;}
-    this.set({notice:null});
+    this.set({notice:null});let decided=()=>{};
     try{
       let account=this.s.account;
-      if(!account){
+      if(!account){const seen=this.accountEvents;
         try{account=firstAccount(await p.request({method:'eth_requestAccounts'}));}catch{if(g===this.gen)this.set({notice:'connect-rejected'});return;}
         if(g!==this.gen)return;if(!account){this.set({notice:'connect-rejected'});return;}
+        // R3-R1: an accountsChanged that came while the wallet was asked is newer than its answer: the latest event's account
+        // stands (B, or none for a lock), and an answer for another one ends the click here: nothing set, asked or verified.
+        // A same-account event (a wallet announcing the account it just granted) agrees, so a normal connect goes on.
+        if(seen!==this.accountEvents&&this.s.account!==account)return;
         this.set({account});
       }
       if(this.s.session?.address===account){await this.refreshHome(true);return;}      // signed in already: no signature
-      if(this.s.session&&!await this.logoutRequest()){                                 // another address's session ends first
-        if(g===this.gen)this.set({notice:'signout-failed'});return;}
+      if(this.s.session){                                                               // another address's session ends first
+        const held=this.s.session;
+        if(!await this.hold(this.logoutRequest())){if(g===this.gen)this.set({notice:'signout-failed'});return;}
+        // AUD3-04: as signOut's, no read begun before it is applied. ADV-1: A ends on the page even when another wallet was
+        // chosen meanwhile (gen moved on), unless a newer session is held by now. ADV-2: the other tabs re-read, as after a
+        // sign-out or an account switch.
+        this.loggedOut(g,held);this.broadcast('signed-out');}
       if(g!==this.gen)return;
       this.homeGen++;this.set({session:null,home:null,ended:null,phase:'awaitingSignature',signing:null,checking:false});   // N-1: the old session's house read is dropped
       const c=await this.deps.fetch('/api/auth/challenge',JSON_POST({address:account}));
@@ -278,55 +338,101 @@ export class AuthClient{
       try{signature=await p.request({method:'personal_sign',params:[hexUtf8(message),account]}) as string;}
       catch{if(g===this.gen)this.set({phase:'idle',notice:'sign-rejected'});return;}
       if(g!==this.gen)return;                                                          // switched while the wallet was open: never verify
+      // R3-R1: nor after a lock (accountChanged(null) does not bump gen) or another wallet while the prompt was open, as before it.
+      if(this.deps.provider()!==p||this.s.account!==account){this.set({phase:'idle'});return;}
       this.set({phase:'verifying'});
+      this.hold(new Promise<void>(r=>{decided=r;}));                                   // ADV-3: until this verify's cookie is kept, or logged out below
       const v=await this.deps.fetch('/api/auth/verify',JSON_POST({nonce,signature}));
-      if(g!==this.gen){if(v.ok)this.revokeAbandoned();return;}                          // a late success of an abandoned flow is revoked
-      if(!v.ok){const n=failure(v.status,await code(v));if(g===this.gen)this.set({phase:'idle',notice:n});return;}   // a dead flow's late refusal is not the new flow's
+      // A late success of an abandoned flow is logged out on its headers, which brought its cookie (the review of 066d109,
+      // RC-1: waiting for its body left that session live, and the click held, while the body stalled); the hold passes to
+      // that logout, and the body, read on its own, names the session it ends.
+      if(g!==this.gen){if(v.ok)this.revokeAbandoned(sessionIn(v));return;}
+      if(!v.ok){decided();const n=failure(v.status,await code(v));if(g===this.gen)this.set({phase:'idle',notice:n});return;}   // a refusal sets no cookie; a dead flow's late refusal is not the new flow's
       const s=await v.json() as {address:string;expiresAt:number},session={address:String(s.address).toLowerCase(),expiresAt:s.expiresAt};
-      if(g!==this.gen){this.revokeAbandoned();return;}
-      if(session.address!==account){this.revokeAbandoned();this.set({phase:'idle',notice:'failed'});return;}   // only the address that asked
+      if(g!==this.gen){this.revokeAbandoned(session);return;}
+      if(session.address!==account){this.revokeAbandoned(session);this.set({phase:'idle',notice:'failed'});return;}   // only the address that asked
       this.gen++;this.busy=false;                                                      // a session read begun before this is stale now
-      this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});this.broadcast('signed-in');
+      this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});this.broadcast('signed-in');decided();
       await this.refreshHome(true);
     }catch{if(g===this.gen)this.set({phase:'idle',notice:'failed'});}
-    finally{if(g===this.gen)this.busy=false;}
+    finally{decided();if(g===this.gen)this.busy=false;}
   }
   /** Sign out: the server revokes the session and the flow's open challenges, and only then is this page signed out.
    *  A logout that did not reach the server (network, 5xx) leaves the page signed in with a notice, because the cookie
    *  and the server session are both still there and a reload would show them (SEC-1 / CORR-01). `everywhere` ends every
-   *  session of the address (F-4); other tabs hear it on the channel, other devices on their next session read. */
+   *  session of the address (F-4); other tabs hear it on the channel, other devices on their next session read. A
+   *  logout-all the server refused (401: this browser's sign-in had ended) is followed by one session read (AUD3-07). */
   async signOut(everywhere=false){
     if(this.s.leaving)return;
-    this.gen++;this.busy=false;const g=this.gen;
-    this.set({phase:'idle',notice:null,leaving:true});
-    const ok=everywhere?await this.logoutAllRequest():await this.logoutRequest();
-    if(g!==this.gen){this.set({leaving:false});return;}                                // switched meanwhile: that path decides
+    this.gen++;this.busy=false;const g=this.gen,held=this.s.session??undefined;       // ADV-1's rule: the session this logout ends
+    this.set({phase:'idle',notice:null,leaving:true,waiting:false});
+    const ok=await this.hold(everywhere?this.logoutAllRequest():this.logoutRequest());
+    // Switched meanwhile: that path decides. But another wallet chosen while a click waited for this sign-out takes a
+    // generation and clears nothing, so a confirmed sign-out still ends the very session it ended (says "Signed out.")
+    // and tells the other tabs, as the click's own logout does (ADV-1, ADV-2; the re-check of 2f5d6c1). A logout-all the
+    // server refused (401) says this browser's sign-in had ended, so the session is read afresh as below (the review of
+    // 13449f2, CF-3: the page kept that session, owner mode included, until the owner re-check).
+    if(g!==this.gen){if(ok===true){if(this.loggedOut(g,held))this.set({ended:'signed-out'});this.broadcast('signed-out');}else if(ok)void this.restore();this.set({leaving:false});return;}
     if(!ok){this.set({leaving:false,notice:'signout-failed'});return;}
+    if(ok===true){this.loggedOut(g);                                                   // AUD3-04: revoked and cleared: no read begun before this answer is applied
+      this.hint.set(null);this.set({session:null,home:null,expired:false,checking:false,leaving:false,sessionKnown:true,notice:null,ended:'signed-out'});
+      this.broadcast('signed-out');return;}
     // R-1: a 401 means this browser's own sign-in had already ended, so the server could not act for the address and
-    // other devices are still signed in; this page is signed out, and says so instead of looking like a success.
-    this.hint.set(null);this.set({session:null,home:null,expired:false,checking:false,leaving:false,sessionKnown:true,notice:ok==='stale'?'signout-all-stale':null,ended:ok==='stale'?null:'signed-out'});
-    this.broadcast('signed-out');
+    // other devices are still signed in; this page is signed out, and says so instead of looking like a success. AUD3-07:
+    // expired when the server says it ran out (SESSION_EXPIRED); any other 401 names no cause. Nothing was revoked, and the
+    // cookie the browser holds now may be one another tab of it has just set, so the session is read afresh (that read,
+    // the newest, also supersedes every read begun before: N-1). The notice comes after it, so a failed read (429, 503)
+    // cannot hide that other devices were not signed out, and leaves the session unknown: a click reads it first (CORR-02).
+    const ran=ok==='expired';this.homeGen++;this.hint.set(null);
+    this.set({session:null,home:null,expired:ran,ended:ran?'expired':null,checking:false,sessionKnown:false});
+    await this.restore();if(g!==this.gen){this.set({leaving:false});return;}           // a newer flow began during the read: it decides
+    this.set({leaving:false,notice:'signout-all-stale'});this.broadcast('signed-out');
   }
   /** The wallet switched account (A → B): owner mode off at once, A's in-flight flow dropped here and at the server, A's
    *  session ended; B starts as merely connected. If that logout does not reach the server, the session is read again,
    *  so the page shows A's still-valid session as a mismatch (never as signed out). A locked wallet (no account) leaves a
    *  valid session alone. */
   accountChanged(a:string|null){
+    this.accountEvents++;                                                              // R3-R1: every event, before any early return
     if(a===this.s.account)return;
     if(!a){this.set({account:null});return;}
     const wasFlow=this.s.phase!=='idle',other=!!this.s.session&&this.s.session.address!==a;
     if(!wasFlow&&!other){this.set({account:a});return;}
-    this.gen++;this.busy=false;
-    this.set({account:a,phase:'idle',...other?{session:null,home:null}:{},notice:null,checking:false});
-    if(other||wasFlow){this.hint.set(null);void this.logoutRequest().then(ok=>{if(!ok)void this.restore();else if(other)this.broadcast('signed-out');});}
+    this.gen++;this.busy=false;const g=this.gen,ended=other?this.s.session!:undefined;   // ADV-1's rule: the session this logout ends
+    this.set({account:a,phase:'idle',...other?{session:null,home:null}:{},notice:null,checking:false,waiting:false});
+    if(other||wasFlow){this.hint.set(null);this.sendLogout(ok=>{if(!ok){void this.restore();return;}this.loggedOut(g,ended);if(other)this.broadcast('signed-out');});}
   }
   /** A verify that succeeded for a flow this page abandoned: its cookie arrived after the switch, so it is logged out
-   *  here; if that fails the session is read again and shows as what it is. */
-  private revokeAbandoned(){void this.logoutRequest().then(ok=>{if(!ok)void this.restore();});}
+   *  here; if that fails the session is read again and shows as what it is. `late`, the session that verify named, ends
+   *  on the page once that logout is confirmed even after a newer flow began, while the page still holds it (ADV-1's
+   *  rule: a read may have shown it meanwhile). A dead flow's logout goes out on the verify's headers, its body still to
+   *  come (`late` a promise, RC-1): if the body names the session only after the logout was confirmed, that very session
+   *  (address and expiresAt) ends then, and nothing else: never the generation's clear of whatever the page holds by then. */
+  private revokeAbandoned(late?:Session|Promise<Session|undefined>){
+    const g=this.gen;let named=late instanceof Promise?undefined:late,confirmed=false;
+    if(late instanceof Promise)void late.then(s=>{named=s;if(confirmed&&s)this.loggedOut(null,s);});
+    this.sendLogout(ok=>{if(!ok){void this.restore();return;}confirmed=true;this.loggedOut(g,named);});
+  }
+  /** AUD3-04: a logout this page sent was confirmed (2xx: revoked, cookie cleared). Unless a newer flow began since it was
+   *  sent (g; that flow's own gen++ already dropped every older read, and later reads are the new session's), every
+   *  session or house read begun before now answered for what it revoked, so none is applied, and a session a read showed
+   *  meanwhile ends here too. ADV-1: `held`, the session that logout ended (the click's own, or an account switch's), ends
+   *  here even after a newer flow began, as long as the page still holds that very session (address and expiresAt; a
+   *  read may have shown it again before the logout reached the server); a newer one is left alone. Since the re-check
+   *  of 2f5d6c1 a sign-out's and an abandoned flow's logout name theirs too. True when it applied (after a newer flow
+   *  began: only when it ended the session it names). g null: no generation, only `held` (an abandoned flow's verify
+   *  body that named its session after the logout was confirmed, RC-1).
+   *  A logout that did not reach the server, or a refused logout-all, invalidates nothing. */
+  private loggedOut(g:number|null,held?:Session){
+    const s=this.s.session,same=!!held&&s?.address===held.address&&s.expiresAt===held.expiresAt;
+    if(g!==this.gen&&!same)return false;this.sessionReads++;this.homeGen++;
+    if(s){this.hint.set(null);this.set({session:null,home:null,checking:false});}return true;}
   /** POST /api/auth/logout-all (every session of the session's address, on every device): true when the server revoked
-   *  them (200); 'stale' when there was no live session to act for (401: this browser's cookie is dead and cleared
-   *  already, so nobody else was signed out); false when it did not reach the server. */
-  private async logoutAllRequest():Promise<boolean|'stale'>{try{const r=await this.deps.fetch('/api/auth/logout-all',JSON_POST({}));return r.ok||(r.status===401&&'stale');}catch{return false;}}
+   *  them (200); 'expired' when this browser's session had run out (401 SESSION_EXPIRED, AUD3-07) and 'stale' for any
+   *  other 401 (AUTH_REQUIRED, or a body nobody can read): there was no live session to act for, so nobody else was
+   *  signed out, and the cookie is dead (the server refuses it); false when it did not reach the server. */
+  private async logoutAllRequest():Promise<boolean|'stale'|'expired'>{try{const r=await this.deps.fetch('/api/auth/logout-all',JSON_POST({}));
+    if(r.ok)return true;if(r.status!==401)return false;return await code(r)==='SESSION_EXPIRED'?'expired':'stale';}catch{return false;}}
   /** POST /api/auth/logout; true only when the server answered 2xx (the session is revoked and the cookies cleared). */
   private async logoutRequest(){try{return (await this.deps.fetch('/api/auth/logout',JSON_POST({}))).ok;}catch{return false;}}
 }
@@ -394,5 +500,8 @@ export function noticeText(n:Notice,say:Say):string{
     case 'session-unknown':return say('暫時無法確認你是否已登入，所以沒有要求簽名；請稍後再按一次。','Couldn’t check whether you’re already signed in, so no signature was requested. Try again in a moment.');
     case 'signout-all-stale':return say('這個瀏覽器的登入早已結束，所以沒有登出其他裝置。請重新簽名登入，再按「登出所有裝置」。','This browser’s sign-in had already ended, so other devices were not signed out. Sign in again, then use Log out all devices.');
     case 'signout-failed':return say('登出沒有送達伺服器，你仍是登入狀態；請再按一次「登出此裝置」（或「登出所有裝置」）。','Log-out didn’t reach the server, so you’re still signed in. Press Log out this device (or Log out all devices) again.');
+    case 'logout-slow':return say('這個頁面先前送出的登出（或已取消的登入）還沒有得到回應，所以沒有要求簽名；請稍後再按一次。','A log-out (or a cancelled sign-in) this page sent earlier hasn’t been answered yet, so no signature was requested. Try again in a moment.');
   }
 }
+/** My wallet's line while a click waits (AuthState.waiting, ADV-3), in place of the notice. */
+export const waitingText=(say:Say)=>say('正在等這個頁面先前送出的登出（或已取消的登入）得到回應；在那之前不會向錢包要求任何東西。','Waiting for a log-out (or a cancelled sign-in) this page sent earlier to be answered; your wallet is asked nothing until then.');

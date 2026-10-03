@@ -113,7 +113,8 @@ export type HomeView={address:string;seats:SeatStatus[];eligible:number;size:Hou
   /** The /workers read behind `online`: 'fresh' is the live roster; otherwise only recorded presence decides. */
   presence:'fresh'|'stale'|'unavailable';
   /** Not a complete answer. 'limited': the NFT index was due but the chain budget refused it (and, when that answer counted
-   *  no seat, its network's index lane too: N-6), or the read failed with an answer kept, so the candidates are IMD's
+   *  no seat, its network's index lane too, or the lane's own read failed: the request keeps its first proof, N-6 and
+   *  AUD3-01), or the read failed with an answer kept, so the candidates are IMD's
    *  roster plus the last stored index answer (this isolate's or D1's, whichever is newer), and ownerOf proves them as
    *  always (a seat bought after both last listings may be missing). 'partial': more candidates than CANDIDATE_CAP, so
    *  some were not checked (A-4, N-3: seats that count, online now or seen under this owner in the last 24 h, come first,
@@ -273,8 +274,9 @@ export class Ownership{
     return {tokenId:id,agentId,online,lastOnlineAt,counts:count,...reason?{reason}:{}};
   }
   /** The session address's household: verified seats, each with agent status and whether it counts toward the house.
-   *  When the chain budget refused a due index read, or the cap left candidates unchecked, the view says so in `recheck`
-   *  (for as long as that proof lives), never as a complete answer. */
+   *  When the chain budget refused a due index read (and its network's lane was refused too, or the lane's own read
+   *  failed), or the cap left candidates unchecked, the view says so in `recheck` (for as long as that proof lives), never
+   *  as a complete answer. */
   async home(address:string,req:OwnershipRequest,fresh=false):Promise<HomeView>{
     const a=address.toLowerCase(),world=await this.world(req.waitUntil);
     let proof=await this.proof(a,world.owners,world.agents,req,fresh),seen=await this.sightings(proof.ids,a,req.db);
@@ -284,8 +286,12 @@ export class Ownership{
     // 'chain:index:lane') reads the index once, keeping the answer (KEEP_INDEX) so that owner needs no lane again; ownerOf
     // proves it as always, and nothing the client sends is a candidate. The lane is asked before the rebuild, so a
     // refused one costs no second ownerOf; refused, the view stays 'limited' (could not check, never "owns nothing").
+    // AUD3-01 (Swarm audit 1ef8e8a6 #1): the lane's read was sent, so if it (or the ownerOf read after it) fails, this
+    // request keeps the proof it already has, refused and so 'limited', with that proof's sightings (the pair replaces
+    // only together), and the lane stays spent: no refund for a read that went out. Any other error propagates.
     if(proof.refused&&req.lane&&!proof.ids.some(id=>counts(world.agents.get(id),seen.get(id),req.now))&&await req.lane()){
-      proof=await this.proof(a,world.owners,world.agents,{...req,budget:async()=>true},fresh,true);seen=await this.sightings(proof.ids,a,req.db);}
+      try{const p=await this.proof(a,world.owners,world.agents,{...req,budget:async()=>true},fresh,true),s=await this.sightings(p.ids,a,req.db);proof=p;seen=s;}
+      catch(e){if(!(e instanceof OwnershipUnavailable))throw e;}}
     const seats=proof.ids.map(id=>this.status(id,world.agents.get(id),seen.get(id),req.now)),eligible=seats.filter(s=>s.counts).length;
     return {address:getAddress(a),seats,eligible,size:eligible?houseSize(eligible):null,block:proof.block,checkedAt:proof.checkedAt,presence:world.presence,
       ...proof.limited?{recheck:'limited' as const}:proof.partial?{recheck:'partial' as const}:{}};

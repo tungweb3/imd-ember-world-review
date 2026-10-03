@@ -1,110 +1,124 @@
-# DEPENDENCIES：依賴、第三方來源與安全標頭
+# DEPENDENCIES：依賴、外部來源與標頭
 
-## 1. 建置環境
+## 1. 本輪環境與安裝
 
-| 項目 | 版本 | 依據 |
+版本基準為來源 `c491ff3`／部署來源 `ddb10e2`／Worker `acdbb2bd`。以下數字來自本輪 lock、執行輸出與已保存的線上檔案。
+
+| 項目 | 實際版本／設定 | 依據 |
 |---|---|---|
-| Node | v24.19.0 | `source/.nvmrc`；`package.json:6-8` engines `>=24 <25`；部署證據頁 Tools（`source/docs/security/deploy-evidence/20261001T040934Z-2e4e830.md:15`） |
-| npm | 11.17.0 | 本快照測試時的本機版本 |
-| TypeScript | 5.9.3 | lock／部署證據頁 |
-| Vite | 8.3.1 | lock／部署證據頁（rolldown 1.2.11、lightningcss 1.33.0；esbuild 0.28.1 是 Vite 的 optional peer，與 wrangler 共用同一份） |
-| wrangler | 4.143.0（最初送審的版本為 4.92.0；F-6；本版未改） | lock／部署證據頁（workerd 1.20260926.1、miniflare 5.20260926.0-alpha、esbuild 0.28.1；undici **7.29.1**，經 `overrides` 固定，見第 3 節） |
-| Worker compatibility_date | 2026-05-15（**不變**：wrangler 升級不改變正式環境的執行語意） | `wrangler.jsonc:17` |
+| Node | `v24.19.0` | 本輪 runner；`source/.nvmrc`，engines `>=24 <25` |
+| npm | `11.17.0` | 本輪 runner |
+| TypeScript | `5.9.3` | `source/package-lock.json` |
+| Vite | `8.3.1` | lock 與部署證據頁 |
+| Wrangler | `4.143.0` | lock、dry-run 輸出 |
+| workerd | `1.20260926.1` | lock |
+| miniflare | `5.20260926.0-alpha` | lock |
+| esbuild | `0.28.1` | lock |
+| Worker compatibility_date | `2026-05-15` | `source/wrangler.jsonc:17` |
+| Worker CPU cap（設定） | `50 ms` | `source/wrangler.jsonc:20` |
 
-與上一版快照（`ae1d41a`）相比，`package.json` 與 `package-lock.json` 逐位元組相同，所有套件版本都沒有變。（`overrides.undici` 與 undici 7.29.0 → 7.29.1 是更早一版的變更，見第 3 節。）
+公開來源副本的 `npm ci --no-audit --no-fund` 於 `2026-10-03T13:08:38Z–13:09:06Z` 完成，exit 0。lockfileVersion 為 3，159 個套件項目，159 個均有 integrity。
 
-指令（`source/package.json:9-18`）：
+本輪安裝曾對三個 tarball 顯示重試警告，最後 exit 0。npm 也提示 esbuild 與 workerd 的 postinstall 尚未列入 allowScripts；本輪沒有額外允許它們，Worker dry run 與後續完整來源建置仍完成。這些安裝警告不是測試通過或供應鏈保證。
 
-- 安裝：`npm ci`（lockfileVersion 3，159 個套件項目，159 個都有 `integrity`）。npm 11.17.0 會提示 `esbuild`、`workerd` 的 postinstall 沒有被允許執行（本輪 `npm ci` 也一樣）；測試與 Worker 重建不需要它們。
-- 測試：`npm test` = `node --test tests/*.test.mjs`
-- 建置：`npm run build` = `tsc --noEmit && vite build`（本快照缺被保留的前端檔案，無法完成；Worker 可單獨重建，見 `DEPLOYMENT_MATCH.md` 第 3 節）
-- 部署：`npm run deploy` = `node scripts/deploy.mjs`：工作目錄不乾淨或有 Vite 會載入的 `.env*` 就拒絕；**先跑完整的 `npm test`**，任何測試失敗就不 build、不部署；接著 `tsc --noEmit` 與 `vite build`；以 `wrangler deploy --outdir` 保留實際上傳的 Worker bundle；寫出 deploy record（manifest、SHA256SUMS）。只有 dry run 可以 `--skip-tests`。本次正式部署（`bbf24001`）的部署證據頁記錄 `Tests before build: passed (npm test)`（團隊端，`source/docs/security/deploy-evidence/20261001T040934Z-2e4e830.md:14`）。
-- 部署證據：`npm run deploy:evidence` = `node scripts/deploy-evidence.mjs <deploy record>`：從部署紀錄只取結構化欄位（commit、紀錄 id、時間、Version ID、bundle 與前端雜湊、migration 檔名與雜湊、limiter 設定、WAF 規則的說明），以及該 commit 的 `server/auth.ts` 裡的 limiter 鍵（`CHAIN_KEYS`），所以 `2e4e830` 的證據頁列出 `0005_lanes_and_subnets.sql` 與本版新增的鍵 `chain:index:lane`（`source/docs/security/deploy-evidence/20261001T040934Z-2e4e830.md:35,50`）；不讀任何機密檔，不複製任何 log 文字。`tests/deploy-evidence.test.mjs` 用帶有 email 與本機路徑的假 log 驗證這一點；其中第一項要比對不同 commit 的 migration 與 limiter 鍵（A-1、N-6 之前與之後），需要 `git rev-parse` 本快照沒有的團隊 commit（`132228c`、`3f661eb`），所以在本快照會失敗（團隊端的 checkout 中通過），第二項（在 git 之外執行）在本快照通過（`TESTS/README.md`）。
+## 2. 直接依賴與用途
 
-## 2. 正式依賴
+`source/package.json` 宣告的直接版本：
 
-直接依賴（`package.json:23-29`，全部鎖定精確版本；本版未改）：
-
-| 套件 | 版本 | 用在哪裡 |
+| 套件 | 版本 | 使用位置 |
 |---|---|---|
-| `viem` | 2.56.9 | **只在伺服器**（`server/auth.ts`、`ownership.ts`、`chain-mock.ts`）：SIWE 建立／解析／驗證、`recoverMessageAddress`、ABI 編解碼。前端不 import viem；頁面端的 SIWE 檢查（`src/world/siwe.ts`）刻意不用 viem，只做字串比對 |
-| `@noble/curves` | 1.9.1 | 伺服器：與 viem 共用同一份 secp256k1，只調整預計算視窗以壓低冷啟動 CPU（`server/auth.ts:15-18`；測試確認只有一份） |
-| `react`、`react-dom` | 19.2.6 | 前端 UI；測試中 `review-record.test.mjs` 用 `react-dom/server` 把審查紀錄畫成 HTML，`tests/fixtures/wallet-panel.mjs`（A-8）用它實際繪製 `WalletPanel.tsx` |
+| `viem` | 2.56.9 | 伺服器 SIWE、訊息簽章復原、ABI 編解碼 |
+| `@noble/curves` | 1.9.1 | 伺服器 secp256k1；與 viem 共用 |
+| `react`、`react-dom` | 19.2.6 | 前端 UI；本地測試也渲染面板 |
 | `three` | 0.186.1 | 前端 3D |
 
-`overrides`（`package.json:19-22`）：
+`source/package.json` 的 overrides：
 
-- `"ws": "^8.21.0"`（lock 中只有一份 `ws` 8.22.0）。
-- `"undici": "7.29.1"`（F-6 的後續；理由見第 3 節）。
+- `ws: ^8.21.0`；lock 中解析為 `8.22.0`。
+- `undici: 7.29.1`；lock 中唯一 undici 為這個版本。
+- miniflare 的依賴宣告仍要求 undici `7.29.0`，override 取代實際解析版本。
 
-lock 中非 dev 套件共 17 個：`@adraffy/ens-normalize` 1.11.1、`@noble/ciphers` 1.3.0、`@noble/curves` 1.9.1、`@noble/hashes` 1.8.0、`@scure/base` 1.2.6、`@scure/bip32` 1.7.0、`@scure/bip39` 1.6.0、`abitype` 1.2.3、`eventemitter3` 5.0.1、`isows` 1.0.7、`ox` 0.14.45、`react` 19.2.6、`react-dom` 19.2.6、`scheduler` 0.27.0、`three` 0.186.1、`viem` 2.56.9、`ws` 8.22.0。`undici` 標為 dev（只經 wrangler → miniflare 進來）。
+undici 是本地開發／建置工具依賴，不在本輪生成的 Worker sourcemap 套件清單內。`source/tests/dependencies.test.mjs:10`、`:19` 的兩項 F-6 測試本輪通過：解析版本不在註明的 advisory 範圍，且上游仍有需要 override 的精確 pin。未來上游解除該 pin 時，第二項測試會提醒重新整理 override。
 
-實際進入正式 bundle 的第三方套件：
+## 3. 實際打包內容
 
-- **Worker bundle**：只有 `viem`、`abitype`、`@noble/curves`、`@noble/hashes`。依據是本輪從本快照重建的 Worker bundle 的 sourcemap（該 bundle 280,605 bytes，SHA-256 `018df7b3…c62c`，與部署紀錄相同；`DEPLOYMENT_MATCH.md` 第 3 節）。同一份 sourcemap 中的專案檔就是 `worker/index.ts`、`worker/app.ts`、`server/{auth,ownership,presence,gateway,world-api,chain-mock}.ts`、`src/world/{cadence,collections,houseSize,links,market,model,status,siwe}.ts` 這 16 個，與上一版相同（本版的 N-3..N-6 修正都在其中的 `server/auth.ts`、`ownership.ts`、`presence.ts`、`worker/app.ts`，沒有新增模組或套件）。
-- **前端 bundle**：`react`、`react-dom`、`scheduler`、`three`。依據是 Vite 依實際打包內容產生的 `dist/third-party-licenses.txt`（團隊端重建，其 SHA-256 與部署紀錄相同，而且與 `4321bb4` 的紀錄相比沒有改變，`manifests/compare.txt`）。在正式主 JS（`index-C1BrxBtd.js`）中，`viem`、`noble`、`secp256k1`、`keccak` 這些字串都是 0 次（本輪 2026-10-01 04:24:56–04:25:11 UTC 取得的正式檔案，雜湊與部署紀錄相同）。
+本輪公開來源重建 Worker 為 303,128 bytes，SHA-256 `cf720c698417726ce75cd3b4740314489ed816ba98a763e74d8118b8be136518`，符合部署紀錄。從該次生成的 sourcemap 檢查，第三方套件為：
 
-## 3. npm audit
+- `viem`
+- `abitype`
+- `@noble/curves`
+- `@noble/hashes`
 
-在本快照 `source/` 的副本（`npm ci` 後）於 2026-10-01T04:25:55Z 執行，原始 JSON：`TESTS/npm-audit-omit-dev.json`、`TESTS/npm-audit-all.json`。
+該 sourcemap 的專案模組共 18 個：
 
-- `npm audit --omit=dev`：**0 個弱點**。
-- `npm audit`（含 dev）：**0 個弱點**（info、low、moderate、high、critical 全為 0；npm 計算的依賴數：19 個 prod、141 個 dev、共 159）。
+- `source/worker/index.ts`、`source/worker/app.ts`。
+- `source/server/auth.ts`、`source/server/ownership.ts`、`source/server/presence.ts`、`source/server/gateway.ts`、`source/server/world-api.ts`、`source/server/chain-mock.ts`、`source/server/member.ts`。
+- `source/src/world/cadence.ts`、`source/src/world/collections.ts`、`source/src/world/houseSize.ts`、`source/src/world/links.ts`、`source/src/world/market.ts`、`source/src/world/model.ts`、`source/src/world/status.ts`、`source/src/world/siwe.ts`、`source/src/world/memberName.ts`。
 
-與上一版快照（`ae1d41a`，2026-09-30 執行）的結果相同，lock 也沒有改變。這只是當天的結果，不代表之後不會出現新的 advisory（見本節最後的殘留風險）。
+M1 新增會員／名稱模組，不新增 npm 直接依賴。前端完整來源重建的 `third-party-licenses.txt` 與部署紀錄相符；公開副本缺前端實作，不能僅用這份副本獨立重建完整前端。
 
-更早的歷史：`b6e986b` 的快照在 2026-09-29 執行的結果是 0（`--omit=dev`）與 **3 個 moderate**（含 dev），三個都是同一個 advisory：`undici` 7.29.0 的 GHSA-3wwx-pv8p-q78v（WebSocket permessage-deflate 解壓縮錯誤未處理，可造成服務中斷；影響 `>=7.28.0 <7.29.1`），經 `miniflare` 5.20260926.0-alpha 與 `wrangler` 4.143.0 兩層連帶列出，全部在 wrangler 的建置／本機開發工具鏈，不進任何正式 bundle。Swarm retest e48d0a96 因此把 F-6 評為「部分」。
+## 4. npm audit 的實際結果
 
-**為什麼從那之後是 0：undici override。**
+於 `2026-10-03T13:10:18Z` 開始執行兩種 audit；兩個 JSON 都已檢查能解析，且具有漏洞統計欄位。
 
-- `miniflare` 5.20260926.0-alpha 在它自己的依賴中把 undici 釘死在 `7.29.0`（`package-lock.json:2201`），而當時沒有任何 wrangler 版本帶著修正過的 undici（4.143.0 是最新版；npm 給的「修正」是把 wrangler 降到 4.101.0，標為 semver major）。
-- 團隊的做法是在 `package.json` 加上 `"overrides": {"undici": "7.29.1"}`（`package.json:21`；同一條版本線的 patch 版），讓 lock 中唯一的一份 undici 變成 7.29.1（`package-lock.json:2514-2515`），wrangler 版本不動。依團隊的說法（`source/docs/security/AUDIT_REMEDIATION_STATUS.md` 的 F-6 段落），這個修改是 commit `202da0b`，已隨 Worker `c89f5915` 部署並延續到目前的 `bbf24001`；undici 只是工具依賴，不在 Worker bundle 內，用 7.29.0 與 7.29.1 建出的 Worker bundle 位元組相同。本輪沒有用 7.29.0 重建做這個比對；本輪用 7.29.1 從本快照重建的 Worker bundle 與部署紀錄相同（見第 2 節）。
-- `tests/dependencies.test.mjs`（F-6 時新增，本版未改）有兩項，都在本快照通過（`TESTS/npm-test-output.txt`）：
-  - 「F-6: no undici in the lockfile falls in GHSA-3wwx-pv8p-q78v (7.28.0-7.29.0)」（`tests/dependencies.test.mjs:10-15`）：lock 中每一份 undici 都不在 advisory 範圍內，而且 `overrides.undici` 就是 lock 中的版本。
-  - 「F-6: the undici override is still needed (a dependency pins a vulnerable undici)」（`tests/dependencies.test.mjs:19-23`）：只要還有依賴把 undici 釘在範圍內的版本就通過；等 wrangler 帶來要求 7.29.1 以上的 miniflare，這項就會失敗，提醒移除這個 override 與這項斷言，讓這個精確版本的 pin 不會擋住之後的 undici 更新（註解在 `:16-18`）。
-- 殘留風險：這是某一天的 audit 結果；新的 advisory 會陸續出現，建置機器的供應鏈風險一般性地存在（團隊的做法是部署前重跑 `npm audit`）。部署出去的兩份 bundle 的雜湊都可重現（前端由團隊重建、Worker 可由 reviewer 從 `source/` 重建），降低了「建置機器被動手腳而沒人發現」的風險，但不能排除它。
+| 指令 | info | low | moderate | high | critical | total |
+|---|---:|---:|---:|---:|---:|---:|
+| `npm audit --omit=dev --json` | 0 | 0 | 0 | 0 | 0 | 0 |
+| `npm audit --json` | 0 | 0 | 0 | 0 | 0 | 0 |
 
-## 4. 執行期第三方來源
+原始 JSON 在 `TESTS/npm-audit-omit-dev.json` 與 `TESTS/npm-audit-all.json`。npm 報告依賴統計為 prod 19、dev 141、optional 86、total 159；這些分類含重疊，不能直接相加。它也不同於 package.json 直接依賴的五個項目。
 
-前端只會連兩個第三方來源，CSP 也只允許這兩個：
+這是該次 advisory 資料與該 lock 的結果；不支持未來仍為零、套件所有行為已審查、或建置機器未遭修改的結論。
 
-| 來源 | CSP 指令 | 用途 | 信任程度 |
-|---|---|---|---|
-| `https://api.dexscreener.com` | `connect-src` | 瀏覽器直接讀 IMD 行情（`/api/world/market` 是備援） | 只當顯示用的行情數字，不影響登入或權限 |
-| `https://nft-cdn.alchemy.com` | `img-src` | 「我的錢包」中的 NFT 圖片；Worker 只轉交這個主機的 URL（`server/ownership.ts:19,99` 的 `safeImage`），頁面顯示前再檢查一次主機（`src/world/WalletPanel.tsx:59`） | 只以 `<img>` 顯示 |
+## 5. 執行期外部來源
 
-- 沒有分析工具、沒有外部字型（Cinzel 字型自架在 `/assets/`）、沒有 CDN 腳本、沒有第三方 script。
-- 正式主 JS（`index-C1BrxBtd.js`，2026-10-01 04:24:59 UTC 取得的正式檔案上計數）中出現的 `https://` 主機，與上一版是同一組：`imd.fun`、`explorer.imd.fun`（含審查任務連結）、`dexscreener.com`、`github.com`（審查報告連結，本版的審查紀錄多列了 Swarm audit 8c3aea2e 的報告）與另一個第三方地圖站的主機，都只是 `<a>` 外部連結（新分頁，`rel` 含 `noreferrer`，依 HTML 規範也隱含 noopener；審查紀錄的連結是 `noreferrer noopener`，`src/world/reviewRecord.ts:164`）；`api.imd.fun` 只是顯示用的 URL 字串，CSP 也不允許瀏覽器直接連過去；`api.dexscreener.com` 是上表的行情讀取；`react.dev`、`jcgt.org` 是函式庫內的字串。房屋內部 chunk（`InteriorView-4LZmFcoq.js`）沒有任何 `https://` 字串。
-- 伺服器端（Worker）連的上游：`api.imd.fun`、`explorer.imd.fun`、`api.dexscreener.com`（公開、無金鑰，經 zone 邊緣快取）；Alchemy `eth-mainnet.g.alchemy.com`（帶金鑰，不快取在邊緣）（`server/gateway.ts:9,12,14`、`src/world/market.ts:5`）。本版的 N-6 lane 只多了 Alchemy 索引讀取的次數上限（每個據點最多從每分鐘 20 次升到 40 次，`server/auth.ts:135-137`），沒有新的上游主機。Worker 另把公開快照資料的一份共用副本存在各據點的 Cache API（鍵在 `/api/world/_shared/v1/` 之下，只存路由本來就公開回應的資料，不存任何機密；`worker/app.ts:40-58`）。
-- 正式 CSS（`index-B1zoY2Mz.css`）只有 `url(/assets/cinzel-latin-400-normal-DnUIPmzd.woff2)` 與 `url(/assets/cinzel-latin-600-normal-Dd5YO2UX.woff2)`，沒有 `@import`。
+| 來源 | 使用方式 | 公開來源依據 |
+|---|---|---|
+| `api.dexscreener.com` | 瀏覽器行情讀取；Worker 行情備援 | `source/public/_headers:24`、`source/src/world/market.ts` |
+| `nft-cdn.alchemy.com` | 錢包面板 NFT 圖片，僅 img-src | `source/server/ownership.ts:19`、`source/src/world/WalletPanel.tsx` |
+| `api.imd.fun` | Worker 的公開網路摘要／工作等讀取 | `source/server/gateway.ts:9` |
+| `explorer.imd.fun/api/activity` | Worker 的公開活動資料 | `source/server/gateway.ts:12` |
+| `eth-mainnet.g.alchemy.com` | Worker 的鏈上所有權、NFT 索引與 floor 讀取 | `source/server/ownership.ts:17`、`source/server/gateway.ts:14` |
 
-## 5. 動態模組
+Alchemy 讀取的憑證透過伺服器 Authorization header，頁面不呼叫這些 API。此描述來自來源，本輪未讀取憑證或測試真實 Alchemy 付費請求。
 
-- 正式主 JS 中 `import(` 為 1 次：載入同 origin 的房屋內部 chunk `` import(`./InteriorView-4LZmFcoq.js`) ``（`script-src 'self'` 允許）。房屋內部 chunk 本身 `import(` 為 0。
-- （團隊端）原始碼中另有兩處以 `import.meta.env.DEV` 包住的 `devCapture` 動態 import（被保留的 `src/world/scene.ts`），production build 會移除；正式 bundle 中 `devCapture` 為 0 次（可自行驗證）。
-- `vite.config.ts` 的 `shotPlugin` 為 `apply:'serve'`，只在 dev 伺服器生效（`vite.config.ts:14-15`）。
-- 兩個只在 build 時執行的 Vite plugin（本版未改）：`hashedPublicCopies`（`vite.config.ts:25-36`）把 `public/` 下的模型、裝飾圖集與 Pepe 框各寫一份檔名含內容雜湊的副本到 `assets/`；`bakedTerrain`（`vite.config.ts:38-53`）在 build 時把手機版地形資料算好，寫成 `assets/terrain-phone.<hash>.bin`，`virtual:baked-terrain` 只匯出這個同 origin 檔案的 URL 字串，頁面用 `fetch` 讀取資料，它不是程式模組。兩者用到的 `scripts/content-hash.ts`、`src/world/skin/terrainField.ts`、`src/world/skin/terrainBake.ts` 被保留（所以本快照的 `tsc --noEmit` 對 `vite.config.ts` 報缺檔）。正式主 JS 中 `new Worker`、`importScripts`、`WebAssembly` 都是 0 次。
+本輪已保存的主 JS 中 `https://` 主機字串為：`api.dexscreener.com`、`api.imd.fun`、`dexscreener.com`、`explorer.imd.fun`、`github.com`、`imd-town.0xfinne.com`、`imd.fun`、`jcgt.org`、`react.dev`。字串存在不等於執行網路請求；API 連線允許範圍由 CSP 決定，連結與函式庫文字也會出現在 bundle。
 
-## 6. 安全標頭（正式站實測，2026-10-01T04:24:56Z–04:25:11Z）
+## 6. 動態載入與檔案字串檢查
 
-靜態檔（`source/public/_headers:18-24`；本版 `_headers` 沒有改動）。本輪對 `/`、主 JS、CSS、房屋內部 chunk 四個回應檢查，安全標頭全部一致：
+對本輪取得且符合紀錄的 `index-BoNTm1MM.js`、`InteriorView-DM8tQpsI.js`、`index-BZpalHf7.css` 檢查：
+
+- 主 JS 的 `import(` 為 1 次；房屋內部 chunk 為 0 次。
+- 主 JS 與房屋內部 chunk 的 `eval(`、`new Function`、`document.write`、`new Worker`、`importScripts`、`WebAssembly` 都為 0 次。
+- 房屋內部 chunk 沒有 `https://` 字串。
+- CSS 沒有 `@import` 或 `https://` 字串；兩個 url 均為同 origin 的 Cinzel woff2。
+- 字串搜尋是有限的靜態檢查，不是瀏覽器執行追蹤，也不證明不存在所有形式的動態程式執行。
+
+## 7. 靜態安全標頭
+
+本輪四個靜態 GET 的六個值與 `source/public/_headers:19` 起的設定完全相同，共 24 次比對：
 
 ```text
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
 ```
 
-Worker 回應（`source/server/world-api.ts:11-15` 的 `API_HEADERS`，`GET /api/auth/session` 實測）：`Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`、HSTS 同上、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`Cross-Origin-Resource-Policy: same-origin`、`Cache-Control: no-store`；沒有 CORS 標頭。
+`style-src` 允許 unsafe-inline，屬已記載的界線。HSTS 沒有 preload。CSP 限制網頁腳本與框架嵌入，不涵蓋惡意瀏覽器擴充、冒名錢包 provider 或同 origin 已遭替換的程式。
 
-與錢包相關的意義：
+Worker 回應使用 `source/server/world-api.ts:11` 的 API_HEADERS，而不是靜態 _headers：no-store、HSTS、nosniff、Referrer-Policy、CORP same-origin、CSP `default-src 'none'; frame-ancestors 'none'`。無 cookie 的 session GET 已保存；正式限流、WAF 與所有 API 回應分支未經線上重跑。
 
-- `script-src 'self'`（沒有 `'unsafe-inline'`、`'unsafe-eval'`、沒有第三方來源）：大幅降低注入的 inline script 或外部 script 在本站執行、進而觸發錢包提示的可能。這是縱深防禦，不涵蓋惡意瀏覽器擴充功能或冒名的 EIP-6963 provider。頁面端的 SIWE 檢查也不防注入本 origin 的腳本（`SIWE.md` 第 7 節）。`style-src` 允許 `'unsafe-inline'`（F-7c，列為已知）。
-- `frame-ancestors 'none'`＋`X-Frame-Options: DENY`：本站不能被嵌入 iframe，防止點擊劫持誘導簽名。
-- HSTS 一年含子網域（未 preload）。
-- 專案程式沒有 `innerHTML`、`dangerouslySetInnerHTML`、`eval`、`new Function`、`document.write`：已公開的 `src/`、`server/`、`worker/` 可自行驗證；被保留的程式檔是團隊端搜尋（`SCOPE.md` 第 6.3 節），reviewer 可在正式檔案上複查——正式主 bundle 中 `eval(`、`new Function`、`document.write` 為 0 次，`innerHTML`（5 次）與 `dangerouslySetInnerHTML`（12 次）只出現在打包進來的 React DOM 程式碼內；房屋內部 chunk 全部為 0。審查紀錄用 React `createElement` 產生（`src/world/auditRecord.ts:5-6`），外部連結是固定字串（`src/world/reviewRecord.ts:15-17,74,99-107`、`src/world/links.ts:5,36`）。
+## 8. 重現與範圍
 
-`tests/headers.test.mjs` 固定這些標頭值，也檢查雜湊副本與原檔的快取規則。
+```bash
+# 在公開 source/ 的獨立副本內
+npm ci --no-audit --no-fund
+npm audit --omit=dev --json
+npm audit --json
+node --test tests/dependencies.test.mjs
+```
+
+測試、Worker dry run 與完整來源建置的實際結果在 `TESTS/README.md`、`DEPLOYMENT_MATCH.md`。本包範圍不含 Coin E1 或 Genesis Mint；本輪沒有新增、更新套件或部署任何內容。

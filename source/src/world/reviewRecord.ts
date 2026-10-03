@@ -1,7 +1,8 @@
 // The Swarm Audit Record (remediation 2026-09-29 §6): the public record of the review of World's wallet sign-in and home
 // authorization (IMD Swarm job 4bd31cfb, Worker version beac62be, 2026-09-28 UTC), of the two re-reviews of a later
-// version (Worker 50c688c9, 2026-09-29 UTC) and of the Swarm audit of a later one still (Worker 1a0dd495, 2026-09-30
-// UTC), shown collapsed in "My wallet" before and after sign-in. One data module for
+// version (Worker 50c688c9, 2026-09-29 UTC), of the Swarm audit of a later one still (Worker 1a0dd495, 2026-09-30
+// UTC) and of the two reviews of the version after it (Worker bbf24001, 2026-10-01 UTC), shown collapsed in "My
+// wallet" before and after sign-in. One data module for
 // the page and docs/security/AUDIT_REMEDIATION_STATUS.md (tests/review-record checks the doc against it). It says what was
 // reviewed and what changed since; each record is of its version only, so no badge and none of the words the
 // remediation forbids (tests/review-record lists them).
@@ -13,9 +14,9 @@ type Text={zh:string;en:string};
 export type Finding={id:string;severity:'Medium'|'Low'|'Low/Info'|'Info';area:Text|null;title:Text;status:Text};
 
 const JOB='4bd31cfb-1151-497f-9b27-40e668dea372',RETEST='e48d0a96-d3a5-42bb-859f-e0b0707fd9ad',AUDIT='519db624-a82f-4dfe-91b9-1a519d1d3dd1';
-const AUDIT3='8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b';
+const AUDIT3='8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b',REPORT4='dcf922ca-68de-4cc5-bfbc-8b226008b0bf',AUDIT4='1ef8e8a6-4297-4ff8-b869-2d9b91445d82';
 const reportOf=(job:string)=>`https://github.com/Identity-md/research/blob/main/jobs/${job}/files/artifacts/report.md`;
-const AVAILABILITY={zh:'可用性',en:'availability'};
+const AVAILABILITY={zh:'可用性',en:'availability'},HARDENING={zh:'強化',en:'hardening'};
 
 /** The version both re-reviews examined: the Worker the team named, its source, the public snapshot of that source the
  *  reviewers read, and the SHA-256 of the Worker bundle as the Report rebuilt it from that snapshot (the audit did not
@@ -94,6 +95,50 @@ export const LATER_REVIEWS:readonly Rereview[]=[
       status:{zh:'此版本已修正：伺服器已不承認的登入顯示「登入狀態已失效，請重新登入。」；只有登入真的到期時才顯示「登入已到期，請重新登入。」。仍存在：這台裝置的時鐘比伺服器慢時，在那段差距裡到期的登入可能顯示成已失效；兩種說法都請你重新登入。',
         en:'Fixed in this version: a sign-in the server no longer accepts reads “You are no longer signed in. Please sign in again.”, and “Your sign-in has expired. Please sign in again.” only when it ran out. Still: when this device’s clock runs behind the server’s, a sign-in that ran out in that gap can read as no longer signed in; both ask you to sign in again.'}}]}];
 
+/** The version both Swarm reviews of 2026-10-01 examined: Worker bbf24001 (source 2e4e830), read through the public
+ *  snapshot 8cad017 of that source, and the SHA-256 of the Worker bundle as the Report rebuilt it from that snapshot
+ *  (equal to the team's deploy record; the audit did not rebuild it). Not this version: REVIEW_CHANGED says so, and so
+ *  does the page. */
+export const REVIEWED_BBF={worker:'bbf24001',commit:'2e4e830',snapshot:'8cad017',bundle:'018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c',date:'2026-10-01'} as const;
+/** The Swarm reviews of REVIEWED_BBF, oldest first (the Rereview shape): Report dcf922ca (a limited retest, report.md,
+ *  deployment match partial; its one new finding, R-1, here R3-R1) and Audit 1ef8e8a6 (five submissions, four
+ *  specialists' and a judge's, from four seats; AUDIT.md, no deployment-match verdict; #1..#9, here AUD3-01..AUD3-09,
+ *  #9 a review record, not a defect), with the severities they give, under the ids of the owner's engineering handoff;
+ *  each status is the site maintainer's account of this version. Only from actual review jobs. */
+export const BBF_REVIEWS:readonly Rereview[]=[
+  {job:REPORT4,kind:'Report',jobUrl:jobUrl(REPORT4)!,reportUrl:reportOf(REPORT4),match:'partial',findings:[
+    {id:'R3-R1',severity:'Low',area:null,title:{zh:'錢包較晚回來的連線結果可蓋掉帳號切換，讓舊帳號被要求簽名',en:'A wallet’s late connect answer could undo an account switch and ask the old account to sign'},
+      status:{zh:'此版本已修正：頁面等待錢包連線、或簽名視窗還開著時，錢包若切換帳號或鎖定，頁面保留錢包最後指定的帳號並結束這次點擊：不再向錢包要求任何東西、也不驗證，不會為了補救再開錢包視窗；下一次點擊從目前的帳號開始。仍存在：這種錢包事件順序是用測試錢包重現的，沒有用真實錢包確認。',
+        en:'Fixed in this version: when the wallet switches or locks while the page waits for it to connect, or while its signature window is open, the page keeps the account the wallet named last and ends that click: it asks the wallet nothing more and verifies nothing, and never opens a wallet window to recover; the next click starts from the current account. Still: this order of wallet events was reproduced with a test wallet, not with real wallets.'}}]},
+  {job:AUDIT4,kind:'Audit',jobUrl:jobUrl(AUDIT4)!,reportUrl:`https://github.com/Identity-md/research/blob/main/jobs/${AUDIT4}/files/AUDIT.md`,match:null,findings:[
+    {id:'AUD3-01',severity:'Low',area:AVAILABILITY,title:{zh:'備用索引通道的查詢失敗時，回 503 並丟掉已確認的席位',en:'A failed index read on the discovery lane answered 503 and dropped the seats already proven'},
+      status:{zh:'此版本已修正：備用通道自己的索引查詢、或之後的 ownerOf 查核失敗時，回應保留這次請求已用 ownerOf 確認的席位，並標示為查核沒完成，不會當成沒有席位。仍存在：這次查詢已經送出，所以該網段這一分鐘的備用通道仍算用掉。',
+        en:'Fixed in this version: if the lane’s own index read, or the ownerOf check after it, fails, the answer keeps the seats this request had already proven with ownerOf and is marked as a check not completed, never as owning nothing. Still: the read was sent, so that network’s lane stays used for the minute.'}},
+    {id:'AUD3-02',severity:'Low',area:AVAILABILITY,title:{zh:'據點限流拒絕後，備用索引通道的預約仍佔用網段名額與全站上限',en:'A lane claim the location’s limit then refused still used up the network’s lane and the site-wide ceiling'},
+      status:{zh:'此版本部分修正：據點限流拒絕的備用通道預約沒有做任何查詢，所以會被釋放：該網段 30 秒後可以再預約，這筆預約也立刻不再計入全站上限。仍存在：全站每 6 秒只釋放 20 個預約，超過或釋放失敗時，預約照舊佔用該網段一分鐘，所以同一據點 6 秒內約 80 個預約（以前是 60 個）仍會在那 6 秒佔滿全站上限、擋住其他據點；這個做法假設被拒的限流檢查不計數，尚未向 Cloudflare 確認（未完全解決）。',
+        en:'Partly fixed in this version: a lane claim the location’s limit refused made no read, so it is released: its network may claim again 30 s later, and the claim leaves the site-wide count at once. Still: only 20 claims every 6 s are released site-wide; past that, or if a release fails, a claim holds its network for the minute as before, so about 80 claims within 6 s from one location (60 before) still fill the site-wide ceiling for every other location for those 6 s; this relies on a refused limit check costing nothing, not yet confirmed with Cloudflare (partly open).'}},
+    {id:'AUD3-03',severity:'Low',area:AVAILABILITY,title:{zh:'據點限流拒絕的智慧錢包查核仍用掉該地址的共用查核，屋主自己的重試因此被擋住',en:'A smart-wallet check the location’s limit refused still used up the address’s shared checks, so the owner’s own retries kept it out'},
+      status:{zh:'此版本已修正：沒有送到鏈上的智慧錢包查核會被收回，屋主的重試只在限流本身拒絕時才被擋，限流有空檔後重新登入即可通過；被拒的那次 challenge 仍作廢。仍存在：已送到鏈上的查核不論結果都計數；這個做法假設被拒的限流檢查不計數，尚未向 Cloudflare 確認。',
+        en:'Fixed in this version: a smart-wallet check that never reached the chain is taken back, so the owner’s retries are refused only while the limit itself refuses, and a new sign-in gets through once it has room; the refused challenge stays used. Still: a check that reached the chain counts whatever its answer; this relies on a refused limit check costing nothing, not yet confirmed with Cloudflare.'}},
+    {id:'AUD3-04',severity:'Info',area:null,title:{zh:'登出途中開始的登入狀態查詢，可能讓已結束的登入重新出現',en:'A session read begun during this page’s sign-out could show the ended sign-in again'},
+      status:{zh:'此版本已修正：伺服器確認這個頁面的登出後（包括切換帳號或按下登入時送出的登出），在那之前開始的登入狀態與我的家查詢都不再套用，畫面維持「已登出。」；即使其間換了錢包，已結束的登入也會從畫面上移除，其他分頁也會收到通知。仍存在：登出確認前已送達頁面的查詢結果，會先顯示到登出確認為止。',
+        en:'Fixed in this version: once the server confirms this page’s sign-out (also the one an account switch or the sign-in button sends), no session or house read begun before it is applied, so “Signed out.” stays; the ended sign-in leaves the page even if another wallet was chosen meanwhile, and other tabs are told. Still: a read whose answer reaches the page before the sign-out is confirmed is shown until it is.'}},
+    {id:'AUD3-05',severity:'Info',area:null,title:{zh:'我的家查詢回覆另一個地址時，畫面仍留著先前的屋主狀態，且一直顯示確認中',en:'A house answer for another address left the previous owner view and a check that never ended'},
+      status:{zh:'此版本部分修正：我的家查詢回覆的是另一個地址時（另一個分頁用別的錢包登入），頁面先丟掉原本的房屋資料並結束確認，再重新讀取登入狀態；若讀取失敗，顯示「暫時無法確認持有資格，請稍後重試」，不會是屋主模式，也可以按「重新確認」。仍存在：在登入狀態讀取成功之前，面板仍把先前的登入顯示為已登入，但不會進入屋主模式；審查預期頁面不再這樣顯示（未完全解決）。',
+        en:'Partly fixed in this version: when the house read answers for another address (another tab signed in with another wallet), the page drops the house it held and ends the check before it reads the session again; if that read fails it shows “Can’t confirm seats right now, try again later”, never owner mode, and “Check again” can be pressed. Still: until a session read succeeds, the panel keeps showing the earlier sign-in as signed in, without owner mode; the audit expected the page to stop showing it (partly open).'}},
+    {id:'AUD3-06',severity:'Info',area:AVAILABILITY,title:{zh:'較晚到的已登出回應，可能刪掉另一個分頁剛設定的登入 cookie',en:'A late signed-out answer could delete the sign-in cookie another tab had just set'},
+      status:{zh:'此版本已修正：只說明目前沒有有效登入的回應（登入狀態查詢、我的家查詢、被拒的「登出所有裝置」）不再清除登入 cookie，所以不會刪掉另一個分頁剛設定的 cookie；伺服器照樣拒絕舊的那個。新的登入向錢包要求任何東西之前，頁面會先等自己送出的登出得到回應（最多 5 秒，等候時會說明；逾時則不要求簽名，並說明先前的登出還沒有回應），所以它們也不會刪掉新登入的 cookie。仍存在：主動登出的回應若在另一個分頁登入之後才到，仍會讓這個瀏覽器登出；已結束的登入 cookie 現在會留在瀏覽器裡直到到期。',
+        en:'Fixed in this version: answers that only report that there is no live sign-in (the session read, the house read, a refused “Log out all devices”) no longer clear the sign-in cookie, so they can’t delete one another tab has just set; the server still refuses the old one. Before a new sign-in asks the wallet anything, the page waits for its own sign-outs to be answered (at most 5 s, saying so meanwhile; past that it asks nothing and says that sign-out hasn’t been answered yet), so they can’t delete that sign-in’s cookie either. Still: an explicit sign-out whose answer arrives after another tab’s sign-in still signs that browser out, and an ended sign-in’s cookie now stays in the browser until it expires.'}},
+    {id:'AUD3-07',severity:'Info',area:null,title:{zh:'對已到期的登入按「登出所有裝置」時，沒有說明登入已到期',en:'Log out all devices on a sign-in that had run out did not say it had expired'},
+      status:{zh:'此版本已修正：伺服器表示這個瀏覽器的登入已到期時，頁面顯示「登入已到期，請重新登入。」，並照樣說明沒有登出其他裝置；之後再讀一次登入狀態，另一個分頁剛完成的登入會被找到。仍存在：這台裝置的時鐘比伺服器慢、且瀏覽器已丟掉 cookie 時，頁面無法得知登入已到期（同 N-7）。',
+        en:'Fixed in this version: when the server says this browser’s sign-in ran out, the page says “Your sign-in has expired. Please sign in again.” and still that other devices were not signed out; it then reads the session again, so a sign-in another tab has just made is found. Still: when this device’s clock runs behind the server’s and the browser has already dropped the cookie, the page can’t tell that it ran out, as for N-7.'}},
+    {id:'AUD3-08',severity:'Info',area:HARDENING,title:{zh:'不尋常的 IP 位址寫法可能被歸到無關網段的限流',en:'Unusual address text could be rate-limited as an unrelated network'},
+      status:{zh:'此版本已修正：完整解析用戶端位址；以 IPv6 形式寫的 IPv4 位址算作那個 IPv4，其他 IPv6 仍是 IPv6，不是用戶端位址的文字共用一份小額度。仍存在：沒有證據顯示真實請求會走到這裡；若 Cloudflare 送來這裡不接受的寫法，那些用戶會共用那份額度。',
+        en:'Fixed in this version: the whole client address is parsed; an IPv4 address written in IPv6 form counts as that IPv4, other IPv6 stays IPv6, and text that is not a client address shares one small allowance. Still: no real request was shown to reach this; were Cloudflare to send a form this rejects, those clients would share that allowance.'}},
+    {id:'AUD3-09',severity:'Info',area:null,title:{zh:'審查紀錄（不是缺陷）：這次審查查了什麼、無法查什麼',en:'Review record (not a defect): what the audit checked and what it could not check'},
+      status:{zh:'僅為紀錄，沒有要修正的項目：這次審查沒找到已取消、切換或關閉的登入流程仍能要求簽名或驗證的路徑，Report 的 R3-R1 則找到連線仍在等待時的一條（此版本已修正）。審查無法檢查的項目（正式部署、真實的 Cloudflare 限流與資料庫、真實錢包與瀏覽器）仍未檢查。',
+        en:'Record only, nothing to fix: the audit found no path from a cancelled, switched or closed sign-in to a signature or a verify, and the Report’s R3-R1 shows one for a connect still pending (fixed in this version). What it could not check (the live deployment, real Cloudflare limits and database, real wallets and browsers) is still unchecked.'}}]}];
+
 /** `commit` is the source the reviewers rebuilt; `worker` the Cloudflare version id the team gave them; `bundle` the
  *  SHA-256 of that Worker bundle, which they reproduced. `match`: the review's deployment-match verdict. */
 export const REVIEW_RECORD={job:JOB,commit:'0def8cb',worker:'beac62be',bundle:'4ec73351afbcc9af133fd487d7e2d33c1df6713bfa1aced881f412d38e0eccf3',
@@ -102,6 +147,8 @@ export const REVIEW_RECORD={job:JOB,commit:'0def8cb',worker:'beac62be',bundle:'4
   rereviews:REREVIEWS,
   /** The Swarm reviews of a later version still (REVIEWED_LATER), oldest first. */
   later:LATER_REVIEWS,
+  /** The Swarm reviews of the version after it (REVIEWED_BBF), oldest first. */
+  bbf:BBF_REVIEWS,
   scope:{zh:'錢包登入與我家權限（僅 World）',en:'Wallet sign-in & home authorization (World-only)'},
   jobUrl:jobUrl(JOB)!,
   reportUrl:reportOf(JOB)} as const;
@@ -131,16 +178,17 @@ export const FINDINGS:readonly Finding[]=[
     status:{zh:'未解決：World 本輪沒有改動；日後同網域的頁面會與 World 共用這些設定，需各自審查。',en:'Open: nothing changed in World; later pages on this origin share these with World and need their own review.'}}
 ];
 
-/** This build changed sign-in after the reviewed version, after the re-reviewed one and after Worker 1a0dd495 (Swarm audit
- *  8c3aea2e's N-1..N-7 fixes), so the record is labelled as a previous review, the re-reviews as of Worker 50c688c9 and
- *  the later review as of Worker 1a0dd495. */
+/** This build changed sign-in after the reviewed version, after the re-reviewed one, after Worker 1a0dd495 (Swarm audit
+ *  8c3aea2e's N-1..N-7 fixes) and after Worker bbf24001 (the R3-R1 and AUD3-01..AUD3-08 fixes), so the record is labelled
+ *  as a previous review, the re-reviews as of Worker 50c688c9, the later review as of Worker 1a0dd495 and the reviews of
+ *  2026-10-01 as of Worker bbf24001. */
 export const REVIEW_CHANGED=true;
 export const recordLabels=(say:Say)=>({
   title:say('審查紀錄','Swarm Audit Record'),
   changed:say('先前的審查 — 目前版本已變更','Previous review — current version has changed'),
   scope:say('審查範圍','Reviewed scope'),version:say('審查版本','Reviewed version'),date:say('審查日期','Review date'),
   match:say('部署對照','Deployment match'),job:say('審查任務','Review job'),report:say('報告','Report'),rereview:say('重新審查','Re-review'),
-  laterRow:say('之後的審查','Later review'),
+  laterRow:say('之後的審查','Later review'),bbfRow:say(`Worker ${REVIEWED_BBF.worker} 的審查`,`Reviews of Worker ${REVIEWED_BBF.worker}`),
   findings:say('發現（出自審查）· 修正狀態為 本站維護者自行說明，尚未重新審查','Findings (from the review) · fix status as reported by the site maintainer, not re-reviewed'),
   only:say('此紀錄只適用於受審查的版本。','This record applies to the reviewed version only.'),
   rereviews:say(`重新審查（${REREVIEWED.date}，UTC）`,`Re-reviews (${REREVIEWED.date}, UTC)`),
@@ -148,7 +196,10 @@ export const recordLabels=(say:Say)=>({
     `Both re-reviews examined Worker ${REREVIEWED.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the re-reviews’; their fix status is as reported by the site maintainer.`),
   later:say(`之後的審查（${REVIEWED_LATER.date}，UTC）`,`Later review (${REVIEWED_LATER.date}, UTC)`),
   laterOnly:say(`這次審查看的是 Worker ${REVIEWED_LATER.worker}，不是目前版本；目前版本的變更沒有經過重新審查。下列發現出自這次審查，修正狀態為 本站維護者自行說明。`,
-    `This review examined Worker ${REVIEWED_LATER.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the review’s; their fix status is as reported by the site maintainer.`)});
+    `This review examined Worker ${REVIEWED_LATER.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the review’s; their fix status is as reported by the site maintainer.`),
+  bbf:say(`Worker ${REVIEWED_BBF.worker} 的審查（${REVIEWED_BBF.date}，UTC）`,`Reviews of Worker ${REVIEWED_BBF.worker} (${REVIEWED_BBF.date}, UTC)`),
+  bbfOnly:say(`兩次審查看的是 Worker ${REVIEWED_BBF.worker}，不是目前版本；目前版本的變更沒有經過重新審查。下列發現出自這兩次審查，修正狀態為 本站維護者自行說明。`,
+    `Both reviews examined Worker ${REVIEWED_BBF.worker}, not this version; this version’s changes were not re-reviewed. The findings below are the reviews’; their fix status is as reported by the site maintainer.`)});
 export const versionText=(say:Say)=>{const r=REVIEW_RECORD,b=r.bundle.slice(0,8);return say(`Worker ${r.worker}（原始碼 ${r.commit}，bundle ${b}…）`,`Worker ${r.worker} (source ${r.commit}, bundle ${b}…)`);};
 export const matchText=(say:Say)=>say(REVIEW_RECORD.match==='partial'?'partial（部分驗證）':REVIEW_RECORD.match,REVIEW_RECORD.match);
 /** A re-review as the page names it: its template and its job's short id. */
@@ -157,6 +208,8 @@ export const rereviewVersionText=(say:Say)=>{const r=REREVIEWED,b=r.bundle.slice
   return say(`Worker ${r.worker}（原始碼 ${r.commit}，公開快照 ${r.snapshot}，bundle ${b}…，由 Report 重建）`,`Worker ${r.worker} (source ${r.commit}, public snapshot ${r.snapshot}, bundle ${b}… as the Report rebuilt it)`);};
 export const laterVersionText=(say:Say)=>{const r=REVIEWED_LATER,b=r.bundle.slice(0,8);
   return say(`Worker ${r.worker}（原始碼 ${r.commit}，公開快照 ${r.snapshot}，bundle ${b}…，由審查者重建）`,`Worker ${r.worker} (source ${r.commit}, public snapshot ${r.snapshot}, bundle ${b}… as a reviewer rebuilt it)`);};
+export const bbfVersionText=(say:Say)=>{const r=REVIEWED_BBF,b=r.bundle.slice(0,8);
+  return say(`Worker ${r.worker}（原始碼 ${r.commit}，公開快照 ${r.snapshot}，bundle ${b}…，由 Report 重建）`,`Worker ${r.worker} (source ${r.commit}, public snapshot ${r.snapshot}, bundle ${b}… as the Report rebuilt it)`);};
 export const rereviewMatchText=(r:Rereview,say:Say)=>r.match==='partial'?say('部署對照：partial（部分驗證）','Deployment match: partial'):say('部署對照：此審查未評估','Deployment match: not assessed by the audit');
 export const dateText=(say:Say)=>say(`${REVIEW_RECORD.date}（UTC）`,`${REVIEW_RECORD.date} (UTC)`);
 export const findingLine=(f:Finding,say:Say)=>`${f.id} · ${f.severity}${f.area?say('（'+f.area.zh+'）',' ('+f.area.en+')'):''} — ${say(f.title.zh,f.title.en)}${say('。','. ')}${say(f.status.zh,f.status.en)}`;

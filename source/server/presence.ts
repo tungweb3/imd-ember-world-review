@@ -44,8 +44,9 @@ export const INDEX_KEEP_MS=8*DAY_MS;
 export const PRUNE_INDEX='DELETE FROM index_candidates WHERE read_at<?1';
 /** N-6 (server/auth.ts INDEX_LANE): an index lane counts for a minute, so its row is deleted once older (?1 = now -
  *  INDEX_LANE_KEEP_MS): a range of index_lanes_at, never a scan; 3 rows written per row deleted (the row and its two
- *  index entries). Its own statement after the batch like PRUNE_INDEX: a deploy ahead of migrations/0005 never stops
- *  the presence record or the other prunes. */
+ *  index entries). A row released for a claim the key refused (AUD3-02, INDEX_LANE_RELEASE) is dated 30 s back, so it
+ *  goes 30 s earlier, at the same cost. Its own statement after the batch like PRUNE_INDEX: a deploy ahead of
+ *  migrations/0005 never stops the presence record or the other prunes. */
 export const INDEX_LANE_KEEP_MS=60_000;
 export const PRUNE_INDEX_LANES='DELETE FROM index_lanes WHERE at<?1';
 /** Records every seat the roster lists online at the roster's own time (fetchedAt: an edge-cached copy can be up to

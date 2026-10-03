@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {AuditRecord} from '../src/world/auditRecord.ts';
-import {REVIEW_RECORD,FINDINGS,REREVIEWED,REVIEWED_LATER,REVIEW_CHANGED} from '../src/world/reviewRecord.ts';
+import {REVIEW_RECORD,FINDINGS,REREVIEWED,REVIEWED_LATER,REVIEWED_BBF,REVIEW_CHANGED} from '../src/world/reviewRecord.ts';
 // The Swarm Audit Record in "My wallet" (remediation 2026-09-29 §6), rendered to the markup the page shows: collapsed,
 // the reviewed scope, version, date, job and report (new tab, no referrer, no opener), the deployment match, the
 // "previous review" label, that it applies to that version only, and every finding with its severity and status; then
-// the two re-reviews of Worker 50c688c9 and the later review of Worker 1a0dd495, each with its own findings.
+// the two re-reviews of Worker 50c688c9, the later review of Worker 1a0dd495 and the two reviews of Worker bbf24001, each
+// with its own findings.
 const zh=(a)=>a,en=(a,b)=>b,render=say=>renderToStaticMarkup(createElement(AuditRecord,{say}));
 const JOB='https://explorer.imd.fun/jobs/4bd31cfb-1151-497f-9b27-40e668dea372';
 const REPORT='https://github.com/Identity-md/research/blob/main/jobs/4bd31cfb-1151-497f-9b27-40e668dea372/files/artifacts/report.md';
@@ -15,11 +16,18 @@ const RETEST_JOB='https://explorer.imd.fun/jobs/e48d0a96-d3a5-42bb-859f-e0b0707f
 const RETEST_REPORT='https://github.com/Identity-md/research/blob/main/jobs/e48d0a96-d3a5-42bb-859f-e0b0707fd9ad/files/artifacts/report.md';
 const AUDIT3_JOB='https://explorer.imd.fun/jobs/8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b';
 const AUDIT3_REPORT='https://github.com/Identity-md/research/blob/main/jobs/8c3aea2e-26bc-4bff-bf5d-52d10f79ec9b/files/AUDIT.md';
+const REPORT4_JOB='https://explorer.imd.fun/jobs/dcf922ca-68de-4cc5-bfbc-8b226008b0bf',AUDIT4_JOB='https://explorer.imd.fun/jobs/1ef8e8a6-4297-4ff8-b869-2d9b91445d82';
+const REPORT4_REPORT='https://github.com/Identity-md/research/blob/main/jobs/dcf922ca-68de-4cc5-bfbc-8b226008b0bf/files/artifacts/report.md';
+const AUDIT4_REPORT='https://github.com/Identity-md/research/blob/main/jobs/1ef8e8a6-4297-4ff8-b869-2d9b91445d82/files/AUDIT.md';
 const link=href=>`<a href="${href}" target="_blank" rel="noreferrer noopener">`;
-/** The <li> texts of the n-th list: 0 the review's findings, 1 the Report's, 2 the audit's, 3 the later audit's. */
+/** The <li> texts of the n-th list: 0 the review's findings, 1 the Report's, 2 the audit's, 3 the later audit's, 4 Report
+ *  dcf922ca's and 5 audit 1ef8e8a6's (the reviews of Worker bbf24001). */
 const lists=html=>[...html.matchAll(/<ul>(.*?)<\/ul>/g)].map(m=>[...m[1].matchAll(/<li>(.*?)<\/li>/g)].map(x=>text(x[1])));
-/** The words the remediation forbids in the UI and docs (§6), and "certified" / an audited-by badge in any form. */
-export const FORBIDDEN=/security certified|officially audited|100% safe|guaranteed secure|certif|audited[- ]by|badge|已認證|認證|保證安全|安全無虞|徽章/i;
+/** The words the remediation forbids in the UI and docs (§6), "certified" / an audited-by badge in any form, and the
+ *  claim words of the public-wording rule: safe, secure, audited, official, 已審計, 保證, 官方, and their -ly / -r / -st
+ *  forms (safely, safer, safest, securely, officially). Not claims, so not matched: "unofficial" / 非官方 (the site's
+ *  own statement), the cookie attribute Secure after HttpOnly, and the name of the Gnosis Safe wallet. */
+export const FORBIDDEN=/security certified|officially audited|100% safe|guaranteed secure|certif|audited[- ]by|badge|已認證|認證|保證安全|安全無虞|徽章|(?<!Gnosis )\bsafe(?:ly|r|st)?\b|(?<!HttpOnly, )\bsecure(?:ly)?\b|\baudited\b|\bofficial(?:ly)?\b|已審計|保證|(?<!非)官方/i;
 const text=html=>html.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/&quot;/g,'"');
 
 test('the Swarm Audit Record is a collapsed block naming scope, reviewed version, date, deployment match and the previous-review label',()=>{
@@ -28,25 +36,31 @@ test('the Swarm Audit Record is a collapsed block naming scope, reviewed version
   for(const part of ['Previous review — current version has changed','Reviewed scope','Wallet sign-in &amp; home authorization (World-only)',
     'Worker beac62be (source 0def8cb, bundle 4ec73351…)','2026-09-28 (UTC)','Deployment match</dt><dd>partial</dd>','This record applies to the reviewed version only.',
     `Re-review</dt><dd>${link(RETEST_JOB)}Report e48d0a96… ↗</a> · ${link(AUDIT_JOB)}Audit 519db624… ↗</a></dd>`,'Findings (from the review) · fix status as reported by the site maintainer, not re-reviewed',
-    `Later review</dt><dd>${link(AUDIT3_JOB)}Audit 8c3aea2e… ↗</a></dd>`])
+    `Later review</dt><dd>${link(AUDIT3_JOB)}Audit 8c3aea2e… ↗</a></dd>`,
+    `Reviews of Worker bbf24001</dt><dd>${link(REPORT4_JOB)}Report dcf922ca… ↗</a> · ${link(AUDIT4_JOB)}Audit 1ef8e8a6… ↗</a></dd>`])
     assert.ok(html.includes(part),part);
   const z=render(zh);
   for(const part of ['<summary>審查紀錄</summary>','先前的審查 — 目前版本已變更','錢包登入與我家權限（僅 World）','2026-09-28（UTC）','此紀錄只適用於受審查的版本。',
     'Worker beac62be（原始碼 0def8cb，bundle 4ec73351…）','部署對照</dt><dd>partial（部分驗證）</dd>','審查任務','發現（出自審查）· 修正狀態為 本站維護者自行說明，尚未重新審查',
     `重新審查</dt><dd>${link(RETEST_JOB)}Report（重測） e48d0a96… ↗</a> · ${link(AUDIT_JOB)}Audit（審查） 519db624… ↗</a></dd>`,
-    `之後的審查</dt><dd>${link(AUDIT3_JOB)}Audit（審查） 8c3aea2e… ↗</a></dd>`])assert.ok(z.includes(part),part);
+    `之後的審查</dt><dd>${link(AUDIT3_JOB)}Audit（審查） 8c3aea2e… ↗</a></dd>`,
+    `Worker bbf24001 的審查</dt><dd>${link(REPORT4_JOB)}Report（重測） dcf922ca… ↗</a> · ${link(AUDIT4_JOB)}Audit（審查） 1ef8e8a6… ↗</a></dd>`])assert.ok(z.includes(part),part);
   // The statuses below are the team's own account: the heading says so, after the line that the record is of the reviewed version.
   assert.ok(html.indexOf('This record applies')<html.indexOf('as reported by the site maintainer, not re-reviewed')&&html.indexOf('not re-reviewed')<html.indexOf('<li>'));
   assert.equal(REVIEW_RECORD.rereview,undefined,'the one-field form is gone');
   assert.doesNotMatch(t+text(z),FORBIDDEN);
+  // The guard reaches every claim word a status or summary could make, and none of the exempt technical uses.
+  for(const bad of ['This version is safe.','Our sign-in is secure.','The site was audited.','the official IMD world','已審計','保證可用','官方紀錄',
+    'The officially reviewed version.','You can sign in safely.','Cookies are stored securely.','It is safer now.','the safest wallet'])assert.match(bad,FORBIDDEN,bad);
+  for(const ok of ['an unofficial community project','非官方、社群自行推動','HttpOnly, Secure, SameSite=Lax','a Gnosis Safe wallet','unaudited code'])assert.doesNotMatch(ok,FORBIDDEN,ok);
   assert.deepEqual([REVIEW_RECORD.worker,REVIEW_RECORD.commit,REVIEW_RECORD.date,REVIEW_RECORD.match,REVIEW_RECORD.bundle],
     ['beac62be','0def8cb','2026-09-28','partial','4ec73351afbcc9af133fd487d7e2d33c1df6713bfa1aced881f412d38e0eccf3']);
 });
 
 test('its job and report links open the real pages in a new tab with no referrer and no opener',()=>{
   const links=[...render(en).matchAll(/<a ([^>]*)>/g)].map(m=>m[1]);
-  assert.deepEqual(links,[JOB,REPORT,RETEST_JOB,AUDIT_JOB,AUDIT3_JOB,RETEST_REPORT,AUDIT3_REPORT].map(u=>`href="${u}" target="_blank" rel="noreferrer noopener"`),
-    'the review’s job and report, the two re-review jobs, the later audit’s job, the one re-review report there is (the audit published none), and the later audit’s report');
+  assert.deepEqual(links,[JOB,REPORT,RETEST_JOB,AUDIT_JOB,AUDIT3_JOB,REPORT4_JOB,AUDIT4_JOB,RETEST_REPORT,AUDIT3_REPORT,REPORT4_REPORT,AUDIT4_REPORT].map(u=>`href="${u}" target="_blank" rel="noreferrer noopener"`),
+    'the review’s job and report, the two re-review jobs, the later audit’s job, the jobs of the two reviews of bbf24001, the one re-review report there is (the audit published none), the later audit’s report, and the Report’s and the audit’s of bbf24001');
 });
 
 test('every finding F-1..F-8 is listed with the report’s severity and an honest status, “open” where it is open',()=>{
@@ -123,7 +137,7 @@ test('the two re-reviews of Worker 50c688c9 are listed with their findings, and 
   for(const i of [0,5,6])assert.match(a[i],/\(partly open\)\.$/,'A-'+(i+1));
   // A status quotes only what the page really shows (「…」, “…”): every quoted piece is a string in the wallet UI.
   const {readFileSync}=await import('node:fs'),ui=['walletView.ts','auth.ts','WalletPanel.tsx'].map(f=>readFileSync(new URL('../src/world/'+f,import.meta.url),'utf8')).join('\n');
-  const quoted=[...FINDINGS,...[...REVIEW_RECORD.rereviews,...REVIEW_RECORD.later].flatMap(r=>r.findings)].flatMap(f=>[...f.status.zh.matchAll(/「([^」]+)」/g),...f.status.en.matchAll(/“([^”]+)”/g)].map(m=>[f.id,m[1]]));
+  const quoted=[...FINDINGS,...[...REVIEW_RECORD.rereviews,...REVIEW_RECORD.later,...REVIEW_RECORD.bbf].flatMap(r=>r.findings)].flatMap(f=>[...f.status.zh.matchAll(/「([^」]+)」/g),...f.status.en.matchAll(/“([^”]+)”/g)].map(m=>[f.id,m[1]]));
   assert.ok(quoted.length>0);
   for(const [id,q] of quoted)assert.ok(ui.includes(q),id+' quotes text the page does not show: '+q);
   assert.doesNotMatch(text(html)+text(z),FORBIDDEN);
@@ -147,7 +161,7 @@ test('the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, 
     assert.ok(z.includes(part),part);
   // After the re-reviews' findings, and still inside the collapsed block.
   assert.ok(html.indexOf('Later review (')>html.indexOf('A-8 · Low')&&html.indexOf('N-7 · Info')<html.indexOf('</details>'));
-  assert.equal(lists(html).length,4);
+  assert.equal(lists(html).length,6,'its list is the fourth; the reviews of Worker bbf24001 follow with two more');
   const n=lists(html)[3],zn=lists(z)[3];assert.deepEqual([n.length,zn.length],[7,7]);
   assert.match(n[0],/^N-1 · Low — An older session read could erase the owner state a newer one had set\. Fixed in this version: only the newest session read is applied, its body and errors included/);
   assert.match(n[1],/^N-2 · Low — A cancelled sign-in could still ask the old account to sign\. Fixed in this version: .*a cancelled flow asks nothing\. Still: a wallet window already open can’t be closed by the page; its answer is dropped\.$/);
@@ -165,6 +179,71 @@ test('the later review of Worker 1a0dd495 is listed with its findings N-1..N-7, 
   for(const s of zn)assert.match(s,/。此版本(已修正|已改善)：/,s);
   assert.deepEqual([n.map(s=>/ Still: /.test(s)),zn.map(s=>/仍存在：/.test(s))],[[false,true,true,true,true,true,true],[false,true,true,true,true,true,true]]);
   assert.deepEqual([n.map(s=>/\(partly open\)\.$/.test(s)),zn.map(s=>/（未完全解決）。$/.test(s))],[[false,false,false,false,true,true,false],[false,false,false,false,true,true,false]]);
+  assert.doesNotMatch(text(html)+text(z),FORBIDDEN);
+});
+
+// The two reviews of Worker bbf24001 (2026-10-01 UTC): Swarm Report dcf922ca (a limited retest, report.md, deployment
+// match partial, the bundle it rebuilt from snapshot 8cad017) and Swarm audit 1ef8e8a6 (AUDIT.md, no deployment-match
+// verdict), with their findings under the ids of the owner's handoff (R3-R1, AUD3-01..AUD3-09) as the reviews rated them,
+// and the team's status for this version, after the later review, under a line saying plainly that this version was not
+// re-reviewed. AUD3-09 is the audit's review record: listed as such, with nothing fixed.
+test('the two reviews of Worker bbf24001 are listed with R3-R1 and AUD3-01..AUD3-09, and the page says this version was not re-reviewed',()=>{
+  assert.deepEqual({...REVIEWED_BBF},{worker:'bbf24001',commit:'2e4e830',snapshot:'8cad017',bundle:'018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c',date:'2026-10-01'});
+  assert.deepEqual(REVIEW_RECORD.bbf.map(r=>[r.job,r.kind,r.match,r.jobUrl,r.reportUrl]),
+    [['dcf922ca-68de-4cc5-bfbc-8b226008b0bf','Report','partial',REPORT4_JOB,REPORT4_REPORT],['1ef8e8a6-4297-4ff8-b869-2d9b91445d82','Audit',null,AUDIT4_JOB,AUDIT4_REPORT]]);
+  // The Report's one new finding (Low); the audit's "3 low · 6 info", the ninth its review record.
+  assert.deepEqual(REVIEW_RECORD.bbf.map(r=>r.findings.map(f=>f.id+' '+f.severity+(f.area?' '+f.area.en:''))),
+    [['R3-R1 Low'],['AUD3-01 Low availability','AUD3-02 Low availability','AUD3-03 Low availability','AUD3-04 Info','AUD3-05 Info','AUD3-06 Info availability','AUD3-07 Info','AUD3-08 Info hardening','AUD3-09 Info']]);
+  assert.equal(REVIEW_CHANGED,true);
+  const html=render(en),z=render(zh);
+  for(const part of ['<p class="small-note audit-head">Reviews of Worker bbf24001 (2026-10-01, UTC)</p>',
+    '<dt>Reviewed version</dt><dd>Worker bbf24001 (source 2e4e830, public snapshot 8cad017, bundle 018df7b3… as the Report rebuilt it)</dd>',
+    '<p class="small-note audit-changed">Both reviews examined Worker bbf24001, not this version; this version’s changes were not re-reviewed. The findings below are the reviews’; their fix status is as reported by the site maintainer.</p>',
+    `Report dcf922ca… · Deployment match: partial · ${link(REPORT4_REPORT)}report.md ↗</a>`,`Audit 1ef8e8a6… · Deployment match: not assessed by the audit · ${link(AUDIT4_REPORT)}AUDIT.md ↗</a>`])
+    assert.ok(html.includes(part),part);
+  for(const part of ['Worker bbf24001 的審查（2026-10-01，UTC）','Worker bbf24001（原始碼 2e4e830，公開快照 8cad017，bundle 018df7b3…，由 Report 重建）',
+    '兩次審查看的是 Worker bbf24001，不是目前版本；目前版本的變更沒有經過重新審查。下列發現出自這兩次審查，修正狀態為 本站維護者自行說明。',
+    `Report（重測） dcf922ca… · 部署對照：partial（部分驗證） · ${link(REPORT4_REPORT)}report.md ↗</a>`,`Audit（審查） 1ef8e8a6… · 部署對照：此審查未評估 · ${link(AUDIT4_REPORT)}AUDIT.md ↗</a>`])
+    assert.ok(z.includes(part),part);
+  // After the later review's findings, and still inside the collapsed block.
+  assert.ok(html.indexOf('Reviews of Worker bbf24001 (')>html.indexOf('N-7 · Info')&&html.indexOf('AUD3-09 · Info')<html.indexOf('</details>'));
+  const [,,,,r,a]=lists(html),[,,,,zr,za]=lists(z),all=[...r,...a],zall=[...zr,...za];
+  assert.deepEqual([r.length,a.length,zr.length,za.length],[1,9,1,9]);
+  assert.match(r[0],/^R3-R1 · Low — A wallet’s late connect answer could undo an account switch and ask the old account to sign\. Fixed in this version: .*the page keeps the account the wallet named last and ends that click: it asks the wallet nothing more and verifies nothing, and never opens a wallet window to recover; .*Still: this order of wallet events was reproduced with a test wallet, not with real wallets\.$/);
+  assert.match(a[0],/^AUD3-01 · Low \(availability\) — .*the answer keeps the seats this request had already proven with ownerOf and is marked as a check not completed, never as owning nothing\. Still: the read was sent, so that network’s lane stays used for the minute\.$/);
+  // AUD3-02 and AUD3-03 rest on how Cloudflare's limiter counts a refused call, which no one has checked: both say so.
+  for(const i of [1,2])assert.match(a[i],/; this relies on a refused limit check costing nothing, not yet confirmed with Cloudflare( \(partly open\))?\.$/,'AUD3-0'+(i+1));
+  for(const i of [1,2])assert.match(za[i],/這個做法假設被拒的限流檢查不計數，尚未向 Cloudflare 確認(（未完全解決）)?。$/,'AUD3-0'+(i+1));
+  // AUD3-02 is fixed for the retry (31 s) and at the audit's 60 networks, but about 80 claims in one 6 s slice from one
+  // location still fill the site-wide ceiling: partly fixed, and the site says how many.
+  assert.match(a[1],/^AUD3-02 · Low \(availability\) — .*\. Partly fixed in this version: .*released: its network may claim again 30 s later, and the claim leaves the site-wide count at once\. Still: only 20 claims every 6 s are released site-wide; past that, or if a release fails, a claim holds its network for the minute as before, so about 80 claims within 6 s from one location \(60 before\) still fill the site-wide ceiling for every other location for those 6 s; /);
+  assert.match(za[1],/。此版本部分修正：.*仍存在：全站每 6 秒只釋放 20 個預約.*同一據點 6 秒內約 80 個預約（以前是 60 個）仍會在那 6 秒佔滿全站上限、擋住其他據點；/);
+  assert.doesNotMatch(a[1]+za[1],/counts for the minute|計滿一分鐘/,'a kept claim holds the site-wide count for its 6 s slice only');
+  assert.match(a[2],/a smart-wallet check that never reached the chain is taken back.*the refused challenge stays used\. Still: a check that reached the chain counts whatever its answer/);
+  // AUD3-04: the residual is a read whose answer reaches the page before the sign-out is confirmed (not one the server
+  // answered before it: that is the reproduction, which the fix drops); the click's own logout ends its session even
+  // after a wallet switch and is told to other tabs. AUD3-05 is partly fixed: the session the panel shows until a read
+  // succeeds is what the audit expected the page to stop showing (ADV-4). AUD3-06 says the page waits for its own
+  // sign-outs before a new sign-in asks anything, says so meanwhile, and names that sign-out when the wait runs out.
+  assert.match(a[3],/^AUD3-04 · Info — .*no session or house read begun before it is applied, so “Signed out\.” stays; the ended sign-in leaves the page even if another wallet was chosen meanwhile, and other tabs are told\. Still: a read whose answer reaches the page before the sign-out is confirmed is shown until it is\.$/);
+  assert.match(za[3],/仍存在：登出確認前已送達頁面的查詢結果，會先顯示到登出確認為止。$/);
+  assert.doesNotMatch(a[3]+za[3],/a read the server answered before|伺服器已回覆的查詢/);
+  assert.match(a[4],/^AUD3-05 · Info — .*\. Partly fixed in this version: .*never owner mode, and “Check again” can be pressed\. Still: until a session read succeeds, the panel keeps showing the earlier sign-in as signed in, without owner mode; the audit expected the page to stop showing it \(partly open\)\.$/);
+  assert.match(za[4],/。此版本部分修正：.*也可以按「重新確認」。仍存在：在登入狀態讀取成功之前，面板仍把先前的登入顯示為已登入，但不會進入屋主模式；審查預期頁面不再這樣顯示（未完全解決）。$/);
+  assert.match(a[5],/^AUD3-06 · Info \(availability\) — .*no longer clear the sign-in cookie.*the server still refuses the old one\. Before a new sign-in asks the wallet anything, the page waits for its own sign-outs to be answered \(at most 5 s, saying so meanwhile; past that it asks nothing and says that sign-out hasn’t been answered yet\), so they can’t delete that sign-in’s cookie either\. Still: an explicit sign-out whose answer arrives after another tab’s sign-in still signs that browser out/);
+  assert.match(za[5],/新的登入向錢包要求任何東西之前，頁面會先等自己送出的登出得到回應（最多 5 秒，等候時會說明；逾時則不要求簽名，並說明先前的登出還沒有回應）.*仍存在：主動登出的回應若在另一個分頁登入之後才到/);
+  assert.match(a[6],/^AUD3-07 · Info — .*the page says “Your sign-in has expired\. Please sign in again\.” and still that other devices were not signed out/);
+  assert.match(a[7],/^AUD3-08 · Info \(hardening\) — .*Still: no real request was shown to reach this; /);
+  assert.match(a[8],/^AUD3-09 · Info — Review record \(not a defect\): .*Record only, nothing to fix: .*the Report’s R3-R1 shows one for a connect still pending \(fixed in this version\)\./);
+  assert.match(za[8],/^AUD3-09 · Info — 審查紀錄（不是缺陷）：.*。僅為紀錄，沒有要修正的項目：/);
+  // Every status is the team's, for this version; every fix names what stays (both languages); only AUD3-02 and AUD3-05
+  // are partly fixed and partly open; none claims a deployment (nothing of this round is deployed).
+  const label=s=>s.split(' — ')[1].match(/\. (Fixed|Partly fixed|Improved) in this version: /)?.[1],zlabel=s=>s.match(/。此版本(已修正|部分修正|已改善)：/)?.[1];
+  assert.deepEqual([all.slice(0,9).map(label),zall.slice(0,9).map(zlabel)],[['Fixed','Fixed','Partly fixed','Fixed','Fixed','Partly fixed','Fixed','Fixed','Fixed'],['已修正','已修正','部分修正','已修正','已修正','部分修正','已修正','已修正','已修正']]);
+  assert.deepEqual([all.map(s=>/ Still: /.test(s)),zall.map(s=>/仍存在：/.test(s))],[[...Array(9).fill(true),false],[...Array(9).fill(true),false]]);
+  const partly=Array.from({length:10},(_,i)=>i===2||i===5);
+  assert.deepEqual([all.map(s=>/\(partly open\)\.$/.test(s)),zall.map(s=>/（未完全解決）。$/.test(s))],[partly,partly]);
+  assert.doesNotMatch(all.join(' '),/\bdeployed\b/);
   assert.doesNotMatch(text(html)+text(z),FORBIDDEN);
 });
 
@@ -248,6 +327,39 @@ test('the remediation status doc agrees with the site’s record, names only rea
   }};
   blocks(REVIEW_RECORD.rereviews.find(r=>r.kind==='Audit').findings,false);
   blocks(REVIEW_RECORD.later.flatMap(r=>r.findings),'bbf24001 (source 2e4e830, deployed 2026-10-01 04:10 UTC)');
+  // The two reviews of Worker bbf24001 (Swarm Report dcf922ca and Swarm audit 1ef8e8a6): a header row naming both, the
+  // version they examined, that these fixes are deployed in 63c6c7bd (the team's deployment record) and not re-reviewed; their section with each job and
+  // report, the two judgments side by side, the Report's 403s with the team's observation, the limiter assumption and
+  // the states; every finding a row with the site's severity and status word for word, its fix commit, a test that exists
+  // under that id in the named file, and its state (FIXED_LOCAL, or PARTIAL where the site says partly open, deployed in
+  // 63c6c7bd; AUD3-09 RECORD_ONLY with no commit or test); a block per fix in the shape above with "Deployment version:
+  // 63c6c7bd (source f36144a, …)"; AUD3-09's own heading; and the handoff's regression matrix T01..T41, every test it
+  // names existing.
+  const bbfRow=doc.split(String.fromCharCode(10)).find(l=>l.startsWith('| Reviews of Worker bbf24001 |'));assert.ok(bbfRow,'a Reviews of Worker bbf24001 row');
+  for(const v of [REVIEWED_BBF.worker,REVIEWED_BBF.commit,REVIEWED_BBF.snapshot,REVIEWED_BBF.bundle,'`dcf922ca`','`1ef8e8a6`','deployment match partial','no deployment-match verdict',
+    '`63c6c7bd`','these changes were not re-reviewed'])assert.ok(bbfRow.includes(v),'Reviews of Worker bbf24001 row: '+v);
+  assert.ok(doc.includes('\n## Swarm reviews of Worker bbf24001 ('+REVIEWED_BBF.date+')\n'),'its section');
+  for(const r of REVIEW_RECORD.bbf)for(const u of [r.jobUrl,r.reportUrl])assert.ok(doc.includes(u),u);
+  const flatDoc=doc.replace(/\s+/g,' ');
+  for(const part of ['**The two judgments, side by side.**','Cloudflare answers 403 to the Python-urllib User-Agent','**The limiter assumption (BLOCKED_EVIDENCE).**',
+    "FIXED_LOCAL (the finding's reproduction tests failed on `f4272c5`","All of it is deployed in `63c6c7bd`"])assert.ok(flatDoc.includes(part),part);
+  for(const f of REVIEW_RECORD.bbf.flatMap(r=>r.findings)){
+    const row=doc.split(String.fromCharCode(10)).find(l=>l.startsWith('| '+f.id+' |'));assert.ok(row,f.id+' has a row');
+    const m=row.match(/^\| (R3-R1|AUD3-0\d) \| ([^|]+) \| ([^|]+) \| (none|`[0-9a-f]{7}`(?:, `[0-9a-f]{7}`)*) \| (none|(?:`tests\/[\w.-]+` "(?:R3-R1|AUD3-0\d): …"(?:, )?)+) \| ([^|]+) \|$/);
+    assert.ok(m,f.id+': '+row);
+    assert.deepEqual([m[2],m[3]],[f.severity+(f.area?' ('+f.area.en+')':''),f.status.en],f.id);
+    if(f.id==='AUD3-09'){assert.deepEqual([m[4],m[5],m[6]],['none','none','RECORD_ONLY']);continue;}
+    assert.match(m[6],new RegExp('^'+(/\(partly open\)\.$/.test(f.status.en)?'PARTIAL':'FIXED_LOCAL')+": deployed in `63c6c7bd` \\(the team's deployment record"),f.id);
+    for(const [,file,id] of m[5].matchAll(/`(tests\/[\w.-]+)` "(R3-R1|AUD3-0\d): …"/g)){assert.equal(id,f.id);assert.ok(read(file).includes("test('"+id+': '),`${f.id}: ${file}`);}
+  }
+  const fixes=REVIEW_RECORD.bbf.flatMap(r=>r.findings).filter(f=>f.id!=='AUD3-09');
+  assert.equal(fixes.length,9);blocks(fixes,'63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC)');
+  const record=REVIEW_RECORD.bbf[1].findings.at(-1);
+  assert.ok(doc.includes(`\n### ${record.id} — ${record.title.en} · Record only\n`),'AUD3-09 has its record-only heading');
+  const matrix=doc.slice(doc.indexOf("### The handoff's regression matrix (T01..T41)"),doc.indexOf('\n## ',doc.indexOf("### The handoff's regression matrix (T01..T41)")));
+  const cases=[...matrix.matchAll(/^\| (T\d\d)(?:–T(\d\d))? \|/gm)].flatMap(m=>{const a=+m[1].slice(1),b=m[2]?+m[2]:a;return Array.from({length:b-a+1},(_,i)=>a+i);});
+  assert.deepEqual(cases,Array.from({length:41},(_,i)=>i+1),'every case T01..T41, in order');
+  assert.ok(named(matrix).length>=40,'the matrix names the tests that hold its cases');
   // The Codex plans' suggested test names map to tests that exist.
   const map=doc.slice(doc.indexOf("### The Codex plans' test names"),doc.indexOf('\n## ',doc.indexOf("### The Codex plans' test names")));
   assert.equal(named(map).length,15,'every suggested name is mapped');
@@ -259,11 +371,12 @@ test('the remediation status doc agrees with the site’s record, names only rea
   assert.ok(flat.includes("Production facts on this page (which Worker version runs and when it was deployed, the D1 migrations applied remotely, the limiter bindings and their namespaces, the WAF rule, the secrets such as `ALCHEMY_API_KEY`, and the log sampling) are the site maintainer's deployment record. No review could read them and this page does not verify them."));
   assert.ok(flat.includes('It found no asset-transfer path (no approval, no transaction) and no session-forgery or ownership-forgery path'));
   assert.ok(flat.includes('It did not verify the live deployment, the Cloudflare bindings, WAF or upload handling, real wallets or browsers, the production RPC, the front-end code not in the snapshot, or a Worker rebuild.'));
-  assert.equal(doc.match(/Deployment version:\*\* (pending — filled in at deploy|[0-9a-f]{8} \(source [0-9a-f]{7}, deployed \d{4}-\d\d-\d\d \d\d:\d\d UTC\))\./g).length,15,
-    'every finding names its deployment version, or says it is pending: F-1..F-8 and N-1..N-7');
+  assert.equal(doc.match(/Deployment version:\*\* (pending — filled in at deploy|[0-9a-f]{8} \(source [0-9a-f]{7}, deployed \d{4}-\d\d-\d\d \d\d:\d\d UTC\))\./g).length,24,
+    'every finding names its deployment version, or says it is pending: F-1..F-8, N-1..N-7, R3-R1 and AUD3-01..AUD3-08');
   for(const field of ['Finding','Old behavior','Fix','Files changed','Tests added','Test command','Result','Deployment version','Residual risk'])
     assert.ok(doc.split('**'+field).length-1>=7,field+' in every finding (F-8 folds some into one line)');
   assert.doesNotMatch(doc,FORBIDDEN);
+  const design=read('docs/wallet-login/DESIGN_W1_v001.md');assert.doesNotMatch(design.slice(design.indexOf('\n## 17. ')),FORBIDDEN,'DESIGN_W1 §17');
   assert.doesNotMatch(doc,/[A-Za-z]:[\\/]Users|\/home\/|@[a-z0-9-]+\.(com|net|org|io)\b|0x[0-9a-fA-F]{40}/i,'no local path, email or wallet address [REDACTED-INTERNAL]');
   // The regression-test map: every row names a test that exists, by its exact name, in that file.
   const rows=[...doc.matchAll(/^\| (\d) \| [^|]+ \| `(tests\/[\w.-]+)` \| (.+) \|$/gm)];

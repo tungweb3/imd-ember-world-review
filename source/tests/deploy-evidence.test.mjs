@@ -44,7 +44,7 @@ test('deploy evidence from a real deploy record: commit, id, times, version id, 
       assert.ok(md.includes(part),part);
     // The migrations of that commit, by name (their hashes are whatever the files hold; the next test pins the hashing).
     const migrations=text=>[...text.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]);
-    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql']);
+    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql']);
     assert.ok(!md.includes('third-party-licenses'),'only JS, CSS and HTML are listed');
     // The limiter keys come from server/auth.ts at the record's commit: HEAD has A-1's lane key and N-6's index-lane key
     // (Swarm audit 8c3aea2e); 132228c (the code of Worker 1a0dd495) has the first but not the second, nor migration 0005;

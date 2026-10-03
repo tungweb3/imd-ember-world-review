@@ -1,144 +1,125 @@
-# REDACTIONS：所有移除與替換
+# REDACTIONS：公開副本的遮蔽與保留項目
 
-## 1. 原始碼的修改（八個檔案，只改註解、文件文字、設定值與測試字串）
+## 1. 數量、來源與一致性
 
-`source/` 的 78 個檔案取自 `git -c core.autocrlf=false archive f4272c513e2052fb0bea6d2e8512180256a60919`，也就是 git blob 的原始位元組（LF）。**只有下列 8 個檔案被修改**（與前幾輪是同樣 8 個，遮蔽的種類與遮蔽後的文字也相同，只有行號因新增內容而移動），其他 70 個檔案與 git blob 逐位元組相同（可用 `manifests/published-source-gitblobs.txt` 的 blob id 以 `git hash-object --no-filters` 核對）。8 個被修改的檔案行數都沒有改變，所以文件引用的行號仍然對得上。本輪新公開的 6 個檔案（`migrations/0005_lanes_and_subnets.sql` 與 5 個部署證據頁，第 2 節）都沒有遮蔽。
+公開來源基準：`c491ff3c9edf9d0eb39a9233ccfff101a7c8133c`，由不作換行轉換的 git archive 匯出。
 
-| 檔案 | 原始 blob（commit f4272c5） | 原始 SHA-256 | 本快照 SHA-256 | 是否進入正式 bundle |
-|---|---|---|---|---|
-| `source/wrangler.jsonc` | `97112ebc1a9a754eed8ecc461c643b483592faa6` | `860f697af01e0ac34622d79b090b9297c1b856880a54927272f1e2e76e928ad1`（LF；部署紀錄記錄的是 CRLF 版 `4c67da97…`） | `28203878b03100f8899f7eba219c10b0f7046ebc05eb55d60096f1f804835f27` | 否（部署設定） |
-| `source/docs/wallet-login/DESIGN_W1_v001.md` | `4b2b25938ab6a7aff8fda4170bee6fdd579c942f` | `141ebe0eeae4a0903b37c1e721abb019f2f6b61a5b207fbcba6efac17c042378` | `c06a392a8c7be8b7a93e128cde3da9721699e5b778e342ec108808149462c8a0` | 否（文件） |
-| `source/docs/security/AUDIT_REMEDIATION_STATUS.md` | 不公開（低熵遮蔽，見下） | 不公開（低熵遮蔽，見下） | `6d44dab8b086227d07843ea3b313ec04e299dd743848f38783cee9412656dee6` | 否（文件；`tests/review-record.test.mjs` 會讀它） |
-| `source/src/world/collections.ts` | `db20e1e573dbc4c6c4e44228fbd3c69e5054e765` | `e16162ff5fac9960678fba72a333075071fc280c1b64a9a28d3cc7df89772949` | `bc21ef28e8c885338158090037042d746dde4a4f9a4daf871bad8a7e40599c5b` | 是（Worker 與前端），但只改註解 |
-| `source/src/world/moves.ts` | `f05f5dc5297b6eced76ea3616ea23374f2db298a` | `ff5a1f600d6faa96cb95380efdcab9d0e27beb197404cde36dbc7509210d7624` | `2b3ff677085a7e73d1e7b596895567754f7fffccae5fbbc700f764673a72f0fd` | 是（前端），但只改註解 |
-| `source/migrations/0001_wallet_login.sql` | `b64e58cf82c7d06a639d73728509303ee41bce32` | `696eeccbebd66ce944d86ec248540a0afa10a0283e255c0bf9df85c2cfc22a71` | `d968991d8f51babf059591b9876891076bec232a3ea782453fa91d1d3ef9d3a6` | 否（D1 migration），只改 SQL 註解 |
-| `source/tests/deploy-evidence.test.mjs` | 不公開（低熵遮蔽，見下） | 不公開（低熵遮蔽，見下） | `3fb0af538bfd232fefba12d8bd08db8c2d741e73c34d15a572521459d716ae3e` | 否（測試） |
-| `source/tests/review-record.test.mjs` | 不公開（低熵遮蔽，見下） | 不公開（低熵遮蔽，見下） | `4c1209eb4667ef96d92468a6912381fa7f96cfafb2f1691756c7d1391638dd92` | 否（測試） |
+| 項目 | 數量 |
+|---|---:|
+| 原始 tracked tree | 604 |
+| 公開 source 檔案 | 92 |
+| 保留正文、只公開清單的檔案 | 512 |
+| 公開副本有遮蔽的檔案 | 16 |
+| 遮蔽且不公開原始 blob／SHA 的低熵檔案 | 11 |
+| 公開副本與原始 blob 完全相同 | 76 |
 
-**為什麼三個檔案不公開原始雜湊**：`AUDIT_REMEDIATION_STATUS.md`、`deploy-evidence.test.mjs`、`review-record.test.mjs` 被遮蔽的內容很短、可以猜（例如固定長度的 hex 前綴、regex 裡的幾個詞）。只要原始檔的 SHA-256 或 git blob id 公開，任何人都能把猜測的字串放回遮蔽處重算雜湊來確認猜測，遮蔽就失去作用。所以這三個檔案只公開本快照版本的 SHA-256（`SHA256SUMS`），原始 blob id 與原始 SHA-256 都不公開（`manifests/published-source-gitblobs.txt` 中對應的一行寫 `ORIGINAL-BLOB-WITHHELD`）。它們都不進正式 bundle；內容與原始檔的差別只在第 1.4、1.5 節列出的位置，行數不變。其餘五個檔案的原始雜湊照常公開：`wrangler.jsonc` 的遮蔽包含 128 位元以上的隨機值（account id、database id），`DESIGN_W1_v001.md` 的遮蔽是多段較長的文字；`collections.ts`、`0001_wallet_login.sql` 的原始雜湊在第一個 commit（`c2a8c33`）已經公開、無法收回，它們遮蔽的只是未來規劃的描述文字。
+16 個遮蔽檔案均保留原始行數。以下列出所有不同的行號；來源程式的行號引用仍成立。其餘 76 個檔案通過 `git hash-object --no-filters` 與 SRC blob id 的比對。
 
-`collections.ts` 與 `0001_wallet_login.sql` 的 blob 自 `c2a8c33` 以來沒有改變，遮蔽內容與前三輪完全相同。`moves.ts` 的 blob 與上一輪（`ae1d41a`）相同，遮蔽的仍是與 `c2a8c33` 相同的那一句（第 1 行，遮蔽後的文字也與前幾輪相同），它的原始雜湊當時已經公開。`wrangler.jsonc`（第 53–56 行的 limiter 註解多了 N-6 的說明）與 `DESIGN_W1_v001.md`（新增第 16 節等）這一版有改，所以原始 blob id 與原始 SHA-256 是新的；兩者的遮蔽都不是可猜的短字串。
+本次是原有 8 個遮蔽檔案，加上 8 個 M1／部署證據相關檔案。新增遮蔽共 **26 行**，包括最新部署頁中 migration 0006 的原始 SHA 欄位。新增八個也都歸入低熵保留，所以原有 3 個低熵檔案變為 11 個。
 
-**遮蔽不影響建置輸出，已實測**：遮蔽後（2026-10-01T04:25:20Z）從本快照 `source/` 以 `wrangler deploy --dry-run --outdir` 重建的 Worker `index.js` 是 280,605 bytes、SHA-256 `018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c`（與部署紀錄相同，`DEPLOYMENT_MATCH.md` 第 3 節）。前端：`collections.ts`、`moves.ts` 的遮蔽都只在 `//` 註解內，正式建置不會輸出這些註解；本快照缺少被保留的前端檔案，無法建置前端，所以本輪沒有另外以遮蔽版重建前端；其餘遮蔽檔案都不進前端 bundle。
+### 1.1 原有八個檔案
 
-遮蔽標記：`[REDACTED]` 表示依持有人決定移除的未來產品規劃或未提交草案的描述；`[REDACTED-INTERNAL]` 表示與本審查無關的內部說明或個人資訊；設定值用 `REDACTED-CLOUDFLARE-ACCOUNT-ID`、`REDACTED-D1-DATABASE-ID`；測試字串用 `REDACTED-ACCOUNT-ID-PREFIX`、`REDACTED-EMAIL-DOMAIN`。
+| 公開檔案 | 遮蔽行號 | 公開副本 SHA-256 |
+|---|---|---|
+| `source/docs/security/AUDIT_REMEDIATION_STATUS.md` | 329,1700,1701 | `ebadf4a996d596076fe0f66edeb773ca06d01e77fe9042b53228b990cd2c1e87` |
+| `source/docs/wallet-login/DESIGN_W1_v001.md` | 4,5,8,9,10,20,130,181,182,238,431,478,479,481,491 | `cb939c9ca90c8655723fef290db4081e3ab0f2c60aaa18d82ae32defbccea312` |
+| `source/migrations/0001_wallet_login.sql` | 15,16 | `d968991d8f51babf059591b9876891076bec232a3ea782453fa91d1d3ef9d3a6` |
+| `source/src/world/collections.ts` | 2,3 | `bc21ef28e8c885338158090037042d746dde4a4f9a4daf871bad8a7e40599c5b` |
+| `source/src/world/moves.ts` | 1 | `2b3ff677085a7e73d1e7b596895567754f7fffccae5fbbc700f764673a72f0fd` |
+| `source/tests/deploy-evidence.test.mjs` | 63 | `5d55de3e0d7d8ceadfcad2df7b33f615517f6a1bb8a5c54d2201462810be4f44` |
+| `source/tests/review-record.test.mjs` | 380,403 | `817a2d501fe0b28db2ad08240b30c1695e9b0acaf2330a236e6df833841259e1` |
+| `source/wrangler.jsonc` | 3,4,5,12,63 | `28203878b03100f8899f7eba219c10b0f7046ebc05eb55d60096f1f804835f27` |
 
-### 1.1 `source/wrangler.jsonc`
+原有遮蔽涵蓋部署帳號／環境識別、文件內部文字、註解，以及供測試使用的辨識字串。設定值的替換在公開副本用明示的遮蔽值，不能直接拿這份設定部署。來源程式的邏輯、鏈上地址與公開驗證所需的控制流程未因此改寫。
 
-完整差異（左：commit f4272c5；右：本快照；左側原值不在本 repo 中，以說明代替）：
+### 1.2 本輪新增八個檔案
 
-```diff
-3,5c3,5
-< // <第 3–5 行：account_id 用途說明，含部署者的登入 email 與本審查無關的內部說明，已遮蔽>
-< // <同上>
-< // <同上，句末為 "The imdember.com zone lives in this account.">
----
-> // account_id pins the deploy to the Cloudflare account that holds the imdember.com zone.
-> // [REDACTED-INTERNAL]
-> // [REDACTED-INTERNAL]
-12c12
-<   "account_id": "<32 位 hex，已遮蔽>",
----
->   "account_id": "REDACTED-CLOUDFLARE-ACCOUNT-ID",
-63c63
-<     { "binding": "DB", "database_name": "imd-world", "database_id": "<UUID，已遮蔽>", "migrations_dir": "migrations" }
----
->     { "binding": "DB", "database_name": "imd-world", "database_id": "REDACTED-D1-DATABASE-ID", "migrations_dir": "migrations" }
+| 公開檔案 | 遮蔽行號 | 公開副本 SHA-256 |
+|---|---|---|
+| `source/server/member.ts` | 6,26,29,65 | `9f40f858842e8c4671efa1b4db5a76a6a8d07fffc9ec3139a112a592a81045b1` |
+| `source/src/world/memberName.ts` | 1,14,47 | `06c40c6baacc83039ccf7c06257080b391e769aef778dbf04a328e125f4ff41d` |
+| `source/src/world/member.ts` | 1,4 | `e921e4aeb7f59ebbeecce314cd2fe5fc9c4feb5c3820fe570fd4fc4df50a9ef4` |
+| `source/migrations/0006_members.sql` | 1,2,7,10,24,25,46,115,125,126 | `9d0b9b920122c87bf877db92aabd2fb968c43bf0533c2f1d66aabf31c2fee261` |
+| `source/tests/member.test.mjs` | 9,10,54 | `52185e55c8ea08ea3a8a3eb86fb14f1331513526dc4390eff3f9b2b16df7cb80` |
+| `source/tests/member-client.test.mjs` | 9 | `4d9bbf987aea11e6a2c00367e1dd9ece8c81a5b8204fe5953cab4b6ccae56eac` |
+| `source/scripts/member-moderate.mjs` | 11 | `db0affe1d40dcbcb5e50881083dd599fe9d7451731c042050bb8595cbf32e3e6` |
+| `source/docs/security/deploy-evidence/20261003T005417Z-ddb10e2.md` | 36,63 | `ede6e3e979250fc5500ee8d23d903f40b7d61b613e8fd82f60273e21d3f7430c` |
+
+新增遮蔽逐檔性質如下：
+
+- `source/server/member.ts`：第 6、26、29、65 行的註解。
+- `source/src/world/memberName.ts`：第 1、14、47 行的註解。
+- `source/src/world/member.ts`：第 1、4 行的註解。
+- `source/migrations/0006_members.sql`：第 1、2、7、10、24、25、46、115、125、126 行的 SQL 註解。
+- `source/tests/member.test.mjs`：第 9、10、54 行的註解。
+- `source/tests/member-client.test.mjs`：第 9 行的註解。
+- `source/scripts/member-moderate.mjs`：第 11 行的註解。
+- `source/docs/security/deploy-evidence/20261003T005417Z-ddb10e2.md`：第 36 行的原始 migration SHA，及第 63 行的一段文件文字。
+
+可執行 SQL、資料表與索引定義、reserved-name 資料列、會員／名稱驗證、測試斷言及管理腳本的執行邏輯均保留。修改的是註解與文件文字，不是為了讓測試通過而改變程式。
+
+`source/src/world/MemberPanel.tsx:61` 的既有 UI 文字完整保留。此檔沒有遮蔽，與 SRC blob 相同。
+
+### 1.3 低熵雜湊為何保留
+
+短字詞或短文件片段可被猜測；若仍公開原始 SHA-256 或 Git blob id，外部可逐一試猜並核對。這些雜湊不能作為去識別化方法。
+
+不公開原始 blob id 與原始 SHA 的 11 個檔案為：
+
+- `source/docs/security/AUDIT_REMEDIATION_STATUS.md`
+- `source/tests/deploy-evidence.test.mjs`
+- `source/tests/review-record.test.mjs`
+- 上面第 1.2 節的全部八個新增檔案。
+
+`manifests/published-source-gitblobs.txt` 對這 11 個標示 `ORIGINAL-BLOB-WITHHELD`。第 1.2 節中的最新部署頁也遮蔽 0006 原始 SHA：單獨在證據頁保留該 SHA，會破壞 migration 註解的低熵保留措施。
+
+上面表格列的是**公開副本**的 SHA，可用於驗證交付內容；不代表能由公開副本驗證這 11 個原始檔案。其餘五個遮蔽檔案的原始 blob id 仍列在 manifest，76 個未改檔案則可直接核對。
+
+## 2. 未公開正文的 512 個檔案
+
+`manifests/withheld-source.txt` 列出檔名與原始 SHA-256；`manifests/withheld-source-gitblobs.txt` 列出對應 Git blob id。這些列是來源樹的檔案身分記錄，沒有附正文，也不表示其內容已完成外部審查。
+
+保留範圍包括世界場景、房屋幾何與擺放、完整室內視圖、資產、部分設計／工作文件和未納入公開測試範圍的來源。公開安全／登入／會員檔案的查核不能延伸到這些正文。
+
+例如 `src/world/households.ts`、`src/world/layout.ts`、`src/world/interior/mockSeats.ts` 保留在來源樹，公開副本缺這些檔案。這會造成 README 已列出的測試與 tsc 失敗，而不是任意跳過或宣告通過。
+
+`TESTS/stubs/households.ts` 和 `TESTS/stubs/layout.ts` 是另外交付的測試替身，不是這 512 個檔案的還原，也不是正式程式。替身不含房屋幾何值；讀取幾何會直接丟例外。
+
+## 3. 測試輸出的去識別化
+
+本輪公開 12 個輸出檔，由實際執行的原始結果產生：
+
+- 兩種公開副本測試輸出：有替身、無替身。
+- group 5、N、第四輪回歸、M1 會員四種 focused 輸出。
+- tsc 與 Worker dry-run 輸出。
+- 兩個 npm audit JSON。
+- 本地 SIWE 範例與 keyed-reads probe 輸出。
+
+已把本機副本的絕對路徑替換為 `<SCRATCH>`；Worker 輸出目錄／Wrangler log 目錄也替換為以該 token 表示的相對位置。Windows、JSON 跳脫與正斜線形式均處理，公開輸出換行統一為 LF。測試名稱、錯誤、計數、測試結果與 npm audit 的 JSON 結構保留。
+
+公開副本測試輸出沒有改掉四項失敗。完整來源測試的 raw log 不進公開包；只有 SHA、計數、命令與失敗摘要列在 `TESTS/README.md`。
+
+合成錢包、測試 IP、fixture 公開名冊地址是測試資料，不是使用者真實簽名或憑證。SIWE 範例使用執行時生成的記憶體金鑰，不含簽章。
+
+## 4. 建置與部署對照的影響
+
+16 個檔案的遮蔽不改變本輪重建 Worker 的輸出：bundle 303,128 bytes，SHA-256 `cf720c698417726ce75cd3b4740314489ed816ba98a763e74d8118b8be136518`，與紀錄相符。
+
+這只能驗證生成 bundle 的位元組。公開副本沒有完整前端來源，且修改過部署設定識別值，無法把它當成正式環境的可直接部署 checkout。
+
+完整來源的 CRLF／LF 前端重建是另項證據；線上比對只取得四個靜態 body。整體結果仍是 partial，見 `DEPLOYMENT_MATCH.md`。
+
+Coin E1、Genesis Mint、其合約與新經濟方案不在本輪公開來源範圍；本包未把它們當成已部署功能。
+
+## 5. 核對方法
+
+```bash
+# 未遮蔽檔案：在公開 source/ 副本執行，和 manifest 的相同行比對。
+git hash-object --no-filters server/auth.ts
+# 公開副本內容：與上表 SHA 比對。
+sha256sum server/member.ts
 ```
 
-| 位置 | 原內容 | 替換為 | 原因 |
-|---|---|---|---|
-| 第 3–5 行註解 | account_id 的用途說明，含部署者的 Cloudflare 登入 email 與內部說明 | 一句中性說明＋`[REDACTED-INTERNAL]` | 個人資料與內部資訊，審查不需要 |
-| 第 12 行 `account_id` | Cloudflare 帳號 ID | `REDACTED-CLOUDFLARE-ACCOUNT-ID` | 公開審查不需要 |
-| 第 63 行 `database_id`（上一輪在第 62 行；第 53–56 行的 limiter 註解多了一行，說明 N-6 的 `chain:index:lane`） | D1 資料庫 ID | `REDACTED-D1-DATABASE-ID` | 同上 |
+遮蔽檔案不能直接以原始 blob id 驗證其公開副本。11 個低熵檔案也沒有公開原始雜湊供此種比對。
 
-遮蔽只影響 wrangler 要部署到哪個帳號與資料庫，不影響任何程式行為：測試不讀這些值（`scripts/deploy-evidence.mjs` 只讀 `ratelimits` 欄位）；`wrangler deploy --dry-run` 用遮蔽版產生的 Worker bundle 與實際上傳的相同。公開後 `source/wrangler.jsonc` 無法直接用來部署（placeholder 不是有效的 ID）。
-
-### 1.2 `source/docs/wallet-login/DESIGN_W1_v001.md`（設計文件，不是程式）
-
-與上一輪的遮蔽位置與內容相同（共 11 處），行號因新增內容（第 16 節，Swarm Audit 8c3aea2e 的後續）而位移；`seat_presence` 那一處現在在 §6 cron 段落的第 180–181 行（被遮蔽的括號跨兩行）。
-
-| 行 | 原內容（摘要） | 替換為 | 原因 |
-|---|---|---|---|
-| 4–5 | W1 不包含的未來項目清單 | `[REDACTED]`（第 5 行其餘文字不變） | 持有人決定：不描述未來產品規劃 |
-| 8 | 「owner decisions 2026-09-28」後的內部來源標註 | 刪除該括號 | 內部資訊 |
-| 9–10 | 一份未進 git 的內部文件的名稱、路徑與其角色 | `[REDACTED]`，後接「Two facts: …」 | 持有人決定：不描述未提交的草案。兩個事實（32 個持有人是 EIP-7702 委派 EOA；2026-09-27 名冊與鏈上 `ownerOf` 對 430 個 agent 一致）保留 |
-| 20 | 誰會在日後處理伺服器與用戶端計數差異 | `[REDACTED]` | 未來規劃 |
-| 130 | 「Order」後引用上述草案的章節號 | 刪除，只留「Order:」 | 草案引用 |
-| 180–181 | `seat_presence` 將來的用途 | `[REDACTED]` | 未來規劃 |
-| 237 | 將來加入角色 collection 的方式 | `[REDACTED]` | 未來規劃 |
-| 430 | 誰會在日後補上名冊未擺放的缺口 | `[REDACTED]` | 未來規劃 |
-| 477–478 | 持有人截圖所在的本機工作資料夾 | `[REDACTED-INTERNAL]` | 內部資訊 |
-| 480 | 「Still open」括號內的未來階段名稱 | `[REDACTED]` | 未來規劃 |
-| 490 | 搬家只存本機的原因（未來規劃） | `[REDACTED]` | 未來規劃 |
-
-仍然保留、持有人已知的相關文字：描述正式 UI「即將推出 / Coming soon」的段落（那段 UI 在正式 bundle 裡）；第 15 節引用「remediation doc v1.0」與它的驗收項目編號（見第 1.4 節的說明）；第 15 節對 Genesis Mint 的一句提醒（World session 不等於同意 mint，第 533–536 行，並連到 `docs/security/MINT_BOUNDARY.md`）。新增的第 16 節（第 616 行起）沒有遮蔽。
-
-### 1.3 `source/src/world/collections.ts`、`source/src/world/moves.ts`、`source/migrations/0001_wallet_login.sql`（只改註解，遮蔽與前幾輪相同）
-
-| 檔案:行 | 原內容（摘要） | 替換為 |
-|---|---|---|
-| `collections.ts:2-3` | 清單何時會有內容（未來規劃） | `[REDACTED]`，其後說明清單為空時面板顯示「即將推出」、加入一個 collection 是這裡的一筆設定 |
-| `moves.ts:1` | 搬家何時不再只存本機（未來規劃） | `local only; [REDACTED]` |
-| `0001_wallet_login.sql:15-16` | `seat_presence` 將來由誰讀取（未來規劃） | `Never deleted ([REDACTED]).` |
-
-這三個公開檔案與上一輪公開的版本逐位元組相同。
-
-### 1.4 `source/docs/security/AUDIT_REMEDIATION_STATUS.md`（修正狀態文件的公開版）
-
-這份是團隊的修正狀態文件，本快照收錄它的公開版（`tests/review-record.test.mjs` 會讀它並與頁面資料比對；遮蔽後該測試仍通過）。只改兩處，遮蔽後的文字與上一輪相同：
-
-| 行 | 原內容（摘要） | 替換為 | 原因 |
-|---|---|---|---|
-| 324（上一輪在第 309 行） | 一句說明某個上線後步驟由誰執行的內部備註 | `[REDACTED-INTERNAL]` | 內部分工，不是審查需要的事實 |
-| 928–929（上一輪在第 604–605 行） | 「Genesis Mint」後括號內列出的日後 Mint 合約檔名與授權設計細節 | `[REDACTED]`（兩行） | 持有人決定：不描述未來產品規劃；該節引用的原則句（World session 不等於使用者授權 Mint）保留 |
-
-文件中的狀態、殘餘風險、測試名稱與指令、分層限制表、部署版本與後續部署的列表，以及新增的「Swarm audit 8c3aea2e」一節（第 637 行起，N-1..N-7）都**沒有改**。它寫的是團隊自己的說明，尚未經重新審查；reviewer 應自行核對。
-
-文件與程式註解會提到「remediation document v1.0」「remediation 2026-09-29 §x」：那是團隊內部的修正計畫，**不隨本 repo 公開**；這些引用只是章節編號，它的公開摘要就是這份文件。同樣地，狀態文件、程式註解與測試中提到的「Codex remediation plan」「Codex plan」「Codex crosscheck review」與本輪的「Codex handoff」（例如 `AUDIT_REMEDIATION_STATUS.md:428`、`AUDIT_REMEDIATION_STATUS.md:594`、`AUDIT_REMEDIATION_STATUS.md:906`、`server/ownership.ts:136`、`tests/ownership.test.mjs:209`、`tests/wallet-client.test.mjs:677`）也是團隊內部的修正計畫、交叉檢查紀錄與工程交接文件，不公開，只引用其章節或項目編號。這些名稱沒有遮蔽：`tests/review-record.test.mjs:251-252` 會讀狀態文件中「The Codex plans' test names」一節，確認其中列出的測試確實存在。
-
-### 1.5 兩個測試檔的字串（不改變測試邏輯）
-
-| 檔案:行 | 原內容 | 替換為 | 原因與影響 |
-|---|---|---|---|
-| `tests/deploy-evidence.test.mjs:63`（一；上一輪在第 57 行） | 「不可出現在輸出中」清單裡的一個 10 位 hex 字串：真實 Cloudflare account id 的前綴 | `'REDACTED-ACCOUNT-ID-PREFIX'` | 不公開帳號 id 的任何部分。測試仍檢查 `account_id` 這個欄位名與整份 `wrangler.jsonc` 註解不會進入輸出；在本快照（`wrangler.jsonc` 已遮蔽）這個字串本來就不可能出現 |
-| `tests/deploy-evidence.test.mjs:63`（二） | 同一清單裡的一個字串：部署者登入 email 的網域片段 | `'REDACTED-EMAIL-DOMAIN'` | 不公開部署者 email 的任何部分。測試邏輯不變：它只檢查這個字串不在輸出裡，而第 64 行的 `doesNotMatch(md,/@|…/)` 本來就禁止輸出中出現任何 `@`，檢查強度不變。注意：在本快照中這個測試會在第 54 行因缺少團隊的 git 歷史而失敗，第 63–64 行不會執行（`TESTS/README.md` 第 1 節）；在團隊的 checkout 中照常執行並通過 |
-| `tests/review-record.test.mjs:267`（上一輪在第 196 行） | 檢查狀態文件的禁止字 regex 中兩個與本審查無關的內部名稱，以及斷言訊息中的同一個名稱 | 從 regex 移除這兩個詞；斷言訊息改為 `'no local path, email or wallet address [REDACTED-INTERNAL]'` | 公開 repo 不收錄與審查無關的內部名稱。其餘檢查（本機路徑、email、錢包地址、禁用字）不變 |
-| `tests/review-record.test.mjs:290`（上一輪在第 219 行） | 對 `docs/security/MINT_BOUNDARY.md` 套用的同一個 regex，含同樣兩個內部名稱（原本沒有斷言訊息） | 從 regex 移除這兩個詞；加上同樣的斷言訊息 `'no local path, email or wallet address [REDACTED-INTERNAL]'` | 同上。這兩處讓本快照的測試比團隊版少檢查這兩個名稱；團隊版在團隊端的完整測試中照常執行並通過 |
-
-### 1.6 刻意保留、沒有遮蔽的相關文字
-
-- `source/src/world/HomePanels.tsx:31` 的 UI 文字（共用的住處登記後端還沒上線）與 `source/src/world/i18n.tsx:39` 的 UI 文字（未來的探索故事）：它們在公開的正式前端 bundle 裡，改動會讓公開原始碼與正式 bundle 不一致，所以保留。
-- `source/wrangler.jsonc` 中的 zone 設定說明（HTTPS、WAF 規則）與 D1 migration 的套用方式說明：一般部署設定說明，前幾輪已公開。
-- `source/server/auth.ts:99-101` 描述 zone 的 Cloudflare WAF 規則是第一道洪水防線：與登入安全直接相關。
-
-## 2. 未收錄的檔案（不是遮蔽，是不公開）
-
-- **commit f4272c5 中的 504 個檔案**：依持有人決定不公開（3D 世界、地形與其建置腳本、模型、美術、音樂、新手引導、地圖、Pepe 裝飾與雕像、房屋分配與擺放、房屋內部、主畫面接線 `WorldApp.tsx` 與效能調整新增的 `bridge.ts`、`dataMode.ts`、`screenSpace.ts`、`skin/terrainTask.ts`、其他測試與腳本、文件與圖檔、舊小遊戲殘留、repo 的 README／DESIGN／PLAN 等）。比上一輪（132228c 的 484 個）多 20 個，都是前端的世界內容與其測試：纜車（`src/world/cableCar.ts`、`src/world/skin/cableCar.ts`）、平靜天空（`src/world/calmSky.ts`）、`src/world/SourceNotes.tsx`，以及 11 個新測試檔與 5 個 fixture（船站、纜車、天氣、Guardian Hall、地標放大、Pepe 廣場、首次載入等）。清單與 SHA-256：`manifests/withheld-source.txt`；git blob id：`manifests/withheld-source-gitblobs.txt`。
-- **本輪新公開的 6 個檔案**（不再保留）：`migrations/0005_lanes_and_subnets.sql`（N-4／N-5／N-6 的 schema；測試透過 `tests/d1-sqlite.mjs` 在 `node:sqlite` 上執行全部 migration，`tests/auth.test.mjs:751` 與 `tests/presence.test.mjs:76` 也直接讀這個檔案），以及 5 個部署證據頁 `docs/security/deploy-evidence/20260930T145241Z-007ee80.md`、`20260930T154746Z-a77f91b.md`、`20260930T185800Z-41ae386.md`、`20260930T221950Z-0d57791.md`、`20261001T040934Z-2e4e830.md`。它們都與 git blob 逐位元組相同、沒有遮蔽。
-- **部署證據頁共收錄 10 頁**：上一輪的 5 頁（1a0ba21、2da46cd、5398b90、4321bb4、df8ea90 的部署）加上本輪 5 頁。原因：`tests/review-record.test.mjs:255-257` 會確認 `AUDIT_REMEDIATION_STATUS.md` 引用的每個 `docs/security/*.md` 頁面都存在；而這些頁面只含 `scripts/deploy-evidence.mjs` 從部署紀錄取出的結構化欄位（版本、雜湊、migration、limiter 綁定、WAF 規則 id）與團隊手填的欄位，不含 log 文字。內容仍是團隊端證據（`DEPLOYMENT_MATCH.md` 第 6 節）。
-- **部署紀錄中的敏感檔案**：`wrangler-logs/`、`wrangler.log`、`worker/index.js.map`（含部署者的登入資訊與本機路徑）以及實際上傳的 `worker/index.js` 都不收錄；只收錄 `SHA256SUMS`（雜湊與相對路徑，`manifests/deploy-record-SHA256SUMS.txt`）與 `DEPLOYMENT_MATCH.md` 摘錄的 manifest 欄位。`worker/index.js` 可由 reviewer 從 `source/` 自行重建。
-- **git tag 的 tagger 欄位**：不收錄。
-- **wrangler 部署查詢輸出**：本輪沒有執行；只引用部署紀錄 manifest 中的版本、時間與工具版本，以及團隊對部署、回滾與 0005 套用的說明。
-- **團隊端完整測試的原始輸出**：含被保留測試的名稱與本機路徑，不收錄，只公開其 SHA-256（`TESTS/README.md` 第 2 節）。
-- **真實錢包登入的畫面**：團隊端說明（`DEPLOYMENT_MATCH.md` 第 2 節）沒有附截圖，也不公開所用的錢包地址。
-
-## 3. 產生的證據檔中的遮蔽
-
-以下證據檔都在 2026-10-01 重新產生。
-
-- `TESTS/siwe-sample/siwe-sample-output.txt`：`__Host-imd_flow`、`__Host-imd_session` 的值替換為 `<REDACTED>`；不寫入任何簽章。地址是當次臨時產生的合成金鑰地址，金鑰只存在記憶體、已丟棄、不控制任何資產；頁面端摘要中的地址以說明文字代替。腳本使用的網段 `203.0.113.0/24`、`198.51.100.0/24` 都是文件用的保留位址範圍（RFC 5737；輸出中出現的是 `net:203.0.113.0/24`）。log 行中的 `colo` 是固定的 `TEST`。
-- `TESTS/probes/keyed-reads-probe-output.txt`：session 鍵（token 雜湊前綴）顯示為 `session:<token-hash prefix>`；IP 都是 RFC 5737 文件用位址或 loopback。
-- `SIWE.md` 的範例訊息取自同一份 SIWE 輸出。
-- `TESTS/npm-test-output.txt`、`TESTS/npm-test-output.no-stub.txt`、`TESTS/home-entry-group5-output.txt`、`TESTS/n-tests-output.txt`（本輪新增）、`TESTS/worker-dry-run-output.txt`：建置機器上的暫存目錄路徑換成 `<SCRATCH>`（group 5 與 N 測試的輸出本來就不含路徑），其餘未改。
-- `TESTS/tsc-noEmit-output.txt`：只有相對路徑，不需替換；tsc 在 Windows 上輸出 CRLF 換行，收錄時改成 LF（本 repo 的所有檔案都是 LF），文字未改。
-
-## 4. 從未讀取或收錄的東西
-
-整個準備過程**沒有讀取**任何 `.dev.vars`、`.env*`、憑證、keyring 或 wrangler 登入檔，沒有讀取部署紀錄的 wrangler 記錄檔與 source map，也沒有讀取 Cloudflare secret 的值（Worker secret 只知道名稱 `ALCHEMY_API_KEY`）。截圖本身與 Cloudflare account id 都不收錄。本快照不含私鑰、助記詞、`.env` 真值、API／RPC key、session cookie、Bearer token、有效正式簽章、使用者私人資料、正式資料庫的任何資料列或瀏覽器 profile。
-
-檢查方式（對整個快照的檔案）：搜尋 email 樣式、Windows／Linux 使用者目錄與暫存目錄等本機路徑樣式、64 位 hex（私鑰樣式）、`sk_`、API key 樣式、account id 與 database id 的片段，以及 `tests/review-record.test.mjs` 移除的兩個內部名稱；除了 `package-lock.json` 的套件完整性雜湊（`sha512-…`）、公開的合約／錢包地址、交易選擇器、文件與證據頁引用的 SHA-256、測試用的 SHA-256 測試向量（`"abc"` 與空字串）之外沒有命中。email 樣式只有 `source/tests/deploy.test.mjs:99` 與 `source/tests/deploy-evidence.test.mjs:13` 兩個測試用的假地址（保留網域 `example.invalid`、`example.com`，RFC 2606）。`source/tests/deploy-evidence.test.mjs:13` 另有兩個虛構的 Windows 與 Linux 使用者目錄路徑（使用者名稱 `someone`），用來確認它們不會出現在輸出。測試 harness 中的 `test-alchemy-key`（`source/tests/wallet-harness.mjs:86`）是假字串，不是金鑰。
-
-## 5. 保留、未遮蔽的識別資訊（刻意公開）
-
-見 `PUBLIC_CONTENT_LIST.md`：網域、公開合約地址、IMD 公開名冊中的席位持有者地址（只在一個測試 fixture 內）、GitHub 帳號名稱 `tungweb3`（版權聲明）等。
+本文件表格的行號和公開副本 SHA 在本輪逐檔產生；來源行數一致、76 個 exact 檔案、16／11 個遮蔽分類由 manifest 產生器核對。所有結果均針對本次 SRC，不能沿用到後續來源版本。

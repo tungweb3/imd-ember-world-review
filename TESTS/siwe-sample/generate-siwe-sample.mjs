@@ -1,5 +1,5 @@
 // Scratch-only: calls the REAL server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage with a
-// synthetic key's address against the real migrations (0001 to 0005) on node:sqlite, and the REAL page-side check
+// synthetic key's address against the real migrations (0001 to 0006) on node:sqlite, and the REAL page-side check
 // src/world/siwe.ts checkSignInMessage on the message it returns.
 // No network: the only "chain" is a local stub that answers eth_getCode with "0x" (no contract code). No production key;
 // the synthetic keys live only in memory and no signature is written out.
@@ -82,12 +82,12 @@ const redact=s=>s.replace(/(__Host-imd_(?:flow|session)=)[^;,]+/g,'$1<REDACTED>'
 const p=parseSiweMessage(body.message);
 const count=a=>Object.entries(a.reduce((m,s)=>(m[s]=(m[s]??0)+1,m),{})).map(([s,n])=>n+' x '+s).join(', ');
 const lines=[
-'# De-sensitized SIWE sample, IMD Ember World (source commit 2e4e830b367f651e3c880587c1a4b465d1bfcd91, the commit of live Worker version bbf24001-7eec-4f93-b312-a22e299ab275)',
-'# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:430)',
-'# on this snapshot\'s source/, against migrations/0001 to 0005 on node:sqlite (in-memory, tests/d1-sqlite.mjs).',
+'# De-sensitized SIWE sample, IMD Ember World (source commit ddb10e28a867998323164e7585635efedfcf7788, the commit of live Worker version acdbb2bd-8add-4b15-bfa6-a31266c83520; snapshot source at c491ff3c9edf9d0eb39a9233ccfff101a7c8133c)',
+'# Produced by calling the real handler server/auth.ts handleAccountApi -> challenge() -> viem/siwe createSiweMessage (server/auth.ts:489)',
+'# on this snapshot\'s source/, against migrations/0001 to 0006 on node:sqlite (in-memory, tests/d1-sqlite.mjs).',
 '# Address: a freshly generated SYNTHETIC local key (in memory only, discarded; controls no funds). Nonce: server-generated random (crypto.getRandomValues, 16 bytes hex), local DB only.',
 '# Clock fixed at '+new Date(T0).toISOString()+'. No request was made to imdember.com or any network (the chain is a local stub answering eth_getCode "0x"); no signature is included in this file.',
-'# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:274-278).',
+'# The page checks the text line by line (src/world/siwe.ts checkSignInMessage) and only then sends it hex-encoded (UTF-8) as personal_sign params [hexUtf8(message), account] (src/world/auth.ts:334-338).',
 '',
 '----- BEGIN EXACT MESSAGE (as returned in POST /api/auth/challenge .message) -----',
 body.message,

@@ -12,9 +12,10 @@ scope), following the remediation document v1.0 of 2026-09-29.
 | Deployment match (review) | partial |
 | Remediated in | the commits after `0def8cb` on branch `review-fixes` (`git log 0def8cb..`), which also carries the live speaker fix `6fd74f8` (merged from `main`) |
 | Deployment version | the remediation deployment of 2026-09-28: Worker version `f9b68223-19f7-4318-8274-294413b81965`, source `1a0ba21`, deployed 2026-09-28 21:05 UTC; evidence: `docs/security/deploy-evidence/20260928T210413Z-1a0ba21.md`. It is no longer the running version |
-| Later deployments (the team's deployment record) | as the team's deploy records list them; the evidence pages were generated from those records on 2026-09-30 and nothing in them was read from Cloudflare or verified by a review: Worker `50c688c9`, source `2da46cd`, deployed 2026-09-29 05:05 UTC, the version both Swarm re-reviews named (its bundle SHA-256 in the record, `14584fe4…`, is the one the Report rebuilt from the snapshot); evidence: `docs/security/deploy-evidence/20260929T050441Z-2da46cd.md`. Then Worker `c89f5915`, source `5398b90` (`2da46cd` + `backlog-0929` up to `3f661eb` + `perf-0929`), deployed 2026-09-29 17:25 UTC, the running version as the team states it: it carries W-1..W-3, the undici pin `202da0b` and the removal of `SIWE_PREVIOUS_STATEMENTS` (`fc533e5`), and none of A-1..A-8; evidence: `docs/security/deploy-evidence/20260929T172429Z-5398b90.md` Then Worker `1a0dd495`, source `4321bb4` (`5398b90` + `backlog-0929` up to `3b21763` + `ui-0930` up to `188f575`), deployed 2026-09-29 19:54 UTC after D1 migration `0004_index_candidates.sql` was applied (a backup export was taken first); it carries the Swarm audit 519db624 fixes A-1..A-8 and the unofficial statement; evidence: `docs/security/deploy-evidence/20260929T195417Z-4321bb4.md`. Then Worker `6e7e40cd`, source `df8ea90` (a town re-layout with larger landmarks, cable car, boat stops, gentle weather and a new Guardian Hall; no sign-in or ownership change, no migration) was live from 2026-09-30 06:48 UTC until 09:27 UTC, when the owner had the site rolled back to `1a0dd495` (`wrangler rollback`); evidence of that deploy: `docs/security/deploy-evidence/20260930T064805Z-df8ea90.md`. Then Worker `cc5cddb3`, source `007ee80` (`132228c` = the `1a0dd495` source + gentler bad weather with a calm-sky switch, a 1.5x Pepe statue, the v002 Guardian Hall at 1.3x, three more ember-boat stops and a cable car, on the live layout with no home moved; no sign-in or ownership change, no migration; the Worker bundle SHA-256 is unchanged, `1018f02a…`), deployed 2026-09-30 14:53 UTC; evidence: `docs/security/deploy-evidence/20260930T145241Z-007ee80.md`. Then Worker `3e0f4eb3`, source `a77f91b` (`3776052` + a faster retry of the first failed world read, 5 s then 15 s, and "connecting" wording while that first load is on; client only, the Worker bundle SHA-256 unchanged, no migration), deployed 2026-09-30 15:48 UTC; evidence: `docs/security/deploy-evidence/20260930T154746Z-a77f91b.md`. Then Worker `5f9e6468`, source `41ae386` (`461c3a2` + the landmarks grown in place with no home moved: the Oracle Tower 1.5x, the Archive Hall 1.35x moved 4.1 m with the east road rerouted, the launch dais 1.35x landward, the forge and the Memory Gate 1.35x taller, the hall's crown, the longhouse 1.12x, the Guardian Hall back to 1.55x; client only, the Worker bundle SHA-256 unchanged, no migration), deployed 2026-09-30 18:58 UTC; evidence: `docs/security/deploy-evidence/20260930T185800Z-41ae386.md`. Then Worker `f152cd66`, source `0d57791` (`38cf3a4` + six cable-car cabins instead of three, the mill house by the Ember Forge removed and the forge grown 1.3x landward with a yard where the mill house stood; client only, the Worker bundle SHA-256 unchanged, no migration), deployed 2026-09-30 22:20 UTC; evidence: `docs/security/deploy-evidence/20260930T221950Z-0d57791.md`. Then Worker `bbf24001` (source `2e4e830`: `0d57791` plus the Swarm audit 8c3aea2e fixes N-1..N-7; D1 migration `0005_lanes_and_subnets.sql` applied first, at about 04:09 UTC after a backup export; the Worker bundle SHA-256 changed to `018df7b3…`), deployed 2026-10-01 04:10 UTC; evidence: `docs/security/deploy-evidence/20261001T040934Z-2e4e830.md`. The running version is `bbf24001`. |
+| Later deployments (the team's deployment record) | as the team's deploy records list them; the evidence pages were generated from those records on 2026-09-30 and nothing in them was read from Cloudflare or verified by a review: Worker `50c688c9`, source `2da46cd`, deployed 2026-09-29 05:05 UTC, the version both Swarm re-reviews named (its bundle SHA-256 in the record, `14584fe4…`, is the one the Report rebuilt from the snapshot); evidence: `docs/security/deploy-evidence/20260929T050441Z-2da46cd.md`. Then Worker `c89f5915`, source `5398b90` (`2da46cd` + `backlog-0929` up to `3f661eb` + `perf-0929`), deployed 2026-09-29 17:25 UTC, the running version as the team states it: it carries W-1..W-3, the undici pin `202da0b` and the removal of `SIWE_PREVIOUS_STATEMENTS` (`fc533e5`), and none of A-1..A-8; evidence: `docs/security/deploy-evidence/20260929T172429Z-5398b90.md` Then Worker `1a0dd495`, source `4321bb4` (`5398b90` + `backlog-0929` up to `3b21763` + `ui-0930` up to `188f575`), deployed 2026-09-29 19:54 UTC after D1 migration `0004_index_candidates.sql` was applied (a backup export was taken first); it carries the Swarm audit 519db624 fixes A-1..A-8 and the unofficial statement; evidence: `docs/security/deploy-evidence/20260929T195417Z-4321bb4.md`. Then Worker `6e7e40cd`, source `df8ea90` (a town re-layout with larger landmarks, cable car, boat stops, gentle weather and a new Guardian Hall; no sign-in or ownership change, no migration) was live from 2026-09-30 06:48 UTC until 09:27 UTC, when the owner had the site rolled back to `1a0dd495` (`wrangler rollback`); evidence of that deploy: `docs/security/deploy-evidence/20260930T064805Z-df8ea90.md`. Then Worker `cc5cddb3`, source `007ee80` (`132228c` = the `1a0dd495` source + gentler bad weather with a calm-sky switch, a 1.5x Pepe statue, the v002 Guardian Hall at 1.3x, three more ember-boat stops and a cable car, on the live layout with no home moved; no sign-in or ownership change, no migration; the Worker bundle SHA-256 is unchanged, `1018f02a…`), deployed 2026-09-30 14:53 UTC; evidence: `docs/security/deploy-evidence/20260930T145241Z-007ee80.md`. Then Worker `3e0f4eb3`, source `a77f91b` (`3776052` + a faster retry of the first failed world read, 5 s then 15 s, and "connecting" wording while that first load is on; client only, the Worker bundle SHA-256 unchanged, no migration), deployed 2026-09-30 15:48 UTC; evidence: `docs/security/deploy-evidence/20260930T154746Z-a77f91b.md`. Then Worker `5f9e6468`, source `41ae386` (`461c3a2` + the landmarks grown in place with no home moved: the Oracle Tower 1.5x, the Archive Hall 1.35x moved 4.1 m with the east road rerouted, the launch dais 1.35x landward, the forge and the Memory Gate 1.35x taller, the hall's crown, the longhouse 1.12x, the Guardian Hall back to 1.55x; client only, the Worker bundle SHA-256 unchanged, no migration), deployed 2026-09-30 18:58 UTC; evidence: `docs/security/deploy-evidence/20260930T185800Z-41ae386.md`. Then Worker `f152cd66`, source `0d57791` (`38cf3a4` + six cable-car cabins instead of three, the mill house by the Ember Forge removed and the forge grown 1.3x landward with a yard where the mill house stood; client only, the Worker bundle SHA-256 unchanged, no migration), deployed 2026-09-30 22:20 UTC; evidence: `docs/security/deploy-evidence/20260930T221950Z-0d57791.md`. Then Worker `bbf24001` (source `2e4e830`: `0d57791` plus the Swarm audit 8c3aea2e fixes N-1..N-7; D1 migration `0005_lanes_and_subnets.sql` applied first, at about 04:09 UTC after a backup export; the Worker bundle SHA-256 changed to `018df7b3…`), deployed 2026-10-01 04:10 UTC; evidence: `docs/security/deploy-evidence/20261001T040934Z-2e4e830.md`. Then Worker `d5f52483`, source `7da33f2` (`f4272c5` + the owner's market-weather tiers of 2026-10-01, a 1-hour shower only past −5 %, fireworks under a brilliant sky; front end only, the Worker bundle `018df7b3…` unchanged, no migration), deployed 2026-10-01 11:10 UTC; evidence: `docs/security/deploy-evidence/20261001T111020Z-7da33f2.md`. Then Worker `ef1a55fb`, source `9ad115a` (`956ace0` + three more ember-boat stops, 霜谷渡口 and the stops' boat shelters of 2026-10-01/02; front end only, the Worker bundle `018df7b3…` unchanged, no migration), deployed 2026-10-01 19:10 UTC; evidence: `docs/security/deploy-evidence/20261001T191028Z-9ad115a.md`. Then Worker `8269ae53`, source `9f069dd` (`cd02dc8` + a boat stop clicked as a cable car station is, and the forge's shelter in line with its stage; front end only, the Worker bundle `018df7b3…` unchanged, no migration), deployed 2026-10-02 04:01 UTC; evidence: `docs/security/deploy-evidence/20261002T040044Z-9f069dd.md`. Then Worker `63c6c7bd`, source `f36144a` (the fixes for the two reviews of Worker `bbf24001`, R3-R1 and AUD3-01..AUD3-08, on branch `audit4-fixes` with `f86be69` merged in; the Worker bundle `a7bb8087…`, no migration; a D1 export taken first), deployed 2026-10-02 06:08 UTC; evidence: `docs/security/deploy-evidence/20261002T060718Z-f36144a.md`. Then Worker `acdbb2bd`, source `ddb10e2` (`8308efa` + the member layer M1 of 2026-10-03: a Web2 member per signed-in wallet and its public player name, new routes in `server/member.ts` (`POST /api/me/bootstrap`, `GET`/`PUT /api/me/profile`, `GET /api/world/names/:address`) answered before `server/auth.ts`, which is unchanged; D1 migration `0006_members.sql` applied first, at about 00:49 UTC after a backup export; the Worker bundle `cf720c69…`; not reviewed by Swarm), deployed 2026-10-03 00:55 UTC; evidence: `docs/security/deploy-evidence/20261003T005417Z-ddb10e2.md`. The running version is `acdbb2bd`. |
 | Re-review | two Swarm re-reviews of Worker `50c688c9` (source `2da46cd`, public snapshot `b6e986be`, Worker bundle SHA-256 `14584fe4df57e7505fc38e57a3b8b99590d948051cbc3a52b3d5a9ea969ff5e4` as the Report rebuilt it from the snapshot), both 2026-09-29 (UTC): Report `e48d0a96` (a retest; deployment match partial) and Audit `519db624` (no report file; deployment match not assessed). Neither verified the running Worker. Both are listed on the site since Worker `1a0dd495` (the team's deployment record); this version's changes were not re-reviewed. See "Swarm retest e48d0a96" and "Swarm audit 519db624" below |
-| Later review | Swarm audit `8c3aea2e` (template Audit), judged 2026-09-30 13:45 UTC, of Worker `1a0dd495` (source `4321bb4`, public snapshot `ae1d41a`, Worker bundle SHA-256 `1018f02a98ccb7de5b91434613d5e38047925a463df8d892b6cd9439d9a2078c` as one of its reviewers rebuilt it from the snapshot, equal to the team's deploy record; no deployment-match verdict): 6 Low and 1 Info, N-1..N-7. Fixed in Worker `bbf24001` (source `2e4e830`, deployed 2026-10-01 04:10 UTC, after D1 migration 0005; fix commits `f65a900`, `11392d8`, `5261844`); these changes were not re-reviewed. See "Swarm audit 8c3aea2e" below |
+| Later review | Swarm audit `8c3aea2e` (template Audit), judged 2026-09-30 13:45 UTC, of Worker `1a0dd495` (source `4321bb4`, public snapshot `ae1d41a`, Worker bundle SHA-256 `1018f02a98ccb7de5b91434613d5e38047925a463df8d892b6cd9439d9a2078c` as one of its reviewers rebuilt it from the snapshot, equal to the team's deploy record; no deployment-match verdict): 6 Low and 1 Info, N-1..N-7. Fixed in Worker `bbf24001` (source `2e4e830`, deployed 2026-10-01 04:10 UTC, after D1 migration 0005; fix commits `f65a900`, `11392d8`, `5261844`); these changes were not re-reviewed before that deploy, and the two Swarm reviews of 2026-10-01 then examined Worker `bbf24001` (next row). See "Swarm audit 8c3aea2e" below |
+| Reviews of Worker bbf24001 | Swarm Report `dcf922ca` (template Report, a limited retest, completed 2026-10-01 08:54 UTC; deployment match partial) and Swarm audit `1ef8e8a6` (template Audit, judged 2026-10-01 09:15 UTC; no deployment-match verdict), both of Worker `bbf24001` (source `2e4e830`, public snapshot `8cad017`, Worker bundle SHA-256 `018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c` as the Report rebuilt it from the snapshot, equal to the team's deploy record): R3-R1 (Low; the Report's R-1) and AUD3-01..AUD3-08 (3 Low, 5 Info; the audit's #1..#8), plus AUD3-09, the audit's review record. Fixed in Worker `63c6c7bd` (source `f36144a`, deployed 2026-10-02 06:08 UTC, as the team's deployment record lists it), AUD3-02 and AUD3-05 only partly (fix commits `7ada277`, `0b8a286`, `6611189`, `f2db1f5`, `bd4f749` after the team's mutation check, `10bb630` after the team's final check, `f095642` after the team's re-check of that, `7b2d74d` after the team's review of that re-check's record, and `901420a` after the team's review of that; `main` merged in at `125248c` and at `f36144a`); these changes were not re-reviewed. See "Swarm reviews of Worker bbf24001" below |
 
 This page records what changed after the review and what is still open. It does not vouch for this version: the
 review applies to the reviewed version only, and the site says so ("Previous review — current version has changed").
@@ -26,7 +27,9 @@ their findings follow under "Both re-reviews examined Worker 50c688c9, not this 
 re-reviewed. The findings below are the re-reviews’; their fix status is as reported by the site maintainer." Its
 "Later review" row links Swarm audit 8c3aea2e of Worker `1a0dd495`, whose findings follow under "This review examined
 Worker 1a0dd495, not this version; this version’s changes were not re-reviewed. The findings below are the review’s; their
-fix status is as reported by the site maintainer."
+fix status is as reported by the site maintainer." Its "Reviews of Worker bbf24001" row links Swarm Report dcf922ca and
+Swarm audit 1ef8e8a6, whose findings follow under "Both reviews examined Worker bbf24001, not this version; this version’s
+changes were not re-reviewed. The findings below are the reviews’; their fix status is as reported by the site maintainer."
 
 Production facts on this page (which Worker version runs and when it was deployed, the D1 migrations applied remotely,
 the limiter bindings and their namespaces, the WAF rule, the secrets such as `ALCHEMY_API_KEY`, and the log sampling) are
@@ -274,16 +277,18 @@ building and stops on any failure.
 | L4 per location | `AUTH_LIMITER` challenges per IP (IPv6 /64) | 20 a minute | 429, fails closed |
 | L4 per location | `AUTH_LIMITER` verifies per IP (`verify:` keys) | 20 a minute | 429, fails closed |
 | L4 per location | `API_LIMITER` key `chain:code` (`eth_getCode` of the ERC-1271 path) | 180 a minute | 429, fails closed |
-| L4 per location | `CHAIN_LIMITER` keys `chain:erc1271` / `chain:erc1271:known` / `chain:erc1271:lane` (`eth_call`) | 20 a minute each | 429, fails closed |
+| L4 per location | `CHAIN_LIMITER` keys `chain:erc1271` / `chain:erc1271:known` / `chain:erc1271:lane` (`eth_call`) | 20 a minute each | 429, fails closed; the D1 claim of a check the key refused (no `eth_call` sent) is released, the challenge still burnt (AUD3-03, since `63c6c7bd`) |
 | L5 global | challenge valve, emergency ceiling only; 20 of every 60 only for a network with no challenge in the last minute (`backlog-0929`, A-7) | 60 per 6 s (600 a minute) | 429 `SIGN_IN_BUSY` |
-| House read | an NFT-index read `chain:index` refused whose answer counts no seat: its network's discovery lane, counted in D1 (`index_lanes`), then `CHAIN_LIMITER` key `chain:index:lane` (`bbf24001`, N-6) | 1 a minute per IPv4 /24 (IPv6 /48: 2, one per /64); 60 per 6 s site-wide; the key 20 a minute per location | the read stays `limited` (could not check); the key fails closed |
+| House read | an NFT-index read `chain:index` refused whose answer counts no seat: its network's discovery lane, counted in D1 (`index_lanes`), then `CHAIN_LIMITER` key `chain:index:lane` (`bbf24001`, N-6) | 1 a minute per IPv4 /24 (IPv6 /48: 2, one per /64); 60 per 6 s site-wide; the key 20 a minute per location | the read stays `limited` (could not check); the key fails closed; a claim the key refused is released (out of the site-wide count at once, its network may claim again after 30 s; at most 20 releases per 6 s site-wide, past that it holds its network for the minute and the site-wide count for its 6 s slice (partly open: about 80 claims in one 6 s slice at one location still fill the site-wide ceiling); AUD3-02, since `63c6c7bd`); a lane read that fails keeps the request's first proof, `limited` (AUD3-01, since `63c6c7bd`) |
 
 A missing limiter binding answers 503 on the routes that need it (off loopback). Logout and logout-all are never rate
 limited. Every 429/503 of the account routes writes one JSON line (`evt`, `route`, `status`, `error`, `reason`,
-`colo`, `net`, `walletType` when known); a surge line has `evt`, `route`, `reason`, `addr`, `colo`, `net`. About the
-client they carry exactly `net`, a key derived from its IP (IPv4 /24 `net:a.b.c.0/24`, IPv6 /48 `net6:x:y:z::/48`,
-`net:unknown` without one), and on surge lines `addr`, the address's first 6 characters (`0x` and 4 hex digits); never a
-full IP or full address. Workers Logs sample invocations at 0.2 (`wrangler.jsonc` observability), so
+`colo`, `net`, `walletType` when known); a surge line has `evt`, `route`, `reason`, `addr`, `colo`, `net`; a claim kept
+counted after its key refused it (AUD3-02, AUD3-03; since `63c6c7bd`) writes one `index_lane_kept` or `erc1271_claim_kept`
+line with `evt`, `route`, `reason`, `colo`, `net`. About the client they carry exactly `net`, a key derived from its IP
+(IPv4 /24 `net:a.b.c.0/24`, IPv6 /48 `net6:x:y:z::/48`, `net:unknown` without one or, since AUD3-08 (`63c6c7bd`), for
+text that is not a client address), and on surge lines `addr`, the address's first 6 characters (`0x` and 4 hex
+digits); never a full IP or full address. Workers Logs sample invocations at 0.2 (`wrangler.jsonc` observability), so
 about one line in five is kept. Since `bbf24001` (N-5) an IPv6 challenge row also keeps the /64 prefix that asked
 for it (`net6:x:y:z:w::/64`, never the host bits, never in a log line) for the row's life: about 25 minutes unused,
 about a day used.
@@ -332,6 +337,11 @@ index lane and never answers 503 for it (`tests/auth.test.mjs` "N-5 (deployed ah
 `tests/ownership.test.mjs` "N-6 (deployed ahead of 0005)…", `tests/presence.test.mjs` "0005 is additive…"). An evidence
 page lists the migrations and the limiter keys of its own commit, so the evidence page of `2e4e830` names both
 (`tests/deploy-evidence.test.mjs`).
+
+The fixes for the two reviews of Worker `bbf24001` (R3-R1, AUD3-01..AUD3-08; Worker `63c6c7bd`) need no migration,
+no binding and no new limiter key: their statements use the `0004` and `0005` tables as they are (`RETURNING rowid`,
+conditional updates), and code deployed ahead of `0005` keeps the `0004` rules as before. They were deployed in
+`63c6c7bd` (2026-10-02 06:08 UTC) after a D1 export, with no migration applied.
 
 ## Internal re-check of this round (2026-09-29, not a Swarm review)
 
@@ -851,7 +861,8 @@ deploy itself need the owner's go-ahead.
   rows at the site-wide ceiling); only the last minute's rows are counted. Ordinary traffic costs nothing; a lane taken
   writes 3 rows and its prune 3 more (a network taking its lane every minute of a month: about 259 k rows, about $0.26;
   a /48 twice that), and the site-wide ceiling bounds all lanes at about 155 M rows a month (about $105 past the
-  included writes).
+  included writes). These are the figures of `bbf24001`; since `63c6c7bd` AUD3-02 releases a claim its key refused, which
+  raises the site-wide bound to about 233 M rows a month and the table to about 12.8 k rows (its block below).
 - **Abuse prevented:** one IP, or one network, spending `chain:index` no longer keeps a new buyer's first seat discovery
   out.
 - **Remaining trade-off:** partly open. 20 other networks at one location (IPv6: 10 /48s using two /64s each) that take
@@ -922,6 +933,767 @@ Advice weighed and not adopted, and why: a per-network share of `chain:index` (i
 networks close it), a flat /64 for IPv6 (a /48 holder would get 65,536 shares), a new rate-limit binding (D1 counts are
 global and exact), an AbortController (an answer already arrived must be judged by state anyway), and closing a wallet
 window already open (the page cannot).
+
+## Swarm reviews of Worker bbf24001 (2026-10-01)
+
+Two Swarm reviews read the public review snapshot `8cad017`, whose code is that of Worker `bbf24001` (source `2e4e830`),
+the running version when both reviews ran, as the team's deployment record lists it (from 2026-10-01 11:10 UTC the
+running versions were front-end changes with the same Worker bundle `018df7b3…`: `d5f52483`, `ef1a55fb`, `8269ae53`; from 2026-10-02 06:08 UTC it was `63c6c7bd`, with these fixes, and since 2026-10-03 00:55 UTC it is `acdbb2bd`, which adds the member layer to them; the snapshot's
+`source/` comes from `f4272c5`, which differs from `2e4e830` only in docs, one test and an evidence page, as the team
+stated it to the reviewers):
+
+- **Swarm Report `dcf922ca`** (template Report, one seat, accepted; a limited retest), job
+  https://explorer.imd.fun/jobs/dcf922ca-68de-4cc5-bfbc-8b226008b0bf, completed 2026-10-01 08:54 UTC, report
+  https://github.com/Identity-md/research/blob/main/jobs/dcf922ca-68de-4cc5-bfbc-8b226008b0bf/files/artifacts/report.md
+  (in Traditional Chinese). It re-ran the N-1..N-7 cases: N-1, N-3, N-4 and N-7 fixed for their cases; N-2 fixed for the
+  audit's case but not as broadly as the team's claim (its one new finding, R-1, here R3-R1, Low); N-5 and N-6 partly,
+  with the residuals as stated. It rebuilt the Worker bundle from the snapshot alone (`wrangler deploy --dry-run`):
+  280,605 bytes, SHA-256 `018df7b35117bf612cd9311a800de75964b07f9d74f2c2f1ae545b26894cf62c`, the one in the team's deploy
+  record. Deployment match **partial**: its five one-off production GETs (the page, two scripts, the stylesheet and the
+  session route) all got 403, so the live files, headers and wallet-method counts were not compared, and the running
+  Worker, D1 `0005`, the bindings and the WAF rule stay unverified. The team's observation, which no review checked:
+  Cloudflare answers 403 to the Python-urllib User-Agent such a script sends, while browsers and curl get 200 from the
+  same URLs.
+- **Swarm audit `1ef8e8a6`** (template Audit, five submissions from four seats, all accepted: four specialists, one each
+  for math, permissions, economics and control flow, and a judge who reproduced, merged and ranked their findings; seat
+  #2 did both math and permissions), job
+  https://explorer.imd.fun/jobs/1ef8e8a6-4297-4ff8-b869-2d9b91445d82, judged 2026-10-01 09:15 UTC, report
+  https://github.com/Identity-md/research/blob/main/jobs/1ef8e8a6-4297-4ff8-b869-2d9b91445d82/files/AUDIT.md. Nine
+  entries, "3 low · 6 info": AUD3-01..AUD3-03 Low, AUD3-04..AUD3-08 Info, and AUD3-09, the judge's record of what was
+  checked and what could not be (not a defect). Each finding was reproduced on the unmodified code (the real handler or
+  the real AuthClient, the real migrations on node:sqlite, synthetic keys, fixture chain and limiters). It gives no
+  deployment-match verdict and did not rebuild the bundle.
+
+Neither review reported a new finding rated high or medium. The Report also re-checked earlier findings and kept their
+residuals as the earlier records state them, among them the medium ones and those at a shared boundary: F-1/S-1
+(Medium, shared boundary: a phishing site can relay the sign-in message), A-1 (Medium, availability: partly fixed), F-2
+(Low/Info: a smart-contract wallet that accepts any signature lets anyone sign in as it) and F-8/S-2 (Info, shared
+boundary: open); the others are Low or Info (A-2, A-4's 256-candidate cap, A-5, A-6, A-7, W-1, W-2, F-3, F-5 and F-7
+(b)–(e) among them). Beyond those, neither found a way to sign in as an
+address without its key, to revive a revoked session at the server, to end another address's sessions, to get owner
+rights for seats that are not one's own, to make the page sign anything but the site's own sign-in text, or an
+asset-transfer path. The new findings are about availability or what the page shows, except R3-R1, which ended in a
+wallet prompt asking the previous account to sign the site's own sign-in text and, with that account's signature, in a
+session for it. The ids are those of the owner's engineering handoff (in Chinese): R3-R1 is the Report's R-1, AUD3-0n
+the audit's #n. As the team reads the submissions, neither verified the live deployment, the Cloudflare configuration
+(bindings, the limiters' behaviour, the WAF), production D1, the upstream quota, real wallets or browsers, or front-end
+code not in the snapshot. It is a record of that version's review, not a statement about these fixes.
+
+**The two judgments, side by side.** AUD3-09 says the audit found no path from a cancelled, switched or torn-down flow to
+`personal_sign` or a verify; the Report's R-1 shows one at the same commit, for a connect still pending with no session
+and the flow idle (`eth_requestAccounts` answered for A after `accountsChanged(B)`). Both are kept as they are: the
+audit's statement covers the N-2 orderings it tried, the Report's counterexample an earlier await. The Report's probe
+asserts the bug, so its exit 0 means "reproduced": run on `f4272c5` before the fixes it reproduced (one prompt for A, one
+verify, A signed in); run on `f2db1f5` its result assertion (the second; the first, that the wallet is on B, holds
+before and after) fails (no prompt, no verify, B connected). It is not a test
+here (it pins the old behaviour); the `R3-R1` tests are. Its N-2 control (a switch during the challenge body: no prompt,
+no verify) is the case of the `N-2` tests, which pass.
+
+"Status on the site" is the site's line word for word (`src/world/reviewRecord.ts`, "Reviews of Worker bbf24001"): the
+site maintainer's own account of these fixes, not re-reviewed. The state uses the handoff's terms: FIXED_LOCAL (the
+finding's reproduction tests failed on `f4272c5`, pass with the fix, and so does the whole suite; local runs only),
+RESIDUAL (a stated limit that stays, pinned by a test), BLOCKED_EVIDENCE (needs a real wallet, production or
+Cloudflare's own answer, none of which this round used), RECORD_ONLY (not a defect); AUD3-02's and AUD3-05's rows are
+PARTIAL, as in the later review's table: AUD3-02's reproduced cases are fixed locally, and a stated residual stays (here
+measured, not pinned by a test); AUD3-05's reproduction, run as the audit wrote it, meets its expected result for the
+house, `checking` and owner mode, not for the session the panel shows (pinned only implicitly: both AUD3-05
+reproduction tests expect the status `ownershipUnavailable`, which the page shows only while it still holds that
+session). All of it is deployed in `63c6c7bd` (source `f36144a`, 2026-10-02 06:08 UTC, the team's deployment record), and no D1 migration was needed (the
+fixes use `RETURNING rowid` and conditional statements on the `0004`/`0005` tables).
+
+| Finding | Severity | Status on the site | Fix commit | Test (`npm test`) | State |
+|---|---|---|---|---|---|
+| R3-R1 | Low | Fixed in this version: when the wallet switches or locks while the page waits for it to connect, or while its signature window is open, the page keeps the account the wallet named last and ends that click: it asks the wallet nothing more and verifies nothing, and never opens a wallet window to recover; the next click starts from the current account. Still: this order of wallet events was reproduced with a test wallet, not with real wallets. | `7ada277` | `tests/wallet-client.test.mjs` "R3-R1: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record); the real-wallet event order BLOCKED_EVIDENCE |
+| AUD3-01 | Low (availability) | Fixed in this version: if the lane’s own index read, or the ownerOf check after it, fails, the answer keeps the seats this request had already proven with ownerOf and is marked as a check not completed, never as owning nothing. Still: the read was sent, so that network’s lane stays used for the minute. | `6611189` | `tests/ownership.test.mjs` "AUD3-01: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record) |
+| AUD3-02 | Low (availability) | Partly fixed in this version: a lane claim the location’s limit refused made no read, so it is released: its network may claim again 30 s later, and the claim leaves the site-wide count at once. Still: only 20 claims every 6 s are released site-wide; past that, or if a release fails, a claim holds its network for the minute as before, so about 80 claims within 6 s from one location (60 before) still fill the site-wide ceiling for every other location for those 6 s; this relies on a refused limit check costing nothing, not yet confirmed with Cloudflare (partly open). | `6611189` | `tests/ownership.test.mjs` "AUD3-02: …" | PARTIAL: deployed in `63c6c7bd` (the team's deployment record); the audit's two cases FIXED_LOCAL (T20, T22, and T23 at its 60 networks); about 80 claims in one 6 s slice at one location still fill the site-wide ceiling (60 before; measured, not pinned); the limiter assumption BLOCKED_EVIDENCE |
+| AUD3-03 | Low (availability) | Fixed in this version: a smart-wallet check that never reached the chain is taken back, so the owner’s retries are refused only while the limit itself refuses, and a new sign-in gets through once it has room; the refused challenge stays used. Still: a check that reached the chain counts whatever its answer; this relies on a refused limit check costing nothing, not yet confirmed with Cloudflare. | `6611189` | `tests/auth.test.mjs` "AUD3-03: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record); the limiter assumption BLOCKED_EVIDENCE |
+| AUD3-04 | Info | Fixed in this version: once the server confirms this page’s sign-out (also the one an account switch or the sign-in button sends), no session or house read begun before it is applied, so “Signed out.” stays; the ended sign-in leaves the page even if another wallet was chosen meanwhile, and other tabs are told. Still: a read whose answer reaches the page before the sign-out is confirmed is shown until it is. | `7ada277`, `bd4f749`, `10bb630`, `f095642`, `7b2d74d` | `tests/wallet-client.test.mjs` "AUD3-04: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record) |
+| AUD3-05 | Info | Partly fixed in this version: when the house read answers for another address (another tab signed in with another wallet), the page drops the house it held and ends the check before it reads the session again; if that read fails it shows “Can’t confirm seats right now, try again later”, never owner mode, and “Check again” can be pressed. Still: until a session read succeeds, the panel keeps showing the earlier sign-in as signed in, without owner mode; the audit expected the page to stop showing it (partly open). | `7ada277` | `tests/wallet-client.test.mjs` "AUD3-05: …" | PARTIAL: deployed in `63c6c7bd` (the team's deployment record); the handoff's T09 and T10 FIXED_LOCAL; the session the panel shows until a session read succeeds stays (ADV-4) |
+| AUD3-06 | Info (availability) | Fixed in this version: answers that only report that there is no live sign-in (the session read, the house read, a refused “Log out all devices”) no longer clear the sign-in cookie, so they can’t delete one another tab has just set; the server still refuses the old one. Before a new sign-in asks the wallet anything, the page waits for its own sign-outs to be answered (at most 5 s, saying so meanwhile; past that it asks nothing and says that sign-out hasn’t been answered yet), so they can’t delete that sign-in’s cookie either. Still: an explicit sign-out whose answer arrives after another tab’s sign-in still signs that browser out, and an ended sign-in’s cookie now stays in the browser until it expires. | `0b8a286`, `10bb630`, `f095642`, `7b2d74d` | `tests/auth.test.mjs` "AUD3-06: …", `tests/wallet-client.test.mjs` "AUD3-06: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record); T13 RESIDUAL (pinned) for another tab's sign-in, this page's own FIXED_LOCAL (`10bb630`; the wait shown since `f095642`, also while a read fails since `7b2d74d`) |
+| AUD3-07 | Info | Fixed in this version: when the server says this browser’s sign-in ran out, the page says “Your sign-in has expired. Please sign in again.” and still that other devices were not signed out; it then reads the session again, so a sign-in another tab has just made is found. Still: when this device’s clock runs behind the server’s and the browser has already dropped the cookie, the page can’t tell that it ran out, as for N-7. | `7ada277` | `tests/wallet-client.test.mjs` "AUD3-07: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record) |
+| AUD3-08 | Info (hardening) | Fixed in this version: the whole client address is parsed; an IPv4 address written in IPv6 form counts as that IPv4, other IPv6 stays IPv6, and text that is not a client address shares one small allowance. Still: no real request was shown to reach this; were Cloudflare to send a form this rejects, those clients would share that allowance. | `f2db1f5` | `tests/worker.test.mjs` "AUD3-08: …", `tests/auth.test.mjs` "AUD3-08: …" | FIXED_LOCAL: deployed in `63c6c7bd` (the team's deployment record; hardening: no production path was shown) |
+| AUD3-09 | Info | Record only, nothing to fix: the audit found no path from a cancelled, switched or closed sign-in to a signature or a verify, and the Report’s R3-R1 shows one for a connect still pending (fixed in this version). What it could not check (the live deployment, real Cloudflare limits and database, real wallets and browsers) is still unchecked. | none | none | RECORD_ONLY |
+
+Test command: `node --test --test-name-pattern="^(R3-R1|AUD3-)" tests/wallet-client.test.mjs tests/auth.test.mjs tests/ownership.test.mjs tests/worker.test.mjs`;
+result on 2026-10-01 (Node 24.19.0), at `bd4f749`: 56 tests, 56 pass, 0 fail. With the N tests
+(`--test-name-pattern="^(N-|R3-R1|AUD3-)"`, `tests/presence.test.mjs` added): 99 tests, 99 pass, 0 fail. The same at
+`10bb630` and with its record (`2f5d6c1`): 56 and 99, all passing; with the final check's tests
+(`--test-name-pattern="^(R3-R1|AUD3-|ADV-)"`, the first four files), 65 tests, 65 pass; with the re-check's
+(`f095642`, and with its record `066d109`), 76 tests, 76 pass; with the review of that record's (`7b2d74d`, and
+its record `13449f2`), 87 tests, 87 pass; with the review of `13449f2` (`901420a`, and with this record), 90 tests,
+90 pass (56 and 99 unchanged: no new test carries those ids). The tests are of three kinds
+(the team's design, not a Swarm requirement): 40 named `ID: …` are reproductions or new behaviour, and each failed on
+`f4272c5` (the failure is in its block below); 14 named `ID guard: …` pass on `f4272c5`, pin a case the fix must not
+break, and each was run once against its named mutation of the fix (a check removed or loosened) and failed then; 2
+named `ID residual: …` pin a measured bound of the limiter assumption below (they fail on `f4272c5`, where the bound is
+different). All 14 guards, the T08 one rewritten in `10bb630` included, still pass on `f4272c5` (rerun with the
+`2f5d6c1` record). The final check's nine tests (`10bb630`, below) follow the same split against `125248c`: six named `ADV-n: …`
+failed there, and three named `ADV-n guard: …` pass there (one of them, on a wallet chosen while the click waits, fails
+on `f4272c5`, before `bd4f749`). The re-check's eleven (`f095642`, below) follow it against `2f5d6c1`: three named
+`ADV-n: …` failed there (and so did one changed assertion of a `10bb630` test), and eight named `ADV-n guard: …` pass
+there and fail under their named weakenings. The eleven of the review of `066d109` (`7b2d74d`, below) follow it against
+`066d109`: four named `ADV-n: …` failed there; a fifth, `ADV-1: …`, passes there (it pins a line of `f095642` no test
+covered) and fails on `2f5d6c1` and with that line weakened; six named `ADV-n guard: …` pass there and fail under
+their named weakenings. Whole suite (`npm test`) at each fix commit on 2026-10-01: `7ada277` 879 tests, 879
+pass; `0b8a286` 884, 884 pass; `6611189` 906, 906 pass; `f2db1f5` 908, 908 pass; 0 fail, 0 skipped, 0 cancelled each
+(before them, `f4272c5`: 861, all passing); with this record and its test added (`2dfee42`), 909 tests, 909 pass; with
+the follow-up `bd4f749` (below), 918 tests, 918 pass. `npx tsc --noEmit` is clean and `npm run build` passes at
+`bd4f749` (its one warning is the usual chunk-size note). After `main` was merged in at `125248c` (`956ace0`, the
+`d5f52483` deploy), before this round's last code: 928 tests, 928 pass, `npx tsc --noEmit` clean, `npm run build`
+passing (the team's run). With `10bb630` (the final check, below), 937 tests, 937 pass; with its record (`2f5d6c1`),
+937 tests, 937 pass; `npx tsc --noEmit` clean and `npm run build` passing there. With `f095642` (the re-check, below),
+run in a scratch copy of that commit: 948 tests, 947 pass; the other, a deploy-evidence test that reads two older
+commits (`132228c`, `3f661eb`) from the repository's history, failed only because the copy's throwaway git history has
+none. With its record (`066d109`), in the worktree: 948 tests, 948 pass, 0 fail, 0 skipped, 0 cancelled; `npx tsc --noEmit`
+clean and `npm run build` passing. With `7b2d74d` (the review of `066d109`, below) and with its record (`13449f2`), in the
+worktree on 2026-10-02: 959 tests, 959 pass, 0 fail, 0 skipped, 0 cancelled; `npx tsc --noEmit` clean and `npm run build`
+passing. With `901420a` (the review of `13449f2`, below) and with this record, in the worktree on 2026-10-02: 962 tests,
+962 pass, 0 fail, 0 skipped, 0 cancelled; `npx tsc --noEmit` clean and `npm run build` passing.
+`npx wrangler deploy --dry-run --outdir <tmp>` at `f2db1f5`, with a one-line `dist/index.html` as the Report did: a
+Worker bundle of 283,716 bytes, SHA-256 `a7bb8087202252ea5a4ab41b75754b53eee0a6a078f4607f3af07dfd3c24d488`, a local
+build that nothing was compared with or deployed from. The same bytes at `125248c` (the team's run after the merge, from
+the worktree with its built `dist/`) and at `10bb630` and `2f5d6c1` (rerun for that record the same way): 283,716
+bytes, SHA-256 `a7bb8087…`, the same bindings. Between `f2db1f5` and `2f5d6c1` the only change to a file the Worker
+bundles is the merge's `src/world/market.ts` (the weather tiers, the shower and their labels), none of it in what the
+Worker takes from that file (`MARKET_URL`, `SEAT_COLLECTION`, `selectMarket`, `selectFloor`, `withUsd`);
+`src/world/auth.ts` (`bd4f749`, `10bb630`, `f095642`, `7b2d74d`, `901420a`), `src/world/WalletPanel.tsx` (`f095642`, `7b2d74d`) and
+`src/world/reviewRecord.ts` are page code that the Worker entry (`worker/index.ts`) does not load. The re-check's record
+(`066d109`) changed comments only in `server/auth.ts`, which the Worker bundles: rerun the same way with it, the bundle
+was the same 283,716 bytes, SHA-256 `a7bb8087…`, with the same bindings (the comments do not reach it). `7b2d74d` and
+its record change page code, tests and docs only: rerun the same way at `7b2d74d` with its record (2026-10-02, from the worktree with its built `dist/`),
+the bundle is the same 283,716 bytes, SHA-256 `a7bb8087…`, with the same bindings. So do `901420a` and this record: rerun
+the same way at `901420a` (2026-10-02), the same 283,716 bytes, SHA-256 `a7bb8087…`, the same bindings. These are fixture results: they say nothing about the production WAF, limiters, D1 or
+real wallets.
+
+**The limiter assumption (BLOCKED_EVIDENCE).** AUD3-02's and AUD3-03's releases let a network ask a refusing location
+key again. That costs nothing if a refused call to a Cloudflare rate-limit binding takes nothing from anyone, as the
+repository's model has it (`windowLimiter`: a fixed 60 s window in which a refused call changes nothing); it has not
+been checked against Cloudflare. If the binding counted refused calls in a sliding minute, re-asks could keep a closed
+key closed with fewer networks. Measured through the Worker under such a model (a `slidingLimiter`, in the two
+`residual` tests): after 20 networks close a location's `chain:index:lane`, 10 /24s re-asking every 30 s keep a buyer's
+lane out for 3 minutes and 9 do not (before the release, 20 were needed); after 7 /24s close `chain:erc1271`, 6 /24s
+each sending one garbage verify every 6 s keep a first-time smart wallet out for 3 minutes and 5 do not (under the fixed
+window none do; on `f4272c5` the owner waited until 75 s in both models, its own retries having spent its address's
+share). The fallbacks, if refused calls are shown to count: AUD3-02 with a 54 s retry (the per-network rate stays near
+the old one and released claims still leave the site-wide count at once, but the 31 s retry of the audit's case is
+lost); AUD3-03 with a released claim marked `called_via='refused'` and still counted in the network shares (at most 3
+asks a minute per /24 again, but the audit's own sequence then waits the minute). The choice is the owner's.
+
+The team's own review of the design before the fixes (a critique, not an outside review) changed it in eight places,
+among them: AUD3-02's release capped site-wide (20 per 6 s) with a 30 s retry instead of 6 s and a marker on released
+rows; a failed release logged in both AUD3-02 and AUD3-03; a refused logout-all re-reads the session instead of dropping
+reads (the AUD3-06 page test, which failed on the first draft); a logout completion that a newer flow overtook does
+nothing (the AUD3-04 guard, which failed on the first draft); AUD3-08 takes a dotted quad only as the final piece and sends
+the zero /64 to the unknown key; and the tests split into reproductions, guards and residual pins.
+
+**The team's mutation check of the fixes (2026-10-01, after `d429ec3`; not an outside review).** Each fix was weakened
+one check at a time (a statement removed, a condition loosened) and the four test files run against every version.
+Eleven weakenings left every test passing: `loggedOut` not dropping house reads; `providerChanged`'s logout not calling
+`loggedOut`; a refused logout-all not dropping house reads; the check after the signature without its wallet half; a
+catch-all in the lane's rebuild; `INDEX_LANE` no longer counting a released row as its /64's own; the claim kept when
+the budget throws `LimiterMissing`; a lane claim whose time is not recorded (its release then matches nothing); and
+three loosenings of the address parser (fewer than eight groups with no `::`, a second `::`, a mapped prefix of four
+zero groups). It also found a path AUD3-04 had left out: the sign-in click's own logout of another address's session
+(the AUD3-04 block). `bd4f749` covers that path, adds nine tests and five address strings to the AUD3-08 reproduction,
+and each of the twelve weakenings now fails a test of its finding. The fix code of R3-R1, AUD3-01..AUD3-03, AUD3-07 and
+AUD3-08 was unchanged, and so was every status the site showed at `bd4f749`.
+
+**The team's final check (2026-10-01, after the merge at `125248c`; not an outside review).** One more independent pass
+over the code and the record then, with its own probes through the real AuthClient and Worker, found three gaps in the
+sign-in click's logouts (ADV-1..ADV-3; each on `f4272c5` too, none a regression), a status that said more than the code
+does (ADV-4, AUD3-05) and seven points in the record. `10bb630` (`src/world/auth.ts` and its tests only) closes
+ADV-1..ADV-3: the click's confirmed logout ends the very session it logged out even when another wallet became current
+meanwhile, and tells the other tabs (the AUD3-04 block); and the click waits for this page's own logouts before it asks
+the wallet anything, at most 5 s (the AUD3-06 block). Each part of that fix the team reverted on its own then failed the
+test meant for it; seven other weakenings failed no test (the re-check below). With its record (`2f5d6c1`) four
+statuses on the site changed: AUD3-02 is partly fixed (about 80 claims in one 6 s slice at one location still fill the
+site-wide ceiling, measured again for that record), AUD3-04 and AUD3-06 describe `10bb630`, and AUD3-05 names what
+stays. That record also scopes the "high or medium" sentence above to new findings, counts the audit's seats, dates the running
+version, words AUD3-04's residual by when an answer reaches the page, records the runs after the merge, and widens the
+words `tests/review-record.test.mjs` refuses in the record and these docs.
+
+**The team's re-check of the final check's fixes (2026-10-01, after `2f5d6c1`; not an outside review).** Another
+independent pass over `10bb630` and its record, with its own probes (Q1..Q12, the real AuthClient over the real Worker,
+the cookie attached when the page sends) and a sweep of one-line weakenings of the new code, found nine points.
+ADVR-1: ADV-1 was only partly fixed. `signOut`'s and `revokeAbandoned`'s logouts did not name the session they end, and
+`10bb630`'s wait made that reachable: a click waiting for such a logout is busy but idle, so another wallet chosen then
+takes a generation and clears nothing, and "Log out this device", confirmed, left owner mode for revoked A (the AUD3-04
+block). ADVR-2..ADVR-4: seven weakenings of `10bb630` failed no test (the click's, `providerChanged`'s and
+`revokeAbandoned`'s logouts not held; the wait not ending once a read shows the wallet's account signed in; the wait
+after the click's own session read reduced to that read; the click's broadcast limited to a live click; and every click
+waiting, which only a race with the real 5 s timer caught). ADVR-5: the wait showed nothing, and one that ran out said
+"couldn't check whether you're already signed in" (the AUD3-06 block). DR-1..DR-4, this record: the limiter table still
+said AUD3-02's kept claims count "for the minute"; the words `tests/review-record.test.mjs` refuses let their -ly, -r
+and -st forms through (it refuses them now); AUD3-05 kept the label "Fixed" while its own reproduction met its expected
+result only in part; and the residuals the Report kept read as if four were all. `f095642` (`src/world/auth.ts`,
+`src/world/WalletPanel.tsx`, `tests/wallet-client.test.mjs`) closes ADVR-1 and ADVR-5 and adds eleven tests: three
+`ADV-n: …` that failed on `2f5d6c1` and eight `ADV-n guard: …` that pass there and pin the seven weakenings and the
+waiting notice's end (the three on the holds also fail on `125248c`, which did not wait). The team's sweep at `f095642`:
+22 one-line weakenings (those seven, three more of the holds and the wait, and twelve of the new code), each failing at
+least one test of `tests/wallet-client.test.mjs` (every click waiting now fails three tests besides the timing one, two
+of them on a fake timer); one more, `loggedOut` reporting whether it ended a session rather than whether it applied,
+changed nothing (its only reader runs after a newer flow began, where the two agree), so the code now says the latter.
+With this record two statuses on the site change: AUD3-05 is partly fixed (partly open), and AUD3-06 says the wait is
+shown and how it ends; the limiter table's AUD3-02 row, the Report's residuals (here and in DESIGN_W1 §17), AUD3-05's
+block and the refused words follow DR-1..DR-4, and the comments of `server/auth.ts` that said "counts for the minute"
+say what a kept claim holds (comments only).
+
+**The team's review of the re-check's fixes (2026-10-02, after `066d109`; not an outside review).** Another
+independent pass over `f095642` and its record, with its own probes (P1..P9: the real AuthClient over the real Worker,
+My wallet rendered) and a sweep of one-line weakenings of `f095642`'s code (M01..M28), found eight points. RC-1, a regression
+of `f095642` in an edge case: to name the late session, an abandoned flow's late verify success read its body before it
+sent that session's logout, the verify still held meanwhile; a body that stalled after its headers (which had already
+set the late cookie) left that session live at the server with its cookie in this browser, and every sign-in click
+waited 5 s and ended with `logout-slow`, asking nothing (`2f5d6c1` sent that logout on the headers). RC-2: the waiting
+notice shared the page's one notice, so a session read (503, 429) or a house read (429, any other failure) that failed
+while a click waited replaced it: the page said "unavailable", "too many attempts" or "did not complete" beside a sign
+button that was on and did nothing, and the same click asked the wallet by itself once the logout was answered (not a
+regression: `2f5d6c1` showed no wait at all). RC-3..RC-5: lines of `f095642` that no test pinned (an abandoned flow
+that dies while its verify body is read; the waiting notice's `live()`, logout and `asks()` conditions; "Signed out."
+for an overtaken sign-out only when it ended its session, and what `loggedOut` reports), and two weakenings for which
+the review found no reachable consequence. DOC-1..DOC-3, the record: DESIGN_W1 §17 counted all eight guards of
+`f095642` as pinning weakenings no test caught (seven do; the eighth pins the waiting notice's end); this page called
+AUD3-05's residual "not pinned by a test", while both reproductions pin it implicitly; and it said the Report's probe
+fails its first assertion on `f2db1f5` (the first holds; the second, its result, fails). `7b2d74d`
+(`src/world/auth.ts`, `src/world/WalletPanel.tsx`, `tests/wallet-client.test.mjs`) closes RC-1 and RC-2. The late
+session's logout goes out on the verify's headers again and takes over the verify's hold; the body, read on its own,
+names the session that logout ends: read before the logout is confirmed, the confirmation ends it (as at `f095642`);
+read after, that very session (address and expiry) ends on the page then, and nothing else. The wait is a state of its
+own (`waiting`): set while a click waits for this page's logout and would ask the wallet, cleared when the wait ends and
+by whatever ends the click (a sign-out, an account or wallet switch, the page's teardown), and shown in the notice's
+place, with My wallet's sign button off, whatever a read's notice says meanwhile. The teardown's part also covers the
+review's probe P6 (on `066d109` a client started again kept `logout-pending`; not raised as a finding, as the page
+starts its client once outside development). Eleven tests: four `ADV-n: …` that failed on `066d109`, one `ADV-1: …`
+for RC-3, and six guards, five of them for weakenings of `f095642` (M05..M07, M20, M21, M25) and one for the ends of the
+waiting state; and three changed assertions of `f095642` tests, which read `waiting` where they read
+`logout-pending` ("ADV-3: a logout of this page that does not answer…", "ADV-3: while a click waits for this page’s
+logout, My wallet says so…", "ADV-3 guard: a click that waited for this page’s logout and then finds another wallet in
+use…"). One point differs from the review: it found no reachable consequence for M20 (`signOut`'s branch for an
+overtaken sign-out taking any truthy answer as confirmed), and the team found one: "Log out all devices" refused because
+this browser's sign-in had ended (401: nobody was signed out), answered after another wallet became current while a
+click waited, would say "Signed out.", as if the other devices were (AUD3-07's point); a guard now pins it. M15 stays
+equivalent in reachable behaviour: its line runs only for a verify that names another address than the one its
+challenge was asked for, and the Worker's verify answers the challenge's own address. The team's sweep at `7b2d74d`: 30 one-line weakenings of the new code and of the lines the review named, each run
+against the five client test files (257 tests); 28 fail at least one test: the waiting state set without `live()`,
+without the logout condition or without `asks()` (the review's M05..M07), or never (M04); its clear when the wait ends,
+at the teardown (two ways), in `providerChanged` (M03's place), in `signOut` and in `accountChanged`; a fresh page
+waiting; My wallet's sign button on while waiting (M28), no waiting line, a notice shown before it, and its English
+(M26) and Chinese texts; the late session's logout sent after its body (as at `066d109`) or naming no session (M13), a
+session given outright ignored, the body not naming it, a body after the confirmation ending nothing, one before it
+ending the session at once, the confirmation not recorded, and a late body clearing whatever the page holds; the
+abandoned flow that dies during its body naming no session (M14); and M20, M21, M25. Two change nothing a page can show
+and are recorded as equivalent: the waiting state written again on every pass of the wait (the same value), and M15
+(above). No status on the site
+changes: AUD3-06's "saying so meanwhile" now holds while a read fails too, and no other status speaks to these points.
+One new residual (the AUD3-04 block): if an abandoned flow's verify body never arrives (a connection cut after its
+headers) and its logout is confirmed only after a newer flow began, a late session a read had shown stays on the page,
+revoked at the server, until the page's next read (in owner mode the owner re-check, within 60 s; otherwise the next
+session read: the tab shown again, another tab's message, a click; corrected by the team's review of `13449f2`, CF-4).
+
+The team's review of `13449f2` (not an outside review; CF-1..CF-5) confirmed RC-1..RC-5 and DOC-1..DOC-3 closed with no
+new regression (the review's probes P1..P15 and the earlier probes rerun; the Report's probe still fails its result
+assertion; the 30-line sweep reproduced: 28 fail a test, the two equivalents survive) and found five minor points, closed
+in `901420a` and this record. CF-1 and CF-2: two lines of `revokeAbandoned` no test pinned, a late body after a confirmed
+logout ending whatever session the page holds by then (the revoke's generation in place of the session it names), and a
+lost late logout counted as a confirmation (a body landing later would end a session still live at the server, against
+SEC-1 / CORR-01). Two guards pin them: "ADV-1 guard: an abandoned flow’s verify body landing after its late logout was
+confirmed…" and "ADV-1 guard: an abandoned flow’s late logout that was lost…". CF-3: M20's scenario read to its end: a
+"Log out all devices" refused (401) and answered after another wallet became current while a click waited kept the
+session another device had ended, in owner mode, with no notice, until the owner re-check; reachable since `10bb630`,
+and not recorded. Since `901420a` that branch reads the session afresh, as the live path does (the AUD3-07 block); "ADV-1:
+a “Log out all devices” the server refused, answered after another wallet became current while a click waited for it,
+reads the session again…" fails on `13449f2`, and the M20 guard now expects that read's end (`ended: 'revoked'`, still
+no "Signed out."). CF-4: the residual above named a 60 s bound that holds only in owner mode (corrected above and in the
+AUD3-04 block). CF-5: a test comment said every `ID: …` test of the review of `066d109` failed on `066d109`; the RC-3
+test passes there and fails on `2f5d6c1` (corrected). The team's check of `901420a`: each of four lines (the late body
+ending only the session it names, the confirmation only after a reached logout, the new re-read, and M20's `ok===true`)
+weakened once in a scratch copy fails at least one test of `tests/wallet-client.test.mjs`. No full review followed
+`901420a` (the owner's choice); the team's own check is the one above. No status on the site changes.
+
+Still open and outside this round (BLOCKED_EVIDENCE; each needs the owner's authorization): a real-wallet run of R3-R1's
+event order (T16); Cloudflare's treatment of refused rate-limit calls (above); after a deploy, that production D1 returns
+the `RETURNING` row or `meta.changes` for `INDEX_LANE` (without either, the claim is taken as no lane and its row stays
+for the minute); and the running Worker, D1 `0005`, the bindings, the WAF rule and the live files and headers (T41). The
+Report's five 403s are not a known WAF problem, and the site's protection is not to be lowered for a reader.
+
+Open choices for the owner: six existing assertions changed (the four AUD3-06 ones, which no fix can keep, and two
+AUD3-08 `::1` ones that follow T34's "no shared zero bucket"; the alternative is to keep `::` and `::1` in the zero /64
+and record that as a deviation from T34); AUD3-02's D1 cost (site-wide at most about 233 M rows written a month against
+about 155 M) and a refusing lane key asked twice a minute per network instead of once; the two limiter fallbacks above;
+R3-R1 ends the click with no notice (the page shows the new account as connected): add one?; AUD3-03's neighbour case (a
+`chain:code` refusal still spends its code share; not reported; left as is); AUD3-08 sends dotted quads with leading
+zeros (`01.2.3.4`) to the unknown key rather than normalising them; AUD3-02's release cap (20 per 6 s site-wide), which
+sets the 80 claims that still fill the site-wide ceiling (a higher cap costs more D1 writes); AUD3-05's session shown
+until a read succeeds: drop it, or mark it unconfirmed, once the house answers for another address (AUD3-05 stays partly
+fixed until then; dropping it changes what the two AUD3-05 reproduction tests expect, `ownershipUnavailable`, which
+the page shows only while it holds that session); one assertion of a `10bb630` test changed with the wait's notice
+(`logout-slow` for `session-unknown`), and three of `f095642` tests with the waiting state (`waiting` for the notice
+`logout-pending`); and the deploy itself.
+
+### R3-R1 — A wallet’s late connect answer could undo an account switch and ask the old account to sign · Fixed
+
+- **Old behavior:** with no session and the flow idle, `signIn` awaited `eth_requestAccounts` and checked only `gen`
+  afterwards, and `accountChanged` in that state did not bump `gen`. So an `accountsChanged(B)` that came while the
+  connect was pending was overwritten by the late `[A]`: the account went back to A, the Worker issued A's challenge, the
+  N-2 check found the account unchanged (A), and the wallet was asked to sign A's message; with A's signature, A signed
+  in. The text was this site's own sign-in message, and nothing signed in without A's key.
+- **New behavior:** `accountChanged` bumps a counter (`accountEvents`) first, before any early return, so a repeat and a
+  lock count too. After `eth_requestAccounts` the answer is applied only if no account event came during the await, or
+  the latest one names the same account; otherwise the click ends with no account set, no challenge, no prompt, no verify
+  and no notice, and the state keeps what the latest event set (B, or none for a lock). `bind()`'s `eth_accounts` answer
+  is dropped the same way. After `personal_sign`, a lock or another wallet while the prompt was open verifies nothing (as
+  the N-2 check before the prompt already did; another wallet that announces itself is ended by `gen` already, and the
+  wallet half of this check covers one that changes with no event). The page never opens a wallet prompt to recover;
+  the next click starts from the current account. A normal connect that announces the account it has just granted
+  (T02) goes on.
+- **Abuse prevented:** an account switch while the wallet is connecting can no longer bring back the previous account's
+  sign-in prompt or its verify.
+- **Remaining trade-off:** a wallet that answers `eth_requestAccounts` with a stale account and never emits
+  `accountsChanged` cannot be told from a normal connect (the page still asks only that account to sign the site's own
+  text); the event order of real wallets is not verified (BLOCKED_EVIDENCE, T16); a wallet that changes account while
+  connecting needs a second click, and the page says nothing about it (an open choice).
+- **Files changed:** `src/world/auth.ts`.
+- **Tests:** `tests/wallet-client.test.mjs` "R3-R1: an accountsChanged(B) that arrives while eth_requestAccounts is pending wins over the late [A]…"
+  (the reproduction; on `f4272c5` one prompt for A, one verify and A signed in; it then checks that the next click signs
+  in B with one prompt), "R3-R1: a lock (accountsChanged([])) while the connect is pending ends the click…", "R3-R1: a
+  lock while the signature prompt is open verifies nothing…" (on `f4272c5` one verify), "R3-R1: a slow eth_accounts answer that lands after a lock event changes nothing…",
+  "R3-R1: a wallet that changes with no provider-change event while the prompt is open verifies nothing…" (`bd4f749`; on
+  `f4272c5`, and with the check after the signature reduced to the account, one verify and a session made), and the guards "R3-R1 guard: a normal first connect that emits accountsChanged for the same account…" (T02; fails with
+  the check reduced to "any event ends the click"), "R3-R1 guard: B then A while pending…" (fails under the same
+  mutation) and "R3-R1 guard: a sign-out, the page closing or a wallet switch while the connect is pending…" (T04; fails
+  with the `gen` check after `eth_requestAccounts` removed).
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-01 — A failed index read on the discovery lane answered 503 and dropped the seats already proven · Fixed
+
+- **Old behavior:** when `chain:index` refused a read whose answer counted no seat, `home()` took the network's lane and
+  rebuilt the proof with the budget forced open, unguarded. If that index read failed (an HTTP error, a timeout, a
+  malformed body) with nothing kept for the address, `proof()` threw `OwnershipUnavailable` and the route answered 503
+  `OWNERSHIP_UNAVAILABLE`, dropping the first proof (refused, so `limited`) that ownerOf had already made for the same
+  request; the same request with the lane refused, or before `0005`, answered 200 `limited` with the seat.
+- **New behavior:** the rebuild and its sightings read replace the request's proof only together, and only when both
+  succeed. An `OwnershipUnavailable` from the rebuild (its index read, or the ownerOf after it) leaves the first proof and
+  its sightings, so the answer is 200 with the seats and their reasons, `recheck:'limited'` (could not check, never "owns
+  nothing"). Any other error propagates as before. No refund: the lane row and the key unit stay spent, because the read
+  was sent.
+- **Abuse prevented:** whoever spends a location's `chain:index` (N-6's premise) can no longer have an upstream failure
+  on a player's lane read turn the seats ownerOf had proven into "can't confirm seats".
+- **Remaining trade-off:** a lane read that fails still spends that network's lane for the minute, so a second refused
+  read there in that minute stays `limited`.
+- **Files changed:** `server/ownership.ts`.
+- **Tests:** `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" (the
+  reproduction; on `f4272c5` 503 `OWNERSHIP_UNAVAILABLE`; its controls, the lane key refused and a 0001–0004 database,
+  answer 200 `limited`), "AUD3-01: the same for a timeout and for a malformed index body…", "AUD3-01: a lane rebuild whose ownerOf read fails keeps the first proof…",
+  and the guards "AUD3-01 guard: a first proof that cannot be made is still 503 and asks no lane…" (fails if `home()` also
+  carries on past a failed first proof) and "AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild…"
+  (`bd4f749`; D1 failing on the rebuild's sightings read is 503; fails with a catch-all in the rebuild).
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-02 — A lane claim the location’s limit then refused still used up the network’s lane and the site-wide ceiling · Partly fixed (partly open)
+
+- **Old behavior:** the house route's lane wrote its `index_lanes` row (`INDEX_LANE`, D1 first) and only then asked
+  `chain:index:lane`; a refused or throwing key left the row although no read was made. The network then waited out the
+  minute even when the key had room seconds later (the audit's case: still refused in D1 at 31 s, the key not asked), and
+  unread rows from one location counted toward the site-wide 60 per 6 s: 60 throwaway networks at location A kept a buyer
+  at location B out (B's key never asked) while only 20 reads were made.
+- **New behavior:** D1 stays the first guard (so one network's concurrent claims still ask the key once), and
+  `INDEX_LANE` returns its row id. A claim the key did not admit (refused, or its binding failed) is released by
+  `INDEX_LANE_RELEASE`, one conditional statement on exactly that row (by its id, else by its own net, sub and at, which
+  no other row can share): dated back to `at − 60 s + 30 s` (`INDEX_LANE_RETRY_MS`), so it leaves the site-wide count at
+  once and its network's count 30 s after the claim, and marked (`'released:'` before its sub, still its /64's own row),
+  while fewer than 20 (`INDEX_LANE_RELEASES`) released rows sit in its 6 s slice site-wide. Past that cap, or if the
+  release fails, the row holds its network for the minute and the site-wide count for its 6 s slice, as before (fail
+  closed), and one `index_lane_kept` line (reason `release_cap` or `release_failed`) says why. An admitted claim keeps
+  its row (AUD3-01: no refund).
+- **Abuse prevented:** a refusal of the location key no longer holds a buyer's network for the rest of the minute (while
+  the release cap has room), and at the audit's 60 networks claims that bought no read no longer fill the site-wide
+  ceiling for other locations; about 80 still do (below).
+- **Remaining trade-off:** the site-wide ceiling still fills from one location, with more claims than before. Only 20
+  claims per 6 s are released site-wide, so the 21st refused claim in a 6 s slice already passes the cap, and refused
+  claims past it, or whose release fails, hold their network for the minute and the site-wide ceiling for their 6 s
+  slice, as before. About 80 claims in one 6 s slice at one location (20 read, 20 released, 40 kept: 60 counted rows;
+  before the fix, 60 claims) keep a buyer at every other location out for that slice, refused in D1 with its location's
+  key never asked, as in the audit's second case: measured by rerunning that reproduction with 60, 70, 79, 80 and 100
+  networks (up to 79 the buyer at B gets its seat; at 80 and 100 it is refused, and 6 s later it gets it), not pinned by
+  a test. Kept up for a minute that takes about 700 /24s at one location (IPv6: about half as many /48s, each using two
+  /64s), since a read or kept claim holds its network for the minute and a released one for 30 s, against 600 before
+  (arithmetic, not measured). A network whose claim met a refusing key can claim again only after 30 s, so a refusing
+  key is asked at most twice a minute per network slot (before: once); 20 other networks taking a location's lane every
+  minute still keep it refused there (N-6's stated residual). The D1 cost rises: site-wide at most about 5,400 rows
+  written a minute, about 233 M a month (about 155 M before), and per /24 while its location's key refuses at most 18
+  rows a minute (the "home" item of the cost comment in `server/auth.ts`). The release rests on the limiter assumption
+  above (BLOCKED_EVIDENCE), and on production D1 returning the `RETURNING` row or `meta.changes` (unverified; with
+  neither, the claim is taken as no lane and its row stays for the minute).
+- **Files changed:** `server/auth.ts`, `server/presence.ts` (comment: a released row is pruned 30 s earlier).
+- **Tests:** `tests/ownership.test.mjs` "AUD3-02: a lane claim the location key refused does not keep the network out…"
+  (the reproduction, the audit's first case; on `f4272c5` still `limited` at 31 s with the key not asked), "AUD3-02:
+  claims refused by one location’s key no longer fill the site-wide ceiling for a buyer at another location…" (the
+  reproduction, the audit's second case, at its 60 networks; on `f4272c5` the buyer at B refused in D1, B's key asked 0
+  times; at 80 networks the ceiling fills again, above), "AUD3-02: a key that throws is a refusal…",
+  "AUD3-02: two /64s of one /48 claim at once…", "AUD3-02: a release that fails keeps the row for the minute (fail closed)…",
+  "AUD3-02: with a D1 that applies the claim but returns no RETURNING row…", "AUD3-02: while the key refuses, releases are capped site-wide…",
+  "AUD3-02: the release finds its row on index_lanes_net…" (the reads the cost comment states), the guards "AUD3-02 guard:
+  a network whose claims the key keeps refusing asks it at most twice a minute…" (fails with a release that leaves no
+  retry wait, and with a 6 s retry), "AUD3-02 guard: a /64 whose claim was released cannot claim again within 30 s…"
+  (`bd4f749`, T36: one /64 reads at 0 s and 1 s, its neighbour in the /48 at 2 s, each asks the key once; fails with
+  `INDEX_LANE`'s `'released:'||sub` term dropped: the first /64 asks twice and its neighbour is refused in D1) and
+  "AUD3-02 guard: one admitted lane operation is up to NFT_PAGE_CAP (5) index pages…"
+  (the handoff's point that an index operation is not one HTTP request; fails with the page cap raised), and the
+  residual pin "AUD3-02 residual (a limiter that counts refused calls)…". Every N-6 test is unchanged.
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-03 — A smart-wallet check the location’s limit refused still used up the address’s shared checks, so the owner’s own retries kept it out · Fixed
+
+- **Old behavior:** `verifySignature` claimed the contract check in D1 (`called_at`, `called_via` `pool` or `lane`) and
+  then asked the location key (`chain:erc1271`, `:known` or `:lane`). When the key refused, the answer was 429
+  `CHAIN_BUSY` and the challenge burnt, but the claim stayed, counting toward the address's two shared checks, the
+  network's and the /64's shares and the lane's own count. A smart-wallet owner at a saturated location spent its own
+  address's share with its first two attempts; the third was refused for `address`, and 5 s after the key had room it was
+  still refused, with no `eth_call` ever made, until the minute passed.
+- **New behavior:** a claim whose key did not admit the check (refused, its binding failed, or the binding missing,
+  which still answers 503) is released before the answer: `RELEASE_CONTRACT` (before `0005`, `RELEASE_CONTRACT_0004`)
+  sets `called_at` and `called_via` back to NULL on this nonce only, and only while `called_at` is still this claim's
+  time. `checked_at` stays and the challenge is burnt as before, so the nonce can never be claimed or consumed again. A
+  claim whose `eth_call` was sent counts whatever the answer (a W-3 503, a revert, a wrong word): no free retry. A
+  release that fails leaves the claim counted (the old behaviour) and writes one `erc1271_claim_kept` line. The `eth_call`
+  bounds are unchanged: a check is admitted only with its claim in place and the key's yes.
+- **Abuse prevented:** a refusing key no longer turns a smart-wallet owner's own retries into a lock on its address for
+  the rest of the minute.
+- **Remaining trade-off:** a check whose `eth_call` was sent and failed still counts (deliberately); the code-share claim
+  (`checked_at`) of a challenge whose `chain:code` key refused is still spent (a looser bound, 10 a minute per /24, not
+  reported; releasing it would touch the one-check-per-challenge lock); a released claim no longer caps its network's
+  claims, so releases are bounded by the challenges a verify needs (30 a minute per /24, the valve site-wide: at most about
+  78 M rows written a month were every challenge at the valve one); the limiter assumption above (BLOCKED_EVIDENCE).
+- **Files changed:** `server/auth.ts`.
+- **Tests:** `tests/auth.test.mjs` "AUD3-03: an ERC-1271 check the location key refused leaves no claim…" (the
+  reproduction, the audit's own sequence; on `f4272c5` the third attempt refused for `address`, 2 `pool` rows, and 429
+  `address` 5 s later with no `eth_call`), "AUD3-03: the same on a database before 0005…", "AUD3-03: of two claims of one address, the one whose key refused is released…",
+  "AUD3-03: a release that fails keeps the claim counted…", "AUD3-03: the release reads one row, by the challenge’s nonce…",
+  "AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released…" (`bd4f749`; the lane half: X's two shared
+  checks spent by garbage from another /24, the owner's lane check refused by `chain:erc1271:lane`; on `f4272c5` the lane
+  claim stayed and 5 s later the owner was refused for `address`), "AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503 and leaves no contract claim…"
+  (`bd4f749`; on `f4272c5` the claim stayed), the guard "AUD3-03 guard: a check whose eth_call was sent and failed (node error, 503) stays counted…" (T28; fails with
+  a release in the unavailable path), and the residual pin "AUD3-03 residual (a limiter that counts refused calls)…".
+  The N-4, N-5, A-1 and F-3 tests are unchanged.
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-04 — A session read begun during this page’s sign-out could show the ended sign-in again · Fixed
+
+- **Old behavior:** `signOut` bumped `gen` before its POST and applied the result without invalidating anything, so a
+  session read begun while the logout was on its way (another tab's message, the tab shown again, a re-read after a house
+  mismatch) carried the current `gen` and the newest number. Answered before the revocation and landing after it, it wrote
+  session A back and read the house: the page ended at "You are no longer signed in" instead of "Signed out.", or, when
+  that house read failed, kept showing session A, its hint and "can't confirm seats" with no cookie and no live session
+  left. The logouts an account switch, a wallet switch and an abandoned flow send had the same window, and so did the
+  sign-in click's own logout of another address's session (the page holding A's, the wallet saying B), which the first
+  fix (`7ada277`) left out and the team's mutation check found: a read begun while that logout was on its way and
+  answered after the click ended without signing (B's prompt rejected) put A back, on `d429ec3` as on `f4272c5`. With the
+  house read failing the page showed A's session (a mismatch) and its hint with no live session at the server and no
+  cookie; with it working, a house read went out and the page said "no longer signed in" over the click's own outcome.
+  The team's final check after the merge found two more gaps in that last path, on `f4272c5` as on `125248c` (ADV-1,
+  ADV-2): when another wallet became current while the click's logout of A was on its way, the confirmed logout skipped
+  `loggedOut` (the click's generation was old), so the page kept A's session, house and hint, and owner mode once the
+  new wallet named A, after the server had revoked A (until the next owner re-check, 60 s); and a click that then ended
+  without a new session (B's prompt rejected) told no other tab, so another tab of the profile kept showing A as owner.
+  The team's re-check of `2f5d6c1` (ADVR-1) found the same gap in two more logouts, `signOut`'s and `revokeAbandoned`'s,
+  and `10bb630`'s wait made it easier to reach: a click waiting for such a logout is busy but idle, so another wallet
+  chosen then takes a generation, sends no logout and clears nothing. "Log out this device" confirmed after that left
+  A's session, house and hint (owner mode once the new wallet named A), with no "Signed out." and other tabs not told;
+  an abandoned flow's late session that a read had shown stayed the same way once its logout was confirmed.
+- **New behavior:** `loggedOut(g)`: when this page's logout is confirmed (2xx: revoked, cookie cleared), every session
+  and house read begun before it is stale (`sessionReads++`, `homeGen++`), and a session a read showed meanwhile ends;
+  called from `signOut`, the account-switch logout, `providerChanged`, `revokeAbandoned` and (since `bd4f749`) the
+  sign-in click's logout of another address's session, with the click's own generation. If a newer flow began since
+  the logout was sent (`gen` moved), the completion does nothing: that flow's own `gen++` already ended the older reads,
+  and later reads belong to the new session. A logout that did not reach the server, or a refused logout-all,
+  invalidates nothing (the page reads again instead). Since `10bb630` the click's logout, like the account switch's,
+  names the session it ends: once confirmed, it ends that very session on the page (same address and expiry), with its
+  house, its hint and any read begun before, even if `gen` has moved on; a newer session the page holds is left alone.
+  And the click's confirmed logout is told to the other tabs (`signed-out`), as `signOut` and the account switch already
+  did. Since `f095642` `signOut`'s logout names the session it ends too, and when it is confirmed after another flow
+  began it still ends that very session on the page (with "Signed out.") and tells the other tabs; `revokeAbandoned`'s
+  names the late session its verify returned (`{address, expiresAt}`), so that session ends on the page once its logout
+  is confirmed, even after a read showed it and another wallet became current. Since `7b2d74d` (the team's review of
+  `066d109`, RC-1) that logout goes out on the verify's headers, as before `f095642`, and the body, read on its own,
+  names the session it ends: read before the logout is confirmed, the confirmation ends it; read after, that very
+  session ends on the page then, and nothing else.
+- **Abuse prevented:** none by another party (it needs the player's own read racing their own sign-out); on a shared
+  computer, "Log out this device" no longer leaves the page looking signed in.
+- **Remaining trade-off:** a read whose answer reaches the page before this page's logout is confirmed is applied (it
+  was true then) and ends when the logout is confirmed; another device learns of a sign-out on its next read (W-1); a
+  wallet switch's logout sent during a flow does not name a session a read showed during that flow, as the account
+  switch's, the click's, the sign-out's and an abandoned flow's now do (a narrower path: two wallet switches, another
+  tab's sign-in and a read; not tested, not changed); since `7b2d74d`, when an abandoned flow's verify body never
+  arrives (a connection cut after its headers) and its logout is confirmed only after a newer flow began, a late session
+  a read had shown stays on the page until its next read (in owner mode the owner re-check, within 60 s; otherwise the
+  next session read), while the server has
+  revoked it and the cookie is cleared.
+- **Files changed:** `src/world/auth.ts`.
+- **Tests:** `tests/wallet-client.test.mjs` "AUD3-04: a session read begun while this page’s sign-out is on its way, answered after it, revives nothing…"
+  (the reproduction; on `f4272c5` session A came back, then `revoked`), "AUD3-04: the same when the house read then fails or is refused…"
+  (on `f4272c5` session A and its hint stayed), "AUD3-04: an account switch’s logout and an abandoned flow’s logout end a read begun before them…",
+  "AUD3-04: a wallet (provider) switch’s logout during a flow ends a read begun before it…" (`bd4f749`; on `f4272c5`, and
+  with `providerChanged` not calling `loggedOut`, `revoked` and a house read sent), "AUD3-04: the sign-in click’s own logout of another address’s session ends a session read begun while it was on its way…"
+  (`bd4f749`; on `d429ec3` and `f4272c5` `revoked` with a house read sent, or with the house read lost A's session,
+  `mismatch`, and A's hint), "AUD3-04: a house read sent while this page’s sign-out is on its way, answered after it, sets no house…"
+  (`bd4f749`; on `f4272c5`, and with `loggedOut`'s `homeGen++` removed, A's house on a signed-out page), and the guard
+  "AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent…" (fails with
+  `loggedOut` applied whatever the generation: the new account's house dropped and the check left running; since
+  `10bb630` the new account's session there is one another tab set, as a click no longer signs in while this page's
+  logout is out). Since `10bb630`: "ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current…"
+  (the reproduction; on `125248c` the page kept session A, its house and hint, and owner mode once the new wallet named
+  A), "ADV-2: the sign-in click’s confirmed logout of A is told to the other tabs…" (on `125248c` the other tab stayed
+  owner for A), and the guards "ADV-1 guard: a newer session the page holds when the click’s logout of A is confirmed…"
+  (fails with the session compared by address only) and "ADV-3 guard: another wallet chosen while the click waits for an account switch’s logout…"
+  (fails with the account switch's logout not naming the session it ended). Since `f095642`: "ADV-1: “Log out this device” confirmed after another wallet became current while a click waited for it…"
+  (on `2f5d6c1` session A, its house and hint, no "Signed out.", and the other tab owner for A; it fails with any of
+  the new end's three parts removed: ending the session, "Signed out.", telling the other tabs), "ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout…"
+  (on `2f5d6c1` owner mode for the revoked late session; it fails with that session not named, or its verify body not
+  read), and the guard "ADV-2 guard: the confirmed logout of a click that another wallet ended is still told to the other tabs…"
+  (fails with the broadcast limited to a live click). Since `7b2d74d` (the team's review of `066d109`): "ADV-1: an abandoned flow’s late session whose verify body and logout answer land in either order…"
+  (on `066d109` no logout went out before the body; it fails with a body that lands after the confirmation ending
+  nothing, or with one that lands before it ending the session at once), "ADV-1: an abandoned flow that dies while its verify body is read…"
+  (passes on `066d109`; on `2f5d6c1`, and with that logout naming no session, owner mode for the revoked late session),
+  and the guards "ADV-1 guard: a sign-out confirmed after another wallet became current leaves a newer session the page holds by then…"
+  (fails with "Signed out." set whatever `loggedOut` did, with `loggedOut` reporting that it applied when it did
+  nothing, or with another wallet leaving the waiting line of the click it ended) and "ADV-1 guard: a “Log out all devices” the server refused (this browser’s sign-in had ended)…"
+  (fails with that branch taking any answer but a 2xx as a confirmed sign-out).
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-05 — A house answer for another address left the previous owner view and a check that never ended · Partly fixed (partly open)
+
+- **Old behavior:** when `GET /api/me/home` answered for another address than the held session (another tab of the
+  profile had signed in with another wallet), `refreshHome` handed over to a session re-read and returned without
+  touching the house or `checking`. If that re-read failed (429, 503, a lost connection), the page kept session A, A's
+  house, owner mode and `checking:true` ("Check again" disabled) while every server answer was for B, until a later read
+  succeeded.
+- **New behavior:** an answer for another address contradicts the held identity, so it is not taken as "unreadable for
+  now": the held house is dropped (`home:'unavailable'`) and the check ends before the session is re-read. A re-read that
+  works shows the cookie's session (B: a mismatch with account A, or its own house); one that fails leaves "can't
+  confirm seats" with the existing notice, never owner mode, and "Check again" enabled. CORR-05's rule (`homeOkAt`) is
+  unchanged.
+- **Abuse prevented:** none by another party; the page no longer shows owner mode for a session the browser no longer
+  holds.
+- **Remaining trade-off:** until a session read succeeds, the panel keeps showing the earlier session as signed in, its
+  address and its expiry, without owner mode and with "can't confirm seats", while the cookie and the server session are
+  the other address's: the page does not drop a session it could not read. Run exactly as the audit wrote it, the
+  reproduction meets its expected result ("the page no longer claims A's session or house and checking is false") for
+  the house, `checking` and owner mode, not for the session shown (the team's final check, ADV-4). The site named this
+  since `2f5d6c1` but still called the finding fixed; since the team's re-check of that record (DR-3), as AUD3-02 for
+  its larger case, it calls it partly fixed (partly open). Dropping the held session, or marking it unconfirmed, once
+  the house answers for another address is an open choice for the owner (above); the handoff's T09 and T10, which ask
+  for the house, `checking` and owner mode, are met. Both reproduction tests pin that residual implicitly: they expect
+  the status `ownershipUnavailable`, which the page shows only while it still holds that session, so dropping it changes
+  what they expect (the team's review of `066d109`, DOC-2).
+- **Files changed:** `src/world/auth.ts`.
+- **Tests:** `tests/wallet-client.test.mjs` "AUD3-05: a house read answered for the address another tab signed in, whose session re-read is refused (429)…"
+  (the reproduction; on `f4272c5` `owner` with `checking:true`), "AUD3-05: the same for a 503 and a lost connection…",
+  and the guard "AUD3-05 guard: once the session read works again, Check again finds the cookie’s session…" (fails with
+  the mismatch branch returning without the re-read).
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-06 — A late signed-out answer could delete the sign-in cookie another tab had just set · Fixed
+
+- **Old behavior:** the session route, the `/api/me/home` 401 and the logout-all 401 answered a dead cookie (revoked,
+  expired, unknown) with `Set-Cookie __Host-imd_session=; Max-Age=0`. A browser applies Set-Cookie by name in arrival
+  order, so such an answer, sent with the dead cookie and landing after another tab of the profile had signed in,
+  deleted the fresh cookie: both tabs were signed out on their next request, and the new session stayed live at the
+  server for up to 7 days with no holder. This page's own sign-in did not wait for its own logouts either (the team's
+  final check, ADV-3, on `f4272c5` as on `125248c`): an account switch's logout, sent with A's cookie, whose 204 landed
+  after the next click's verify deleted B's new cookie; the page showed B as owner with no cookie, B's session stayed
+  live at the server with no holder, and the next re-check said "no longer signed in".
+- **New behavior:** answers that only report "no live session" send no session Set-Cookie; the server keeps refusing the
+  dead token on every request (it is checked against D1 each time). Sign-in (verify 200) and the explicit logouts
+  (logout 204, a successful logout-all) still write the cookie. On the page, a refused logout-all no longer means "no
+  session": the page reads the session afresh (AUD3-07), so a sign-in another tab has just made is found. Since
+  `10bb630` (ADV-3) every logout this page sends (the account switch's, the wallet switch's, an abandoned flow's,
+  `signOut`'s and logout-all's, and the click's own) is tracked until its handler has run, and so is an abandoned flow's
+  verify until its late session is logged out. Before a challenge or a connect prompt the click waits until none is out,
+  except when the wallet's account is already signed in (nothing is asked then); the wait is capped at
+  `LOGOUT_WAIT_MS` (5 s), and one still out then ends the click, asking nothing; the next click waits again. Since
+  `f095642` (the team's re-check, ADVR-5) the wait is shown: My wallet says "Waiting for a log-out (or a cancelled
+  sign-in) this page sent earlier to be answered; your wallet is asked nothing until then." and its sign button is off;
+  a wait that runs out ends with the notice `logout-slow` ("… hasn’t been answered yet, so no signature was requested.
+  Try again in a moment."). `10bb630` showed nothing while it waited (idle, the button on, a second click dropped) and
+  ended with `session-unknown` ("Couldn’t check whether you’re already signed in…"), which was not the reason. At
+  `f095642` that line was a notice (`logout-pending`), which a session or house read failing meanwhile replaced (the
+  team's review of `066d109`, RC-2); since `7b2d74d` it is a state of its own (`waiting`), shown in the notice's place,
+  so the page says so for the whole wait, and it ends with the wait or with whatever ends the click (a sign-out, an
+  account or wallet switch, the page's teardown). Also since `7b2d74d` an abandoned flow's late session is logged out on
+  its verify's headers again (RC-1, the AUD3-04 block): a body that stalls after them no longer holds every click until
+  its wait runs out.
+- **Abuse prevented:** none by another party; a slow read sent with a dead cookie no longer signs out a browser that has
+  just signed in again.
+- **Remaining trade-off:** an explicit log-out (this device's, an account switch's, an abandoned flow's) whose answer
+  lands after another tab's sign-in still deletes that new cookie (T13, pinned by a guard; this tab cannot see another
+  tab's requests), and that session lives on at the server until it expires; this page's own next sign-in now waits for
+  them up to 5 s (saying so; no wallet phase), and past that asks nothing; a dead cookie now stays in the browser until its own
+  Max-Age (at most the session's 7 days), each later read costing the one-row session lookup.
+- **Files changed:** `server/auth.ts`, `docs/wallet-login/DESIGN_W1_v001.md`; `src/world/auth.ts` (`10bb630`, `f095642`,
+  `7b2d74d`), `src/world/WalletPanel.tsx` (`f095642`, `7b2d74d`).
+- **Tests:** `tests/auth.test.mjs` "AUD3-06: a late signed-out answer for a revoked cookie (session read, house 401, logout-all 401)…"
+  (the reproduction; on `f4272c5` each held answer carried `Max-Age=0` and the jar lost the fresh cookie), "AUD3-06: the same for an expired cookie (SESSION_EXPIRED)…",
+  "AUD3-06: on the page, a session read sent with a dead cookie that lands after another tab’s sign-in…", the guard
+  "AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in still clears that cookie…" (T13;
+  fails with the clear dropped from the logout 204); `tests/wallet-client.test.mjs` "AUD3-06: a refused logout-all (401) answered after another tab of the profile signed in…"
+  (T12; on `f4272c5`, and with either half of the fix alone, the page ends `connected` over the other tab's sign-in).
+  Four existing assertions that pinned the clear now pin its absence (an open choice): `tests/auth.test.mjs` "logout-all:
+  one browser ends every live session…", "logout-all needs a live session of its own…", "sessions end at 7 days (absolute, no renewal); a dead cookie is refused, not cleared…"
+  (renamed; its title said the cookie was cleared) and "N-7: the session route names an expiry only for a session that ran out…"
+  (its bodies unchanged). Since `10bb630`, `tests/wallet-client.test.mjs` "ADV-3: an account switch’s logout still on its way when the click comes…"
+  (the reproduction, the switch's logout held at its answer and at its request; on `125248c` B's cookie deleted and B
+  left live at the server), "ADV-3: a click while this page’s sign-out is on its way…", "ADV-3: an abandoned flow’s verify still on its way when the click comes…"
+  (on `125248c` the page ended signed out with B's session left live), "ADV-3: a logout of this page that does not answer never leads to a prompt…"
+  (a fake timer: after `LOGOUT_WAIT_MS` no challenge, prompt or verify; once it answered, the next click signs B in), and
+  the guard "ADV-3 guard: after an account switch, and on a mismatch, the click signs B in with one prompt for B…"
+  (one challenge and one verify, and B keeps its cookie; fails with a click that waited not going on). Since `f095642`
+  (the team's re-check of `2f5d6c1`): "ADV-3: while a click waits for this page’s logout, My wallet says so and its sign button is off…"
+  (on `2f5d6c1` no notice and the button on; My wallet rendered through `tests/fixtures/wallet-panel.mjs`), one changed
+  assertion in "ADV-3: a logout of this page that does not answer never leads to a prompt…" (`logout-pending` while it
+  waits, then `logout-slow` instead of `session-unknown`; since `7b2d74d` the state `waiting` in place of that notice),
+  and eight guards that pass on `2f5d6c1`, each failing under
+  the weakening named after it: "ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen…"
+  (that logout not held; on `125248c`, which did not wait, the new account signed in and then lost its cookie), "ADV-3 guard: a wallet switch’s logout of the flow it ended still out…"
+  (`providerChanged`'s logout not held; the same on `125248c`), "ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes…"
+  (`revokeAbandoned`'s logout not held; the same on `125248c`), "ADV-3 guard: signed in already as the wallet’s account while this page’s logout is still out…"
+  (every click waiting; a fake timer, so no real 5 s decides it), "ADV-3 guard: a click waiting for this page’s logout goes on as soon as a read shows the wallet’s account signed in already…"
+  (the wait not ending then), "ADV-3 guard: a click whose own session read finds the session it showed gone waits for this page’s logout…"
+  (the wait after that read reduced to the read), "ADV-3 guard: a click that waited for this page’s logout and then finds another wallet in use…"
+  (the waiting notice left behind), and the ADV-2 guard in the AUD3-04 block. Since `7b2d74d` (the team's review of `066d109`): "ADV-3: an abandoned flow’s verify whose body stalls after its headers…"
+  (on `066d109` A's late session stayed live with its cookie and the click ended with `logout-slow`), "ADV-3: a session or house read that fails while a click waits for this page’s logout (503, 429, 500)…"
+  (on `066d109` the read's notice beside a sign button that was on; My wallet rendered), "ADV-3: the page’s teardown while a click waits for this page’s logout…"
+  (on `066d109` a client started again kept `logout-pending`), and the guards "ADV-3 guard: on a mismatch, a click that a switch to another account ends during its own session re-read…"
+  (the line set without `live()`), "ADV-3 guard: “Log out this device”, or a switch to another account, while a click waits for this page’s logout…"
+  (either end leaving `waiting` set), "ADV-3 guard: a click that waits only for a session read, with no logout of this page out…"
+  (the line set for any wait) and "ADV-3 guard: signed in already as the wallet’s account, a click that waits for a session read…"
+  (the line set without `asks()`); the panel test above and the guard on another wallet in use read `waiting` since then.
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-07 — Log out all devices on a sign-in that had run out did not say it had expired · Fixed
+
+- **Old behavior:** the server's logout-all 401 tells `SESSION_EXPIRED` from `AUTH_REQUIRED`, but `logoutAllRequest()`
+  mapped every 401 to "stale" without reading the code, and `signOut` then wrote `expired:false, ended:null`: an expiry
+  the server reported (reachable when this device's clock runs behind the server's; otherwise the W-1 timer ends the
+  session first) read as neither expired, revoked nor signed out, and the hint that could recover the cause was cleared.
+- **New behavior:** `logoutAllRequest()` returns `true` (2xx), `'expired'` (401 `SESSION_EXPIRED`), `'stale'` (any other
+  401: `AUTH_REQUIRED`, or a body that cannot be read) or `false`. On a 401, `signOut` signs the page out with
+  `expired:true, ended:'expired'` only for `'expired'` (`AUTH_REQUIRED` names no cause), marks the session unknown and
+  re-reads it once (nothing was revoked, and the cookie the browser holds may be another tab's new one: AUD3-06). Only if
+  no newer flow began during either await does it set the "other devices were not signed out" notice, after that read,
+  so a failed read (429, 503) cannot hide it; and the next click reads the session before it signs (CORR-02). Since
+  `901420a` (the team's review of `13449f2`, CF-3) a refused logout-all answered after a newer flow began (another wallet
+  chosen while a click waited for it) reads the session afresh too; that path sets no notice (the newer flow decides).
+- **Abuse prevented:** none by another party; a sign-in that ran out reads as expired, as N-7 intends, and a refused
+  logout-all never looks like a success.
+- **Remaining trade-off:** when the browser has already dropped an expired cookie (none is sent), logout-all answers
+  `AUTH_REQUIRED` and the page cannot say "expired" (N-7's clock residual); a refused logout-all costs one session read.
+- **Files changed:** `src/world/auth.ts`.
+- **Tests:** `tests/wallet-client.test.mjs` "AUD3-07: “Log out all devices” on a session the server says ran out reads as expired…"
+  (the reproduction; on `f4272c5` `expired:false, ended:null`, `connected`, no follow-up read), "AUD3-07: when the follow-up session read fails (429, 503)…"
+  (on `f4272c5` no follow-up read, and the click asked for a challenge at once), "AUD3-07: a house read in flight across a refused logout-all whose follow-up session read fails sets no house…"
+  (`bd4f749`; on `f4272c5`, and with the 401 path's `homeGen++` removed, A's house on a signed-out page), and the guards "AUD3-07 guard: an AUTH_REQUIRED or unreadable 401 stays…"
+  (fails with every 401 read as `'expired'`) and "AUD3-07 guard: a logout-all answer, or its follow-up read, that lands after the account switched…"
+  (fails with either `gen` check removed). Since `901420a`: "ADV-1: a “Log out all devices” the server refused, answered after another wallet became current while a click waited for it, reads the session again…"
+  (fails on `13449f2`, where the page kept the session another device ended, in owner mode).
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-08 — Unusual address text could be rate-limited as an unrelated network · Fixed
+
+- **Old behavior:** `rateLimitKey` took any trailing dotted quad as IPv4 (`64:ff9b::192.0.2.33`, `2001:db8::1.2.3.4` and
+  `1.2.3.4.5` were keyed as an IPv4 /24), missed the hex form of an IPv4-mapped address (`::ffff:cb00:7101` shared one
+  zero /64 with `::1` and `::`, which as a /48 also got the doubled IPv6 share), and gave any other text a key of its
+  own. Every D1 share, the challenge's /64 and the limiter keys are built on it.
+- **New behavior:** the whole text is parsed (`quad`, `ipv6`): a canonical dotted IPv4 (no leading zeros, each part at
+  most 255); an IPv6 address with 1–4 hex digits a group, at most one `::` and a dotted quad only as the final piece.
+  `::ffff:0:0/96` in hex or dotted form is that IPv4; any other IPv6 with a dotted tail stays the IPv6 /64 it is; the rest
+  of the zero /64 (`::`, `::1`, `::a.b.c.d`) and any text that is not an address (a zone id, extra or missing parts,
+  leading zeros, spaces) is `ip:unknown`, the key a missing header gets (`net:unknown`): one bounded allowance, never a
+  bucket per string. Canonical IPv4 and IPv6 keys and the N-5 /64 and /48 nesting are unchanged; only
+  `cf-connecting-ip` is read, and no dependency is added.
+- **Abuse prevented:** hardening; no production request was shown to reach this (Cloudflare sends dotted IPv4 and
+  compressed IPv6). Were one to, non-canonical text could no longer be keyed as an unrelated network or as a fresh
+  bucket per string.
+- **Remaining trade-off:** were Cloudflare to send a form this parser rejects, those clients would share the one unknown
+  allowance (per location for the limiter, one network's 30 challenges a minute in D1); NAT64 addresses (`64:ff9b::/96`)
+  are keyed as the IPv6 /64 they are, not as the IPv4 inside; local development with `cf-connecting-ip: ::1` is
+  `ip:unknown`.
+- **Files changed:** `worker/app.ts`.
+- **Tests:** `tests/worker.test.mjs` "AUD3-08: address text is keyed by its real family…" (the reproduction; on
+  `f4272c5` for example `1.2.3.4.5` gave `ip:2.3.4.5` and `::ffff:cb00:7101` gave `ip6:0:0:0:0::/64`; since `bd4f749` its
+  unknown list also holds `1:2:3:4:5:6:7`, `beef`, `dead:beef`, `1:2:3:4:5:6:7:8::1::2` and `0:0:0:0:1:ffff:cb00:7101`,
+  so the parser's group count, its one `::` and its five zero groups before `ffff` each fail it when loosened);
+  `tests/auth.test.mjs` "AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row is its IPv4 /24…" (on
+  `f4272c5` the 21 invalid texts got 21 keys). Two existing `::1` assertions now expect the unknown key (T34; an open
+  choice): `tests/worker.test.mjs` "rate limits key IPv6 clients by their /64…" and "the sign-in budgets key a client by its network…".
+- **Deployment version:** 63c6c7bd (source f36144a, deployed 2026-10-02 06:08 UTC).
+
+### AUD3-09 — Review record (not a defect): what the audit checked and what it could not check · Record only
+
+Info, RECORD_ONLY: nothing to fix, no test. The judge's coverage statement: N-1..N-7 verified by reading the code and by
+runs (but for the sign-out ordering, AUD3-04); the standing checks confirmed in code (the SIWE message re-read from D1
+with every field compared, ERC-6492 refused, ERC-1271 only for an address with code and only the exact magic word, one
+check per challenge, a failed check burning the challenge, one session per nonce, the token stored as SHA-256, `__Host-`
+cookies, the 7-day absolute expiry, logout-all only by a live session and only for its own address, the limiters failing
+closed with a missing binding as 503, `/api/me/home` from the session address only); the Solidity checklists not
+applicable (there is no Solidity here); and what it could not check: the live deployment and the dry-run hash, real
+Cloudflare limiters, real D1, real Alchemy, real wallets and browsers, the withheld client files, the team's private
+history and Genesis Mint. It stands beside R3-R1 unreconciled (above), and its "could not check" list stays open, now
+with the limiter question.
+
+### The handoff's regression matrix (T01..T41)
+
+The owner's engineering handoff (in Chinese) lists the cases these fixes must cover (its §10, T01..T41). Its cases, the
+tests that hold them and their state:
+
+| Handoff | Case | Tests here | State |
+|---|---|---|---|
+| T01 | a pending connect, account event B, the late answer A | `tests/wallet-client.test.mjs` "R3-R1: an accountsChanged(B) that arrives while eth_requestAccounts is pending…", "R3-R1: a lock (accountsChanged([])) while the connect is pending…" | FIXED_LOCAL |
+| T02 | a normal first connect with a same-account event | `tests/wallet-client.test.mjs` "R3-R1 guard: a normal first connect that emits accountsChanged for the same account…" | FIXED_LOCAL (guard) |
+| T03 | a late challenge body after a switch (N-2) | `tests/wallet-client.test.mjs` "N-2: a challenge whose body arrives after the switch to another account…", "R3-R1: a wallet that changes with no provider-change event while the prompt is open…" | unchanged; the open prompt FIXED_LOCAL |
+| T04 | a sign-out, teardown or wallet switch during the connect | `tests/wallet-client.test.mjs` "R3-R1 guard: a sign-out, the page closing or a wallet switch while the connect is pending…" | FIXED_LOCAL (guard) |
+| T05 | N-1's orderings | `tests/wallet-client.test.mjs` "N-1: an older session read whose “signed out” body arrives after a newer “signed in” is dropped…" | unchanged |
+| T06 | a read begun during the sign-out, landing after it | `tests/wallet-client.test.mjs` "AUD3-04: a session read begun while this page’s sign-out is on its way…", "AUD3-04: a house read sent while this page’s sign-out is on its way…" | FIXED_LOCAL |
+| T07 | T06 with the house read 429 or lost | `tests/wallet-client.test.mjs` "AUD3-04: the same when the house read then fails or is refused…" | FIXED_LOCAL |
+| T08 | the switch and abandon logouts (and the wallet switch's and the sign-in click's own) | `tests/wallet-client.test.mjs` "AUD3-04: an account switch’s logout and an abandoned flow’s logout…", "AUD3-04 guard: an account switch’s logout answered after the new account’s house read was sent…", "AUD3-04: a wallet (provider) switch’s logout during a flow…", "AUD3-04: the sign-in click’s own logout of another address’s session…", "ADV-1: the sign-in click’s own logout of A, confirmed after another wallet became current…", "ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout…" | FIXED_LOCAL |
+| T09 | a house answer for B, the re-read 429, 503 or lost | `tests/wallet-client.test.mjs` "AUD3-05: a house read answered for the address another tab signed in…", "AUD3-05: the same for a 503 and a lost connection…" | FIXED_LOCAL |
+| T10 | recovery after T09 | `tests/wallet-client.test.mjs` "AUD3-05 guard: once the session read works again…" | FIXED_LOCAL (guard) |
+| T11 | a late session read after a new verify | `tests/auth.test.mjs` "AUD3-06: a late signed-out answer for a revoked cookie…", "AUD3-06: on the page, a session read sent with a dead cookie…" | FIXED_LOCAL |
+| T12 | a late house 401 or logout-all 401 | `tests/auth.test.mjs` "AUD3-06: a late signed-out answer for a revoked cookie…", "AUD3-06: the same for an expired cookie…"; `tests/wallet-client.test.mjs` "AUD3-06: a refused logout-all (401) answered after another tab of the profile signed in…" | FIXED_LOCAL |
+| T13 | an explicit logout racing a new verify | `tests/auth.test.mjs` "AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in…"; `tests/wallet-client.test.mjs` "ADV-3: an account switch’s logout still on its way when the click comes…", "ADV-3: a click while this page’s sign-out is on its way…", "ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen…", "ADV-3 guard: a wallet switch’s logout of the flow it ended still out…", "ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes…" | RESIDUAL (pinned) for another tab's sign-in; this page's own next sign-in FIXED_LOCAL (`10bb630`; its holds pinned since `f095642`) |
+| T14 | logout-all `SESSION_EXPIRED`, the page's clock behind | `tests/wallet-client.test.mjs` "AUD3-07: “Log out all devices” on a session the server says ran out…" | FIXED_LOCAL |
+| T15 | `AUTH_REQUIRED`, an unreadable body, a late answer | `tests/wallet-client.test.mjs` "AUD3-07 guard: an AUTH_REQUIRED or unreadable 401…", "AUD3-07 guard: a logout-all answer, or its follow-up read…", "AUD3-07: when the follow-up session read fails…", "AUD3-07: a house read in flight across a refused logout-all…" | FIXED_LOCAL |
+| T16 | real browsers' and wallets' event order | none possible here | BLOCKED_EVIDENCE |
+| T17 | the lane's index read 502 | `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" | FIXED_LOCAL |
+| T18 | a timeout or a malformed body | `tests/ownership.test.mjs` "AUD3-01: the same for a timeout and for a malformed index body…" | FIXED_LOCAL |
+| T19 | the first proof unavailable, ownerOf uncertain | `tests/ownership.test.mjs` "AUD3-01: a lane rebuild whose ownerOf read fails…", "AUD3-01 guard: a first proof that cannot be made…", "AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild…" | FIXED_LOCAL |
+| T20 | the key refuses after the claim | `tests/ownership.test.mjs` "AUD3-02: a lane claim the location key refused does not keep the network out…" | FIXED_LOCAL |
+| T21 | the key throws or its binding is missing | `tests/ownership.test.mjs` "AUD3-02: a key that throws is a refusal…"; `tests/auth.test.mjs` "on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding…", "AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503…" | FIXED_LOCAL |
+| T22 | refused at 0 s, free at 31 s | `tests/ownership.test.mjs` "AUD3-02: a lane claim the location key refused does not keep the network out…" | FIXED_LOCAL; the limiter assumption BLOCKED_EVIDENCE |
+| T23 | unread rows at A, a buyer at B, a cost ceiling kept | `tests/ownership.test.mjs` "AUD3-02: claims refused by one location’s key no longer fill the site-wide ceiling…", "AUD3-02: while the key refuses, releases are capped site-wide…" | PARTIAL: FIXED_LOCAL at the audit's 60 networks, the cost ceiling kept; about 80 claims in one 6 s slice at one location still fill the site-wide ceiling for every other location (60 before; measured, not pinned) |
+| T24 | concurrent claims, one released | `tests/ownership.test.mjs` "AUD3-02: two /64s of one /48 claim at once…", "N-6: one lane per network a minute, even when claims race…"; `tests/auth.test.mjs` "AUD3-03: of two claims of one address…" | FIXED_LOCAL |
+| T25 | the release fails | `tests/ownership.test.mjs` "AUD3-02: a release that fails keeps the row for the minute…"; `tests/auth.test.mjs` "AUD3-03: a release that fails keeps the claim counted…" | FIXED_LOCAL |
+| T26 | a contract check refused by the key, no eth_call | `tests/auth.test.mjs` "AUD3-03: an ERC-1271 check the location key refused leaves no claim…", "AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released…" | FIXED_LOCAL |
+| T27 | 5 s later, a fresh challenge | `tests/auth.test.mjs` "AUD3-03: an ERC-1271 check the location key refused leaves no claim…", "AUD3-03: a lane check (CLAIM_LANE) the lane key refused is released…" | FIXED_LOCAL; the limiter assumption BLOCKED_EVIDENCE |
+| T28 | sent, then failed | `tests/auth.test.mjs` "AUD3-03 guard: a check whose eth_call was sent and failed…"; `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" | FIXED_LOCAL (guard) |
+| T29 | replay, races, ERC-1271 and ECDSA | `tests/auth.test.mjs` "concurrent verifies of one signature create exactly one session…", "ERC-1271: the challenge is claimed before any read…" | unchanged |
+| T30 | N-4's pool and lane | `tests/auth.test.mjs` "N-4: an owner’s own earlier check no longer uses up its lane…" | unchanged |
+| T31 | migrations 0001–0004 against 0001–0005 | `tests/auth.test.mjs` "AUD3-03: the same on a database before 0005…", "N-5 (deployed ahead of 0005)…"; `tests/ownership.test.mjs` "N-6 (deployed ahead of 0005)…" | FIXED_LOCAL; 0004 recorded apart |
+| T32 | endless pages: operations are not HTTP requests | `tests/ownership.test.mjs` "AUD3-02 guard: one admitted lane operation is up to NFT_PAGE_CAP (5) index pages…" | guard |
+| T33 | canonical keys | `tests/worker.test.mjs` "rate limits key IPv6 clients by their /64…", "the sign-in budgets key a client by its network…" | unchanged but for `::1` (T34) |
+| T34 | IPv4-mapped forms, dotted tails, no shared zero bucket | `tests/worker.test.mjs` "AUD3-08: address text is keyed by its real family…" | FIXED_LOCAL |
+| T35 | invalid text | `tests/auth.test.mjs` "AUD3-08: through the Worker, an IPv4-mapped hex client’s challenge row…"; `tests/worker.test.mjs` "AUD3-08: address text is keyed by its real family…" | FIXED_LOCAL |
+| T36 | /64 rotation | `tests/auth.test.mjs` "N-5: rotating /64s inside one /48 is still bounded…"; `tests/ownership.test.mjs` "AUD3-02 guard: a /64 whose claim was released cannot claim again within 30 s…" | unchanged; the released lane row's nesting pinned (guard) |
+| T37–T39 | N-3, A-2 and A-4; the standing checks; the shared cache | `tests/ownership.test.mjs` "N-3: past the 256-candidate cap…", "A-2: a refused index reload keeps the last index answer as candidates…"; `tests/auth.test.mjs` "forged signature, another key, and every altered message field are refused (401)…"; `tests/worker.test.mjs` "the Worker keeps a per-location shared copy of the snapshot…" | unchanged |
+| T40 | the whole suite, types, the Worker build | `npm test`, `npx tsc --noEmit`, `npm run build`, `npx wrangler deploy --dry-run` (results above) | passing locally |
+| T41 | the live source, 0005, assets and headers | none (nothing deployed, nothing read from production) | BLOCKED_EVIDENCE |
+| – | the limiter's treatment of refused calls | `tests/ownership.test.mjs` "AUD3-02 residual (a limiter that counts refused calls)…"; `tests/auth.test.mjs` "AUD3-03 residual (a limiter that counts refused calls)…" | BLOCKED_EVIDENCE (pinned under both models) |
+
+Advice weighed and not adopted, and why: reading the counts, asking the key and only then inserting the lane row (one
+network's concurrent reads would each pass the read and spend a key unit, so one network could close a location's lane
+key that now takes 20); the audit's plain `DELETE` of a refused lane row (it lets a network re-ask a refusing key on every
+house read, with no site-wide bound, and it would change two N-6 guards); refunding a lane whose read was sent (the read
+may have cost upstream); turning the Report's probe into a test (it asserts the old behaviour); and reading production
+(not authorized in this round).
 
 ## Genesis Mint (not changed in this round)
 

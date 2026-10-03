@@ -1,7 +1,7 @@
-2026-10-01T04:25:45Z
-✔ group 5: enterGate is ok only in owner mode, for the session's own house (1.1863ms)
-✔ group 5: the real sign-in makes the gate ok for the owner's house only; a revoked session (401 from /api/me/home) closes it (123.6807ms)
-✔ group 5: the Enter action (the door pill and the household block) is offered for the owner's own house only (0.4361ms)
+2026-10-03T13:09:49Z
+✔ group 5: enterGate is ok only in owner mode, for the session's own house (0.9227ms)
+✔ group 5: the real sign-in makes the gate ok for the owner's house only; a revoked session (401 from /api/me/home) closes it (132.8722ms)
+✔ group 5: the Enter action (the door pill and the household block) is offered for the owner's own house only (0.4857ms)
 ℹ tests 3
 ℹ suites 0
 ℹ pass 3
@@ -9,4 +9,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 614.2223
+ℹ duration_ms 561.9171
