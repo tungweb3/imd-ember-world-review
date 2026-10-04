@@ -12,6 +12,7 @@ import {planCleanup,type CleanupPlan,type CleanupReason,type CancellationReason}
 import {isFreshAge} from '../shared/freshness.ts';
 
 export type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,fn:(v:unknown)=>void)=>void;removeListener?:(event:string,fn:(v:unknown)=>void)=>void};
+export type ProviderChangeReason='discovery'|'selection';
 export type MeSeat={tokenId:string;agentId:string|null;online:boolean;lastOnlineAt:number|null;counts:boolean;reason?:'not-agent'|'offline-24h'|'not-seen'};
 export type MeHome={address:string;seats:MeSeat[];eligible:number;size:HouseSize|null;block:number;checkedAt:number;presence:'fresh'|'stale'|'unavailable';
   /** Not a complete answer (server/ownership.ts HomeView). 'limited': the NFT index was due while the server's chain budget
@@ -106,8 +107,8 @@ const MAX_TIMER_MS=2**31-1;
 export type AuthDeps={fetch:(path:string,init?:RequestInit)=>Promise<Response>;
   /** The wallet every call goes to (wallet.ts WalletRegistry.current: the EIP-6963 choice, or window.ethereum). */
   provider:()=>Provider|null;
-  /** Subscribes to changes of `provider()` (a choice, a late announcement); returns the unsubscribe. */
-  onProviderChange?:(fn:()=>void)=>()=>void;
+  /** Discovery only changes transport/options; an explicit user selection has context-switch authority. */
+  onProviderChange?:(fn:(reason?:ProviderChangeReason)=>void)=>()=>void;
   channel?:()=>Channel|null;hint?:HintStore;now?:()=>number;env?:AuthEnv;
   /** This page's origin, which the sign-in message must name (default location.origin; none: nothing is signed). */
   origin?:string};
@@ -137,7 +138,7 @@ export class AuthClient{
   /** N-1: numbers every session read; only the newest one's answer, failure or body is applied (one overtaken by a newer
    *  read, or by a new flow: gen, is dropped after every await, as house reads are by homeGen, A-3). A read that applies
    *  "signed out" or another session drops the replaced session's house read (homeGen), as expireIfDue does. */
-  private sessionReads=0;
+  private sessionReads=0;private canonicalReadSeq=0;
   /** W-1: the timer that ends the session here at its expiresAt, and when the last session read began. */
   private expiry:{session:Session;timer:unknown}|null=null;private sessionAt=-Infinity;
   /** ADV-3: this page's requests whose answer still writes the session cookie when it lands: every logout (a switch's,
@@ -147,6 +148,8 @@ export class AuthClient{
   /** UI lifetime never owns verify cleanup; AuthLifecycle's per-operation owner survives cancellation. */
   private life=0;private started=false;private cleanupReadPending=false;
   private announced=new WeakSet<CleanupOwner>();
+  /** Reconciliation-only unlock must belong to the original wallet transport, not a newly selected wallet. */
+  private ownerProviders=new WeakMap<CleanupOwner,Provider>();
   private cleanupEvent=0;private cleanupPlans:{eventId:number;reason:CleanupReason;kind:CleanupPlan['kind'];flowId?:number}[]=[];
   constructor(deps:AuthDeps){this.deps=deps;}
   get state(){return this.s;}
@@ -256,7 +259,7 @@ export class AuthClient{
     try{this.channel=this.deps.channel?.()??null;}catch{this.channel=null;}
     this.channel?.addEventListener('message',()=>{if(life===this.life)void this.restore();}); // queued old callback is not new-life intent
     this.bind(this.deps.provider());
-    const off=this.deps.onProviderChange?.(()=>{if(life===this.life)this.providerChanged();})??(()=>{});
+    const off=this.deps.onProviderChange?.(reason=>{if(life===this.life)this.providerChanged(reason);})??(()=>{});
     const offVisible=this.env.onVisible(()=>{if(life===this.life)this.visible();});
     void this.restore();
     return ()=>{if(life!==this.life)return;const click=this.lifecycle.click,held=this.s.session??undefined;
@@ -269,19 +272,35 @@ export class AuthClient{
   }
   /** Follows `p`: its already-granted account (eth_accounts, never a prompt) and its accountsChanged. chainChanged is not
    *  followed: the SIWE message is always chainId 1 and personal_sign does not depend on the wallet's chain. */
-  private bind(p:Provider|null){
+  private bind(p:Provider|null,discovery=false,previousAccount=this.s.account){
     this.unsub();this.unsub=()=>{};this.bound=p;const b=++this.binds;if(!p)return;
     const e=this.accountEvents;                                                        // R3-R1: an event while it was asked is newer than its answer
-    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b===this.binds&&e===this.accountEvents&&a&&!this.s.account){this.lifecycle.discovered(p,a);this.set({account:a});}}).catch(()=>{});
+    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b!==this.binds||e!==this.accountEvents)return;
+      if(discovery){
+        // Object identity is transport, not authenticated identity. A restored cookie does not establish a previous
+        // wallet account: first passive discovery may show a mismatch, but only a proven account change owns cleanup.
+        if(a&&previousAccount&&a!==previousAccount&&a!==this.s.session?.address)this.accountChanged(a);
+        else{if(a){this.lifecycle.discovered(p,a);
+            for(const owner of this.lifecycle.retainedOwners)if(owner.cancellationReason==='lock-reconcile'&&owner.account===a)this.ownerProviders.set(owner,p);
+          }this.set({account:a});}
+      }else if(a&&!this.s.account){this.lifecycle.discovered(p,a);this.set({account:a});}
+    }).catch(()=>{});
     if(p.on){const h=(v:unknown)=>{if(b===this.binds)this.accountChanged(firstAccount(v));};p.on('accountsChanged',h);this.unsub=()=>p.removeListener?.('accountsChanged',h);}
   }
-  /** Another wallet is in use (the player's EIP-6963 choice, or one that announced late). A flow started with the old one
-   *  is dropped here and its open challenges ended at the server, the old wallet's account is forgotten, and the new one's
-   *  granted account (if any) is read without a prompt: an address other than the session's shows as a mismatch, so owner
-   *  mode ends until that address signs in. */
-  providerChanged(){
+  /** Passive provider replacement is rebind/reconcile only until eth_accounts proves a different address. An explicit
+   *  wallet pick remains a context switch, even for the same address. SIWE is fixed to chain 1; wallet chain events do
+   *  not expand that existing policy or add wallet methods. */
+  providerChanged(reason:ProviderChangeReason='discovery'){
     const p=this.deps.provider();if(p===this.bound)return;
     const abandoned=this.lifecycle.click,held=this.s.session??undefined;
+    if(reason==='discovery'){
+      const account=this.s.account,uncertain=this.lifecycle.retainedOwners.length>0;
+      if(abandoned||uncertain){this.gen++;this.lifecycle.cancel();this.cancelOwners('lock-reconcile');
+        this.set({account:null,phase:'idle',waiting:false,notice:abandoned?'challenge-lost':null,checking:false});
+        this.automaticCleanup('lock',this.gen,this.life,abandoned,held);
+      }else this.set({account:null});
+      this.bind(p,true,account);return;
+    }
     this.gen++;this.lifecycle.cancel();this.cancelOwners('context-switch');
     this.set({account:null,phase:'idle',waiting:false,notice:null,sessionKnown:false,home:null,checking:false});
     this.automaticCleanup('provider-switch',this.gen,this.life,abandoned,held);
@@ -303,6 +322,7 @@ export class AuthClient{
         const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},held=this.s.session,same=held?.address===session.address;
         const owner=this.lifecycle.retained;
         this.lifecycle.read({kind:'PRESENT',session},q,g,life); // terminal release before house I/O
+        this.canonicalReadSeq=q;
         const renew=!same||held!.expiresAt!==session.expiresAt;if(renew)this.homeGen++;       // another session: its predecessor's house read is dropped
         this.hint.set(session);this.set({session,expired:false,ended:null,restored:true,sessionKnown:true,home:same?this.s.home:null,...renew?{checking:false}:{}});
         if(owner)this.announceAccepted(owner);
@@ -315,6 +335,7 @@ export class AuthClient{
       // has passed here (N-7: read before the session is cleared); one revoked elsewhere (another tab's sign-out) is not.
       const held=this.s.session,now=this.now(),hint=this.hint.get();
       this.lifecycle.read({kind:'ABSENT'},q,g,life);
+      this.canonicalReadSeq=q;
       const expired=this.s.expired||v.expired===true||!!held&&held.expiresAt<=now||!!hint&&hint.expiresAt<=now;if(hint&&!expired)this.hint.set(null);
       this.homeGen++;this.set({session:null,home:null,restored:true,sessionKnown:true,expired,ended:expired?'expired':held?'revoked':this.s.ended,checking:false});
       this.reconcileLockReceipts({kind:'ABSENT'},q);
@@ -419,29 +440,61 @@ export class AuthClient{
       }
       if(!live())return;
       const canSign=()=>live()&&this.lifecycle.hasAbsentPreflight(click)&&click.preflight?.readSeq===this.sessionReads;
+      let renewedChallengeReceipt=false;
+      // A background ABSENT can supersede read ordering without replacing this checked challenge. Keep the original
+      // click's receipt and revalidate it once after pending reads settle; UNKNOWN/PRESENT invalidate it irreversibly.
+      const confirmChallengeReceipt=async()=>{
+        if(canSign())return true;
+        if(!live()||this.sessionUnknown()||!this.lifecycle.hasAbsentPreflight(click))return false;
+        const settled=await wait();
+        if(!settled||!live()||this.sessionUnknown()||!this.lifecycle.hasAbsentPreflight(click))return false;
+        if(!renewedChallengeReceipt){
+          renewedChallengeReceipt=true;
+          await this.readSession(click,false);
+          const quiet=await wait();
+          if(!quiet||!live()||this.sessionUnknown()||!this.lifecycle.hasAbsentPreflight(click))return false;
+        }
+        if(canSign())return true;
+        // A further completed, valid ABSENT (even one overtaking that recheck) advances only this existing receipt's
+        // ordering. Pending/failed reads and any past UNKNOWN/PRESENT cannot be adopted as challenge authority.
+        if(this.canonicalReadSeq!==this.sessionReads)return false;
+        this.lifecycle.preflight(click,{kind:'ABSENT'},this.sessionReads);return canSign();
+      };
+      const receiptNotice=():Notice|null=>this.sessionUnknown()?'session-unknown':this.s.session?null:'challenge-lost';
       if(!canSign()){this.set({notice:'session-unknown'});return;}
       this.homeGen++;this.set({session:null,home:null,ended:null,phase:'awaitingSignature',signing:null,checking:false});
       if(!this.lifecycle.transition(click,'CHALLENGE_REQUESTED'))return;
+      const requestedAt=this.now();
       const c=await this.deps.fetch('/api/auth/challenge',JSON_POST({address:account}));
       if(!live())return;
       if(!c.ok){const n=failure(c.status,await code(c));if(live())this.set({phase:'idle',notice:n});return;}
       const {nonce,message}=await c.json() as {nonce:string;message:string};
       if(!live())return;
       const origin=this.deps.origin??globalThis.location?.origin??'';
-      const signing=typeof message==='string'&&typeof nonce==='string'&&checkSignInMessage(message,{origin,account,nonce,now:this.now()})?signInSummary(message):null;
+      const issuedAt=typeof message==='string'?Date.parse(message.split('\n')[9]?.slice('Issued At: '.length)??''):NaN;
+      const expiresAt=typeof message==='string'?Date.parse(message.split('\n')[10]?.slice('Expiration Time: '.length)??''):NaN;
+      // Preserve the exact-message parser's existing device skew tolerance. Local elapsed lifetime starts before
+      // dispatch and includes network/prompt waits; nonfinite clocks, rollback and deadline equality fail closed.
+      // The server's nonce and absolute Expiration Time remain authoritative and are never renewed here.
+      const challengeLive=()=>isFreshAge(this.now(),requestedAt,expiresAt-issuedAt);
+      const signing=typeof message==='string'&&typeof nonce==='string'&&challengeLive()&&checkSignInMessage(message,{origin,account,nonce,now:this.now()})?signInSummary(message):null;
       if(!signing){this.set({phase:'idle',notice:'message-mismatch'});return;}
       this.lifecycle.challenge(click,nonce);
       // A newer canonical read may have resolved this cookie while the challenge was awaited.
       if(this.s.session?.address===account){this.set({phase:'idle'});await this.refreshHome(true);return;}
-      if(!canSign()){this.set({phase:'idle',notice:'session-unknown'});return;}
+      if(!await confirmChallengeReceipt()){if(live())this.set({phase:'idle',notice:receiptNotice()});return;}
+      if(!challengeLive()){this.set({phase:'idle',notice:'challenge-lost'});return;}
       if(!this.lifecycle.transition(click,'SIGNATURE_PROMPTING'))return;this.set({signing});
       let signature:string;
       try{signature=await p.request({method:'personal_sign',params:[hexUtf8(message),account]}) as string;}
       catch{if(live())this.set({phase:'idle',notice:'sign-rejected'});return;}
       if(!live())return;
-      if(!canSign()){this.set({phase:'idle',notice:this.sessionUnknown()?'session-unknown':null});return;}
+      if(!challengeLive()){this.set({phase:'idle',notice:'challenge-lost'});return;}
+      if(!await confirmChallengeReceipt()){if(live())this.set({phase:'idle',notice:receiptNotice()});return;}
+      if(!challengeLive()){this.set({phase:'idle',notice:'challenge-lost'});return;}
       this.hold(new Promise<void>(r=>{decided=r;}));
       owner=this.lifecycle.verify(click,this.sessionReads);
+      this.ownerProviders.set(owner,p);
       this.set({phase:'verifying',sessionKnown:false});
       const v=await this.deps.fetch('/api/auth/verify',JSON_POST({nonce,signature}));
       this.lifecycle.observe(owner,this.sessionReads);
@@ -528,13 +581,20 @@ export class AuthClient{
     if(a&&click?.state==='CONNECTING_WALLET'&&click.accountAtClick===null&&click.account===null){this.set({account:a});return;}
     const wasFlow=!!click||this.lifecycle.retainedOwners.length>0;
     const other=!!a&&!!this.s.session&&this.s.session.address!==a;
+    const locked=this.lifecycle.retainedOwners;
+    if(a&&!click&&!other&&locked.length>0&&locked.every(owner=>owner.cancellationReason==='lock-reconcile'&&
+      owner.account===a&&this.ownerProviders.get(owner)===this.bound)){
+      // Returning to the same account cannot turn a failed lock read into nonce-revocation authority. This current
+      // canonical read supersedes old callbacks by read ordering; newer clicks still have their own generation fence.
+      this.set({account:a,phase:'idle',notice:null,waiting:false,checking:false});void this.restore();return;
+    }
     if(!wasFlow&&!other){this.set({account:a});return;}
-    const held=this.s.session??undefined,locked=a===null;
-    this.gen++;this.lifecycle.cancel();this.cancelOwners(locked?'lock-reconcile':'context-switch');const g=this.gen;
-    this.set({account:a,phase:'idle',...other?{session:null,home:null}:!locked?{home:null}:{},
-      ...!locked?{sessionKnown:false}:{},notice:null,checking:false,waiting:false});
+    const held=this.s.session??undefined,isLocked=a===null;
+    this.gen++;this.lifecycle.cancel();this.cancelOwners(isLocked?'lock-reconcile':'context-switch');const g=this.gen;
+    this.set({account:a,phase:'idle',...other?{session:null,home:null}:!isLocked?{home:null}:{},
+      ...!isLocked?{sessionKnown:false}:{},notice:null,checking:false,waiting:false});
     if(other)this.hint.set(null);
-    this.automaticCleanup(locked?'lock':'account-switch',g,this.life,click,held,other);
+    this.automaticCleanup(isLocked?'lock':'account-switch',g,this.life,click,held,other);
   }
   private settleCancelledOwner(owner:CleanupOwner){
     if(owner.status!=='RETAINED')return;

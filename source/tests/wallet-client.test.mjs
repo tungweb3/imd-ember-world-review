@@ -42,7 +42,8 @@ function tab(w,b,wallet,{hint=memoryHint(),channel=null,hold=null,holdReply=null
     if(path==='/api/auth/logout'){const body=JSON.parse(init.body??'{}');cleanups.push({kind:body.expectedAddress?'displayed-session':body.expectedNonce?'verify-owner':'explicit',expectedAddress:body.expectedAddress??null});}
     if(hold)await hold(path);if(drop?.(path))throw new TypeError('Failed to fetch');
     const r=await b.send(b.request(path,{method:init.method??'GET',body:init.body,headers:init.headers}));if(holdReply)await holdReply(path);b.keep(r);return rewrite?rewrite(path,r):r;};
-  const client=new AuthClient({fetch,provider:registry?()=>registry.current():()=>wallet,onProviderChange:registry?fn=>registry.subscribe(fn):undefined,
+  const client=new AuthClient({fetch,provider:registry?()=>registry.current():()=>wallet,
+    onProviderChange:registry?fn=>registry.subscribeProvider?registry.subscribeProvider(fn):registry.subscribe(()=>fn('selection')):undefined,
     hint,now,origin:b.origin,channel:channel&&(()=>new BroadcastChannel(channel)),env});
   const seen=[];client.subscribe(()=>{const s=statusOf(client.state,w.clock.now());if(seen.at(-1)!==s)seen.push(s);});
   return {client,calls,cleanups,seen,hint,stop:client.start()};
@@ -741,7 +742,7 @@ test('discovery: window.ethereum only without announcements, the single announce
   const single=new WalletRegistry(p,store);single.start();assert.equal(single.state.unidentified,false,'an announced wallet is identified, whatever holds window.ethereum');
   assert.equal(single.current(),one,'an announced wallet wins over whatever holds window.ethereum');assert.equal(single.state.chosen.info.rdns,'com.one');
   const late=install(p,two,infoOf('Wallet Two','io.two'));let changes=0;single.subscribe(()=>changes++);late();
-  assert.equal(changes,1);assert.equal(single.state.needsChoice,true);assert.equal(single.current(),null,'several and no choice: no wallet is used');
+  assert.equal(changes,1);assert.equal(single.state.needsChoice,false);assert.equal(single.current(),one,'a late second announcement cannot replace the provider already used by this page');
   late();assert.equal(changes,1,'the same announcement again changes nothing');
   pick(single,'io.two');assert.equal(single.current(),two);assert.equal(store.peek('ember-world-wallet-choice'),'io.two');
   pick(single,'org.unknown');single.choose({info:infoOf('Two','io.two'),provider:fakeWallet(newAccount())});assert.equal(single.current(),two,'only an announced wallet can be chosen');
@@ -956,10 +957,10 @@ test('a second provider announcing the chosen wallet’s rdns never takes over: 
   assert.equal(u.client.state.notice,'no-wallet');assert.deepEqual(evil.asked,[]);
   reload.choose(reload.state.options.find(o=>o.provider===legit));assert.equal(reload.current(),legit);
   u.stop();
-  // The only wallet, used without a pick: a copy announcing its rdns turns it into a choice, not a switch.
+  // The page-used sole wallet remains pinned; a copy is warned/listed, never allowed to silently displace it.
   const q=page(null);install(q,legit,infoOf('Alpha','com.alpha'));const solo=new WalletRegistry(q,memoryStore());solo.start();
   assert.equal(solo.current(),legit);install(q,evil,infoOf('Alpha','com.alpha'))();
-  assert.equal(solo.current(),null);assert.equal(solo.state.needsChoice,true);
+  assert.equal(solo.current(),legit);assert.equal(solo.state.needsChoice,false);assert.deepEqual(solo.state.duplicates,['com.alpha']);
   // The same provider announcing again (even with a new uuid) is still one entry.
   const once=install(q,legit,infoOf('Alpha','com.alpha'));once();assert.equal(solo.state.options.length,2);
 });

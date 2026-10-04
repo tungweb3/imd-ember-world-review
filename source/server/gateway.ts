@@ -5,6 +5,7 @@ import {MARKET_URL,SEAT_COLLECTION,selectMarket,selectFloor} from '../src/world/
 // background (stale-while-revalidate); a cold isolate starts from the per-colo shared copy (SharedCopy, below).
 import {UPSTREAM_TTL_MS,FLOOR_TTL_MS,FLOOR_RETRY_MS,FLOOR_REFUSED_RETRY_MS,FRESH_MS,UPSTREAM_SLOW} from '../src/world/cadence.ts';
 import {stageText,STAGE_TEXT} from '../src/world/status.ts';
+import {publicRemoteAge,isFreshPublicRemote} from '../src/shared/freshness.ts';
 // Runtime-agnostic: used by the Vite dev server (server/vite-plugin.ts) and the Cloudflare Worker (worker/index.ts).
 export const API='https://api.imd.fun';
 /** Explorer's footer counts and 24 hourly step buckets. No CORS header, so only the Worker can read it. Optional: a
@@ -233,11 +234,14 @@ export class ReadGateway {
     return entry;
   }
   /** Data a reader may be answered with at once: present and no older than staleMaxAgeMs. */
-  private servable(sample:SourceSample,at:number):boolean{return sample.data!==null&&sample.fetchedAt!==null&&at-sample.fetchedAt<=this.options.staleMaxAgeMs;}
+  private servable(sample:SourceSample,at:number):boolean{
+    const age=sample.fetchedAt===null?null:publicRemoteAge(at,sample.fetchedAt);
+    return sample.data!==null&&age!==null&&age<=this.options.staleMaxAgeMs;
+  }
   /** 'fresh' only while the data is as current as the client counts as current (FRESH_MS, src/world/cadence.ts: one
    *  cycle plus grace); older data answered at once is 'stale'. The data keeps its own fetchedAt either way. */
   private label(sample:SourceSample,at:number):SourceSample{
-    return sample.state==='fresh'&&sample.fetchedAt!==null&&at-sample.fetchedAt>FRESH_MS?{...sample,state:'stale'}:sample;
+    return sample.state==='fresh'&&(sample.fetchedAt===null||!isFreshPublicRemote(at,sample.fetchedAt,FRESH_MS))?{...sample,state:'stale'}:sample;
   }
   /** Seed an entry from the shared copy, if the copy holds this key's data in this build's shape (SHARED_SHAPE), no
    *  older than staleMaxAgeMs and newer than what the entry holds (none, data too old to answer with, or data an older
@@ -250,10 +254,10 @@ export class ReadGateway {
       const late=new Promise<undefined>(resolve=>{timer=setTimeout(()=>resolve(undefined),this.options.sharedWaitMs);});
       const record=await Promise.race([Promise.resolve().then(()=>shared.get(key)),late]) as Partial<SharedRecord>|null|undefined;
       if(!record||typeof record!=='object'||record.v!==1||record.shape!==SHARED_SHAPE||record.key!==key||!plain(record.data)||typeof record.fetchedAt!=='number')return;
-      const at=this.now(),age=at-record.fetchedAt;
-      if(!(age>=-60_000&&age<=this.options.staleMaxAgeMs))return;   // too old, or dated in the future
+      const at=this.now(),age=publicRemoteAge(at,record.fetchedAt);
+      if(age===null||age>this.options.staleMaxAgeMs)return;
       if(spec.field&&!(spec.field in record.data))return;
-      const fetchedAt=Math.min(record.fetchedAt,at);
+      const fetchedAt=record.fetchedAt; // retain producer provenance; skew tolerance never re-dates a copy
       if(entry.sample.data!==null&&(entry.sample.fetchedAt===null||entry.sample.fetchedAt>=fetchedAt))return;
       entry.sample={state:'fresh',data:record.data,url:entry.sample.url,fetchedAt};
       entry.failures=0;entry.validUntil=Math.max(entry.validUntil,fetchedAt+spec.ttl);

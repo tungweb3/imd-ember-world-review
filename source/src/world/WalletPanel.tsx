@@ -18,7 +18,7 @@ import {MemberBlock} from './MemberPanel.tsx';
 
 /** One client per page: same-origin fetches, the chosen wallet (EIP-6963 registry, wallet.ts), and the tabs' channel. */
 export function createAuth(registry:WalletRegistry){
-  return new AuthClient({fetch:(p,i)=>fetch(p,i),provider:()=>registry.current(),onProviderChange:fn=>registry.subscribe(fn),
+  return new AuthClient({fetch:(p,i)=>fetch(p,i),provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(fn),
     channel:()=>typeof BroadcastChannel==='function'?new BroadcastChannel('imd-ember-auth'):null});
 }
 /** Several wallets announced (EIP-6963), or the remembered one is missing: pick the one this page uses (remembered in

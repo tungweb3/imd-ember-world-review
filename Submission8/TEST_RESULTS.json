@@ -1,0 +1,172 @@
+{
+  "schema": "imd.submission8-tests/v1",
+  "sourceCommit": "bb7549e0a2576ba4da0ea7c4147c4aba1a7f577f",
+  "status": "TEAM_PASS_INDEPENDENT_PENDING",
+  "publicCleanRunner": {
+    "command": "node scripts/review-tests.mjs",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-04T17:32:38.690Z",
+    "endedAtUtc": "2026-10-04T17:32:48.196Z",
+    "counts": {
+      "tests": 574,
+      "pass": 574,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "environmentFailures": 0,
+    "stdout": {
+      "sha256": "ae1b1bf2219a398b3b60f665cee32dc9d5e283dd56206259850b89956659cb85",
+      "bytes": 1714249
+    }
+  },
+  "publicEnvironment": {
+    "node": "v24.19.0",
+    "testFiles": 23,
+    "viemVersion": "2.56.9",
+    "viemRealPackage": true,
+    "cleanInstall": {
+      "command": "npm ci --ignore-scripts",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-04T17:27:25.387Z",
+      "endedAtUtc": "2026-10-04T17:27:45.837Z"
+    },
+    "sourceSelectorOverridesCleared": true,
+    "noMissingModuleStubsOrForgedPackages": true
+  },
+  "publicInputFreeze": {
+    "files": 140,
+    "beforeManifestSha256": "28a6814d03dcacf0d0ad67ab4739e57e9c01c10314ec19232467da52475fddb8",
+    "afterManifestSha256": "5c3f4559ce364718e09fc7e160271f55ae32fcaf16666ca0ababd8bbbcfcea94",
+    "allSelectedRawBytesMatchPublishedManifest": true,
+    "beforeAfterFileHashesUnchanged": true,
+    "measurementPrivateSourceCommit": "f94d2aa6a5c451eefbbfc8452bf70a56c11b284f",
+    "measurementReuse": "Original run retained; exact selected-byte lineage validated separately."
+  },
+  "publicSelectedSourceFiles": 140,
+  "privateTeamCanonicalTests": {
+    "command": "node scripts/deploy.mjs",
+    "exitCode": 0,
+    "exitCodeMeaning": "Successful child step in an enclosing canonical invocation that exited 1; not overall command success.",
+    "canonicalInvocation": {
+      "overallExitCode": 1,
+      "successfulChildSteps": [
+        "npm test",
+        "tsc --noEmit",
+        "vite build"
+      ],
+      "wranglerUploadExitCode": 0,
+      "stdoutSha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "stderrSha256": "85feb5a37577b175a34d354487c46b3209eea03700db4253904ceb6d34678175",
+      "deployManifestSha256": "9f9fa82ce11c380fdb26ae6b63e6eaf497fba6340e1d16c0da7a88f7b66d119f",
+      "recordFinalization": "Windows EPERM after successful upload; contained local directory rename recovered without a second deployment. Original exit 1 and logs retained.",
+      "evidenceInterpretation": "Successful child exits are established by actual ordered transitions and the unchanged canonical script; this is not an additional run or an overall exit 0."
+    },
+    "startedAtUtc": "2026-10-04T18:02:57.477Z",
+    "endedAtUtc": "2026-10-04T18:05:08.963Z",
+    "counts": {
+      "tests": 1606,
+      "pass": 1606,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "environmentFailures": 0,
+    "stdout": {
+      "sha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "bytes": 1775418
+    },
+    "step": "npm test",
+    "execution": "Successful ordered step within the same canonical deployment invocation; not an additional separate run. The enclosing invocation exited 1 during local record finalization after successful upload; recovery is reported separately.",
+    "canonicalStdout": {
+      "sha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "bytes": 1775418
+    }
+  },
+  "privateTeamTypeScript": {
+    "command": "node scripts/deploy.mjs",
+    "exitCode": 0,
+    "exitCodeMeaning": "Successful child step in an enclosing canonical invocation that exited 1; not overall command success.",
+    "canonicalInvocation": {
+      "overallExitCode": 1,
+      "successfulChildSteps": [
+        "npm test",
+        "tsc --noEmit",
+        "vite build"
+      ],
+      "wranglerUploadExitCode": 0,
+      "stdoutSha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "stderrSha256": "85feb5a37577b175a34d354487c46b3209eea03700db4253904ceb6d34678175",
+      "deployManifestSha256": "9f9fa82ce11c380fdb26ae6b63e6eaf497fba6340e1d16c0da7a88f7b66d119f",
+      "recordFinalization": "Windows EPERM after successful upload; contained local directory rename recovered without a second deployment. Original exit 1 and logs retained.",
+      "evidenceInterpretation": "Successful child exits are established by actual ordered transitions and the unchanged canonical script; this is not an additional run or an overall exit 0."
+    },
+    "startedAtUtc": "2026-10-04T18:02:57.477Z",
+    "endedAtUtc": "2026-10-04T18:05:08.963Z",
+    "step": "tsc --noEmit",
+    "execution": "Successful ordered step within the same canonical deployment invocation; not an additional separate run. The enclosing invocation exited 1 during local record finalization after successful upload; recovery is reported separately.",
+    "canonicalStdout": {
+      "sha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "bytes": 1775418
+    }
+  },
+  "privateTeamViteBuild": {
+    "command": "node scripts/deploy.mjs",
+    "exitCode": 0,
+    "exitCodeMeaning": "Successful child step in an enclosing canonical invocation that exited 1; not overall command success.",
+    "canonicalInvocation": {
+      "overallExitCode": 1,
+      "successfulChildSteps": [
+        "npm test",
+        "tsc --noEmit",
+        "vite build"
+      ],
+      "wranglerUploadExitCode": 0,
+      "stdoutSha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "stderrSha256": "85feb5a37577b175a34d354487c46b3209eea03700db4253904ceb6d34678175",
+      "deployManifestSha256": "9f9fa82ce11c380fdb26ae6b63e6eaf497fba6340e1d16c0da7a88f7b66d119f",
+      "recordFinalization": "Windows EPERM after successful upload; contained local directory rename recovered without a second deployment. Original exit 1 and logs retained.",
+      "evidenceInterpretation": "Successful child exits are established by actual ordered transitions and the unchanged canonical script; this is not an additional run or an overall exit 0."
+    },
+    "startedAtUtc": "2026-10-04T18:02:57.477Z",
+    "endedAtUtc": "2026-10-04T18:05:08.963Z",
+    "step": "vite build",
+    "execution": "Successful ordered step within the same canonical deployment invocation; not an additional separate run. The enclosing invocation exited 1 during local record finalization after successful upload; recovery is reported separately.",
+    "canonicalStdout": {
+      "sha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+      "bytes": 1775418
+    }
+  },
+  "privateInputFreeze": {
+    "files": 670,
+    "beforeManifestSha256": "119dc32dca3a5a1f0905a20a2c13e2395ea0ba627199ec65b7f2109ab7668dae",
+    "afterManifestSha256": "a3ae9edb1e037157268fa8a96bca0a0c4c0009df82a4c8343492417ae605fefd",
+    "beforeAfterFileHashesUnchanged": true,
+    "sourceCommit": "bb7549e0a2576ba4da0ea7c4147c4aba1a7f577f",
+    "individualPrivateSourceFingerprints": "Withheld; especially no original fingerprint of a preserved-redaction file is published."
+  },
+  "publicFrontend": "Full frontend TypeScript/Vite build is unavailable from the filtered presentation scope; no frontend pass is claimed.",
+  "limits": [
+    "Private complete-project totals are not public execution totals.",
+    "Fresh team reproduction is not an independent external verdict.",
+    "Warnings, earlier failures and operational logs remain private; no raw log body is copied.",
+    "A test pass is not approval, certification, fund-safety proof or absence of all vulnerabilities."
+  ],
+  "selectedEvidenceLineage": {
+    "status": "INHERITED_TEAM_RUN_EXACT_SELECTED_BYTES_REVALIDATED",
+    "measuredPrivateSourceCommit": "f94d2aa6a5c451eefbbfc8452bf70a56c11b284f",
+    "candidateSourceCommit": "bb7549e0a2576ba4da0ea7c4147c4aba1a7f577f",
+    "selectedSourceFiles": 140,
+    "allSelectedPrivateAndPublicRawInputsUnchanged": true,
+    "historicalSourceManifestSha256": "4f4b192e565f3e9b53bfcb16c39bcd233001a2067df70ffa5bb7eb55d7459464",
+    "lineageReceiptSha256": "2b55f450964b25e2a3d0df8c061c0daf6205dc201a51701d83f45dae0d52a331",
+    "limit": "574 public tests, core500, additional90 and optional Worker compile retain their original execution times and receipts. They were not rerun for this four-file private presentation revision; exact selected input/evaluator bytes were revalidated. No full frontend or presentation coverage is inherited."
+  },
+  "publicWorkerCompile": {
+    "exitCode": 0,
+    "status": "TEAM_COMPILE_PASS",
+    "limit": "Optional filtered Worker compile, separate from the full deployed private build and asset correspondence."
+  }
+}

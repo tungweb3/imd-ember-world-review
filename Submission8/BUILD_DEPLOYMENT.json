@@ -1,0 +1,115 @@
+{
+  "schema": "imd.submission8-build-deployment/v1",
+  "candidateSourceCommit": "bb7549e0a2576ba4da0ea7c4147c4aba1a7f577f",
+  "status": "TEAM_DEPLOYED_CURRENT_READBACK_MATCHES_INDEPENDENT_PENDING",
+  "workerVersionId": "cdd3ef36-ca81-439a-8798-a64e30cf01d3",
+  "trafficPercent": 100,
+  "deployedWorker": {
+    "sha256": "7fafc4c62af05efa33b9153a7aa7b094ac31b3a31a546429baa096c61435c66c",
+    "bytes": 315781,
+    "cloudflareContentRawByteMatch": true
+  },
+  "deployStartedAtUtc": "2026-10-04T18:02:57.714Z",
+  "deployFinishedAtUtc": "2026-10-04T18:05:08.889Z",
+  "bindingsReadbackMatches": true,
+  "pendingMigrations": 0,
+  "appliedMigrationNames": [
+    "0001_wallet_login.sql",
+    "0002_sign_in_budgets.sql",
+    "0003_sign_in_layers.sql",
+    "0004_index_candidates.sql",
+    "0005_lanes_and_subnets.sql",
+    "0006_members.sql",
+    "0008_member_hardening.sql"
+  ],
+  "servedAssets": [
+    {
+      "path": "dist/index.html",
+      "httpStatus": 200,
+      "frozenBuildSha256": "dfe6fa0f3431ff9ca0128b81e5a1a135ae7d4a6ea8d5fcb4849e70e26eaac053",
+      "servedSha256": "dfe6fa0f3431ff9ca0128b81e5a1a135ae7d4a6ea8d5fcb4849e70e26eaac053",
+      "rawByteMatch": true,
+      "limit": "Point-in-time raw byte comparison.",
+      "servedBytes": 2618,
+      "frozenBuildBytes": 2618,
+      "securityHeadersMatch": true
+    },
+    {
+      "path": "dist/assets/index-BVNUEArJ.js",
+      "httpStatus": 200,
+      "frozenBuildSha256": "2c1894a2c1fd21d757ea62af069dff983f505351620911a0af2a3438b72e3d21",
+      "servedSha256": "2c1894a2c1fd21d757ea62af069dff983f505351620911a0af2a3438b72e3d21",
+      "rawByteMatch": true,
+      "limit": "Point-in-time raw byte comparison.",
+      "servedBytes": 1553557,
+      "frozenBuildBytes": 1553557,
+      "securityHeadersMatch": true
+    },
+    {
+      "path": "dist/assets/index-Ym1X_eiK.css",
+      "httpStatus": 200,
+      "frozenBuildSha256": "be70f6c11b0030c3401c1bce007e58a37cd6cb39e9adb9ffd5c6758582e6142a",
+      "servedSha256": "be70f6c11b0030c3401c1bce007e58a37cd6cb39e9adb9ffd5c6758582e6142a",
+      "rawByteMatch": true,
+      "limit": "Point-in-time raw byte comparison.",
+      "servedBytes": 68142,
+      "frozenBuildBytes": 68142,
+      "securityHeadersMatch": true
+    },
+    {
+      "path": "dist/assets/InteriorView-B1aFhlcH.js",
+      "httpStatus": 200,
+      "frozenBuildSha256": "51c60e2905075e4191190f77a0aa2af25d072ddaebebafa66c4bfb9d15d400a2",
+      "servedSha256": "51c60e2905075e4191190f77a0aa2af25d072ddaebebafa66c4bfb9d15d400a2",
+      "rawByteMatch": true,
+      "limit": "Point-in-time raw byte comparison.",
+      "servedBytes": 93242,
+      "frozenBuildBytes": 93242,
+      "securityHeadersMatch": true
+    }
+  ],
+  "apiReadback": [
+    {
+      "path": "/api/auth/session",
+      "httpStatus": 200,
+      "cacheControlNoStore": true,
+      "anonymousAuthAsExpected": true
+    }
+  ],
+  "originalHttpReceiptSha256": "904ef47a9c92b858d3bae8672beb5d8da090c7ea3734e756472d386e9ab53a4d",
+  "originalCloudReceiptSha256": "515621552b70def1d38e8bccbdfdbfbd6ad45603a1ad502f31efda2ed2b83718",
+  "knownGoodRollback": {
+    "sourceCommit": "f94d2aa6a5c451eefbbfc8452bf70a56c11b284f",
+    "workerVersionId": "e0a0c39c-0907-4588-984a-e53cd3a037e4",
+    "recordId": "20261004T172900Z-f94d2aa"
+  },
+  "limits": [
+    "Team observations are point in time, not independent production approval.",
+    "Bindings/migration summary relies on separately retained private API and Wrangler readbacks.",
+    "Previous packages retain their historical HTML analytics mismatches; current raw equality applies only to this deployment and readback.",
+    "No real wallet signatures, full browser matrix, hostile-provider proof, process death or all Cloudflare/D1 interleavings are established.",
+    "Private visual/music assets are withheld; frontend build and deployed asset comparisons do not make their source publicly reviewed.",
+    "Public full frontend TypeScript/Vite compilation is unavailable from the deliberately filtered presentation scope."
+  ],
+  "canonicalInvocation": {
+    "overallExitCode": 1,
+    "successfulChildSteps": [
+      "npm test",
+      "tsc --noEmit",
+      "vite build"
+    ],
+    "wranglerUploadExitCode": 0,
+    "stdoutSha256": "a67f35b1e91c78eeff1a3a049611153355e60d473d3d0f828ab65a31ab230cab",
+    "stderrSha256": "85feb5a37577b175a34d354487c46b3209eea03700db4253904ceb6d34678175",
+    "deployManifestSha256": "9f9fa82ce11c380fdb26ae6b63e6eaf497fba6340e1d16c0da7a88f7b66d119f",
+    "recordFinalization": "Windows EPERM after successful upload; contained local directory rename recovered without a second deployment. Original exit 1 and logs retained.",
+    "evidenceInterpretation": "Successful child exits are established by actual ordered transitions and the unchanged canonical script; this is not an additional run or an overall exit 0."
+  },
+  "migrationObservation": {
+    "capturedAtUtc": "2026-10-04T18:30:45.241Z",
+    "originalPreflightReceiptSha256": "fed7c9b25c5e31168e3525ba7c26572352babc51c4c234b03f5c0439da631a2e",
+    "readOnlyCommandsExitCode": 0,
+    "migrationRows": 7,
+    "rowsWritten": 0
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "schema": "imd.submission8-boundary/v1",
+  "baselinePrivateCommit": "8a22b51035c965b9df2fe010e3ac0a780581b0e2",
+  "candidateSourceCommit": "bb7549e0a2576ba4da0ea7c4147c4aba1a7f577f",
+  "originalBoundaryCapturedPrivateCommit": "f94d2aa6a5c451eefbbfc8452bf70a56c11b284f",
+  "currentCriticalRawChecksRevalidated": true,
+  "status": "TEAM_PASS_INDEPENDENT_PENDING",
+  "criticalChecks": [
+    {
+      "path": "migrations/0001_wallet_login.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "d968991d8f51babf059591b9876891076bec232a3ea782453fa91d1d3ef9d3a6",
+      "publicPolicy": "redacted"
+    },
+    {
+      "path": "migrations/0002_sign_in_budgets.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "685531c5e7a0a1f7160a4e80312c58794556a9d8e57419b69a6a51e68f6cde55",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "migrations/0003_sign_in_layers.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "d58c12bd78a4453fef098a19181eb7361612a2c931cd61f7e70acb7127200953",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "migrations/0004_index_candidates.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "fb186abcc36f4f1eecc4a0cd1de55f04832457fe5816ed6bac0034dc9dc0f787",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "migrations/0005_lanes_and_subnets.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "dfa3c6462072204d3607a2ea90aac4cf7f292812024ccefd5f3d439bc0aca876",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "migrations/0006_members.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "9d0b9b920122c87bf877db92aabd2fb968c43bf0533c2f1d66aabf31c2fee261",
+      "publicPolicy": "redacted"
+    },
+    {
+      "path": "migrations/0008_member_hardening.sql",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "4cb40da03cebd49a7f0bf3d0d787b56e31aff4b1cba9a90a66c4c322de5c288c",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "package-lock.json",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "public/_headers",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "010ed5e5bec891e5a806b2d224ecc0d962fc585fa761c8a7285251e8ae03cc07",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "server/auth.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "6077402849c4da2423b8cd00b8625afd4bb50aa0f5248a2566e6476d71057ead",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "server/d1.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "67b345fe451e42a97f37ac9d44df27997914faea59275a3d3821b50a8f34f65e",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "server/member.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "90fd654b2dd09ad15c543ce0b251776c7112e07d7e7872a7c24404b0012a40ae",
+      "publicPolicy": "redacted"
+    },
+    {
+      "path": "server/world-api.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "src/world/authCleanup.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "de5e50fe3a7d68d4dd3ffd5b489cdaa2e2a2e789c21ee590ef9cfd716b418c90",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "src/world/authLifecycle.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "a8f6db5bd3ff3c951114e47a9122c713d219f23c42dffc34227d3df355bfdbdf",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "tsconfig.json",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "03c177649a9bb7b7b64c8a7b7211ecad6fa1a9cc6d6cfe11eceb5e00ba53e3c3",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "vite.config.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "ac22f2c6d1533a4d43f0fb4d3bf17e555bf4648f6138f8959e6d67011a8b7985",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "worker/app.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "7697b4fd10392fc1344860bbea24517e9bd6311a9cf505658997f26ddc10e2a7",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "worker/index.ts",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "4c7049e6214aec32137cbea32197e9c472a034e18ac4ddbb7ecbefbff3850e1b",
+      "publicPolicy": "exact"
+    },
+    {
+      "path": "wrangler.jsonc",
+      "privateRawBaselineUnchanged": true,
+      "status": "TEAM_PASS_INDEPENDENT_PENDING",
+      "publicSha256": "d31cf588020f457d66c710926551d01f199fa19d7fa1506522acd8b48011a6dd",
+      "publicPolicy": "redacted"
+    }
+  ],
+  "changedPublicScope": [
+    "OWNERSHIP_FRESHNESS.md",
+    "docs/security/AUDIT8_CLOSURE.md",
+    "docs/security/AUDIT8_REVIEW_RUNNER.md",
+    "docs/security/FRESHNESS_BOUNDARIES.md",
+    "package.json",
+    "scripts/replay-auth-trace.mjs",
+    "scripts/review-tests.mjs",
+    "server/gateway.ts",
+    "server/ownership.ts",
+    "src/shared/freshness.ts",
+    "src/world/WalletPanel.tsx",
+    "src/world/auth.ts",
+    "src/world/cadence.ts",
+    "src/world/market.ts",
+    "src/world/wallet.ts",
+    "tests/auth-artifacts.mjs",
+    "tests/auth-artifacts.test.mjs",
+    "tests/auth-audit8-causal.test.mjs",
+    "tests/auth-audit8-causes.mjs",
+    "tests/auth-audit8-reference.mjs",
+    "tests/auth-audit8.test.mjs",
+    "tests/auth-r7-fixtures.mjs",
+    "tests/auth-reference-scheduler.test.mjs",
+    "tests/auth-scheduler-driver.mjs",
+    "tests/clock-skew-audit8.test.mjs",
+    "tests/freshness-v11.test.mjs",
+    "tests/ownership-audit8.test.mjs",
+    "tests/review-runner.test.mjs",
+    "tests/wallet-client.test.mjs"
+  ],
+  "packageException": "Only scripts.test:review; dependency versions, engines, overrides and lock unchanged.",
+  "authorityLimit": "Client Auth/provider/wallet behavior intentionally changed. This is not an all-wallet-unchanged claim.",
+  "privacyLimit": "Private original source hashes and raw logs withheld; redacted files use only their public hashes here.",
+  "privateVisualBoundary": "Owner-authorized celebration/music implementation and all scene/model/media source are excluded from public review."
+}

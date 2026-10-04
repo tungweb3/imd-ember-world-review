@@ -1,21 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdirSync,writeFileSync,readFileSync,existsSync} from 'node:fs';
-import {createHash,randomUUID} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
 import {AuthReference,InvariantFailure,canonical,ORACLE_VERSION} from './auth-reference-model.mjs';
 import {runSeed,minimizeFailure,KERNELS,GENERATOR_VERSION,TEST_ADDRESSES,sourceRoot} from './auth-scheduler-driver.mjs';
+import {createArtifactStore,sanitizeArtifact} from './auth-artifacts.mjs';
 
-const artifactRoot=resolve(import.meta.dirname,'../../evidence/reference-scheduler');
+const artifacts=createArtifactStore({sourceDir:resolve(import.meta.dirname,'..')});
 const inputPaths=['src/world/auth.ts','src/world/authLifecycle.ts','src/world/authCleanup.ts','worker/app.ts','server/auth.ts',
   'src/shared/freshness.ts','server/ownership.ts','server/member.ts','tests/auth-r7-fixtures.mjs','package-lock.json',
   'tests/wallet-harness.mjs','tests/d1-sqlite.mjs'];
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-function provenance(){return {sourceRoot,inputs:Object.fromEntries(inputPaths.filter(p=>existsSync(resolve(sourceRoot,p))).map(p=>[p,sha(readFileSync(resolve(sourceRoot,p)))])),
-  evaluator:Object.fromEntries(['auth-reference-model.mjs','auth-scheduler-driver.mjs','auth-reference-scheduler.test.mjs'].map(p=>[p,sha(readFileSync(resolve(import.meta.dirname,p)))])),
+function provenance(){return {selectedSource:process.env.AUTH_REFERENCE_SOURCE?'explicit override':'checkout',inputs:Object.fromEntries(inputPaths.map(p=>[p,sha(readFileSync(resolve(sourceRoot,p)))])),
+  evaluator:Object.fromEntries(['auth-reference-model.mjs','auth-scheduler-driver.mjs','auth-reference-scheduler.test.mjs','auth-artifacts.mjs'].map(p=>[p,sha(readFileSync(resolve(import.meta.dirname,p)))])),
   node:process.version,sqlite:'node:sqlite DatabaseSync; actual migrations; route body/transaction treated as one Worker execution step',
   oracle:ORACLE_VERSION,generator:GENERATOR_VERSION};}
-function save(name,value){mkdirSync(artifactRoot,{recursive:true});writeFileSync(resolve(artifactRoot,name),JSON.stringify(value,null,2)+'\n');}
+const save=(name,value)=>artifacts.write(name,value);
 const oracle=()=>{const m=new AuthReference(TEST_ADDRESSES,1_000_000);m.tab('a','A');m.start('a');m.click('a');return m;};
 function absentRead(m){const r=m.command('a','/api/auth/session',{},m.jar);m.run(r,m.now);m.headers(r);m.visible(r);m.body(r);return r;}
 function beginVerify(m,{finish=true}={}){
@@ -91,20 +92,20 @@ test('same seed and complete explicit-action replay have deterministic normalize
 });
 
 test('500 deterministic real AuthClient + Worker + SQLite schedules agree with independent reference oracle',async T=>{
-  const runId='gate-'+Date.now()+'-'+randomUUID().slice(0,8),results=[],coverage=new Set(),branches={},start=performance.now(),p=provenance();
+  const results=[],coverage=new Set(),branches={},p=provenance();
   let failure=null,minimized=null;
   for(let seed=0;seed<500;seed++){
     try{const result=await runSeed(seed);results.push(result);branches[result.kernel]=(branches[result.kernel]??0)+1;
       for(const key of result.coverage)coverage.add(key);
     }catch(error){failure={seed,invariant:error.invariant??'ASSERTION',message:error.message,detail:error.detail??null,trace:error.schedulerTrace};
-      save(runId+'-failure-original.json',{...p,...failure});
+      save('core500-failure-original.json',{...p,...failure});
       if(error.schedulerTrace&&error.invariant)minimized=await minimizeFailure(error.schedulerTrace,error.invariant);
-      save(runId+'-failure-minimized.json',{...p,invariant:failure.invariant,trace:minimized});break;
+      save('core500-failure-minimized.json',{...p,invariant:failure.invariant,trace:minimized});break;
     }
   }
   const metrics={};for(const result of results)for(const [key,value] of Object.entries(result.metrics))metrics[key]=(metrics[key]??0)+value;
-  const report={...p,runId,requestedSeeds:500,executedSeeds:results.length+(failure?1:0),passedSeeds:results.length,failedSeeds:failure?1:0,
-    status:failure?'FAIL':'PASS',elapsedMs:performance.now()-start,uniqueNormalizedDigests:new Set(results.map(r=>r.traceDigest)).size,
+  const report={...p,requestedSeeds:500,executedSeeds:results.length+(failure?1:0),passedSeeds:results.length,failedSeeds:failure?1:0,
+    status:failure?'FAIL':'PASS',uniqueNormalizedDigests:new Set(results.map(r=>r.traceDigest)).size,
     branches,coverage:[...coverage].sort(),metrics,results,failure,
     limits:['Two tabs; public A/B/C test identities; finite scripted anchors plus randomized causal completions.',
       'Worker route body/SQL execution is an atomic scheduler step; no claim of all D1 internal interleavings.',
@@ -114,9 +115,9 @@ test('500 deterministic real AuthClient + Worker + SQLite schedules agree with i
       'Ownership TTL/freshness matrix rows use separate real-Worker ownership tests, not counted as Auth oracle seeds.',
       'Seeds are not unique-permutation claims; unique normalized trace digests are reported separately.',
       'AUTH-I8/I11/I12 broad server concurrency/dead-token controls remain separately required; this bounded scheduler is not a replacement.']};
-  save(runId+'-RESULT.json',report);save('LATEST.json',{runId,resultFile:runId+'-RESULT.json',status:report.status});
-  T.diagnostic('INDEPENDENT_AUTH_SCHEDULER '+JSON.stringify({runId,status:report.status,passedSeeds:report.passedSeeds,uniqueNormalizedDigests:report.uniqueNormalizedDigests,metrics,branches}));
-  assert.equal(failure,null,failure?`seed=${failure.seed} invariant=${failure.invariant}; original/minimized traces saved at ${artifactRoot}`:'');
+  save('core500-RESULT.json',report);save('LATEST.json',{resultFile:'core500-RESULT.json',status:report.status});
+  T.diagnostic('INDEPENDENT_AUTH_SCHEDULER '+JSON.stringify({status:report.status,passedSeeds:report.passedSeeds,uniqueNormalizedDigests:report.uniqueNormalizedDigests,metrics,branches,artifacts:artifacts.enabled?'tmp output explicitly enabled':'disabled'}));
+  assert.equal(failure,null,failure?sanitizeArtifact(`seed=${failure.seed} invariant=${failure.invariant}; `)+(artifacts.enabled?'original/minimized traces written in explicit tmp output':'enable AUTH_REFERENCE_ARTIFACT_DIR=tmp/auth-reference-scheduler to preserve replay traces'):'');
   assert.equal(results.length,500);assert.equal(Object.keys(branches).length,KERNELS.length);
   assert.ok(metrics.workerCalls>1000&&metrics.dbComparisons>1000&&metrics.projectionComparisons>1000,'each seed has real effects and oracle comparisons');
   assert.ok(metrics.preHeaderFailures>0,'transport-failure branch is nonvacuous');

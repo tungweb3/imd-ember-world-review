@@ -2,7 +2,7 @@
 // the second — one read every 15 minutes is enough — but a failed first read must not leave the page "awaiting data"
 // for a whole cycle, so failures retry on a short, growing schedule until a read succeeds.
 import type {SourceSample} from './model.ts';
-import {isFreshAge} from '../shared/freshness.ts';
+import {isFreshPublicRemote} from '../shared/freshness.ts';
 
 /** Wait after a good read. */
 export const REFRESH_MS=15*60_000;
@@ -58,9 +58,9 @@ export type ReadResult=boolean|'soon'|'behind';
 export function worldReadResult(sources:{swarm:SourceSample;workers:SourceSample},now:number=Date.now()):ReadResult{
   const core=[sources.swarm,sources.workers];
   if(core.every(s=>s.state==='fresh')){
-    // Remote fetchedAt is epoch time. A future/invalid value cannot be a successful fresh read.
-    if(core.some(s=>s.fetchedAt===null||!isFreshAge(now,s.fetchedAt,Number.MAX_VALUE)))return false;
-    return core.some(s=>!isFreshAge(now,s.fetchedAt!,BEHIND_MS+1))?'behind':true;
+    // Public remote epochs allow only the gateway's existing bounded skew; never rewrite fetchedAt.
+    if(core.some(s=>s.fetchedAt===null||!isFreshPublicRemote(now,s.fetchedAt,Number.MAX_VALUE)))return false;
+    return core.some(s=>!isFreshPublicRemote(now,s.fetchedAt!,BEHIND_MS+1))?'behind':true;
   }
   return core.some(stillReading)?'soon':false;
 }

@@ -97,7 +97,8 @@ export function tab(w,b,p,{beforeSend=async()=>{},intercept=async(_path,r)=>r,ge
   q.observeProvider(p);
   q.c.subscribe(()=>states.push({phase:q.c.state.phase,known:q.c.state.sessionKnown,session:!!q.c.state.session,knowledge:clientKnowledge(q),lifecycle:snapshot(q)}));
   q.signIn=()=>{mark('SIGN_CLICK');return q.c.signIn();};
-  q.notifyProvider=()=>{mark('PROVIDER_SWITCH');providerChanged();};
+  // Existing callers model an explicit wallet pick. Passive discovery must be stated, not inferred from object identity.
+  q.notifyProvider=(reason='selection')=>{mark(reason==='selection'?'PROVIDER_SWITCH':'PROVIDER_DISCOVERY');providerChanged(reason);};
   q.restart=()=>{mark('RESTART');q.stop=q.c.start();return q.stop;};
   q.stop=q.c.start();mark('START');
   return q;

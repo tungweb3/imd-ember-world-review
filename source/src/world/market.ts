@@ -1,6 +1,6 @@
 import {object,type SourceSample} from './model.ts';
 import {FRESH_MS} from './cadence.ts';
-import {isFreshAge} from '../shared/freshness.ts';
+import {isFreshPublicRemote} from '../shared/freshness.ts';
 
 export const IMD_TOKEN='0xD34a99Bc0f67aE1bbd63C660e6d0b0dd03E263B7';
 export const MARKET_URL='https://api.dexscreener.com/tokens/v1/ethereum/'+IMD_TOKEN;
@@ -57,7 +57,7 @@ export function selectFloor(payload:unknown,now:number):SeatFloor {
     const m=object(body[key]),floor=finite(m.floorPrice);
     if(m.error||floor===null||floor<=0||String(m.priceCurrency??'').toUpperCase()!=='ETH')continue;
     const at=typeof m.retrievedAt==='string'?Date.parse(m.retrievedAt):NaN;
-    // Keep a parsed upstream timestamp, including future values, so the UI freshness gate can reject it.
+    // Keep the upstream epoch, including future values; the UI applies the explicit public remote skew bound.
     // An absent/unparseable retrieval timestamp uses the actual observation time, never a cached merge time.
     return {floorEth:floor,marketplace,fetchedAt:Number.isFinite(at)?at:now};
   }
@@ -83,6 +83,11 @@ export function weatherForChange(change:number|null):Weather {
   if(change===null||!Number.isFinite(change))return 'unknown';
   return change>=10?'brilliant':change>=0?'sunny':change>-5?'overcast':change>-12?'rain':change>-22?'storm':'thunderstorm';
 }
+/** Owner, 2026-10-05: a fresh hour at +10% also brings the brilliant sky, even before the 24h tier rises. */
+export function weatherForQuote(change24h:number|null,change1h:number|null):Weather {
+  const hour=finite(change1h);
+  return hour!==null&&hour>=10?'brilliant':weatherForChange(change24h);
+}
 /** A floor older than this is hidden rather than shown as current. */
 export const FLOOR_MAX_AGE_MS=2*60*60_000;
 /** The seat-floor card's data, or null when the card is hidden (no floor, not ETH, or too old). floorUsd comes from the
@@ -90,7 +95,7 @@ export const FLOOR_MAX_AGE_MS=2*60*60_000;
  *  in when the viewer has none. */
 export function floorView(sample:MarketSample|null|undefined,quote:MarketQuote|null,now=Date.now()):SeatFloor|null {
   const f=sample?.extras?.floor;
-  if(!f||finite(f.floorEth)===null||f.floorEth<=0||!isFreshAge(now,f.fetchedAt,FLOOR_MAX_AGE_MS)||typeof f.marketplace!=='string')return null;
+  if(!f||finite(f.floorEth)===null||f.floorEth<=0||!isFreshPublicRemote(now,f.fetchedAt,FLOOR_MAX_AGE_MS)||typeof f.marketplace!=='string')return null;
   const base:SeatFloor={floorEth:f.floorEth,marketplace:f.marketplace,fetchedAt:f.fetchedAt},mine=withUsd(base,quote),fallback=finite(f.floorUsd);
   return mine.floorUsd!==undefined?mine:fallback!==null&&fallback>0?{...base,floorUsd:fallback}:base;
 }
@@ -109,9 +114,9 @@ export function marketQuoteOf(value:unknown):MarketQuote|null {
 }
 export function marketView(sample:MarketSample|null,now=Date.now()) {
   const quote=marketQuoteOf(sample?.data),at=finite(sample?.fetchedAt);
-  const fresh=sample?.state==='fresh'&&at!==null&&isFreshAge(now,at,FRESH_MS);
+  const fresh=sample?.state==='fresh'&&at!==null&&isFreshPublicRemote(now,at,FRESH_MS);
   const state=quote?(fresh?'fresh':'stale'):'unavailable';
-  return {state,quote,fetchedAt:at,weather:weatherForChange(fresh?finite(quote?.change24h):null),floor:floorView(sample,fresh?quote:null,now),
+  return {state,quote,fetchedAt:at,weather:weatherForQuote(fresh?finite(quote?.change24h):null,fresh?finite(quote?.change?.h1):null),floor:floorView(sample,fresh?quote:null,now),
     mood:marketMood(fresh?quote?.change?.h1:null)} as const;
 }
 /** Each 24h tier's own rain and wind, 0..1: gentle rain; heavy rain with wind (storm); torrential in a thunderstorm. */

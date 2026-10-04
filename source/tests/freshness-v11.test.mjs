@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {isFreshAge} from '../src/shared/freshness.ts';
+import {isFreshAge,PUBLIC_REMOTE_SKEW_MS} from '../src/shared/freshness.ts';
 const root=process.env.R8_SOURCE?resolve(process.env.R8_SOURCE):resolve(import.meta.dirname,'..');
 const load=p=>import(pathToFileURL(resolve(root,p)).href);
 const {marketView,floorView,selectFloor,MARKET_URL,FLOOR_MAX_AGE_MS}=await load('src/world/market.ts');
@@ -26,15 +26,15 @@ test('wire overflowing exponent primary price is unavailable; valid price and op
  const wire=JSON.parse('{"priceUsd":1e999,"change24h":-8}');assert.equal(marketView(sample(wire),1000).state,'unavailable');
  assert.equal(marketView(sample({priceUsd:8,change24h:-8}),1000).weather,'rain');
 });
-test('future market stamp cannot count as fresh, exact expiry suppresses weather',()=>{
- for(const at of [1001,Infinity,NaN])assert.notEqual(marketView(sample({priceUsd:8,change24h:10},at),1000).state,'fresh');
+test('public market stamp beyond the formal skew bound cannot count as fresh, exact expiry suppresses weather',()=>{
+ for(const at of [1000+PUBLIC_REMOTE_SKEW_MS+1,Infinity,NaN])assert.notEqual(marketView(sample({priceUsd:8,change24h:10},at),1000).state,'fresh');
  assert.equal(marketView(sample({priceUsd:8,change24h:10}),1000+FRESH_MS-1).state,'fresh');
  assert.equal(marketView(sample({priceUsd:8,change24h:10}),1000+FRESH_MS).weather,'unknown');
 });
-test('nonfinite floor, negative/future age, invalid fallback USD cannot reach floor UI',()=>{
+test('nonfinite floor, out-of-policy future age, invalid fallback USD cannot reach floor UI',()=>{
  const base={floorEth:2.5,marketplace:'OpenSea',fetchedAt:1000};
  for(const floorEth of [Infinity,NaN,-1,0])assert.equal(floorView(sample(null,1000,{...base,floorEth}),null,1000),null);
- for(const fetchedAt of [1001,Infinity,NaN])assert.equal(floorView(sample(null,1000,{...base,fetchedAt}),null,1000),null);
+ for(const fetchedAt of [1000+PUBLIC_REMOTE_SKEW_MS+1,Infinity,NaN])assert.equal(floorView(sample(null,1000,{...base,fetchedAt}),null,1000),null);
  for(const floorUsd of [Infinity,NaN,-1,0])assert.equal(floorView(sample(null,1000,{...base,floorUsd}),null,1000).floorUsd,undefined);
  assert.equal(floorView(sample(null,1000,base),null,1000+FLOOR_MAX_AGE_MS),null);
  assert.equal(floorView(sample(null,1000,{...base,floorUsd:6800}),null,1000).floorUsd,6800);
@@ -58,9 +58,9 @@ test('future upstream floor retrieval time survives normalization and stays hidd
   assert.equal(observed.fetchedAt,now,'missing/unparseable upstream time uses initial observation, not cached merge time');
  }
 });
-test('remote cadence cannot certify future or nonfinite fetchedAt as a good read',()=>{
+test('remote cadence rejects out-of-policy future or nonfinite fetchedAt as a good read',()=>{
  const s=at=>({state:'fresh',data:{},url:'x',fetchedAt:at});
- for(const at of [1001,Infinity,NaN,null])assert.equal(worldReadResult({swarm:s(at),workers:s(1000)},1000),false);
+ for(const at of [1000+PUBLIC_REMOTE_SKEW_MS+1,Infinity,NaN,null])assert.equal(worldReadResult({swarm:s(at),workers:s(1000)},1000),false);
  assert.equal(worldReadResult({swarm:s(1000),workers:s(1000)},1000),true);
 });
 test('public-name cache expires on backward wall clock and at exact deadline',async()=>{

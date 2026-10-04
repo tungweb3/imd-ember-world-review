@@ -135,7 +135,7 @@ export type OwnershipRequest={chain:ChainAccess;db?:D1Database;now:number;waitUn
   /** N-6 / AUD4: the network's discovery lane (bounded preflight/probe, 'chain:index:lane', then atomic INDEX_LANE), asked by home()
    *  only after `budget` refused an index read whose answer counts no seat; true lets that one read through. Absent: no lane. */
   lane?:()=>Promise<boolean>;
-  /** The clock, read again when an NFT index read begins (absent: `now`). Its answer is dated then, not when the request
+  /** The clock, read again after a proof queue wait, for cache freshness, and when an NFT index read begins (absent: `now`). Its answer is dated then, not when the request
    *  began: a request held before its index read (a slow roster read) must not date a later answer before one read
    *  meanwhile, or the newer-answer rule keeps the older one (Codex crosscheck review A2-R1). */
   clock?:()=>number};
@@ -143,6 +143,7 @@ export type OwnershipRequest={chain:ChainAccess;db?:D1Database;now:number;waitUn
  *  or failed with an answer kept; refused: the budget refused it (N-6's lane is only for those); partial: CANDIDATE_CAP
  *  left candidates unchecked, or the index left pages unread. */
 type Proof={ids:string[];examined:Map<string,string|null>;failed:Set<string>;block:number|null;checkedAt:number;indexedAt:number;limited:boolean;refused:boolean;partial:boolean};
+type ProofFlight={context:string;at:number;chain:ChainAccess;db:D1Database|undefined;promise:Promise<Proof>};
 type Discovery={indexed?:Indexed;attemptedAt:number;limited:boolean;refused:boolean};
 /** The counting rule (DESIGN_W1 §7): a registered IMD agent the live roster shows online now, or last seen online under
  *  this owner (seat_presence: CORR-03) within ONLINE_WINDOW_MS. One predicate for status(), the cap's rank (N-3) and the
@@ -205,7 +206,7 @@ class Cache<T>{
   }
 }
 export class Ownership{
-  private proofs=new Map<string,Proof>();private proofing=new Map<string,Promise<Proof>>();private discovery=new Cache<Discovery>();
+  private proofs=new Map<string,Proof>();private proofing=new Map<string,ProofFlight>();private discovery=new Cache<Discovery>();
   private candidates=new Cache<Indexed>();private lists=new Cache<IndexedNft[]>();private failed=new Map<string,number>();
   private gateway:Pick<ReadGateway,'source'>;private collections:readonly CharacterCollection[];
   constructor(gateway:Pick<ReadGateway,'source'>,collections:readonly CharacterCollection[]=CHARACTER_COLLECTIONS){this.gateway=gateway;this.collections=collections;}
@@ -222,14 +223,29 @@ export class Ownership{
    *  Epochs keep positive AND negative results, at one block, for a fixed 30 second deadline. Newly discovered ids
    *  get only a pinned delta proof; at most CANDIDATE_CAP results are examined in the entire epoch. */
   private proof(address:string,owners:unknown[],agents:Map<string,Agent>,req:OwnershipRequest,fresh:boolean,again=false):Promise<Proof>{
+    // Scope includes candidate membership and ranking inputs, not request-entry time. Same-context waiters share a
+    // controlled failure; a queued independent roster/discovery intent gets its own evaluation after settlement.
+    const owned=owners.flatMap((o,i)=>typeof o==='string'&&o.toLowerCase()===address?[String(i)]:[]);
+    const context=JSON.stringify([fresh,again,owned,[...agents].map(([id,a])=>[id,a.agentId===null?2:a.presence==='online'?0:1])
+      .sort((a,b)=>compareIds(String(a[0]),String(b[0])))]);
     const pending=this.proofing.get(address);
     // Serialise updates rather than returning another request's answer as complete. The caller may already have a
     // different roster/fresh intent: after the first update settles it discovers/proves only its missing delta.
-    if(pending)return pending.then(()=>this.proof(address,owners,agents,req,fresh,again));
+    if(pending){const same=pending.context===context&&pending.chain.key===req.chain.key&&pending.chain.fetch===req.chain.fetch&&pending.db===req.db&&
+        isFreshAge(req.clock?.()??req.now,pending.at,OWNERSHIP_TTL_MS);
+      const evaluate=()=>this.proof(address,owners,agents,req,fresh,again);
+      return pending.promise.then(evaluate,same?undefined:evaluate);}
+    // Active updates are never evicted (that would duplicate in-flight work). The existing isolate address cap also
+    // bounds their metadata; a new key at capacity is unavailable and may retry after an existing update settles.
+    if(this.proofing.size>=CACHE_LIMIT)return Promise.reject(new OwnershipUnavailable());
     const store=(proof:Proof)=>{this.proofs.delete(address);this.proofs.set(address,proof);
       while(this.proofs.size>CACHE_LIMIT)this.proofs.delete(this.proofs.keys().next().value!);return proof;};
     const update=async():Promise<Proof>=>{
       if(!Number.isFinite(req.now))throw new OwnershipUnavailable();
+      // An overlapping request's entry time can precede a local index answer completed while it waited. Compare
+      // cache ages with the same live clock that dates discovery/proof, without accepting actual future evidence.
+      const current=()=>req.clock?.()??req.now,discoveryNow=current();
+      if(!Number.isFinite(discoveryNow))throw new OwnershipUnavailable();
       const candidates=new Set<string>();
       owners.forEach((o,i)=>{if(typeof o==='string'&&o.toLowerCase()===address)candidates.add(String(i));});
       // N-3: past the cap, the cut ranks by the counting rule itself, so a seat that counts through a recent sighting is
@@ -243,29 +259,29 @@ export class Ownership{
           .filter(id=>rank(agents.get(id),undefined,req.now)===1),address,req.db).catch(()=>new Map<string,number>()));
         const order=(id:string)=>rank(agents.get(id),sightings.get(id),req.now);
         return list.sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,limit);};
-      const discovery=await this.discovery.get(address,req.now,CANDIDATES_TTL_MS,async()=>{
-        const attemptedAt=req.clock?.()??req.now;
+      const discovery=await this.discovery.get(address,discoveryNow,CANDIDATES_TTL_MS,async()=>{
+        const attemptedAt=current();
         if(!Number.isFinite(attemptedAt))throw new OwnershipUnavailable();
         try{
-          const indexed=await this.candidates.get(address,req.now,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS,async()=>{
+          const indexed=await this.candidates.get(address,current(),fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS,async()=>{
             if(!req.budget||!await req.budget())throw new Limited();
             const at=req.clock?.()??req.now;                                      // the index read begins now (A2-R1)
             if(!Number.isFinite(at))throw new OwnershipUnavailable();
             const {nfts,complete}=await indexedNfts(req.chain,address,[SEAT_COLLECTION],false),ids=[...new Set(nfts.map(n=>n.tokenId))];
             keepIndex(address,await best(ids),at,req);return {ids,at,complete};
-          },v=>!again&&isFreshAge(req.now,v.at,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS));
+          },v=>!again&&isFreshAge(current(),v.at,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS));
           return {indexed,attemptedAt,limited:false,refused:false};
         }catch(e){
           if(!(e instanceof Limited||e instanceof OwnershipUnavailable))throw e;
           const mine=this.candidates.peek(address),kept=await keptIndex(address,req.db);
-          const dated=(v:Indexed|undefined)=>v!==undefined&&Number.isFinite(v.at)&&v.at<=req.now;
+          const dated=(v:Indexed|undefined)=>v!==undefined&&Number.isFinite(v.at)&&v.at<=current();
           // Future/invalid D1 dates may name candidates, but never win a newer-evidence comparison against a valid date.
           const indexed=kept&&(!mine||dated(kept)&&(!dated(mine)||kept.at>mine.at))?kept:mine;
           if(!(e instanceof Limited)&&!indexed?.ids.length)throw e;                // failed with no kept candidates: 503
           return {indexed,attemptedAt,limited:true,refused:e instanceof Limited};
         }
-      },d=>!(again&&d.refused)&&(d.limited?isFreshAge(req.now,d.attemptedAt,OWNERSHIP_TTL_MS):
-        d.indexed!==undefined&&isFreshAge(req.now,d.indexed.at,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS)));
+      },d=>!(again&&d.refused)&&(d.limited?isFreshAge(current(),d.attemptedAt,OWNERSHIP_TTL_MS):
+        d.indexed!==undefined&&isFreshAge(current(),d.indexed.at,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS)));
       const {indexed,limited,refused}=discovery;
       for(const id of indexed?.ids??[])candidates.add(id);
       // Discovery/admission can wait longer than the crypto TTL. Re-evaluate the epoch at proof work's actual start,
@@ -295,8 +311,9 @@ export class Ownership{
         checkedAt,indexedAt:indexed?.at??0,limited:limited||failed.size>0,refused,partial};
       return store(proof);
     };
-    const running=update().finally(()=>{if(this.proofing.get(address)===running)this.proofing.delete(address);});
-    this.proofing.set(address,running);return running;
+    const flight:ProofFlight={context,at:req.clock?.()??req.now,chain:req.chain,db:req.db,promise:undefined!};
+    flight.promise=update().finally(()=>{if(this.proofing.get(address)===flight)this.proofing.delete(address);});
+    this.proofing.set(address,flight);return flight.promise;
   }
   /** Last recorded sighting per seat under `owner` (cron; the owner is IMD's swarm view at the time), one query. A
    *  sighting made under a previous owner never counts for a buyer (CORR-03). Without a database only the live roster counts. */

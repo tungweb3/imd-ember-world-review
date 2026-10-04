@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {privateKeyToAccount} from 'viem/accounts';
 import {AuthReference,InvariantFailure,TEST_ORIGIN} from './auth-reference-model.mjs';
 
-export const GENERATOR_VERSION='r8-causal-scheduler-1';
+export const GENERATOR_VERSION='audit8-causal-scheduler-2';
 export const sourceRoot=process.env.AUTH_REFERENCE_SOURCE?resolve(process.env.AUTH_REFERENCE_SOURCE):resolve(import.meta.dirname,'..');
 const selected=p=>pathToFileURL(resolve(sourceRoot,p)).href;
 const {AuthClient}=await import(selected('src/world/auth.ts'));
@@ -57,7 +57,7 @@ export class SchedulerDriver{
       fetch:(path,init={})=>this.fetch(id,path,init),hint:{get:()=>hint,set:value=>{hint=value;}},now:()=>this.w.clock.now()+this.clientOffset,
       origin:TEST_ORIGIN,env,channel});
     q.accountEvent=next=>{account=next;q.account=next;for(const fn of handlers.get('accountsChanged')??[])fn(next?[accounts[next].address]:[]);};
-    q.providerEvent=next=>{account=next;q.account=next;q.providers.push(makeProvider());currentProvider=q.providers.length-1;q.provider=currentProvider;providerChanged();};
+    q.providerEvent=(next,reason='selection')=>{account=next;q.account=next;q.providers.push(makeProvider());currentProvider=q.providers.length-1;q.provider=currentProvider;providerChanged(reason);};
     q.start=()=>{q.stopped=false;q.stop=q.c.start();};return q;
   }
   aliasNonce(value){const n=this.nonces.get(value);rule(n,'HARNESS-ALIAS','unknown nonce supplied to route');return n;}
