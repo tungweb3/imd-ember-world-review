@@ -1,37 +1,32 @@
-# IMD Ember World - fifth Low remediation, sixth closure-review snapshot
+# IMD Ember World — Audit/Report remediation review package
 
-World/Auth/Member M1 repairs for the four new Low findings from the fifth Audit. The fixed source is deployed; independent sixth Report/Audit are pending. This is the maintainer's repair/verification record, not a certification.
+Review-only source and evidence for the sixth Audit/Report counterexamples: Auth lifecycle, conditional logout authority and public-name cache. The fixed Auth code is deployed. This maintainer package is not independent closure, certification or a zero-defect claim; no new paid review has been submitted by the agent.
 
 | Identity | Exact value |
 |---|---|
-| Fifth public snapshot / this snapshot's parent | `357668f37c75317f79ff2266795636597a707c04` |
-| Private fixed/deployed source | `1cc61b68b2dc14af83bf5178c9fe057452ba9b46` |
-| Private source parent | `54410b2f8dece71bdb2fd999c94feea6454ecfcd` |
-| Deployment record | `20261003T214856Z-1cc61b6` |
-| Worker | `5022cd62-6f1f-444c-af94-3b68ec359b94` |
-| Worker bytes / SHA-256 | 314447 / `3977c6db6cbff23e9f6aec87092a236c603eac8bf64a7ce0c825d400dd1ad7dd` |
-| Deployment UTC | `2026-10-03T21:48:56.252Z` - `2026-10-03T21:50:27.782Z` |
-| Post-deploy traffic | 100%; deployment `665f9e0a-8ae6-4a09-ac0d-e919d09fb60c` |
-| D1 | 0001-0006 plus 0008, pre/post selected metadata identical, no migration applied |
+| Previous public snapshot / public parent | `445747d6a4d4fb6fa4eaa9c67b74e3e2bd9c1703` |
+| Auth remediation source | `ff6bed81afe69fddfc006d9ec8e96e3e6448ecc7` |
+| Latest deployed source containing identical supplied Auth scope | `e48a94f8951938f889fa3aa963c0a3e9e1df9dfd` |
+| Deployment record | `20261004T031821Z-e48a94f` |
+| Worker version | `6c505065-798d-4890-b7c7-0c6063d1ae9b` |
+| Worker bytes / SHA-256 | 314508 / `afd82f506aceb57ca85ce44ff6c7e65146546d383ae2e2b2b7feca72bd23e92a` |
+| Record finished UTC / traffic | `2026-10-04T03:20:14.463Z` / 100% |
 
-Use the commit containing this README for the sixth review; its exact SHA is supplied in the owner handoff after committing. A file cannot embed the hash of its containing commit.
+Use the immutable commit containing this README; its SHA is supplied separately after sealing. It cannot embed its own commit hash.
 
-- [Four Low remediation and limits](source/docs/security/R5_LOW_REMEDIATION.md).
-- [Source fingerprints and preserved redactions](manifests/r6-published-source.json).
-- [Build/deployment correspondence](R6/BUILD_EVIDENCE.md), [production allowlist](R6/PRODUCTION_DEPLOYMENT.json), [five GETs](R6/LIVE_MATCH.json).
-- [Public-source validation](R6/PUBLIC_SOURCE_VALIDATION.json) and [current test results](R6/TEST_RESULTS.md).
-- [Fifth results and closure scope](R6/PRIOR_REVIEWS.md), [current public inventory](R6/PUBLIC_CONTENT.md).
+- [Finding-by-finding fixes and retained limits](R7/AUTH_REMEDIATION.md), [sixth original Audit/Report mapping](R7/PRIOR_REVIEWS.md).
+- [Explicit Auth state machine](source/docs/security/AUTH_STATE_MACHINE.md), [source fingerprints](manifests/r7-published-source.json).
+- [Actual public-source validation](R7/PUBLIC_SOURCE_VALIDATION.json), [test scope and failures](R7/TEST_RESULTS.md).
+- [Build/deployment correspondence](R7/BUILD_EVIDENCE.md), [sanitized production facts](R7/PRODUCTION_DEPLOYMENT.json), [current inventory](R7/PUBLIC_CONTENT.md).
 
-Full private-source package suite1183/1183, including96 new regressions (49auth/36authority/11member); no tests skipped. Public supported-subset results are separate and exact, including intentionally withheld-source/typecheck/frontend limits. Full/private, supplied-source, synthetic fixtures and production checks are distinct evidence levels. Worker rebuild comparison does not make full presentation sources public.
+## Evidence boundary
 
-## Publication boundary
+111 supplied source text files: 95 exact, 16 preserved redactions, 57 masked lines. The published Auth scope has no Git diff between the Auth remediation commit and latest deployment commit. Redacted originals and their new fingerprints remain withheld. New website/avatar/selfie features, all models/textures/media, geometry, full scene/WorldApp, feature tests, private evidence, bundles/maps, credentials/env, owner data and private Git history are omitted. Old public asset filename/hash references are historical references, not payloads or current feature review.
 
-104 source text files:88 exact and16 preserved redactions,57 masked lines. Original redacted-source fingerprints are withheld. No website 3D models, textures, scene geometry, full WorldApp, media binaries, generated Worker bundle/maps, secrets/env, D1 exports/backup/download links, raw logs or private Git history are included. Old asset filename/hash references are not asset contents. The public repository uses its existing public-only history.
+Actual supported public tests: **386/386**, no skips or scene import stubs. Full public TypeScript: **exit2, 16 diagnostics** from intentionally withheld presentation/build dependencies. Full frontend cannot be built from this subset. Independent supplied-source Worker dry-run produced the recorded 314508-byte hash under the documented dependency layout; the first sandbox compiler failure is retained. Private Auth **1357/1357** and complete deployed-source **1392/1392** are separate team evidence, not public execution or external review.
 
-No Genesis Mint, Solidity, Coin E1/0007, check-in/rewards or new token/NFT transactions/approval/Permit/batch/delegation capabilities were added. World wallet methods remain eth_accounts,eth_requestAccounts,personal_sign. Public M1 names are persistent Web2 writes; World is not wholly read-only. EOA M1 is separate from on-chain assets; legitimate ERC1271 login/read remains available while persistent writes stay disabled by documented policy.
+Deployment correspondence remains **partial**: version/traffic metadata, five anonymous GETs, four static hashes, 24 headers and anonymous signed-out session. Functional anonymous browser smoke is a separate team check, not wallet/Auth, production D1, WAF/limiter, concurrency or complete feature proof. No production secrets, logs, export links or static asset inventory are supplied.
 
-## Sixth review
+World wallet methods remain `eth_accounts`, `eth_requestAccounts`, exact SIWE `personal_sign`. No Solidity/Genesis Mint/Coin E1/0007, token transaction, approval, Permit, batch or delegation is in scope. M1 names remain persistent Web2 writes; ERC-1271 login/read is available while persistent writes retain the documented EOA policy.
 
-Targeted World/Auth/M1 closure: verify the four fifth Low findings, R4-02 old/new lifecycle event orderings, R4-08 clock/timer/server reconciliation and R4-01 context-binding guards. Preserve no-duplicate-prompt, newer-session/challenge isolation and old owner/session boundaries. Separate reproduced facts, team claims, inferences and unknowns; judge findings fixed/partly/open/unknown, retain residuals and review limits.
-
-The old root design documents, R5 artifacts, old manifests and TESTS record prior snapshots. Fixed-source implementation documents describe their pre-deployment phase. This README and R6 metadata record the later deployment; no prior result is rewritten as a sixth verdict. R4-02/R4-08 await independent closure; R4-03 policy, R4-09 availability, AUD3-05 partly and AUD3-09 review-limit remain. Late cookie-clear transport and best-effort delivery limits are explicit. Five anonymous GETs and version metadata provide partial deployment correspondence, not real-wallet/full-browser/production concurrency or a fund-safety proof.
+The root design documents, R5/R6, old manifests and TESTS describe their pinned historical snapshots. Current results are under R7. Do not rewrite old findings as closed: reproduce the original orderings and judge fixed/partly/open/unknown. R4-03 policy, R4-09 availability, AUD3-05 partly, AUD3-09 review-limit, auth-read stall, cross-cookie authority, late Set-Cookie and best-effort termination limitations remain explicit.

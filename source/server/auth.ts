@@ -624,18 +624,20 @@ async function logout({request,db,deps}:Ctx):Promise<Response>{
   if(body.expectedNonce!==undefined&&body.expectedAddress!==undefined)return fail(400,'BAD_REQUEST');
   let flowHash=flow?await sha256(flow):null,clearFlowCookie=true;
   // AUD4-06 abandoned-flow cleanup is conditional on its challenge, not whichever cookie a newer tab installed.
-  // The nonce is a consistency assertion only: revocation needs the matching session token. With no session token,
+  // The nonce is a consistency assertion only: revocation needs the matching live session token. With no session token,
   // the original flow cookie can only cancel its own pending challenge. A conflict changes no cookie or flow.
   if(body.expectedNonce!==undefined){
     const nonce=body.expectedNonce;
     if(typeof nonce!=='string'||! /^[\da-f]{32}$/.test(nonce))return fail(400,'BAD_REQUEST');
     const matches=token?await db.prepare(`SELECT 1 matched,
-      (SELECT flow_hash FROM login_challenges WHERE nonce=?2) flow_hash FROM sessions WHERE token_hash=?1 AND nonce=?2`)
-      .bind(await sha256(token),nonce).first<{matched:number;flow_hash:string|null}>():null;
+      (SELECT flow_hash FROM login_challenges WHERE nonce=?2) flow_hash FROM sessions
+      WHERE token_hash=?1 AND nonce=?2 AND revoked_at IS NULL AND expires_at>?3`)
+      .bind(await sha256(token),nonce,now).first<{matched:number;flow_hash:string|null}>():null;
     if(!matches){
       // Before verification there may be no session cookie yet. The original flow cookie can only cancel its own
       // still-pending nonce, never a session or a replacement flow. A supplied session token never falls back here.
-      if(token||!flowHash)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
+      // An empty/malformed cookie is still a supplied token: it must not acquire pending-only authority.
+      if(token!==null||!flowHash)return fail(409,'ACCOUNT_CONTEXT_CHANGED');
       const pending=await db.prepare('UPDATE login_challenges SET invalidated_at=?1 WHERE nonce=?2 AND flow_hash=?3 AND used_at IS NULL AND invalidated_at IS NULL AND accept_until>?1')
         .bind(now,nonce,flowHash).run();
       if(pending.meta.changes!==1)return fail(409,'ACCOUNT_CONTEXT_CHANGED');

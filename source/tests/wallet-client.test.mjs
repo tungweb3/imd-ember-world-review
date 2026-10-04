@@ -2202,11 +2202,9 @@ test('ADV-1: an abandoned flow’s late session whose verify body and logout ans
   assert.deepEqual(out,{'body first':[true,true,'owner',null,'connected',null,false,false],'logout first':[true,true,null,'connected',null,false,false]});
 });
 
-// ADV-1 (RC-3): the same rule when the abandoned flow dies while its verify body is read (its headers came in while it
-// was live): the late session's logout names it. The switch's logout and that one are held before the server; a read
-// shows the late session while the click for B waits; another wallet, A granted, becomes current; then both logouts
-// reach the server. On 2f5d6c1, and with that logout naming no session, the page kept owner mode, the house and the hint
-// for the revoked late session.
+// ADV-1 (RC-3), R7: a body settling after cancellation shares the switch's cleanup owner. Two sequential gates hold
+// that one request before the server; a read shows the late session while a click waits, then another wallet becomes
+// current. Keep the original outcome assertion and additionally forbid concurrent duplicate cleanup requests.
 test('ADV-1: an abandoned flow that dies while its verify body is read: its late session, shown by a read while a click waited, ends on the page when its logout is confirmed after another wallet became current',async()=>{
   const A=newAccount(),B=newAccount(),a=A.address.toLowerCase(),bAddr=B.address.toLowerCase(),w=world({swarm:{361:a,921:bAddr},chain:{361:a,921:bAddr}}),b=w.browser(),g=gates(),h=heldBodies(VERIFY);
   const wa=fakeWallet(A),wn=fakeWallet(A),subs=new Set();let current=wa;wn.granted=true;
@@ -2216,11 +2214,13 @@ test('ADV-1: an abandoned flow that dies while its verify body is read: its late
   assert.ok(b.jar.has(SESSION_COOKIE),'A’s cookie came with the headers');
   g.arm('switch');wa.switchTo(B);await until(()=>g.held('switch'));                       // the switch ends the flow; its logout held before the server
   const click=t.client.signIn();await settle();                                           // the click for B waits
-  g.arm('late');body.open();await flow;await until(()=>g.held('late'));                   // the body names A's late session; its logout held before the server
+  g.arm('late');body.open();await flow;await settle();
+  assert.equal(posts(t.calls,'/api/auth/logout'),1,'late body cannot duplicate the already-owned cleanup');
   await t.client.restore();await until(()=>!t.client.state.checking);
   assert.equal(t.client.state.session?.address,a,'a read shows A’s late session');
   current=wn;for(const fn of subs)fn();await until(()=>statusOf(t.client.state,w.clock.now())==='owner');   // another wallet, A granted: owner mode for it
-  g.open('late');await until(()=>!b.jar.has(SESSION_COOKIE));await settle();g.open('switch');await click;await settle();await settle();
+  g.open('switch');await until(()=>g.held('late'));g.open('late');
+  await until(()=>!b.jar.has(SESSION_COOKIE));await click;await settle();await settle();
   const s=t.client.state;
   assert.deepEqual([s.session,s.home,s.checking,statusOf(s,w.clock.now()),t.hint.get(),(await b.get('/api/auth/session').then(r=>r.json())).signedIn],[null,null,false,'connected',null,false]);
   t.stop();

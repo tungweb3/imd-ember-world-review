@@ -1,0 +1,56 @@
+{
+  "schema": "imd.review.public-safe-deployment/v1",
+  "purpose": "Report/Audit remediation source evidence only; unrelated website features and 3D assets omitted",
+  "website": "https://imdember.com/",
+  "deployed_source_commit": "e48a94f8951938f889fa3aa963c0a3e9e1df9dfd",
+  "auth_remediation_commit": "ff6bed81afe69fddfc006d9ec8e96e3e6448ecc7",
+  "record": "20261004T031821Z-e48a94f",
+  "finished_at_utc": "2026-10-04T03:20:14.463Z",
+  "worker_version": "6c505065-798d-4890-b7c7-0c6063d1ae9b",
+  "deployment_id": "49fd9f2d-271e-46e9-9f5b-a4c39fea9fe0",
+  "traffic_percent": 100,
+  "worker_bytes": 314508,
+  "worker_sha256": "afd82f506aceb57ca85ce44ff6c7e65146546d383ae2e2b2b7feca72bd23e92a",
+  "canonical_deployment_pipeline_exit": 0,
+  "private_full_source_tests": {
+    "pass": 1392,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 75206.2908
+  },
+  "private_auth_exact_commit_tests": {
+    "source_commit": "ff6bed81afe69fddfc006d9ec8e96e3e6448ecc7",
+    "pass": 1357,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "typescript": "passed on private full source",
+  "vite": "passed on private full source",
+  "public_subset_tests": "recorded separately after running against the actual model-free public source",
+  "production_readback": {
+    "anonymous_gets_passed": 5,
+    "static_files_sha256_matched": 4,
+    "security_headers_matched": 24,
+    "session_status": 200,
+    "signed_in": false,
+    "cache_control": "no-store",
+    "set_cookie_present": false
+  },
+  "database": {
+    "migrations_applied_by_this_release": 0,
+    "pending_migrations_after_release": 0,
+    "schema_config_headers_changed": false
+  },
+  "browser_smoke": "passed three anonymous viewports on newest release; visual/function verification only, not Auth/wallet/concurrency proof",
+  "limits": [
+    "Private full-source tests are team evidence, not public-subset execution or independent review.",
+    "Deployment/Completed/accepted/test success is not certification, approval, zero vulnerabilities or fund-safety proof.",
+    "Unrelated selfie/avatar UI and all 3D models/textures/full-scene code are outside this public review package.",
+    "No live wallet signing, production D1 write/concurrency or newly verified WAF/limiter test is asserted.",
+    "The new independent Audit and Report have not been submitted or paid by the agent."
+  ]
+}

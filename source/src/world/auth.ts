@@ -7,6 +7,7 @@ import type {HouseSize} from './houseSize.ts';
 import type {PollEnv} from './cadence.ts';
 import {checkSignInMessage,signInSummary,type SignInSummary} from './siwe.ts';
 import {endedText} from './walletView.ts';                                          // walletView imports only types from here: no cycle
+import {AuthLifecycle,type ClickOwner,type CleanupOwner} from './authLifecycle.ts';
 
 export type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,fn:(v:unknown)=>void)=>void;removeListener?:(event:string,fn:(v:unknown)=>void)=>void};
 export type MeSeat={tokenId:string;agentId:string|null;online:boolean;lastOnlineAt:number|null;counts:boolean;reason?:'not-agent'|'offline-24h'|'not-seen'};
@@ -114,7 +115,6 @@ const code=async(r:Response)=>{try{const v=await r.clone().json();return typeof 
 const sessionIn=async(r:Response):Promise<Session|undefined>=>{try{const v=await r.json() as {address?:unknown;expiresAt?:unknown};
   return isAddress(v?.address)&&isExpiry(v.expiresAt)?{address:v.address.toLowerCase(),expiresAt:v.expiresAt}:undefined;}catch{return undefined;}};
 type CleanupContext={expectedNonce?:string;expectedAddress?:string};
-type SignInFlow={g:number;life:number;nonce:string;account:string;uncertain:boolean};
 /** Re-read /api/me/home no more often than this unless the click is the refresh button (20 per session per minute);
  *  owner mode re-checks this often while the tab is visible; a house older than OWNER_STALE_MS (every re-check since
  *  failed, e.g. 429) no longer grants owner mode (CORR-05, spec D07). */
@@ -125,7 +125,7 @@ export const LOGOUT_WAIT_MS=5_000;
 export class AuthClient{
   private s:AuthState=INITIAL;private listeners=new Set<()=>void>();
   /** Bumped by every new click, account switch and sign-out: a response of an older generation is dropped. */
-  private gen=0;private busy=false;private homeAt=0;private homeOkAt=0;private homeGen=0;private channel:Channel|null=null;private unsub:()=>void=()=>{};
+  private gen=0;private lifecycle=new AuthLifecycle();private homeAt=0;private homeOkAt=0;private homeGen=0;private channel:Channel|null=null;private unsub:()=>void=()=>{};
   /** The provider whose accountsChanged this client follows, and a counter that drops a replaced provider's eth_accounts.
    *  R3-R1: accountEvents counts every accountsChanged it heard (a repeat and a lock too): a wallet answer about accounts
    *  that was awaited while one arrived is older than it, so it is applied only if it names the account the latest set. */
@@ -142,13 +142,17 @@ export class AuthClient{
    *  an abandoned flow's, a sign-out's, a click's own; its Max-Age=0 deletes whatever cookie the browser holds by then),
    *  and a verify until its flow has kept its session or logged it out. Each entry settles after its own handler ran. */
   private unsettled=new Set<Promise<unknown>>();
-  /** R5: unresolved verify responsibility outlives the click/UI phase. A switch never borrows the current cookie's
-   *  identity. `life` prevents an old cleanup callback from changing a stopped or restarted client's UI/timers. */
-  private flow:SignInFlow|null=null;private life=0;
+  /** UI lifetime never owns verify cleanup; AuthLifecycle's per-operation owner survives cancellation. */
+  private life=0;
   constructor(deps:AuthDeps){this.deps=deps;}
   get state(){return this.s;}
+  get lifecycleSnapshot(){return this.lifecycle.snapshot;}
+  private get busy(){return this.lifecycle.busy;}
+  private sessionUnknown(){return this.lifecycle.knowledge.kind==='UNKNOWN';}
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};};
-  private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;this.s=s;this.arm();for(const fn of this.listeners)fn();}
+  private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;
+    if(patch.sessionKnown!==undefined)this.lifecycle.know(!s.sessionKnown?{kind:'UNKNOWN'}:s.session?{kind:'PRESENT',session:s.session}:{kind:'ABSENT'});
+    this.s=s;this.arm();for(const fn of this.listeners)fn();}
   private get env(){return this.deps.env??defaultEnv;}
   /** Keeps one timer on the current session's expiresAt (W-1), so owner mode ends on time even with nothing else going on. */
   private arm(){
@@ -161,7 +165,7 @@ export class AuthClient{
    *  (it says expired on the next visit too) and any in-flight house read dropped. The server refuses it anyway. */
   private expireIfDue(){
     if(!this.s.session||this.s.session.expiresAt>this.now())return false;
-    this.homeGen++;this.set({session:null,home:null,expired:true,ended:'expired',checking:false});return true;
+    this.homeGen++;this.set({session:null,home:null,expired:true,ended:'expired',checking:false,sessionKnown:false});return true;
   }
   /** The tab is visible again (W-1): a session that ran out while hidden ends at once, and a page that had a session
    *  re-reads it (and so its house) from the server, at most once per HOME_MIN_GAP_MS; visitors ask nothing. */
@@ -181,8 +185,9 @@ export class AuthClient{
   private reconcileCleanup(){this.homeGen++;this.set({home:null,checking:false,sessionKnown:false});void this.restore();}
   /** Automatic cancellation may only end the original flow or the displayed authenticated account. Without either
    *  assertion it sends nothing; only explicit signOut intentionally acts on the current shared cookie. */
-  private automaticCleanup(g:number,life:number,flow:SignInFlow|null,held?:Session,broadcast=false){
-    const context=flow?{expectedNonce:flow.nonce}:held?{expectedAddress:held.address}:null;
+  private automaticCleanup(g:number,life:number,click:ClickOwner|null,held?:Session,broadcast=false){
+    if(click?.owner){this.revokeAbandoned(click.owner);return;}
+    const context=click?.nonce?{expectedNonce:click.nonce}:held?{expectedAddress:held.address}:null;
     if(!context)return;
     this.sendLogout(ok=>{
       if(life!==this.life)return;
@@ -216,15 +221,16 @@ export class AuthClient{
    *  is not left in "Confirm in wallet"). */
   start(){
     const life=++this.life;
+    this.lifecycle.start();
     try{this.channel=this.deps.channel?.()??null;}catch{this.channel=null;}
-    this.channel?.addEventListener('message',()=>{void this.restore();});      // re-read the server; never trust the message
+    this.channel?.addEventListener('message',()=>{if(life===this.life)void this.restore();}); // queued old callback is not new-life intent
     this.bind(this.deps.provider());
-    const off=this.deps.onProviderChange?.(()=>this.providerChanged())??(()=>{});
-    const offVisible=this.env.onVisible(()=>this.visible());
+    const off=this.deps.onProviderChange?.(()=>{if(life===this.life)this.providerChanged();})??(()=>{});
+    const offVisible=this.env.onVisible(()=>{if(life===this.life)this.visible();});
     void this.restore();
-    return ()=>{if(life!==this.life)return;const abandoned=this.flow;this.flow=null;this.life++;this.gen++;this.busy=false;
+    return ()=>{if(life!==this.life)return;this.lifecycle.cancel(true);this.life++;this.gen++;
       // Security cleanup still runs after teardown; its old life/gen may never update this UI again.
-      if(abandoned?.uncertain)this.revokeAbandoned(abandoned.g,abandoned.life,abandoned.nonce);
+      for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);
       if(this.s.phase!=='idle'||this.s.waiting||this.s.leaving||this.s.checking)this.set({phase:'idle',waiting:false,leaving:false,checking:false});
       off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
       if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
@@ -234,7 +240,7 @@ export class AuthClient{
   private bind(p:Provider|null){
     this.unsub();this.unsub=()=>{};this.bound=p;const b=++this.binds;if(!p)return;
     const e=this.accountEvents;                                                        // R3-R1: an event while it was asked is newer than its answer
-    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b===this.binds&&e===this.accountEvents&&a&&!this.s.account)this.set({account:a});}).catch(()=>{});
+    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b===this.binds&&e===this.accountEvents&&a&&!this.s.account){this.lifecycle.discovered(p,a);this.set({account:a});}}).catch(()=>{});
     if(p.on){const h=(v:unknown)=>{if(b===this.binds)this.accountChanged(firstAccount(v));};p.on('accountsChanged',h);this.unsub=()=>p.removeListener?.('accountsChanged',h);}
   }
   /** Another wallet is in use (the player's EIP-6963 choice, or one that announced late). A flow started with the old one
@@ -243,16 +249,17 @@ export class AuthClient{
    *  mode ends until that address signs in. */
   providerChanged(){
     const p=this.deps.provider();if(p===this.bound)return;
-    const abandoned=this.flow,flow=this.s.phase!=='idle'||!!abandoned?.uncertain,held=this.s.session??undefined;
-    if(flow||this.busy){this.gen++;this.busy=false;this.flow=null;}
+    const abandoned=this.lifecycle.click,activeFlow=this.s.phase!=='idle',flow=activeFlow||this.lifecycle.retainedOwners.length>0,held=this.s.session??undefined;
+    if(flow||this.busy){this.gen++;this.lifecycle.cancel();}
     this.set({account:null,phase:'idle',waiting:false,...flow?{notice:null,sessionKnown:false}:{}});
-    if(flow)this.automaticCleanup(this.gen,this.life,abandoned,held);
+    if(activeFlow)this.automaticCleanup(this.gen,this.life,abandoned,held);
+    for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);
     this.bind(p);
   }
   /** GET /api/auth/session; a signed-in answer is followed by the home read. */
   restore(){const r=this.readSession().finally(()=>{if(this.restoring===r)this.restoring=null;});this.restoring=r;return r;}
   private async readSession(){
-    const g=this.gen,q=++this.sessionReads,stale=()=>g!==this.gen||q!==this.sessionReads;this.sessionAt=this.now();
+    const g=this.gen,life=this.life,q=++this.sessionReads,stale=()=>g!==this.gen||life!==this.life||q!==this.sessionReads||!this.lifecycle.mayRead(q,g,life);this.sessionAt=this.now();
     try{
       const r=await this.deps.fetch('/api/auth/session',{credentials:'same-origin'});if(stale())return;
       if(!r.ok){this.set({restored:true,sessionKnown:false,notice:r.status===503?'auth-unavailable':r.status===429?'rate-limited':this.s.notice});return;}
@@ -260,9 +267,9 @@ export class AuthClient{
       // R5-03: JSON success is not evidence of absence. Only the two valid tagged response variants are confirmed.
       if(!isRecord(v)||!(v.signedIn===false&&(v.expired===undefined||typeof v.expired==='boolean')||
         v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt))){this.set({restored:true,sessionKnown:false});return;}
-      if(this.flow?.uncertain&&this.flow.life===this.life)this.flow=null;
       if(v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt)){
         const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},held=this.s.session,same=held?.address===session.address;
+        this.lifecycle.read({kind:'PRESENT',session},q,g,life); // terminal release before house I/O
         const renew=!same||held!.expiresAt!==session.expiresAt;if(renew)this.homeGen++;       // another session: its predecessor's house read is dropped
         this.hint.set(session);this.set({session,expired:false,ended:null,restored:true,sessionKnown:true,home:same?this.s.home:null,...renew?{checking:false}:{}});
         await this.refreshHome(!same,!same);return;                                    // a page load is a refresh too (spec B08)
@@ -270,6 +277,7 @@ export class AuthClient{
       // Expired only when a session ran out: the server says so, or the held session's or this browser's hint's expiresAt
       // has passed here (N-7: read before the session is cleared); one revoked elsewhere (another tab's sign-out) is not.
       const held=this.s.session,now=this.now(),hint=this.hint.get();
+      this.lifecycle.read({kind:'ABSENT'},q,g,life);
       const expired=this.s.expired||v.expired===true||!!held&&held.expiresAt<=now||!!hint&&hint.expiresAt<=now;if(hint&&!expired)this.hint.set(null);
       this.homeGen++;this.set({session:null,home:null,restored:true,sessionKnown:true,expired,ended:expired?'expired':held?'revoked':this.s.ended,checking:false});
     }catch{if(!stale())this.set({restored:true,sessionKnown:false});}
@@ -296,7 +304,7 @@ export class AuthClient{
       // other 401 (AUTH_REQUIRED: revoked, unknown) is a revocation, and a 401 with no session held says nothing (N-1).
       if(r.status===401){if(!this.s.session){this.set({checking:false});return;}
         const ran=c==='SESSION_EXPIRED'||held.expiresAt<=this.now();
-        this.hint.set(null);this.set({session:null,home:null,expired:ran,ended:ran?'expired':'revoked',checking:false});return;}
+        this.hint.set(null);this.set({session:null,home:null,expired:ran,ended:ran?'expired':'revoked',checking:false,sessionKnown:false});return;}
       if(r.status===503)this.set({home:'unavailable',checking:false});
       else{const h=this.s.home,kept=h&&h!=='unavailable'&&this.now()-this.homeOkAt<=OWNER_STALE_MS?h:'unavailable';   // CORR-05
         this.set({checking:false,notice:r.status===429?'rate-limited':'failed',home:kept});}
@@ -316,110 +324,99 @@ export class AuthClient{
   async signIn(){
     if(this.busy)return;
     const p=this.deps.provider();if(!p){this.set({notice:'no-wallet'});return;}
-    this.busy=true;const epoch=this.gen,live=()=>epoch===this.gen;                   // no session read bumps gen
-    // N-1: the newest read, however many began meanwhile. ADV-3: and, unless the wallet's account is signed in already
-    // (no cookie is asked for then), no logout of this page still on its way (a switch's, an abandoned flow's, a
-    // sign-out's): its answer's Max-Age=0 would delete the cookie this sign-in sets. One still out after LOGOUT_WAIT_MS
-    // ends the click with nothing asked (the next click waits for it again). Checked again after every await. While a
-    // logout holds the click up the page says so (`waiting`; the panel's sign button is off), and a wait that runs out
-    // says that logout has not been answered ('logout-slow'), not that the session could not be read.
-    const asks=()=>!this.s.account||this.s.session?.address!==this.s.account,out=()=>!!this.restoring||this.unsettled.size>0&&asks();
-    const wait=async()=>{let ok=true;while(ok&&out()){if(live()&&this.unsettled.size>0&&asks()&&!this.s.waiting)this.set({waiting:true});ok=await this.quiet(asks);}return ok;};
-    let quiet=await wait();
-    if(quiet&&live()&&!this.s.sessionKnown){await this.restore();quiet=await wait();}
-    // N-2: a sign-out, an account or wallet switch or the page's teardown while the click waited ended it too (each bumps
-    // gen and clears busy, so busy is left alone here: a newer click may hold it; and `waiting`, so it is left alone too).
-    // It asks nothing, reads nothing more.
-    if(!live())return;
-    if(this.s.waiting)this.set({waiting:false});                                       // the wait is over, however the click goes on or ends below
-    if(!quiet){this.busy=false;this.set({notice:'logout-slow'});return;}
-    if(this.deps.provider()!==p){this.busy=false;return;}                               // the wallet changed while waiting
-    if(!this.s.sessionKnown){const n=this.s.notice;this.busy=false;this.set({notice:n==='rate-limited'||n==='auth-unavailable'?n:'session-unknown'});return;}
-    const g=++this.gen;                                                                // UNKNOWN does not cancel its retained cleanup responsibility
-    const life=this.life;
-    this.set({notice:null});let decided=()=>{},verifyUncertain=false,verifyAccount:string|null=null,verifyNonce:string|undefined;
+    const click=this.lifecycle.begin(p,this.s.account,this.gen,this.life)!;
+    const live=()=>this.lifecycle.current(click,this.deps.provider(),this.s.account,this.gen,this.life);
+    const asks=()=>!this.s.account||this.s.session?.address!==this.s.account;
+    const out=()=>!!this.restoring||this.unsettled.size>0&&asks();
+    const wait=async()=>{let ok=true;while(ok&&live()&&out()){
+      if(this.unsettled.size>0&&asks()&&!this.s.waiting)this.set({waiting:true});ok=await this.quiet(asks);
+    }return ok;};
+    let decided=()=>{},owner:CleanupOwner|undefined;
     try{
-      let account=this.s.account;
-      if(!account){const seen=this.accountEvents;
-        try{account=firstAccount(await p.request({method:'eth_requestAccounts'}));}catch{if(g===this.gen)this.set({notice:'connect-rejected'});return;}
-        if(g!==this.gen)return;if(!account){this.set({notice:'connect-rejected'});return;}
-        // R3-R1: an accountsChanged that came while the wallet was asked is newer than its answer: the latest event's account
-        // stands (B, or none for a lock), and an answer for another one ends the click here: nothing set, asked or verified.
-        // A same-account event (a wallet announcing the account it just granted) agrees, so a normal connect goes on.
-        if(seen!==this.accountEvents&&this.s.account!==account)return;
-        this.set({account});
+      let quiet=await wait();
+      if(quiet&&live()&&this.sessionUnknown()){await this.restore();quiet=await wait();}
+      if(!live())return;
+      if(this.s.waiting)this.set({waiting:false});
+      if(!quiet){this.set({notice:'logout-slow'});return;}
+      if(this.sessionUnknown()){
+        const n=this.s.notice;this.set({notice:n==='rate-limited'||n==='auth-unavailable'?n:'session-unknown'});return;
       }
-      if(this.s.session?.address===account){await this.refreshHome(true);return;}      // signed in already: no signature
-      if(this.s.session){                                                               // another address's session ends first
-        const held=this.s.session;
-        const ok=await this.hold(this.logoutRequest({expectedAddress:held.address}));
+      const g=++this.gen,life=this.life;this.lifecycle.promote(click,g);this.set({notice:null});
+      let account=click.account;
+      if(!account){
+        this.lifecycle.transition(click,'CONNECTING_WALLET');const seen=this.accountEvents;
+        try{account=firstAccount(await p.request({method:'eth_requestAccounts'}));}
+        catch{if(live())this.set({notice:'connect-rejected'});return;}
+        if(!click.valid||this.lifecycle.click!==click||g!==this.gen||life!==this.life||this.deps.provider()!==p)return;
+        if(!account){this.set({notice:'connect-rejected'});return;}
+        if(seen!==this.accountEvents&&this.s.account!==account)return;
+        if(!this.lifecycle.connected(click,account))return;this.set({account});
+      }
+      if(!live())return;
+      if(this.s.session?.address===account){await this.refreshHome(true);return;}
+      if(this.s.session){
+        const held=this.s.session,ok=await this.hold(this.logoutRequest({expectedAddress:held.address}));
         if(life!==this.life)return;
-        if(!ok){
-          if(g===this.gen){this.set({sessionKnown:false,notice:'signout-failed'});await this.restore();}return;}
-        // AUD3-04: as signOut's, no read begun before it is applied. ADV-1: A ends on the page even when another wallet was
-        // chosen meanwhile (gen moved on), unless a newer session is held by now. ADV-2: the other tabs re-read, as after a
-        // sign-out or an account switch.
-        this.loggedOut(g,held);this.broadcast('signed-out');}
-      if(g!==this.gen)return;
-      this.homeGen++;this.set({session:null,home:null,ended:null,phase:'awaitingSignature',signing:null,checking:false});   // N-1: the old session's house read is dropped
+        if(!ok){if(live()){this.set({sessionKnown:false,notice:'signout-failed'});await this.restore();}return;}
+        this.loggedOut(g,held);this.broadcast('signed-out');
+      }
+      if(!live())return;
+      this.homeGen++;this.set({session:null,home:null,ended:null,phase:'awaitingSignature',signing:null,checking:false});
+      this.lifecycle.transition(click,'CHALLENGE_REQUESTED');
       const c=await this.deps.fetch('/api/auth/challenge',JSON_POST({address:account}));
-      if(g!==this.gen)return;
-      if(!c.ok){const n=failure(c.status,await code(c));if(g===this.gen)this.set({phase:'idle',notice:n});return;}
+      if(!live())return;
+      if(!c.ok){const n=failure(c.status,await code(c));if(live())this.set({phase:'idle',notice:n});return;}
       const {nonce,message}=await c.json() as {nonce:string;message:string};
-      // N-2: the body came after an await; a dead flow, another wallet or a locked/switched account (accountChanged(null)
-      // does not bump gen) prompts nothing. No await from here to personal_sign, so this is the check before the prompt.
-      if(g!==this.gen)return;if(this.deps.provider()!==p||this.s.account!==account){this.set({phase:'idle'});return;}
-      // F-7a: the wallet sees only this site's own sign-in message for this account, now; anything else ends the flow here.
+      if(!live())return;
       const origin=this.deps.origin??globalThis.location?.origin??'';
       const signing=typeof message==='string'&&typeof nonce==='string'&&checkSignInMessage(message,{origin,account,nonce,now:this.now()})?signInSummary(message):null;
       if(!signing){this.set({phase:'idle',notice:'message-mismatch'});return;}
-      this.flow={g,life,nonce,account,uncertain:false};
-      this.set({signing});                                                             // the panel's summary while the wallet is open
+      this.lifecycle.challenge(click,nonce);
+      // A newer canonical read may have resolved this cookie while the challenge was awaited.
+      if(this.sessionUnknown()){this.set({phase:'idle',notice:'session-unknown'});return;}
+      if(this.s.session?.address===account){this.set({phase:'idle'});await this.refreshHome(true);return;}
+      this.lifecycle.transition(click,'SIGNATURE_PROMPTING');this.set({signing});
       let signature:string;
       try{signature=await p.request({method:'personal_sign',params:[hexUtf8(message),account]}) as string;}
-      catch{if(g===this.gen)this.set({phase:'idle',notice:'sign-rejected'});return;}
-      if(g!==this.gen)return;                                                          // switched while the wallet was open: never verify
-      // R3-R1: nor after a lock (accountChanged(null) does not bump gen) or another wallet while the prompt was open, as before it.
-      if(this.deps.provider()!==p||this.s.account!==account){this.set({phase:'idle'});return;}
-      this.set({phase:'verifying'});
-      this.hold(new Promise<void>(r=>{decided=r;}));                                   // ADV-3: until this verify's cookie is kept, or logged out below
-      verifyUncertain=true;verifyAccount=account;verifyNonce=nonce;                    // fetch/body failure may still have installed the session cookie
-      if(this.flow?.g===g)this.flow.uncertain=true;
+      catch{if(live())this.set({phase:'idle',notice:'sign-rejected'});return;}
+      if(!live())return;
+      this.set({phase:'verifying',sessionKnown:false});
+      this.hold(new Promise<void>(r=>{decided=r;}));
+      owner=this.lifecycle.verify(click,this.sessionReads);
       const v=await this.deps.fetch('/api/auth/verify',JSON_POST({nonce,signature}));
-      // A late success of an abandoned flow is logged out on its headers, which brought its cookie (the review of 066d109,
-      // RC-1: waiting for its body left that session live, and the click held, while the body stalled). The body is
-      // consumed independently; only the nonce-bound request and a fresh cookie read can decide cleanup and UI state.
-      if(g!==this.gen){if(v.ok){void sessionIn(v);this.revokeAbandoned(g,life,nonce);}return;}
-      if(!v.ok){verifyUncertain=false;decided();const n=failure(v.status,await code(v));if(g===this.gen)this.set({phase:'idle',notice:n});return;}   // a refusal sets no cookie; a dead flow's late refusal is not the new flow's
+      this.lifecycle.observe(owner,this.sessionReads);
+      if(!v.ok){
+        this.lifecycle.release(owner);decided();const n=failure(v.status,await code(v));
+        if(live()){await this.restore();if(live())this.set({phase:'idle',notice:n});}return;
+      }
+      if(!live()){void sessionIn(v);this.revokeAbandoned(owner);return;}
+      if(owner.abandoned)this.revokeAbandoned(owner);
       const session=await sessionIn(v);
-      if(g!==this.gen){this.revokeAbandoned(g,life,nonce);return;}
-      if(!session){await this.reconcileVerify(g,life,p,account,nonce);return;}
-      if(session.address!==account){this.revokeAbandoned(g,life,nonce);this.set({phase:'idle',notice:'failed'});return;}
-      verifyUncertain=false;
-      if(this.flow?.g===g)this.flow=null;
-      this.gen++;this.busy=false;                                                      // a session read begun before this is stale now
-      this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});this.broadcast('signed-in');decided();
-      await this.refreshHome(true);
+      if(!live()){this.revokeAbandoned(owner);return;}
+      if(owner.status!=='RETAINED'){this.set({phase:'idle'});return;}
+      if(!session){await this.reconcileVerify(click,owner);return;}
+      if(session.address!==account){this.revokeAbandoned(owner);this.set({phase:'idle',notice:'failed'});return;}
+      if(!this.lifecycle.accept(click,owner,session))return;
+      this.lifecycle.finish(click);this.gen++; // prior session reads cannot overwrite this accepted body
+      this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});
+      this.broadcast('signed-in');decided();await this.refreshHome(true);
     }catch{
-      if(verifyUncertain){if(g===this.gen)await this.reconcileVerify(g,life,p,verifyAccount,verifyNonce);else this.revokeAbandoned(g,life,verifyNonce);}
-      else if(g===this.gen)this.set({phase:'idle',notice:'failed'});
+      if(owner){this.lifecycle.observe(owner,this.sessionReads);
+        if(live())await this.reconcileVerify(click,owner);else this.revokeAbandoned(owner);
+      }else if(live())this.set({phase:'idle',notice:'failed'});
+    }finally{
+      decided();if(this.lifecycle.click===click){if(this.s.phase!=='idle'||this.s.waiting)this.set({phase:'idle',waiting:false});this.lifecycle.finish(click);}
     }
-    finally{decided();if(this.flow?.g===g&&!this.flow.uncertain)this.flow=null;if(g===this.gen)this.busy=false;}
   }
-  /** AUD4-06: a successful verify can set its cookie before its JSON becomes unreadable. Keep this flow verifying
-   *  while reading the server again: switches still abandon it, and no second signature is possible until that read
-   *  proves whether a session exists. A failed read leaves sessionKnown false for the next click to retry. */
-  private async reconcileVerify(g:number,life:number,p:Provider,account:string|null,nonce?:string){
-    if(g!==this.gen||life!==this.life){this.revokeAbandoned(g,life,nonce);return;}
-    if(this.deps.provider()!==p||this.s.account!==account){
-      this.revokeAbandoned(g,life,nonce);this.set({phase:'idle',sessionKnown:false});return;
-    }
+  /** Recovery is ordered after response/transport observation, not after dispatch. Release precedes house awaits. */
+  private async reconcileVerify(click:ClickOwner,owner:CleanupOwner){
+    const live=()=>this.lifecycle.current(click,this.deps.provider(),this.s.account,this.gen,this.life);
+    if(owner.status!=='RETAINED'){if(live())this.set({phase:'idle'});return;}
+    if(!live()){this.revokeAbandoned(owner);return;}
+    this.lifecycle.transition(click,'VERIFY_RECONCILING');
     this.sessionReads++;this.homeGen++;this.set({sessionKnown:false,home:null,checking:false});
     await this.restore();
-    if(g!==this.gen||life!==this.life){this.revokeAbandoned(g,life,nonce);return;}
-    if(this.deps.provider()!==p||this.s.account!==account){
-      this.revokeAbandoned(g,life,nonce);this.set({phase:'idle',sessionKnown:false});return;
-    }
+    if(!live()){this.revokeAbandoned(owner);return;} // terminal owners refuse this request
     this.set({phase:'idle',notice:this.s.sessionKnown?this.s.session?null:'failed':'session-unknown'});
     if(this.s.sessionKnown&&this.s.session)this.broadcast('signed-in');
   }
@@ -431,7 +428,7 @@ export class AuthClient{
   async signOut(everywhere=false){
     if(this.s.leaving)return;
     const life=this.life;
-    this.gen++;this.busy=false;this.flow=null;const g=this.gen,held=this.s.session??undefined;
+    this.gen++;this.lifecycle.cancel();for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);const g=this.gen,held=this.s.session??undefined;
     this.set({phase:'idle',notice:null,leaving:true,waiting:false});
     const ok=await this.hold(everywhere?this.logoutAllRequest(held?.address):this.logoutRequest());
     if(life!==this.life)return;
@@ -462,25 +459,31 @@ export class AuthClient{
    *  so the page shows A's still-valid session as a mismatch (never as signed out). A locked wallet (no account) leaves a
    *  valid session alone. */
   accountChanged(a:string|null){
-    this.accountEvents++;                                                              // R3-R1: every event, before any early return
-    if(a===this.s.account)return;
-    if(!a){this.set({account:null});return;}
-    const abandoned=this.flow,wasFlow=this.s.phase!=='idle'||!!abandoned?.uncertain,other=!!this.s.session&&this.s.session.address!==a;
+    this.accountEvents++;
+    const click=this.lifecycle.click;
+    if(a===this.s.account&&!(a===null&&click))return;
+    // A wallet announcing the account of this click's explicit initial grant agrees with that grant.
+    if(a&&click?.state==='CONNECTING_WALLET'&&click.accountAtClick===null&&click.account===null){this.set({account:a});return;}
+    const wasFlow=!!click||this.lifecycle.retainedOwners.length>0;
+    const other=!!a&&!!this.s.session&&this.s.session.address!==a;
     if(!wasFlow&&!other){this.set({account:a});return;}
-    this.gen++;this.busy=false;this.flow=null;const g=this.gen,ended=other?this.s.session!:undefined;
+    this.gen++;this.lifecycle.cancel();const g=this.gen,ended=other?this.s.session!:undefined;
     this.set({account:a,phase:'idle',...other?{session:null,home:null}:{},sessionKnown:false,notice:null,checking:false,waiting:false});
-    if(other||wasFlow){this.hint.set(null);this.automaticCleanup(g,this.life,abandoned,ended,other);}
+    if(other||wasFlow){if(other)this.hint.set(null);this.automaticCleanup(g,this.life,click,ended,other);}
+    for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);
   }
-  /** A late verify's headers are enough to trigger token/nonce-bound cleanup; its body is not session identity or
-   *  authority. Cleanup still runs after teardown, but only the same mounted lifetime can reconcile the UI. */
-  private revokeAbandoned(g:number,life:number,nonce?:string){
-    if(!nonce)return; // An unknown old flow is never authority to log out the current shared cookie.
-    const current=()=>life===this.life;
-    this.sendLogout(ok=>{if(!current())return;
+  /** One operation owns conditional cleanup. Old closures can request it, never recreate or revive it. */
+  private revokeAbandoned(owner:CleanupOwner){
+    if(!this.lifecycle.abandon(owner)||!this.lifecycle.claimCleanup(owner))return;
+    const g=owner.generation,life=owner.life;
+    this.sendLogout(ok=>{
+      const retry=this.lifecycle.cleanupDone(owner,ok);
+      if(retry){this.revokeAbandoned(owner);return;}
+      if(owner.status==='RETAINED'||life!==this.life)return;
       if(!ok){if(g===this.gen||!this.busy&&this.s.phase==='idle')void this.restore();return;}
       if(g===this.gen){if(this.s.session)this.reconcileCleanup();else this.loggedOut(g);}
       else if(!this.busy&&this.s.phase==='idle')this.reconcileCleanup();
-    },{expectedNonce:nonce});
+    },{expectedNonce:owner.nonce});
   }
   /** AUD3-04: a logout this page sent was confirmed (2xx: revoked, cookie cleared). Unless a newer flow began since it was
    *  sent (g; that flow's own gen++ already dropped every older read, and later reads are the new session's), every

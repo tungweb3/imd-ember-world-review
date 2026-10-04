@@ -1,0 +1,207 @@
+{
+  "schema": "imd.public-source-validation/r7",
+  "generatedAtUtc": "2026-10-04T03:41:05.866160+00:00",
+  "source_manifest": "manifests/r7-published-source.json",
+  "deployed_source_commit": "e48a94f8951938f889fa3aa963c0a3e9e1df9dfd",
+  "auth_remediation_commit": "ff6bed81afe69fddfc006d9ec8e96e3e6448ecc7",
+  "public_parent": "445747d6a4d4fb6fa4eaa9c67b74e3e2bd9c1703",
+  "source_files": 111,
+  "exact_files": 95,
+  "redacted_files": 16,
+  "preserved_mask_lines": 57,
+  "published_auth_scope_identical_between_auth_and_deployed_commits": true,
+  "dependency_runtime": {
+    "Node": "24.19.0",
+    "TypeScript": "5.9.3",
+    "Wrangler": "4.143.0",
+    "package_lock_sha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "install": "No install; existing exact-lock dependency junction",
+    "scene_import_stubs": "none"
+  },
+  "supported_public_tests": {
+    "startedAtUtc": "2026-10-04T03:33:46.637704+00:00",
+    "command": "node --test --test-reporter=tap --test-concurrency=3 tests/auth.test.mjs tests/aud4-auth.test.mjs tests/auth-r5.test.mjs tests/auth-r5-authority.test.mjs tests/member-client.test.mjs tests/member-r4.test.mjs tests/member-r5.test.mjs tests/auth-lifecycle-model.test.mjs tests/auth-r7-authority.test.mjs tests/auth-r7-lifecycle.test.mjs tests/member-r7-cache.test.mjs",
+    "scope": "111 supplied sanitized source text files; no scene import stubs or private frontend modules",
+    "endedAtUtc": "2026-10-04T03:34:08.006148+00:00",
+    "exitCode": 0,
+    "counts": {
+      "tests": 386,
+      "pass": 386,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "sourceUnchangedDuringRun": true
+  },
+  "public_typecheck": {
+    "startedAtUtc": "2026-10-04T03:34:10.330351+00:00",
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "scope": "111 supplied sanitized source text files; no scene import stubs or private frontend modules",
+    "endedAtUtc": "2026-10-04T03:34:13.439552+00:00",
+    "exitCode": 2,
+    "counts": {},
+    "sourceUnchangedDuringRun": true,
+    "diagnostics": [
+      {
+        "path": "src/main.tsx",
+        "line": 3,
+        "column": 17,
+        "code": "TS2307",
+        "message": "Cannot find module './world/WorldApp' or its corresponding type declarations."
+      },
+      {
+        "path": "src/main.tsx",
+        "line": 4,
+        "column": 26,
+        "code": "TS2307",
+        "message": "Cannot find module './world/bridge.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/main.tsx",
+        "line": 5,
+        "column": 29,
+        "code": "TS2307",
+        "message": "Cannot find module './world/dataMode.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/main.tsx",
+        "line": 6,
+        "column": 30,
+        "code": "TS2307",
+        "message": "Cannot find module './world/skin/terrainTask.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/main.tsx",
+        "line": 7,
+        "column": 30,
+        "code": "TS2307",
+        "message": "Cannot find module './world/screenSpace.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/main.tsx",
+        "line": 8,
+        "column": 27,
+        "code": "TS2307",
+        "message": "Cannot find module 'virtual:baked-terrain' or its corresponding type declarations."
+      },
+      {
+        "path": "src/world/homeEntry.ts",
+        "line": 5,
+        "column": 58,
+        "code": "TS2307",
+        "message": "Cannot find module './households.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/world/homeEntry.ts",
+        "line": 6,
+        "column": 49,
+        "code": "TS2307",
+        "message": "Cannot find module './layout.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/world/HomePanels.tsx",
+        "line": 2,
+        "column": 35,
+        "code": "TS2307",
+        "message": "Cannot find module './households.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/world/HomePanels.tsx",
+        "line": 3,
+        "column": 29,
+        "code": "TS2307",
+        "message": "Cannot find module './layout.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/world/HomePanels.tsx",
+        "line": 20,
+        "column": 55,
+        "code": "TS7006",
+        "message": "Parameter 'id' implicitly has an 'any' type."
+      },
+      {
+        "path": "src/world/WalletPanel.tsx",
+        "line": 3,
+        "column": 25,
+        "code": "TS2307",
+        "message": "Cannot find module './households.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "src/world/walletView.ts",
+        "line": 3,
+        "column": 25,
+        "code": "TS2307",
+        "message": "Cannot find module './households.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "vite.config.ts",
+        "line": 9,
+        "column": 29,
+        "code": "TS2307",
+        "message": "Cannot find module './scripts/content-hash.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "vite.config.ts",
+        "line": 10,
+        "column": 30,
+        "code": "TS2307",
+        "message": "Cannot find module './src/world/skin/terrainField.ts' or its corresponding type declarations."
+      },
+      {
+        "path": "vite.config.ts",
+        "line": 11,
+        "column": 47,
+        "code": "TS2307",
+        "message": "Cannot find module './src/world/skin/terrainBake.ts' or its corresponding type declarations."
+      }
+    ],
+    "summary": {
+      "total": 16,
+      "TS2307": 15,
+      "TS7006": 1,
+      "cause": "Withheld frontend/scene/build imports; implicit-any follows missing Home type",
+      "fullPublicFrontendBuild": "not executed: required private presentation sources are intentionally absent"
+    }
+  },
+  "worker_rebuild_runs": [
+    {
+      "startedAtUtc": "2026-10-04T03:35:39.910625+00:00",
+      "command": "node node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir worker-public",
+      "scope": "111 supplied source files, no private frontend/scene/stubs, same-depth dependency junction fixture",
+      "assetsFixture": "Empty local dist/index.html solely satisfies ASSETS configuration validation; not frontend or website",
+      "endedAtUtc": "2026-10-04T03:35:41.383498+00:00",
+      "exitCode": 1,
+      "limits": [
+        "No upload/version/production change; generated Worker/map and raw logs stay private.",
+        "Exact raw bytes depend on recorded dependency realpath/checkout depth and are not guaranteed across arbitrary layouts."
+      ],
+      "failure": "Local compiler sandbox could not read an ancestor directory or resolve entrypoint. Original failed run retained privately."
+    },
+    {
+      "startedAtUtc": "2026-10-04T03:36:40.289322+00:00",
+      "command": "node node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir worker-public",
+      "scope": "111 supplied source files, no private frontend/scene/stubs, same-depth dependency junction fixture",
+      "assetsFixture": "Empty local dist/index.html solely satisfies ASSETS configuration validation; not frontend or website",
+      "endedAtUtc": "2026-10-04T03:36:42.228247+00:00",
+      "exitCode": 0,
+      "worker": {
+        "bytes": 314508,
+        "sha256": "afd82f506aceb57ca85ce44ff6c7e65146546d383ae2e2b2b7feca72bd23e92a",
+        "rawByteMatchToTeamDeployedWorker": true
+      },
+      "limits": [
+        "No upload/version/production change; generated Worker/map and raw logs stay private.",
+        "Exact raw bytes depend on recorded dependency realpath/checkout depth and are not guaranteed across arbitrary layouts."
+      ],
+      "permission": "Local compiler permission retry; no upload or network publication"
+    }
+  ],
+  "scope": "Audit/Report remediation only. New avatar/selfie/frontend/3D features and their tests are omitted.",
+  "limits": [
+    "Supported public subset is not the private 1392-test suite or full-browser coverage.",
+    "Generated Worker/map, all raw logs, private evidence and dependency directory remain outside this repository.",
+    "Byte equality is conditional on recorded same-depth dependency junction; no raw-bundle rewriting or normalization.",
+    "No live wallet signing, authenticated M1 write, production D1 concurrency/cron/WAF/limiter test or new external verdict."
+  ]
+}
