@@ -1,0 +1,107 @@
+{
+  "schema": "imd.submission7-tests/v1",
+  "sourceCommit": "8a22b51035c965b9df2fe010e3ac0a780581b0e2",
+  "publicFilteredTests": {
+    "startedAtUtc": "2026-10-04T14:22:10.897683+00:00",
+    "endedAtUtc": "2026-10-04T14:22:20.168420+00:00",
+    "exitCode": 0,
+    "counts": {
+      "tests": 518,
+      "pass": 518,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "sourceUnchangedDuringRun": true,
+    "command": "node --test --test-reporter=tap --test-concurrency=3 tests/auth.test.mjs tests/aud4-auth.test.mjs tests/auth-r5.test.mjs tests/auth-r5-authority.test.mjs tests/member-client.test.mjs tests/member-r4.test.mjs tests/member-r5.test.mjs tests/auth-lifecycle-model.test.mjs tests/auth-r7-authority.test.mjs tests/auth-r7-lifecycle.test.mjs tests/member-r7-cache.test.mjs tests/auth-r8.test.mjs tests/ownership-market-r8.test.mjs tests/auth-v11.test.mjs tests/ownership-v11.test.mjs tests/freshness-v11.test.mjs tests/auth-reference-scheduler.test.mjs",
+    "stdout": {
+      "sha256": "8897ae03a47bfda37b5dac7472e6873efb0dcb55c65f19746eeeba94a4ea41c5",
+      "bytes": 1651579
+    },
+    "stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "publicSourceFiles": 128,
+  "environment": {
+    "node": "v24.19.0",
+    "nodeExeSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "dependencies": "source/package-lock.json; existing local exact installed dependencies; no package upgrade"
+  },
+  "publicFilteredTypeScript": {
+    "startedAtUtc": "2026-10-04T14:22:56.839727+00:00",
+    "endedAtUtc": "2026-10-04T14:22:58.946525+00:00",
+    "exitCode": 2,
+    "counts": {},
+    "sourceUnchangedDuringRun": true,
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "stdout": {
+      "sha256": "77b4bd39ee2c96299ec33b565676c94e35db3595709f9cc3b19f357f307cb191",
+      "bytes": 1802
+    },
+    "stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "publicFilteredTypeScriptDiagnostics": {
+    "TS2307": 14,
+    "TS7006": 1
+  },
+  "publicFrontend": "Unavailable from deliberately filtered snapshot; missing presentation modules are not replaced with stubs. Public tsc failure is recorded, not counted as a full frontend pass.",
+  "publicWorkerDryRun": {
+    "startedAtUtc": "2026-10-04T14:24:53.548799+00:00",
+    "endedAtUtc": "2026-10-04T14:24:54.369870+00:00",
+    "command": "node node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir ../worker-public",
+    "exitCode": 0,
+    "worker": {
+      "path": "public-worker-check/worker-public/index.js",
+      "sha256": "6dd8f989305883f551b24e869d0ae411d4cd297af30d1b13fc037538dd610d5b",
+      "bytes": 318097,
+      "rawByteMatchToTeamDeployedWorker": null,
+      "parityLimit": "No current production artifact supplied; build success does not establish deployment or deployed artifact parity."
+    },
+    "assetsFixture": "Empty local dist/index.html solely satisfies ASSETS config. No frontend/3D/site content copied; generated Worker/maps stay private."
+  },
+  "publicWorkerAttempts": [
+    {
+      "label": "worker-dry-run",
+      "exitCode": 1
+    },
+    {
+      "label": "worker-dry-run-local-compiler-retry",
+      "exitCode": 0
+    }
+  ],
+  "publicWorkerFailureDisclosure": "Initial sandbox compiler failed to read a parent directory. Its logs are retained privately; local-compiler permissions retry uses identical inputs and deploy --dry-run only, no upload or production mutation.",
+  "privateTeamMeasurements": {
+    "completeTests": {
+      "tests": 1528,
+      "pass": 1528,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "frozenRun": {
+      "label": "full-tests-frozen-03",
+      "startedAt": "2026-10-04T14:16:18.448Z",
+      "elapsedMs": 114196,
+      "exitCode": 0
+    },
+    "inputFreeze": {
+      "files": 337,
+      "beforeAfterUnchanged": true,
+      "workingBytesEqualCommitBlobs": true,
+      "normalization": "313 measured code/evaluator inputs had only CRLF/LF differences after commit normalization; full tests/tsc/build rerun against exact frozen LF bytes."
+    },
+    "typeScriptExitCode": 0,
+    "viteProductionBuildExitCode": 0,
+    "largeChunkWarning": "Existing warning retained; successful compilation is not a performance measurement.",
+    "boundary": "Private complete source includes withheld frontend/media; totals are not public execution or external validation."
+  },
+  "knownHistory": "An earlier full run found one real slow-discovery clock regression plus one stale documented test name; both were repaired, raw failures retained privately and full run repeated.",
+  "status": "Ready for targeted offline external review; no external closure or production-parity verdict is asserted."
+}

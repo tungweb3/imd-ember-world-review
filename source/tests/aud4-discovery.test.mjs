@@ -107,9 +107,12 @@ test('AUD4-03 preflight failure: missing/failing D1 stops before the local key a
 test('AUD4-03 slow local admission dates the final reservation with a fresh clock',async()=>{
   const {account,w}=buyerWorld(),t0=w.clock.now();
   const local={limit:async({key})=>{if(key==='chain:index:lane')w.clock.advance(NETWORK_WINDOW_MS);return {success:key!=='chain:index'};}};
-  const buyer=await signedIn(w,account,'198.51.100.20',local),r=await buyer.get('/api/me/home');
-  assert.equal(r.status,200);assert.equal((await body(r)).eligible,1);
+  const buyer=await signedIn(w,account,'198.51.100.20',local),r=await buyer.get('/api/me/home'),h=await body(r);
+  assert.equal(r.status,200);assert.equal(h.eligible,1);
   assert.deepEqual([w.db.raw.prepare('SELECT at FROM index_lanes').get().at,reads(w)],[t0+NETWORK_WINDOW_MS,1]);
+  assert.equal(h.checkedAt,t0+NETWORK_WINDOW_MS,'expired pre-admission epoch is replaced by an actually current ownerOf proof');
+  assert.equal(w.db.raw.prepare('SELECT read_at FROM index_candidates').get().read_at,t0+NETWORK_WINDOW_MS,'kept index also dates the admitted read, not request start');
+  assert.deepEqual(h.seats.map(s=>s.tokenId),['361']);assert.equal(h.recheck,undefined);
 });
 
 test('AUD4-03 conservative D1 result: an applied row without RETURNING or changes sends no index read and is not refunded',async()=>{

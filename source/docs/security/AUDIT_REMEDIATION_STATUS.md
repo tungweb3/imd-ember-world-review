@@ -1289,7 +1289,7 @@ the page shows only while it holds that session); one assertion of a `10bb630` t
 - **Files changed:** `server/ownership.ts`.
 - **Tests:** `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" (the
   reproduction; on `f4272c5` 503 `OWNERSHIP_UNAVAILABLE`; its controls, the lane key refused and a 0001–0004 database,
-  answer 200 `limited`), "AUD3-01: the same for a timeout and for a malformed index body…", "AUD3-01: a lane rebuild whose ownerOf read fails keeps the first proof…",
+  answer 200 `limited`), "AUD3-01: the same for a timeout and for a malformed index body…", "AUD3-01: a lane delta whose new-candidate ownerOf read fails keeps the first proof…",
   and the guards "AUD3-01 guard: a first proof that cannot be made is still 503 and asks no lane…" (fails if `home()` also
   carries on past a failed first proof) and "AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild…"
   (`bd4f749`; D1 failing on the rebuild's sightings read is 503; fails with a catch-all in the rebuild).
@@ -1449,16 +1449,16 @@ the page shows only while it holds that session); one assertion of a `10bb630` t
   A), "ADV-2: the sign-in click’s confirmed logout of A is told to the other tabs…" (on `125248c` the other tab stayed
   owner for A), and the guards "ADV-1 guard: a newer session the page holds when the click’s logout of A is confirmed…"
   (fails with the session compared by address only) and "ADV-3 guard: another wallet chosen while the click waits for an account switch’s logout…"
-  (fails with the account switch's logout not naming the session it ended). Since `f095642`: "ADV-1: “Log out this device” confirmed after another wallet became current while a click waited for it…"
+  (fails with the account switch's logout not naming the session it ended). Since `f095642` (current v1.1 successor control): "ADV-1 v1.1: explicit logout and later provider switch have separate primary decisions…"
   (on `2f5d6c1` session A, its house and hint, no "Signed out.", and the other tab owner for A; it fails with any of
   the new end's three parts removed: ending the session, "Signed out.", telling the other tabs), "ADV-1: an abandoned flow’s late session, shown by a read while a click waited for its logout…"
   (on `2f5d6c1` owner mode for the revoked late session; it fails with that session not named, or its verify body not
   read), and the guard "ADV-2 guard: the confirmed logout of a click that another wallet ended is still told to the other tabs…"
-  (fails with the broadcast limited to a live click). Since `7b2d74d` (the team's review of `066d109`): "ADV-1: an abandoned flow’s late session whose verify body and logout answer land in either order…"
+  (fails with the broadcast limited to a live click). Since `7b2d74d` (the team's review of `066d109`; current v1.1 successor control): "ADV-1 v1.1: later provider switch has displayed authority even while old nonce cleanup is held…"
   (on `066d109` no logout went out before the body; it fails with a body that lands after the confirmation ending
   nothing, or with one that lands before it ending the session at once), "ADV-1: an abandoned flow that dies while its verify body is read…"
   (passes on `066d109`; on `2f5d6c1`, and with that logout naming no session, owner mode for the revoked late session),
-  and the guards "ADV-1 guard: a sign-out confirmed after another wallet became current leaves a newer session the page holds by then…"
+  and the guards (current v1.1 successor control) "ADV-1 v1.1 guard: old explicit closure never labels newer context Signed out…"
   (fails with "Signed out." set whatever `loggedOut` did, with `loggedOut` reporting that it applied when it did
   nothing, or with another wallet leaving the waiting line of the click it ended) and "ADV-1 guard: a “Log out all devices” the server refused (this browser’s sign-in had ended)…"
   (fails with that branch taking any answer but a 2xx as a confirmed sign-out).
@@ -1557,7 +1557,7 @@ the page shows only while it holds that session); one assertion of a `10bb630` t
   waits, then `logout-slow` instead of `session-unknown`; since `7b2d74d` the state `waiting` in place of that notice),
   and eight guards that pass on `2f5d6c1`, each failing under
   the weakening named after it: "ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen…"
-  (that logout not held; on `125248c`, which did not wait, the new account signed in and then lost its cookie), "ADV-3 guard: a wallet switch’s logout of the flow it ended still out…"
+  (that logout not held; on `125248c`, which did not wait, the new account signed in and then lost its cookie), (current v1.1 successor control) "ADV-3 v1.1: pending-only provider switch cancels locally…"
   (`providerChanged`'s logout not held; the same on `125248c`), "ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes…"
   (`revokeAbandoned`'s logout not held; the same on `125248c`), "ADV-3 guard: signed in already as the wallet’s account while this page’s logout is still out…"
   (every click waiting; a fake timer, so no real 5 s decides it), "ADV-3 guard: a click waiting for this page’s logout goes on as soon as a read shows the wallet’s account signed in already…"
@@ -1668,13 +1668,13 @@ tests that hold them and their state:
 | T10 | recovery after T09 | `tests/wallet-client.test.mjs` "AUD3-05 guard: once the session read works again…" | FIXED_LOCAL (guard) |
 | T11 | a late session read after a new verify | `tests/auth.test.mjs` "AUD3-06: a late signed-out answer for a revoked cookie…", "AUD3-06: on the page, a session read sent with a dead cookie…" | FIXED_LOCAL |
 | T12 | a late house 401 or logout-all 401 | `tests/auth.test.mjs` "AUD3-06: a late signed-out answer for a revoked cookie…", "AUD3-06: the same for an expired cookie…"; `tests/wallet-client.test.mjs` "AUD3-06: a refused logout-all (401) answered after another tab of the profile signed in…" | FIXED_LOCAL |
-| T13 | an explicit logout racing a new verify | `tests/auth.test.mjs` "AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in…"; `tests/wallet-client.test.mjs` "ADV-3: an account switch’s logout still on its way when the click comes…", "ADV-3: a click while this page’s sign-out is on its way…", "ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen…", "ADV-3 guard: a wallet switch’s logout of the flow it ended still out…", "ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes…" | RESIDUAL (pinned) for another tab's sign-in; this page's own next sign-in FIXED_LOCAL (`10bb630`; its holds pinned since `f095642`) |
+| T13 | an explicit logout racing a new verify | `tests/auth.test.mjs` "AUD3-06 guard: an explicit log-out whose answer lands after another tab’s sign-in…"; `tests/wallet-client.test.mjs` "ADV-3: an account switch’s logout still on its way when the click comes…", "ADV-3: a click while this page’s sign-out is on its way…", "ADV-3 guard: the sign-in click’s own logout of A still out when another wallet is chosen…", "ADV-3 v1.1: pending-only provider switch cancels locally…", "ADV-3 guard: an abandoned flow’s late session whose logout is still out when the click comes…" | RESIDUAL (pinned) for another tab's sign-in; this page's own next sign-in FIXED_LOCAL (`10bb630`; its holds pinned since `f095642`) |
 | T14 | logout-all `SESSION_EXPIRED`, the page's clock behind | `tests/wallet-client.test.mjs` "AUD3-07: “Log out all devices” on a session the server says ran out…" | FIXED_LOCAL |
 | T15 | `AUTH_REQUIRED`, an unreadable body, a late answer | `tests/wallet-client.test.mjs` "AUD3-07 guard: an AUTH_REQUIRED or unreadable 401…", "AUD3-07 guard: a logout-all answer, or its follow-up read…", "AUD3-07: when the follow-up session read fails…", "AUD3-07: a house read in flight across a refused logout-all…" | FIXED_LOCAL |
 | T16 | real browsers' and wallets' event order | none possible here | BLOCKED_EVIDENCE |
 | T17 | the lane's index read 502 | `tests/ownership.test.mjs` "AUD3-01: a lane read that fails (502) keeps the request’s first proof…" | FIXED_LOCAL |
 | T18 | a timeout or a malformed body | `tests/ownership.test.mjs` "AUD3-01: the same for a timeout and for a malformed index body…" | FIXED_LOCAL |
-| T19 | the first proof unavailable, ownerOf uncertain | `tests/ownership.test.mjs` "AUD3-01: a lane rebuild whose ownerOf read fails…", "AUD3-01 guard: a first proof that cannot be made…", "AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild…" | FIXED_LOCAL |
+| T19 | the first proof unavailable, ownerOf uncertain | `tests/ownership.test.mjs` "AUD3-01: a lane delta whose new-candidate ownerOf read fails…", "AUD3-01 guard: a first proof that cannot be made…", "AUD3-01 guard: an error other than OwnershipUnavailable in the lane rebuild…" | FIXED_LOCAL |
 | T20 | the key refuses after the claim | `tests/ownership.test.mjs` "AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s…" | FIXED_LOCAL |
 | T21 | the key throws or its binding is missing | `tests/ownership.test.mjs` "AUD3-02: a key that throws makes no admitted reservation or index read and keeps the 30 s probe backoff…"; `tests/auth.test.mjs` "on imdember.com a missing AUTH, API, SEAT or CHAIN limiter binding…", "AUD3-03: a missing CHAIN_LIMITER binding at the budget is 503…" | FIXED_LOCAL |
 | T22 | refused at 0 s, free at 31 s | `tests/ownership.test.mjs` "AUD3-02: a refused local key reserves no admitted row; the separate probe gate allows retry after 30 s…" | FIXED_LOCAL; the limiter assumption BLOCKED_EVIDENCE |

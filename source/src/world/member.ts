@@ -5,6 +5,7 @@
 // answer's own loginWallet (it must be the wallet this state is for), and the server's expectedActorPublicId and
 // expectedProfileVersion on every write (a tab whose cookie now belongs to another wallet is refused there).
 import type {ProfileState} from './memberName.ts';
+import {isFreshAge} from '../shared/freshness.ts';
 
 export type MemberView={member:{publicMemberId:string;displayName:string|null;profileState:ProfileState;version:number;
     nameChangedAt:number|null;nextNameChangeAt:number|null};
@@ -192,7 +193,7 @@ const names=new Map<string,{at:number;name:Promise<string|null>}>();
 export function publicName(address:string,now=Date.now(),get:(p:string)=>Promise<Response>=p=>fetch(p,{credentials:'same-origin'})):Promise<string|null>{
   const a=address.toLowerCase();if(!/^0x[\da-f]{40}$/.test(a))return Promise.resolve(null);
   // A backward wall-clock jump expires this public cache entry rather than extending its lifetime.
-  const hit=names.get(a);if(hit&&now>=hit.at&&now-hit.at<NAME_TTL_MS)return hit.name;
+  const hit=names.get(a);if(hit&&isFreshAge(now,hit.at,NAME_TTL_MS))return hit.name;
   const name=get('/api/world/names/'+a).then(async r=>{if(!r.ok)return null;const v=await r.json() as {name?:unknown};return typeof v.name==='string'?v.name:null;}).catch(()=>null);
   names.set(a,{at:now,name});if(names.size>256)names.delete(names.keys().next().value!);
   return name;
@@ -207,7 +208,7 @@ export type Timers={set:(f:()=>void,ms:number)=>unknown;clear:(t:unknown)=>void}
 export function lookupName(address:string,onName:(name:string|null)=>void,{timers,now=Date.now,get}:{timers?:Timers;now?:()=>number;get?:(p:string)=>Promise<Response>}={}):()=>void{
   let live=true;const a=address.toLowerCase(),t=timers??{set:(f,ms)=>setTimeout(f,ms),clear:x=>clearTimeout(x as ReturnType<typeof setTimeout>)};
   const run=()=>{void publicName(a,now(),get).then(n=>{if(live)onName(n);});};
-  const hit=names.get(a),at=now();if(hit&&at>=hit.at&&at-hit.at<NAME_TTL_MS){run();return ()=>{live=false;};}
+  const hit=names.get(a),at=now();if(hit&&isFreshAge(at,hit.at,NAME_TTL_MS)){run();return ()=>{live=false;};}
   const timer=t.set(run,NAME_LOOKUP_DELAY_MS);
   return ()=>{live=false;t.clear(timer);};
 }

@@ -5,6 +5,7 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40),session={address:A,expiresAt:2
 function flow(){
   const m=new AuthLifecycle(),provider={};m.start();m.know({kind:'ABSENT'});
   const click=m.begin(provider,A,1,1);
+  m.preflight(click,{kind:'ABSENT'},9);
   m.transition(click,'CHALLENGE_REQUESTED');m.challenge(click,'model-nonce');m.transition(click,'SIGNATURE_PROMPTING');
   const owner=m.verify(click,10);return {m,click,owner,provider};
 }
@@ -24,9 +25,12 @@ test('model: initial provider discovery may pin once; provider and account subst
 test('model: invalid transition and UNKNOWN knowledge cannot authorize a signature prompt or verify',()=>{
   const m=new AuthLifecycle();const c=m.begin({},A,1,1);
   assert.equal(m.transition(c,'SIGNATURE_PROMPTING'),false);
-  m.transition(c,'CHALLENGE_REQUESTED');m.challenge(c,'checked-nonce');
+  assert.equal(m.transition(c,'CHALLENGE_REQUESTED'),false,'UNKNOWN has no click receipt');
+  m.know({kind:'ABSENT'});assert.equal(m.transition(c,'CHALLENGE_REQUESTED'),false,'old knowledge alone is not a click receipt');
+  m.preflight(c,{kind:'ABSENT'},9);assert.equal(m.transition(c,'CHALLENGE_REQUESTED'),true);m.challenge(c,'checked-nonce');m.know({kind:'UNKNOWN'});
   assert.equal(m.transition(c,'SIGNATURE_PROMPTING'),false);assert.throws(()=>m.verify(c,10));
   assert.equal(m.snapshot.retainedCount,0);m.know({kind:'ABSENT'});
+  assert.equal(m.transition(c,'SIGNATURE_PROMPTING'),false,'UNKNOWN permanently invalidated the prior receipt');m.preflight(c,{kind:'ABSENT'},10);
   assert.equal(m.transition(c,'SIGNATURE_PROMPTING'),true);
 });
 for(const kind of ['ABSENT','PRESENT'])for(const readSeq of [10,11,12,13])test(`model causal reads: ${kind} read ${readSeq} versus observed fence 12`,()=>{

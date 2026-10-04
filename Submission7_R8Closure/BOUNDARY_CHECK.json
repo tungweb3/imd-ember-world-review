@@ -1,0 +1,69 @@
+{
+  "schema": "imd.security-boundary-check/v1",
+  "baselineCommit": "f9a34cba0876306287b35aff0176e9dc38942624",
+  "candidateHead": "8a22b51035c965b9df2fe010e3ac0a780581b0e2",
+  "parentCommit": "f9a34cba0876306287b35aff0176e9dc38942624",
+  "comparison": "Baseline immutable Git blobs versus exact candidate commit/worktree bytes; Windows newline-only normalization is separately recorded",
+  "newProductFiles": [
+    "scripts/replay-auth-trace.mjs",
+    "src/shared/freshness.ts",
+    "src/world/authCleanup.ts"
+  ],
+  "methods": {
+    "before": [
+      "POST",
+      "eth_accounts",
+      "eth_requestAccounts",
+      "personal_sign"
+    ],
+    "after": [
+      "POST",
+      "eth_accounts",
+      "eth_requestAccounts",
+      "personal_sign"
+    ]
+  },
+  "unchangedProductFiles": 250,
+  "authority": "Server token/nonce/Origin gates unchanged; ownership still requires ownerOf; new proof behavior tested separately",
+  "apiMigrationDependencies": "unchanged",
+  "deployment": "NOT_CHECKED for this new candidate",
+  "status": "PASS for measured source boundaries",
+  "checks": [
+    {
+      "path": "server/auth.ts",
+      "baselineSha256": "6077402849c4da2423b8cd00b8625afd4bb50aa0f5248a2566e6476d71057ead",
+      "candidateSha256": "6077402849c4da2423b8cd00b8625afd4bb50aa0f5248a2566e6476d71057ead",
+      "status": "UNCHANGED"
+    },
+    {
+      "path": "server/world-api.ts",
+      "baselineSha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669",
+      "candidateSha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669",
+      "status": "UNCHANGED"
+    },
+    {
+      "path": "public/_headers",
+      "baselineSha256": "010ed5e5bec891e5a806b2d224ecc0d962fc585fa761c8a7285251e8ae03cc07",
+      "candidateSha256": "010ed5e5bec891e5a806b2d224ecc0d962fc585fa761c8a7285251e8ae03cc07",
+      "status": "UNCHANGED"
+    },
+    {
+      "path": "src/world/wallet.ts",
+      "baselineSha256": "70c6c2ae95830b94e06c79a5532f8c369fba20aeed14e4707da4391ab335e588",
+      "candidateSha256": "70c6c2ae95830b94e06c79a5532f8c369fba20aeed14e4707da4391ab335e588",
+      "status": "UNCHANGED"
+    },
+    {
+      "path": "wrangler.jsonc",
+      "status": "UNCHANGED",
+      "publicSha256": "d31cf588020f457d66c710926551d01f199fa19d7fa1506522acd8b48011a6dd",
+      "privateFingerprints": "Withheld for the preserved-redaction file; unchanged original is a team comparison, unmasked public correspondence independently verified."
+    },
+    {
+      "path": "package-lock.json",
+      "baselineSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "candidateSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "status": "UNCHANGED"
+    }
+  ]
+}

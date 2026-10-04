@@ -99,7 +99,10 @@ test('/api/me/home: every NFT index read spends CHAIN_LIMITER (chain:index); ref
   allowed=null;await round('/api/me/home?fresh=1');assert.deepEqual([index(),rpcCalls(w)],[0,0],'limiter down: nothing is read');
   // AUD4-03: local refusals reserve no admitted rows, but retain a separate 30 s probe marker. These ten sessions
   // share a network: only three probes across the three times above, not one key call per home read.
-  assert.ok(keys.length>=40&&keys.every(k=>k==='chain:index'||k==='chain:index:lane'));assert.equal(keys.filter(k=>k==='chain:index:lane').length,3);
+  // R8 Low5: the plain round at the same clock instant and the final limiter-down round reuse the newly checked
+  // limited proof. Only the three rounds separated by >30 s ask chain:index; no redundant refused fresh probes.
+  assert.ok(keys.every(k=>k==='chain:index'||k==='chain:index:lane'));assert.equal(keys.filter(k=>k==='chain:index').length,30);
+  assert.equal(keys.filter(k=>k==='chain:index:lane').length,3);
   // Allowed, each read spends exactly one unit and is then kept 5 min per address (INT-1): nothing more to spend.
   allowed=true;keys.length=0;w.clock.advance(31_000);
   for(const b of sessions)assert.equal((await body(await b.get('/api/me/home'))).recheck,undefined);
@@ -615,9 +618,12 @@ test('AUD3-01: the same for a timeout and for a malformed index body',async()=>{
   assert.deepEqual(out,{timeout:[200,[['100','offline-24h']],0,'limited',1,1],malformed:[200,[['100','offline-24h']],0,'limited',1,1]});
 });
 
-test('AUD3-01: a lane rebuild whose ownerOf read fails keeps the first proof',async()=>{
+test('AUD3-01: a lane delta whose new-candidate ownerOf read fails keeps the first proof',async()=>{
   const {w,keys,b}=await offlineHolder();let calls=0;
-  w.chain.state.intercept=method=>method==='eth_call'&&++calls===2?nodeError():undefined;   // the first proof's ownerOf works, the rebuild's fails
+  // v1.1 reuses #100's valid evidence. Add a genuinely unseen index candidate so the failure control still sends
+  // the lane's second RPC rather than making its assertion vacuous by failing a re-proof that should never occur.
+  w.chain.state.index={[w.chain.state.owners[100]]:['100','101']};
+  w.chain.state.intercept=method=>method==='eth_call'&&++calls===2?nodeError():undefined;   // the first proof works; the delta fails
   const r=await b.get('/api/me/home');
   assert.deepEqual([r.status,...seatView(await body(r)),laneKeys(keys),indexReads(w),calls],[200,[['100','offline-24h']],0,'limited',1,1,2]);
 });

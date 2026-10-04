@@ -181,7 +181,7 @@ test(`R5 LOW-1/2: ${action} after failed read returned to UNKNOWN idle cleans on
   }finally{t.stop();}
 });
 
-for(const sameWallet of [false,true])test(`R5 LOW-2: stop/restart preserves ${sameWallet?'same-wallet':'other-wallet'} newer session; delayed old read/cleanup emits no new UI update`,async T=>{
+for(const sameWallet of [false,true])test(`R5 LOW-2 / R8 LOW-4: stop/restart preserves ${sameWallet?'same-wallet':'other-wallet'} newer session; old cleanup requests only a current-life canonical read`,async T=>{
   const w=setup(),A=newAccount(),B=sameWallet?A:newAccount(),b=w.browser(),p=provider(A),readGate=defer(),cleanupGate=defer();
   let afterVerify=false,readHeld=false,holdCleanup=true;
   const t=tab(w,b,p,{beforeSend:async path=>{if(path==='/api/auth/logout'&&holdCleanup)await cleanupGate.promise;},
@@ -196,12 +196,19 @@ for(const sameWallet of [false,true])test(`R5 LOW-2: stop/restart preserves ${sa
     stopAgain=t.c.start();
     await until(()=>t.c.state.session?.address===B.address.toLowerCase()&&!t.c.state.checking);
     const notifications=t.states.length,reads=t.events.filter(e=>e.path==='/api/auth/session').length;
-    // Both the GET body and the before-send cleanup gate belong to the stopped lifecycle.
-    readGate.resolve();await flow;holdCleanup=false;cleanupGate.resolve();
-    await until(()=>t.events.filter(e=>e.path==='/api/auth/logout').every(e=>e.finished));for(let i=0;i<4;i++)await settle();
-    evidence(T,`stop-restart/${sameWallet?'same-wallet':'other-wallet'}`,w,b,t,[p],{postRestartNotifications:t.states.length-notifications});
-    assert.equal(t.states.length,notifications,'late cancelled generation may not set state, rearm or restore');
-    assert.equal(t.events.filter(e=>e.path==='/api/auth/session').length,reads,'old 409 cleanup may not reread restarted client');
+    // R8 LOW-4 deliberately replaces the old blanket "no read after restart" expectation. The old GET body still
+    // cannot install a view; detached cleanup completion asks the active lifetime for fresh canonical knowledge.
+    readGate.resolve();await flow;
+    assert.equal(t.states.length,notifications,'the stopped read/body cannot directly update the restarted UI');
+    holdCleanup=false;cleanupGate.resolve();
+    await until(()=>t.events.filter(e=>e.path==='/api/auth/logout').every(e=>e.finished)
+      &&t.events.filter(e=>e.path==='/api/auth/session').length===reads+1
+      &&t.events.filter(e=>e.path==='/api/auth/session').every(e=>e.finished)
+      &&t.c.state.sessionKnown&&!t.c.state.checking);
+    evidence(T,`stop-restart/${sameWallet?'same-wallet':'other-wallet'}`,w,b,t,[p],{
+      postRestartNotifications:t.states.length-notifications,currentLifeCanonicalReads:t.events.filter(e=>e.path==='/api/auth/session').length-reads});
+    assert.equal(t.events.filter(e=>e.path==='/api/auth/session').length,reads+1,'one active-lifetime canonical read reconciles the old refusal');
+    assert.ok(t.states.slice(notifications).every(s=>s.address===B.address.toLowerCase()),'reconciliation never installs the stopped session');
     assert.equal(t.c.state.session.address,B.address.toLowerCase());
     assert.deepEqual(rows(w).counts,{created:2,live:2,revoked:0,pending:1,invalidated:0});
     assert.equal(b.jar.get(SESSION_COOKIE),cookies.get(SESSION_COOKIE));assert.equal(b.jar.get(FLOW_COOKIE),cookies.get(FLOW_COOKIE));
@@ -283,7 +290,7 @@ for(const confirmed of ['PRESENT','ABSENT'])test(`R5 retained UNKNOWN flow: two 
   try{
     await t.c.signIn();assert.equal(t.c.state.sessionKnown,false);
     await t.c.signIn();assert.equal(t.c.state.sessionKnown,false);assert.equal(signatures(p),1);
-    assert.equal(t.events.filter(e=>e.path==='/api/auth/session'&&e.status===200).length,3,'initial plus two actual routes, with responses replaced by 503');
+    assert.equal(t.events.filter(e=>e.path==='/api/auth/session'&&e.status===200).length,4,'v1.1 initial, own click preflight, then two failed actual recovery/click routes');
     if(confirmed==='ABSENT')assert.equal((await b.post('/api/auth/logout',{})).status,204,'explicit fixture logout proves absence without automatic cleanup');
     failRead=false;await t.c.signIn();
     assert.equal(t.c.state.sessionKnown,true);assert.equal(t.c.state.session.address,A.address.toLowerCase());
@@ -299,7 +306,7 @@ for(const confirmed of ['PRESENT','ABSENT'])test(`R5 retained UNKNOWN flow: two 
   }finally{t.stop();}
 });
 
-test('R5 preflight logout: late 204 after stop/restart cannot notify, broadcast or rearm the new same-address session',async T=>{
+test('R5 v1.1 preflight logout: late 204 after restart schedules current-life canonical reconciliation and preserves newer same-address row',async T=>{
   const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),p=provider(B),gate=defer(),channels=[];
   let held=false,arms=0,clears=0;
   const env={set:(fn,ms)=>{arms++;return {fn,ms};},clear:()=>{clears++;},onVisible:()=>()=>{}};
@@ -321,14 +328,16 @@ test('R5 preflight logout: late 204 after stop/restart cannot notify, broadcast 
     assert.equal(channels.length,2);assert.equal(channels[1].closed,false);
     const accepted=t.c.state.session,notifications=t.states.length,armed=arms,cleared=clears;
     const reads=t.events.filter(e=>e.path==='/api/auth/session').length,newMessages=channels[1].messages.length;
-    gate.resolve();await flow;for(let i=0;i<12;i++)await settle();
+    gate.resolve();await flow;
+    await until(()=>t.events.filter(e=>e.path==='/api/auth/session').length>reads&&t.c.state.sessionKnown&&!t.c.state.checking);
     evidence(T,'preflight-204/stop-restart/same-address',w,b,t,[p],{
       postRestartNotifications:t.states.length-notifications,newChannelBroadcasts:channels[1].messages.length-newMessages,
       timerArms:arms-armed,timerClears:clears-cleared});
-    assert.equal(t.c.state.session,accepted,'old same-address/same-expiry object may not replace or clear accepted session');
-    assert.equal(t.states.length,notifications);assert.equal(channels[1].messages.length,newMessages);
-    assert.equal(arms,armed);assert.equal(clears,cleared);
-    assert.equal(t.events.filter(e=>e.path==='/api/auth/session').length,reads,'cross-life completion does not restore');
+    // v1.1 AUTH-I7 requires a current-life reread after detached cleanup completion. A newly read object is allowed;
+    // its authority must come from the current cookie, never the old address/expiry tuple or old completion closure.
+    assert.deepEqual(t.c.state.session,accepted,'canonical current-cookie session remains the newer same-address session');
+    assert.ok(t.states.length>notifications);assert.equal(channels[1].messages.length,newMessages);
+    assert.equal(t.events.filter(e=>e.path==='/api/auth/session').length,reads+1,'one current-life canonical reconciliation');
     assert.equal(b.jar.get(SESSION_COOKIE),cookie);
     assert.deepEqual(rows(w).counts,{created:2,live:1,revoked:1,pending:0,invalidated:0});
     assert.equal(signatures(p),0,'cancelled preflight never asks wallet B to sign');

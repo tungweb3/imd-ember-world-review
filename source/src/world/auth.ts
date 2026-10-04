@@ -7,7 +7,9 @@ import type {HouseSize} from './houseSize.ts';
 import type {PollEnv} from './cadence.ts';
 import {checkSignInMessage,signInSummary,type SignInSummary} from './siwe.ts';
 import {endedText} from './walletView.ts';                                          // walletView imports only types from here: no cycle
-import {AuthLifecycle,type ClickOwner,type CleanupOwner} from './authLifecycle.ts';
+import {AuthLifecycle,type ClickOwner,type CleanupOwner,type SessionKnowledge} from './authLifecycle.ts';
+import {planCleanup,type CleanupPlan,type CleanupReason,type CancellationReason} from './authCleanup.ts';
+import {isFreshAge} from '../shared/freshness.ts';
 
 export type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,fn:(v:unknown)=>void)=>void;removeListener?:(event:string,fn:(v:unknown)=>void)=>void};
 export type MeSeat={tokenId:string;agentId:string|null;online:boolean;lastOnlineAt:number|null;counts:boolean;reason?:'not-agent'|'offline-24h'|'not-seen'};
@@ -143,16 +145,21 @@ export class AuthClient{
    *  and a verify until its flow has kept its session or logged it out. Each entry settles after its own handler ran. */
   private unsettled=new Set<Promise<unknown>>();
   /** UI lifetime never owns verify cleanup; AuthLifecycle's per-operation owner survives cancellation. */
-  private life=0;
+  private life=0;private started=false;private cleanupReadPending=false;
+  private announced=new WeakSet<CleanupOwner>();
+  private cleanupEvent=0;private cleanupPlans:{eventId:number;reason:CleanupReason;kind:CleanupPlan['kind'];flowId?:number}[]=[];
   constructor(deps:AuthDeps){this.deps=deps;}
   get state(){return this.s;}
-  get lifecycleSnapshot(){return this.lifecycle.snapshot;}
+  get lifecycleSnapshot(){return {...this.lifecycle.snapshot,cleanupPlans:this.cleanupPlans.map(p=>({...p}))};}
   private get busy(){return this.lifecycle.busy;}
   private sessionUnknown(){return this.lifecycle.knowledge.kind==='UNKNOWN';}
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};};
   private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;
     if(patch.sessionKnown!==undefined)this.lifecycle.know(!s.sessionKnown?{kind:'UNKNOWN'}:s.session?{kind:'PRESENT',session:s.session}:{kind:'ABSENT'});
-    this.s=s;this.arm();for(const fn of this.listeners)fn();}
+    this.s=s;this.arm();for(const fn of this.listeners)fn();
+    // Complete the caller's synchronous acceptance/notification first. Pending canonical reconciliation must not
+    // erase PRESENT between set() and announceAccepted() when a restarted click finishes its valid verify body.
+    if(this.cleanupReadPending)queueMicrotask(()=>this.drainCleanupRead());}
   private get env(){return this.deps.env??defaultEnv;}
   /** Keeps one timer on the current session's expiresAt (W-1), so owner mode ends on time even with nothing else going on. */
   private arm(){
@@ -171,11 +178,16 @@ export class AuthClient{
    *  re-reads it (and so its house) from the server, at most once per HOME_MIN_GAP_MS; visitors ask nothing. */
   visible(){
     const had=!!this.s.session;this.expireIfDue();
-    if(had&&this.now()-this.sessionAt>=HOME_MIN_GAP_MS&&this.s.phase==='idle'&&!this.busy)void this.restore();
+    if(had&&!isFreshAge(this.now(),this.sessionAt,HOME_MIN_GAP_MS)&&this.s.phase==='idle'&&!this.busy)void this.restore();
   }
   private get hint(){return this.deps.hint??localHint;}
   private now(){return (this.deps.now??Date.now)();}
   private broadcast(kind:'signed-in'|'signed-out'){try{this.channel?.postMessage(kind);}catch{/* closed */}}
+  /** A causal PRESENT can win before the verify body; notify peers at acceptance, once per operation. */
+  private announceAccepted(owner:CleanupOwner){
+    if(owner.status!=='RELEASED'||this.announced.has(owner)||!this.started||owner.life!==this.life||!this.s.sessionKnown||!this.s.session)return;
+    this.announced.add(owner);this.broadcast('signed-in');
+  }
   /** Keeps `p` in `unsettled` until it settles (ADV-3); returns `p`. */
   private hold<T>(p:Promise<T>){const q=p.then(()=>{},()=>{});this.unsettled.add(q);void q.then(()=>{this.unsettled.delete(q);});return p;}
   /** A logout this page does not wait for, `then` run on its answer (both held in `unsettled`, ADV-3). */
@@ -183,14 +195,27 @@ export class AuthClient{
   /** Cleanup can settle after a read of a replacement session. A tuple is not a session identity: drop owner evidence
    *  and reconcile the actual cookie, without claiming absence or asking for another signature. */
   private reconcileCleanup(){this.homeGen++;this.set({home:null,checking:false,sessionKnown:false});void this.restore();}
-  /** Automatic cancellation may only end the original flow or the displayed authenticated account. Without either
-   *  assertion it sends nothing; only explicit signOut intentionally acts on the current shared cookie. */
-  private automaticCleanup(g:number,life:number,click:ClickOwner|null,held?:Session,broadcast=false){
-    if(click?.owner){this.revokeAbandoned(click.owner);return;}
-    const context=click?.nonce?{expectedNonce:click.nonce}:held?{expectedAddress:held.address}:null;
-    if(!context)return;
+  /** Detached cleanup only signals the active lifetime to read its cookie. It never installs an old session/result. */
+  private requestCleanupRead(){if(!this.started)return;this.cleanupReadPending=true;this.drainCleanupRead();}
+  private drainCleanupRead(){
+    if(!this.cleanupReadPending||!this.started||this.busy||this.s.phase!=='idle'||this.s.leaving)return;
+    this.cleanupReadPending=false;this.reconcileCleanup();
+  }
+  private cleanupPlan(reason:CleanupReason,click:ClickOwner|null,held?:Session,owner?:CleanupOwner|null){
+    const selected=owner??(click?.owner?.status==='RETAINED'?click.owner:this.lifecycle.retained);
+    const plan=planCleanup(reason,{displayedAddress:held?.address,owner:selected,pending:!!click});
+    this.cleanupPlans.push({eventId:++this.cleanupEvent,reason,kind:plan.kind,...selected?{flowId:selected.flowId}:{}});
+    if(this.cleanupPlans.length>64)this.cleanupPlans.shift();return {plan,owner:selected};
+  }
+  /** An event records one authority decision before I/O. Pending challenges expire instead of racing address logout. */
+  private automaticCleanup(reason:CleanupReason,g:number,life:number,click:ClickOwner|null,held?:Session,broadcast=false){
+    const {plan,owner}=this.cleanupPlan(reason,click,held);
+    if(plan.kind==='verify-owner'){if(owner)this.revokeAbandoned(owner);return;}
+    if(plan.kind==='reconcile'){if(owner)void this.reconcileLockedOwner(owner);return;}
+    if(plan.kind!=='displayed-session')return;
+    const context={expectedAddress:plan.expectedAddress};
     this.sendLogout(ok=>{
-      if(life!==this.life)return;
+      if(life!==this.life){this.requestCleanupRead();return;}
       // A wallet choice can supersede a waiting click without starting another sign-in. Read the actual shared
       // cookie after this cleanup settles; matching addresses/expiry alone cannot identify a newer session.
       if(g!==this.gen){if(!this.busy&&this.s.phase==='idle'){if(ok)this.reconcileCleanup();else void this.restore();}return;}
@@ -201,6 +226,11 @@ export class AuthClient{
       if(current)this.reconcileCleanup();else this.loggedOut(g,held);
       if(broadcast)this.broadcast('signed-out');
     },context);
+  }
+  /** Cancellation disposition belongs to the original operation, including its future late headers/body callbacks. */
+  private cancelOwners(reason:CancellationReason){for(const owner of this.lifecycle.retainedOwners)this.lifecycle.abandon(owner,reason);}
+  private reconcileLockReceipts(knowledge:SessionKnowledge,readSeq:number){
+    for(const owner of this.lifecycle.retainedOwners)if(this.lifecycle.reconcileOwner(owner,knowledge,readSeq))this.announceAccepted(owner);
   }
   /** N-1: no session read running; ADV-3: and, while `matters()`, nothing in `unsettled`. False when something there is
    *  still out after LOGOUT_WAIT_MS (a read is always waited for: it ends by itself). */
@@ -221,6 +251,7 @@ export class AuthClient{
    *  is not left in "Confirm in wallet"). */
   start(){
     const life=++this.life;
+    this.started=true;
     this.lifecycle.start();
     try{this.channel=this.deps.channel?.()??null;}catch{this.channel=null;}
     this.channel?.addEventListener('message',()=>{if(life===this.life)void this.restore();}); // queued old callback is not new-life intent
@@ -228,9 +259,10 @@ export class AuthClient{
     const off=this.deps.onProviderChange?.(()=>{if(life===this.life)this.providerChanged();})??(()=>{});
     const offVisible=this.env.onVisible(()=>{if(life===this.life)this.visible();});
     void this.restore();
-    return ()=>{if(life!==this.life)return;this.lifecycle.cancel(true);this.life++;this.gen++;
+    return ()=>{if(life!==this.life)return;const click=this.lifecycle.click,held=this.s.session??undefined;
+      this.started=false;this.cleanupReadPending=false;this.lifecycle.cancel(true);this.life++;this.gen++;this.cancelOwners('stop');
       // Security cleanup still runs after teardown; its old life/gen may never update this UI again.
-      for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);
+      this.automaticCleanup('stop',this.gen,life,click,held);
       if(this.s.phase!=='idle'||this.s.waiting||this.s.leaving||this.s.checking)this.set({phase:'idle',waiting:false,leaving:false,checking:false});
       off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
       if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
@@ -249,17 +281,17 @@ export class AuthClient{
    *  mode ends until that address signs in. */
   providerChanged(){
     const p=this.deps.provider();if(p===this.bound)return;
-    const abandoned=this.lifecycle.click,activeFlow=this.s.phase!=='idle',flow=activeFlow||this.lifecycle.retainedOwners.length>0,held=this.s.session??undefined;
-    if(flow||this.busy){this.gen++;this.lifecycle.cancel();}
-    this.set({account:null,phase:'idle',waiting:false,...flow?{notice:null,sessionKnown:false}:{}});
-    if(activeFlow)this.automaticCleanup(this.gen,this.life,abandoned,held);
-    for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);
+    const abandoned=this.lifecycle.click,held=this.s.session??undefined;
+    this.gen++;this.lifecycle.cancel();this.cancelOwners('context-switch');
+    this.set({account:null,phase:'idle',waiting:false,notice:null,sessionKnown:false,home:null,checking:false});
+    this.automaticCleanup('provider-switch',this.gen,this.life,abandoned,held);
     this.bind(p);
   }
   /** GET /api/auth/session; a signed-in answer is followed by the home read. */
-  restore(){const r=this.readSession().finally(()=>{if(this.restoring===r)this.restoring=null;});this.restoring=r;return r;}
-  private async readSession(){
-    const g=this.gen,life=this.life,q=++this.sessionReads,stale=()=>g!==this.gen||life!==this.life||q!==this.sessionReads||!this.lifecycle.mayRead(q,g,life);this.sessionAt=this.now();
+  restore(){const r=this.readSession().then(()=>{}).finally(()=>{if(this.restoring===r)this.restoring=null;});this.restoring=r;return r;}
+  private async readSession(click?:ClickOwner,awaitHome=true):Promise<{knowledge:SessionKnowledge;readSeq:number}|undefined>{
+    const g=this.gen,life=this.life,q=++this.sessionReads,stale=()=>g!==this.gen||life!==this.life||q!==this.sessionReads||!this.lifecycle.mayRead(q,g,life)||
+      !!click&&!this.lifecycle.current(click,this.deps.provider(),this.s.account,this.gen,this.life);this.sessionAt=this.now();
     try{
       const r=await this.deps.fetch('/api/auth/session',{credentials:'same-origin'});if(stale())return;
       if(!r.ok){this.set({restored:true,sessionKnown:false,notice:r.status===503?'auth-unavailable':r.status===429?'rate-limited':this.s.notice});return;}
@@ -269,10 +301,15 @@ export class AuthClient{
         v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt))){this.set({restored:true,sessionKnown:false});return;}
       if(v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt)){
         const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},held=this.s.session,same=held?.address===session.address;
+        const owner=this.lifecycle.retained;
         this.lifecycle.read({kind:'PRESENT',session},q,g,life); // terminal release before house I/O
         const renew=!same||held!.expiresAt!==session.expiresAt;if(renew)this.homeGen++;       // another session: its predecessor's house read is dropped
         this.hint.set(session);this.set({session,expired:false,ended:null,restored:true,sessionKnown:true,home:same?this.s.home:null,...renew?{checking:false}:{}});
-        await this.refreshHome(!same,!same);return;                                    // a page load is a refresh too (spec B08)
+        if(owner)this.announceAccepted(owner);
+        this.reconcileLockReceipts({kind:'PRESENT',session},q);
+        const knowledge={kind:'PRESENT' as const,session};if(click)this.lifecycle.preflight(click,knowledge,q);
+        const home=this.refreshHome(!same,!same);if(awaitHome)await home;
+        return {knowledge,readSeq:q}; // session acceptance/receipt precedes optional house I/O
       }
       // Expired only when a session ran out: the server says so, or the held session's or this browser's hint's expiresAt
       // has passed here (N-7: read before the session is cleared); one revoked elsewhere (another tab's sign-out) is not.
@@ -280,6 +317,8 @@ export class AuthClient{
       this.lifecycle.read({kind:'ABSENT'},q,g,life);
       const expired=this.s.expired||v.expired===true||!!held&&held.expiresAt<=now||!!hint&&hint.expiresAt<=now;if(hint&&!expired)this.hint.set(null);
       this.homeGen++;this.set({session:null,home:null,restored:true,sessionKnown:true,expired,ended:expired?'expired':held?'revoked':this.s.ended,checking:false});
+      this.reconcileLockReceipts({kind:'ABSENT'},q);
+      const knowledge={kind:'ABSENT' as const};if(click)this.lifecycle.preflight(click,knowledge,q);return {knowledge,readSeq:q};
     }catch{if(!stale())this.set({restored:true,sessionKnown:false});}
   }
   /** GET /api/me/home for the session. force skips the 15 s gap (the refresh button, a new session); fresh (the refresh
@@ -288,7 +327,7 @@ export class AuthClient{
    *  older answer whose body came last restored owner mode after a newer one had ended it). */
   async refreshHome(force=false,fresh=false){
     const held=this.s.session;if(!held)return;
-    if(!force&&this.now()-this.homeAt<HOME_MIN_GAP_MS&&this.s.home)return;
+    if(!force&&isFreshAge(this.now(),this.homeAt,HOME_MIN_GAP_MS)&&this.s.home)return;
     const g=this.gen,hg=++this.homeGen;this.homeAt=this.now();this.set({checking:true});
     const stale=()=>g!==this.gen||hg!==this.homeGen;
     try{
@@ -306,7 +345,7 @@ export class AuthClient{
         const ran=c==='SESSION_EXPIRED'||held.expiresAt<=this.now();
         this.hint.set(null);this.set({session:null,home:null,expired:ran,ended:ran?'expired':'revoked',checking:false,sessionKnown:false});return;}
       if(r.status===503)this.set({home:'unavailable',checking:false});
-      else{const h=this.s.home,kept=h&&h!=='unavailable'&&this.now()-this.homeOkAt<=OWNER_STALE_MS?h:'unavailable';   // CORR-05
+      else{const h=this.s.home,kept=h&&h!=='unavailable'&&isFreshAge(this.now(),this.homeOkAt,OWNER_STALE_MS)?h:'unavailable';   // CORR-05
         this.set({checking:false,notice:r.status===429?'rate-limited':'failed',home:kept});}
     }catch{if(!stale())this.set({home:'unavailable',checking:false});}
   }
@@ -334,11 +373,22 @@ export class AuthClient{
     let decided=()=>{},owner:CleanupOwner|undefined;
     try{
       let quiet=await wait();
-      if(quiet&&live()&&this.sessionUnknown()){await this.restore();quiet=await wait();}
       if(!live())return;
       if(this.s.waiting)this.set({waiting:false});
       if(!quiet){this.set({notice:'logout-slow'});return;}
-      if(this.sessionUnknown()){
+      // Each explicit click dispatches its own read after the wait. A previous ABSENT, or an earlier in-flight GET,
+      // cannot authorize this intent when a sibling's signed-in hint was lost. House I/O does not delay the receipt.
+      let preflight=await this.readSession(click,false);
+      if(!live())return;quiet=await wait();if(!live())return;
+      if(!quiet){this.set({waiting:false,notice:'logout-slow'});return;}
+      // A later ordinary read may overtake this receipt. Retry the read once only when that read has valid knowledge;
+      // invalid/failed reads never retry a prompt. Waiting is re-evaluated because this GET may have removed a session.
+      if((!preflight||preflight.readSeq!==this.sessionReads)&&this.s.sessionKnown){
+        preflight=await this.readSession(click,false);if(!live())return;quiet=await wait();if(!live())return;
+        if(!quiet){this.set({waiting:false,notice:'logout-slow'});return;}
+      }
+      if(this.s.waiting)this.set({waiting:false});
+      if(!preflight||this.sessionUnknown()){
         const n=this.s.notice;this.set({notice:n==='rate-limited'||n==='auth-unavailable'?n:'session-unknown'});return;
       }
       const g=++this.gen,life=this.life;this.lifecycle.promote(click,g);this.set({notice:null});
@@ -355,14 +405,23 @@ export class AuthClient{
       if(!live())return;
       if(this.s.session?.address===account){await this.refreshHome(true);return;}
       if(this.s.session){
-        const held=this.s.session,ok=await this.hold(this.logoutRequest({expectedAddress:held.address}));
-        if(life!==this.life)return;
+        const held=this.s.session,{plan}=this.cleanupPlan('preflight-mismatch',click,held);
+        if(plan.kind!=='displayed-session')return;
+        const ok=await this.hold(this.logoutRequest({expectedAddress:plan.expectedAddress}));
+        if(life!==this.life){this.requestCleanupRead();return;}
         if(!ok){if(live()){this.set({sessionKnown:false,notice:'signout-failed'});await this.restore();}return;}
         this.loggedOut(g,held);this.broadcast('signed-out');
+        if(!live())return;
+        // A conditional 204 is a cleanup result, not the canonical ABSENT required by this click.
+        const after=await this.readSession(click,false);
+        if(!live())return;
+        if(!after||after.knowledge.kind!=='ABSENT'){this.set({notice:this.sessionUnknown()?'session-unknown':'signout-failed'});return;}
       }
       if(!live())return;
+      const canSign=()=>live()&&this.lifecycle.hasAbsentPreflight(click)&&click.preflight?.readSeq===this.sessionReads;
+      if(!canSign()){this.set({notice:'session-unknown'});return;}
       this.homeGen++;this.set({session:null,home:null,ended:null,phase:'awaitingSignature',signing:null,checking:false});
-      this.lifecycle.transition(click,'CHALLENGE_REQUESTED');
+      if(!this.lifecycle.transition(click,'CHALLENGE_REQUESTED'))return;
       const c=await this.deps.fetch('/api/auth/challenge',JSON_POST({address:account}));
       if(!live())return;
       if(!c.ok){const n=failure(c.status,await code(c));if(live())this.set({phase:'idle',notice:n});return;}
@@ -373,52 +432,53 @@ export class AuthClient{
       if(!signing){this.set({phase:'idle',notice:'message-mismatch'});return;}
       this.lifecycle.challenge(click,nonce);
       // A newer canonical read may have resolved this cookie while the challenge was awaited.
-      if(this.sessionUnknown()){this.set({phase:'idle',notice:'session-unknown'});return;}
       if(this.s.session?.address===account){this.set({phase:'idle'});await this.refreshHome(true);return;}
-      this.lifecycle.transition(click,'SIGNATURE_PROMPTING');this.set({signing});
+      if(!canSign()){this.set({phase:'idle',notice:'session-unknown'});return;}
+      if(!this.lifecycle.transition(click,'SIGNATURE_PROMPTING'))return;this.set({signing});
       let signature:string;
       try{signature=await p.request({method:'personal_sign',params:[hexUtf8(message),account]}) as string;}
       catch{if(live())this.set({phase:'idle',notice:'sign-rejected'});return;}
       if(!live())return;
-      this.set({phase:'verifying',sessionKnown:false});
+      if(!canSign()){this.set({phase:'idle',notice:this.sessionUnknown()?'session-unknown':null});return;}
       this.hold(new Promise<void>(r=>{decided=r;}));
       owner=this.lifecycle.verify(click,this.sessionReads);
+      this.set({phase:'verifying',sessionKnown:false});
       const v=await this.deps.fetch('/api/auth/verify',JSON_POST({nonce,signature}));
       this.lifecycle.observe(owner,this.sessionReads);
       if(!v.ok){
         this.lifecycle.release(owner);decided();const n=failure(v.status,await code(v));
         if(live()){await this.restore();if(live())this.set({phase:'idle',notice:n});}return;
       }
-      if(!live()){void sessionIn(v);this.revokeAbandoned(owner);return;}
-      if(owner.abandoned)this.revokeAbandoned(owner);
+      if(!live()){void sessionIn(v);this.settleCancelledOwner(owner);return;}
+      if(owner.abandoned)this.settleCancelledOwner(owner);
       const session=await sessionIn(v);
-      if(!live()){this.revokeAbandoned(owner);return;}
+      if(!live()){this.settleCancelledOwner(owner);return;}
       if(owner.status!=='RETAINED'){this.set({phase:'idle'});return;}
       if(!session){await this.reconcileVerify(click,owner);return;}
       if(session.address!==account){this.revokeAbandoned(owner);this.set({phase:'idle',notice:'failed'});return;}
       if(!this.lifecycle.accept(click,owner,session))return;
       this.lifecycle.finish(click);this.gen++; // prior session reads cannot overwrite this accepted body
       this.hint.set(session);this.set({phase:'idle',session,home:null,expired:false,ended:null,sessionKnown:true});
-      this.broadcast('signed-in');decided();await this.refreshHome(true);
+       this.announceAccepted(owner);decided();await this.refreshHome(true);
     }catch{
       if(owner){this.lifecycle.observe(owner,this.sessionReads);
-        if(live())await this.reconcileVerify(click,owner);else this.revokeAbandoned(owner);
+        if(live())await this.reconcileVerify(click,owner);else this.settleCancelledOwner(owner);
       }else if(live())this.set({phase:'idle',notice:'failed'});
     }finally{
-      decided();if(this.lifecycle.click===click){if(this.s.phase!=='idle'||this.s.waiting)this.set({phase:'idle',waiting:false});this.lifecycle.finish(click);}
+      decided();if(this.lifecycle.click===click){if(this.s.phase!=='idle'||this.s.waiting)this.set({phase:'idle',waiting:false});this.lifecycle.finish(click);}this.drainCleanupRead();
     }
   }
   /** Recovery is ordered after response/transport observation, not after dispatch. Release precedes house awaits. */
   private async reconcileVerify(click:ClickOwner,owner:CleanupOwner){
     const live=()=>this.lifecycle.current(click,this.deps.provider(),this.s.account,this.gen,this.life);
     if(owner.status!=='RETAINED'){if(live())this.set({phase:'idle'});return;}
-    if(!live()){this.revokeAbandoned(owner);return;}
+    if(!live()){this.settleCancelledOwner(owner);return;}
     this.lifecycle.transition(click,'VERIFY_RECONCILING');
     this.sessionReads++;this.homeGen++;this.set({sessionKnown:false,home:null,checking:false});
     await this.restore();
-    if(!live()){this.revokeAbandoned(owner);return;} // terminal owners refuse this request
+    if(!live()){this.settleCancelledOwner(owner);return;} // terminal owners refuse this request
     this.set({phase:'idle',notice:this.s.sessionKnown?this.s.session?null:'failed':'session-unknown'});
-    if(this.s.sessionKnown&&this.s.session)this.broadcast('signed-in');
+    this.announceAccepted(owner);
   }
   /** Sign out: the server revokes the session and the flow's open challenges, and only then is this page signed out.
    *  A logout that did not reach the server (network, 5xx) leaves the page signed in with a notice, because the cookie
@@ -428,10 +488,12 @@ export class AuthClient{
   async signOut(everywhere=false){
     if(this.s.leaving)return;
     const life=this.life;
-    this.gen++;this.lifecycle.cancel();for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);const g=this.gen,held=this.s.session??undefined;
+    const click=this.lifecycle.click,held=this.s.session??undefined;
+    this.gen++;this.lifecycle.cancel();this.cancelOwners('explicit-signout');const g=this.gen;
+    const {plan}=this.cleanupPlan(everywhere?'explicit-signout-all':'explicit-signout',click,held);
     this.set({phase:'idle',notice:null,leaving:true,waiting:false});
-    const ok=await this.hold(everywhere?this.logoutAllRequest(held?.address):this.logoutRequest());
-    if(life!==this.life)return;
+    const ok=await this.hold(plan.kind==='explicit-all'?this.logoutAllRequest(plan.expectedAddress):this.logoutRequest());
+    if(life!==this.life){this.requestCleanupRead();return;}
     // Switched meanwhile: that path decides. But another wallet chosen while a click waited for this sign-out takes a
     // generation and clears nothing, so a confirmed sign-out still ends the very session it ended (says "Signed out.")
     // and tells the other tabs, as the click's own logout does (ADV-1, ADV-2; the re-check of 2f5d6c1). A logout-all the
@@ -455,9 +517,9 @@ export class AuthClient{
     if(ok!=='context-changed')this.broadcast('signed-out');
   }
   /** The wallet switched account (A → B): owner mode off at once, A's in-flight flow dropped here and at the server, A's
-   *  session ended; B starts as merely connected. If that logout does not reach the server, the session is read again,
-   *  so the page shows A's still-valid session as a mismatch (never as signed out). A locked wallet (no account) leaves a
-   *  valid session alone. */
+    *  session ended; B starts as merely connected. If that logout does not reach the server, the session is read again,
+    *  so the page shows A's still-valid session as a mismatch (never as signed out). A lock preserves accepted sessions
+    *  and reconciles unresolved verify after its response fence; it does not grant a cleanup authority. */
   accountChanged(a:string|null){
     this.accountEvents++;
     const click=this.lifecycle.click;
@@ -467,19 +529,39 @@ export class AuthClient{
     const wasFlow=!!click||this.lifecycle.retainedOwners.length>0;
     const other=!!a&&!!this.s.session&&this.s.session.address!==a;
     if(!wasFlow&&!other){this.set({account:a});return;}
-    this.gen++;this.lifecycle.cancel();const g=this.gen,ended=other?this.s.session!:undefined;
-    this.set({account:a,phase:'idle',...other?{session:null,home:null}:{},sessionKnown:false,notice:null,checking:false,waiting:false});
-    if(other||wasFlow){if(other)this.hint.set(null);this.automaticCleanup(g,this.life,click,ended,other);}
-    for(const owner of this.lifecycle.retainedOwners)this.revokeAbandoned(owner);
+    const held=this.s.session??undefined,locked=a===null;
+    this.gen++;this.lifecycle.cancel();this.cancelOwners(locked?'lock-reconcile':'context-switch');const g=this.gen;
+    this.set({account:a,phase:'idle',...other?{session:null,home:null}:!locked?{home:null}:{},
+      ...!locked?{sessionKnown:false}:{},notice:null,checking:false,waiting:false});
+    if(other)this.hint.set(null);
+    this.automaticCleanup(locked?'lock':'account-switch',g,this.life,click,held,other);
+  }
+  private settleCancelledOwner(owner:CleanupOwner){
+    if(owner.status!=='RETAINED')return;
+    if(!owner.cancellationReason)this.lifecycle.abandon(owner,'context-switch');
+    const {plan}=this.cleanupPlan('verify-settled',null,undefined,owner);
+    if(plan.kind==='reconcile')void this.reconcileLockedOwner(owner);
+    else if(plan.kind==='verify-owner')this.revokeAbandoned(owner);
+  }
+  /** A lock never revokes a committed session. Only a post-response canonical result resolves its uncertain owner. */
+  private async reconcileLockedOwner(owner:CleanupOwner){
+    if(owner.status!=='RETAINED'||owner.cancellationReason!=='lock-reconcile'||!owner.responseObserved||owner.reconciling||!this.started)return;
+    owner.reconciling=true;
+    try{
+      const receipt=await this.readSession(undefined,false);
+      if(receipt&&this.lifecycle.reconcileOwner(owner,receipt.knowledge,receipt.readSeq))this.announceAccepted(owner);
+    }finally{owner.reconciling=false;}
   }
   /** One operation owns conditional cleanup. Old closures can request it, never recreate or revive it. */
   private revokeAbandoned(owner:CleanupOwner){
-    if(!this.lifecycle.abandon(owner)||!this.lifecycle.claimCleanup(owner))return;
+    if(owner.cancellationReason==='lock-reconcile'){void this.reconcileLockedOwner(owner);return;}
+    if(!this.lifecycle.abandon(owner,owner.cancellationReason??'context-switch')||!this.lifecycle.claimCleanup(owner))return;
     const g=owner.generation,life=owner.life;
     this.sendLogout(ok=>{
       const retry=this.lifecycle.cleanupDone(owner,ok);
       if(retry){this.revokeAbandoned(owner);return;}
-      if(owner.status==='RETAINED'||life!==this.life)return;
+      if(owner.status==='RETAINED')return;
+      if(life!==this.life){this.requestCleanupRead();return;}
       if(!ok){if(g===this.gen||!this.busy&&this.s.phase==='idle')void this.restore();return;}
       if(g===this.gen){if(this.s.session)this.reconcileCleanup();else this.loggedOut(g);}
       else if(!this.busy&&this.s.phase==='idle')this.reconcileCleanup();

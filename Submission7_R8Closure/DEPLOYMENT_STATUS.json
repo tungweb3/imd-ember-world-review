@@ -1,0 +1,14 @@
+{
+  "schema": "imd.submission7-deployment/v1",
+  "candidateSourceCommit": "8a22b51035c965b9df2fe010e3ac0a780581b0e2",
+  "candidate": "NOT_DEPLOYED",
+  "candidateProductionParity": "NOT_CHECKED",
+  "lastTeamObservedProduction": {
+    "sourceCommit": "f9a34cba0876306287b35aff0176e9dc38942624",
+    "workerVersion": "9f3f306d-a1d9-4375-8b7d-6f4c3bd94b6c",
+    "trafficPercent": 100,
+    "boundary": "Earlier observation retained as historical context; no new live parity check in this offline review stage."
+  },
+  "noPaidJobSubmitted": true,
+  "WORLD_SECURITY_BASELINE_v1": "NOT_ESTABLISHED"
+}

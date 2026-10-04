@@ -7,6 +7,7 @@ import {SEAT_COLLECTION} from '../src/world/market.ts';
 import {CHARACTER_COLLECTIONS,type CharacterCollection} from '../src/world/collections.ts';
 import {compareIds,type Agent} from '../src/world/model.ts';
 import {houseSize,type HouseSize} from '../src/world/houseSize.ts';
+import {isFreshAge} from '../src/shared/freshness.ts';
 // Ownership and eligibility for the wallet routes (DESIGN_W1 §7). Discovery and proof are separate steps: candidate
 // seat ids come from IMD's swarm.owners and Alchemy's NFT index; only ownerOf read on mainnet through Multicall3 (one
 // eth_call, one block) proves ownership. Every chain read goes through an injected fetch (tests and local runs use
@@ -49,10 +50,11 @@ export async function rpc(chain:ChainAccess,method:string,params:unknown[]):Prom
   if(!('result' in body))throw new OwnershipUnavailable();
   return {result:body.result};
 }
-/** ownerOf for every id at one block: the first eth_call runs at `latest` and also returns that block number
- *  (Multicall3.getBlockNumber); later chunks are pinned to it. A reverting ownerOf (burnt or never minted) is null. */
-export async function ownersOf(chain:ChainAccess,ids:readonly string[]):Promise<{owners:Map<string,string|null>;block:number|null}>{
-  const owners=new Map<string,string|null>();let block:number|null=null;
+/** ownerOf for every id at one block: without atBlock the first eth_call runs at `latest` and returns that block
+ *  number (Multicall3.getBlockNumber); subsequent chunks and epoch deltas use that block. Reverting ownerOf is null. */
+export async function ownersOf(chain:ChainAccess,ids:readonly string[],atBlock:number|null=null):Promise<{owners:Map<string,string|null>;block:number|null}>{
+  if(atBlock!==null&&(!Number.isSafeInteger(atBlock)||atBlock<0))throw new OwnershipUnavailable();
+  const owners=new Map<string,string|null>();let block:number|null=atBlock;
   for(let i=0;i<ids.length;i+=MULTICALL_CHUNK){
     const chunk=ids.slice(i,i+MULTICALL_CHUNK),head=block===null;
     const calls=[...head?[{target:MULTICALL3 as `0x${string}`,allowFailure:false,callData:encodeFunctionData({abi:BLOCK_NUMBER,functionName:'getBlockNumber'})}]:[],
@@ -63,7 +65,8 @@ export async function ownersOf(chain:ChainAccess,ids:readonly string[]):Promise<
     let out:readonly {success:boolean;returnData:`0x${string}`}[];
     try{out=decodeFunctionResult({abi:multicall3Abi,functionName:'aggregate3',data:result as `0x${string}`});}catch{throw new OwnershipUnavailable();}
     if(out.length!==calls.length)throw new OwnershipUnavailable();
-    if(head)block=Number(BigInt(out[0].returnData));
+    if(head){try{block=Number(BigInt(out[0].returnData));}catch{throw new OwnershipUnavailable();}
+      if(!Number.isSafeInteger(block)||block<0)throw new OwnershipUnavailable();}
     out.slice(head?1:0).forEach((r,k)=>owners.set(chunk[k],r.success&&r.returnData.length===66?('0x'+r.returnData.slice(26)).toLowerCase():null));
   }
   return {owners,block};
@@ -139,7 +142,8 @@ export type OwnershipRequest={chain:ChainAccess;db?:D1Database;now:number;waitUn
 /** indexedAt: when the index answer behind these candidates was read (0: none); limited: the index was due but refused,
  *  or failed with an answer kept; refused: the budget refused it (N-6's lane is only for those); partial: CANDIDATE_CAP
  *  left candidates unchecked, or the index left pages unread. */
-type Proof={ids:string[];block:number|null;checkedAt:number;indexedAt:number;limited:boolean;refused:boolean;partial:boolean};
+type Proof={ids:string[];examined:Map<string,string|null>;failed:Set<string>;block:number|null;checkedAt:number;indexedAt:number;limited:boolean;refused:boolean;partial:boolean};
+type Discovery={indexed?:Indexed;attemptedAt:number;limited:boolean;refused:boolean};
 /** The counting rule (DESIGN_W1 §7): a registered IMD agent the live roster shows online now, or last seen online under
  *  this owner (seat_presence: CORR-03) within ONLINE_WINDOW_MS. One predicate for status(), the cap's rank (N-3) and the
  *  index lane (N-6), so no second copy of the 24 h rule exists. */
@@ -193,7 +197,7 @@ class Cache<T>{
   peek(key:string):T|undefined{return this.map.get(key)?.value;}
   async get(key:string,now:number,ttl:number,load:()=>Promise<T>,keep:(v:T)=>boolean=()=>true):Promise<T>{
     const hit=this.map.get(key);
-    if(hit){this.map.delete(key);this.map.set(key,hit);if(hit.inflight)return hit.inflight;if(hit.value!==undefined&&hit.at+ttl>now&&keep(hit.value))return hit.value;}
+    if(hit){this.map.delete(key);this.map.set(key,hit);if(hit.inflight)return hit.inflight;if(hit.value!==undefined&&isFreshAge(now,hit.at,ttl)&&keep(hit.value))return hit.value;}
     const entry:Entry<T>={at:now},last=hit?.value!==undefined?hit:undefined;
     entry.inflight=load().then(v=>{entry.value=v;return v;},e=>{if(this.map.get(key)===entry){if(last)this.map.set(key,last);else this.map.delete(key);}throw e;}).finally(()=>{entry.inflight=undefined;});
     this.map.set(key,entry);while(this.map.size>CACHE_LIMIT)this.map.delete(this.map.keys().next().value!);
@@ -201,7 +205,8 @@ class Cache<T>{
   }
 }
 export class Ownership{
-  private proofs=new Cache<Proof>();private candidates=new Cache<Indexed>();private lists=new Cache<IndexedNft[]>();private failed=new Map<string,number>();
+  private proofs=new Map<string,Proof>();private proofing=new Map<string,Promise<Proof>>();private discovery=new Cache<Discovery>();
+  private candidates=new Cache<Indexed>();private lists=new Cache<IndexedNft[]>();private failed=new Map<string,number>();
   private gateway:Pick<ReadGateway,'source'>;private collections:readonly CharacterCollection[];
   constructor(gateway:Pick<ReadGateway,'source'>,collections:readonly CharacterCollection[]=CHARACTER_COLLECTIONS){this.gateway=gateway;this.collections=collections;}
   private async world(waitUntil?:WaitUntil){
@@ -211,19 +216,20 @@ export class Ownership{
     return {agents:new Map(world.agents.map(a=>[a.tokenId,a])),owners:Array.isArray((swarm.data as Json).owners)?(swarm.data as Json).owners as unknown[]:[],
       presence:workers.state,fetchedAt:swarm.fetchedAt};
   }
-  /** Seats this address owns on-chain now (≤ OWNERSHIP_TTL_MS old): IMD's swarm and Alchemy's index name candidates, one
-   *  Multicall3 ownerOf read proves them. The index is asked at most every CANDIDATES_TTL_MS per address (INT-1: an owner
-   *  tab re-checking every minute costs one eth_call, not an NFT API call as well); `fresh` (the owner's "Check again")
-   *  lowers that to 30 s, and a stored proof built on an older index answer is rebuilt for it. Every index read spends
-   *  req.budget first (H1: any throwaway key can sign in) and keeps its answer in D1 too (KEEP_INDEX); refused, or failed
-   *  with an answer kept, the roster and the last stored answer (this isolate's or D1's, whichever is newer; however old:
-   *  it only names candidates, and ownerOf proves them now) are the candidates, so an address neither names (every
-   *  throwaway one) causes no keyed read beyond its network's index lane (home(), N-6: one index read a minute per
-   *  network, 600 a minute site-wide, and nothing to prove). A failed index read with no answer kept is 503, as before.
-   *  `again` (the lane's rebuild): a stored proof the budget refused is built again, with the caller's budget. */
+  /** Discovery never grants ownership or renews an ownerOf epoch. Ordinary index reads use their 5 minute cadence;
+   *  fresh reads use 30 seconds. Failed/refused discovery is held for 30 seconds too, without dating the fallback
+   *  index as new. A reserved lane (`again`) may retry discovery, but cannot bypass a still-valid crypto result.
+   *  Epochs keep positive AND negative results, at one block, for a fixed 30 second deadline. Newly discovered ids
+   *  get only a pinned delta proof; at most CANDIDATE_CAP results are examined in the entire epoch. */
   private proof(address:string,owners:unknown[],agents:Map<string,Agent>,req:OwnershipRequest,fresh:boolean,again=false):Promise<Proof>{
-    const young=(at:number)=>!fresh||at+OWNERSHIP_TTL_MS>req.now;
-    return this.proofs.get(address,req.now,OWNERSHIP_TTL_MS,async()=>{
+    const pending=this.proofing.get(address);
+    // Serialise updates rather than returning another request's answer as complete. The caller may already have a
+    // different roster/fresh intent: after the first update settles it discovers/proves only its missing delta.
+    if(pending)return pending.then(()=>this.proof(address,owners,agents,req,fresh,again));
+    const store=(proof:Proof)=>{this.proofs.delete(address);this.proofs.set(address,proof);
+      while(this.proofs.size>CACHE_LIMIT)this.proofs.delete(this.proofs.keys().next().value!);return proof;};
+    const update=async():Promise<Proof>=>{
+      if(!Number.isFinite(req.now))throw new OwnershipUnavailable();
       const candidates=new Set<string>();
       owners.forEach((o,i)=>{if(typeof o==='string'&&o.toLowerCase()===address)candidates.add(String(i));});
       // N-3: past the cap, the cut ranks by the counting rule itself, so a seat that counts through a recent sighting is
@@ -232,33 +238,65 @@ export class Ownership{
       // the candidates), shared by both cuts (the one kept in D1 and the one proven). No database, or the read failing:
       // the live roster alone ranks, as before (A-4).
       let seen:Promise<Map<string,number>>|undefined;
-      const best=async(ids:Iterable<string>)=>{const list=[...ids];
-        const sightings=list.length<=CANDIDATE_CAP?new Map<string,number>():await(seen??=this.sightings([...new Set([...candidates,...list])]
+      const best=async(ids:Iterable<string>,limit=CANDIDATE_CAP)=>{const list=[...ids];if(limit<=0)return [];
+        const sightings=list.length<=limit?new Map<string,number>():await(seen??=this.sightings([...new Set([...candidates,...list])]
           .filter(id=>rank(agents.get(id),undefined,req.now)===1),address,req.db).catch(()=>new Map<string,number>()));
         const order=(id:string)=>rank(agents.get(id),sightings.get(id),req.now);
-        return list.sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,CANDIDATE_CAP);};
-      let indexed:Indexed|undefined,limited=false,refused=false;
-      try{
-        indexed=await this.candidates.get(address,req.now,CANDIDATES_TTL_MS,async()=>{
-          if(!req.budget||!await req.budget())throw new Limited();
-          const at=req.clock?.()??req.now;                                          // the index read begins now (A2-R1)
-          const {nfts,complete}=await indexedNfts(req.chain,address,[SEAT_COLLECTION],false),ids=[...new Set(nfts.map(n=>n.tokenId))];
-          keepIndex(address,await best(ids),at,req);return {ids,at,complete};
-        },v=>young(v.at));
-      }catch(e){
-        if(!(e instanceof Limited||e instanceof OwnershipUnavailable))throw e;
-        const mine=this.candidates.peek(address),kept=await keptIndex(address,req.db);
-        indexed=kept&&(!mine||kept.at>mine.at)?kept:mine;
-        if(!(e instanceof Limited)&&!indexed?.ids.length)throw e;                   // failed, nothing kept to re-prove: 503
-        limited=true;refused=e instanceof Limited;
-      }
+        return list.sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,limit);};
+      const discovery=await this.discovery.get(address,req.now,CANDIDATES_TTL_MS,async()=>{
+        const attemptedAt=req.clock?.()??req.now;
+        if(!Number.isFinite(attemptedAt))throw new OwnershipUnavailable();
+        try{
+          const indexed=await this.candidates.get(address,req.now,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS,async()=>{
+            if(!req.budget||!await req.budget())throw new Limited();
+            const at=req.clock?.()??req.now;                                      // the index read begins now (A2-R1)
+            if(!Number.isFinite(at))throw new OwnershipUnavailable();
+            const {nfts,complete}=await indexedNfts(req.chain,address,[SEAT_COLLECTION],false),ids=[...new Set(nfts.map(n=>n.tokenId))];
+            keepIndex(address,await best(ids),at,req);return {ids,at,complete};
+          },v=>!again&&isFreshAge(req.now,v.at,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS));
+          return {indexed,attemptedAt,limited:false,refused:false};
+        }catch(e){
+          if(!(e instanceof Limited||e instanceof OwnershipUnavailable))throw e;
+          const mine=this.candidates.peek(address),kept=await keptIndex(address,req.db);
+          const dated=(v:Indexed|undefined)=>v!==undefined&&Number.isFinite(v.at)&&v.at<=req.now;
+          // Future/invalid D1 dates may name candidates, but never win a newer-evidence comparison against a valid date.
+          const indexed=kept&&(!mine||dated(kept)&&(!dated(mine)||kept.at>mine.at))?kept:mine;
+          if(!(e instanceof Limited)&&!indexed?.ids.length)throw e;                // failed with no kept candidates: 503
+          return {indexed,attemptedAt,limited:true,refused:e instanceof Limited};
+        }
+      },d=>!(again&&d.refused)&&(d.limited?isFreshAge(req.now,d.attemptedAt,OWNERSHIP_TTL_MS):
+        d.indexed!==undefined&&isFreshAge(req.now,d.indexed.at,fresh?OWNERSHIP_TTL_MS:CANDIDATES_TTL_MS)));
+      const {indexed,limited,refused}=discovery;
       for(const id of indexed?.ids??[])candidates.add(id);
-      const partial=candidates.size>CANDIDATE_CAP||indexed?.complete===false,indexedAt=indexed?.at??0;
-      const ids=(await best(candidates)).sort(compareIds);
-      if(!ids.length)return {ids,block:null,checkedAt:req.now,indexedAt,limited,refused,partial};
-      const {owners:onChain,block}=await ownersOf(req.chain,ids);
-      return {ids:ids.filter(id=>onChain.get(id)===address),block,checkedAt:req.now,indexedAt,limited,refused,partial};
-    },p=>young(p.indexedAt)&&!(again&&p.refused));
+      // Discovery/admission can wait longer than the crypto TTL. Re-evaluate the epoch at proof work's actual start,
+      // rather than the home request's earlier clock; an expired epoch needs new evidence at latest, not a delta.
+      const proofNow=req.clock?.()??req.now;
+      if(!Number.isFinite(proofNow))throw new OwnershipUnavailable();
+      const old=this.proofs.get(address),valid=old!==undefined&&isFreshAge(proofNow,old.checkedAt,OWNERSHIP_TTL_MS);
+      const examined=new Map(valid?old.examined:undefined),failed=new Set(valid?old.failed:undefined),room=CANDIDATE_CAP-examined.size-failed.size;
+      const ids=(await best([...candidates].filter(id=>!examined.has(id)&&!failed.has(id)),room)).sort(compareIds);
+      // The deadline belongs to the epoch, including an empty/refused epoch: a delta never extends it.
+      const checkedAt=valid?old.checkedAt:proofNow;let block=valid?old.block:null;
+      if(!Number.isFinite(checkedAt))throw new OwnershipUnavailable();
+      try{
+        if(ids.length){const result=await ownersOf(req.chain,ids,block);block=result.block;
+          for(const [id,owner] of result.owners)examined.set(id,owner);}
+      }catch(e){
+        if(!(e instanceof OwnershipUnavailable)||!valid||!isFreshAge(req.clock?.()??req.now,old.checkedAt,OWNERSHIP_TTL_MS))throw e;
+        // No new crypto evidence was obtained. Failed IDs are unavailable, never guessed negative/owned, and count
+        // toward this epoch's attempt cap. Retry only after its original deadline, without renewing old evidence.
+        for(const id of ids)failed.add(id);
+        return store({...old,failed,limited:true,refused,partial:true});
+      }
+      const done=req.clock?.()??req.now;
+      if(!isFreshAge(done,checkedAt,OWNERSHIP_TTL_MS))throw new OwnershipUnavailable();
+      const partial=indexed?.complete===false||[...candidates].some(id=>!examined.has(id));
+      const proof:Proof={ids:[...examined].filter(([,owner])=>owner===address).map(([id])=>id).sort(compareIds),examined,failed,block,
+        checkedAt,indexedAt:indexed?.at??0,limited:limited||failed.size>0,refused,partial};
+      return store(proof);
+    };
+    const running=update().finally(()=>{if(this.proofing.get(address)===running)this.proofing.delete(address);});
+    this.proofing.set(address,running);return running;
   }
   /** Last recorded sighting per seat under `owner` (cron; the owner is IMD's swarm view at the time), one query. A
    *  sighting made under a previous owner never counts for a buyer (CORR-03). Without a database only the live roster counts. */
@@ -310,7 +348,7 @@ export class Ownership{
   private async characters(a:string,req:OwnershipRequest):Promise<{items:IndexedNft[];state:'ok'|'unavailable'}>{
     if(!this.collections.length)return {items:[],state:'ok'};
     const failedAt=this.failed.get(a);
-    if(failedAt!==undefined&&failedAt+FAILED_LIST_MS>req.now)return {items:[],state:'unavailable'};
+    if(failedAt!==undefined&&isFreshAge(req.now,failedAt,FAILED_LIST_MS))return {items:[],state:'unavailable'};
     try{
       const items=await this.lists.get(a,req.now,ASSETS_TTL_MS,async()=>{
         if(!req.budget||!await req.budget())throw new OwnershipUnavailable();

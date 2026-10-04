@@ -1,5 +1,6 @@
 import {object,type SourceSample} from './model.ts';
 import {FRESH_MS} from './cadence.ts';
+import {isFreshAge} from '../shared/freshness.ts';
 
 export const IMD_TOKEN='0xD34a99Bc0f67aE1bbd63C660e6d0b0dd03E263B7';
 export const MARKET_URL='https://api.dexscreener.com/tokens/v1/ethereum/'+IMD_TOKEN;
@@ -56,16 +57,23 @@ export function selectFloor(payload:unknown,now:number):SeatFloor {
     const m=object(body[key]),floor=finite(m.floorPrice);
     if(m.error||floor===null||floor<=0||String(m.priceCurrency??'').toUpperCase()!=='ETH')continue;
     const at=typeof m.retrievedAt==='string'?Date.parse(m.retrievedAt):NaN;
-    return {floorEth:floor,marketplace,fetchedAt:Number.isFinite(at)&&at<=now?at:now};
+    // Keep a parsed upstream timestamp, including future values, so the UI freshness gate can reject it.
+    // An absent/unparseable retrieval timestamp uses the actual observation time, never a cached merge time.
+    return {floorEth:floor,marketplace,fetchedAt:Number.isFinite(at)?at:now};
   }
   throw new Error('No seat floor');
 }
-/** ETH/USD from the $IMD quote (priceUsd / priceNative); null without a native price. */
+/** ETH/USD from the $IMD quote (priceUsd / priceNative); null unless inputs and rate are finite and positive. */
 export function ethUsd(quote:MarketQuote|null|undefined):number|null {
-  const native=quote?.priceNative;return quote&&native&&native>0?quote.priceUsd/native:null;
+  const native=finite(quote?.priceNative),usd=finite(quote?.priceUsd);
+  if(native===null||native<=0||usd===null||usd<=0)return null;
+  const rate=usd/native;return Number.isFinite(rate)&&rate>0?rate:null;
 }
 export function withUsd(floor:SeatFloor,quote:MarketQuote|null|undefined):SeatFloor {
-  const rate=ethUsd(quote);return rate===null?floor:{...floor,floorUsd:floor.floorEth*rate};
+  const rate=ethUsd(quote),usd=rate===null?null:floor.floorEth*rate;
+  if(usd!==null&&Number.isFinite(usd)&&usd>0)return {...floor,floorUsd:usd};
+  const {floorUsd,...base}=floor;
+  return typeof floorUsd==='number'&&Number.isFinite(floorUsd)&&floorUsd>0?floor:base;
 }
 /** The 24h change's tier (owner, 2026-10-01, replacing the 2026-09-28 tiers): ≥ +10 brilliant (大晴天, a brighter sky
  *  with fireworks now and then, skyShow.ts), 0…+10 sunny (晴朗), −5…0 overcast (陰天), −12…−5 rain, −22…−12 storm
@@ -82,16 +90,28 @@ export const FLOOR_MAX_AGE_MS=2*60*60_000;
  *  in when the viewer has none. */
 export function floorView(sample:MarketSample|null|undefined,quote:MarketQuote|null,now=Date.now()):SeatFloor|null {
   const f=sample?.extras?.floor;
-  if(!f||!(f.floorEth>0)||!Number.isFinite(f.fetchedAt)||now-f.fetchedAt>FLOOR_MAX_AGE_MS)return null;
-  const {floorUsd,...base}=f,mine=withUsd(base,quote);
-  return mine.floorUsd!==undefined?mine:typeof floorUsd==='number'&&Number.isFinite(floorUsd)?f:base;
+  if(!f||finite(f.floorEth)===null||f.floorEth<=0||!isFreshAge(now,f.fetchedAt,FLOOR_MAX_AGE_MS)||typeof f.marketplace!=='string')return null;
+  const base:SeatFloor={floorEth:f.floorEth,marketplace:f.marketplace,fetchedAt:f.fetchedAt},mine=withUsd(base,quote),fallback=finite(f.floorUsd);
+  return mine.floorUsd!==undefined?mine:fallback!==null&&fallback>0?{...base,floorUsd:fallback}:base;
+}
+/** Runtime boundary for both direct and Worker fallback quotes. Optional bad fields do not poison a valid price. */
+export function marketQuoteOf(value:unknown):MarketQuote|null {
+  const raw=object(value),price=finite(raw.priceUsd);if(price===null||price<=0)return null;
+  const c=object(raw.change),v=object(raw.volumeUsd),t=object(raw.txns),url=typeof raw.pairUrl==='string'?raw.pairUrl:'';
+  const native=finite(raw.priceNative);
+  return {priceUsd:price,change24h:finite(raw.change24h),marketCap:positive(raw.marketCap),liquidityUsd:positive(raw.liquidityUsd),
+    pairUrl:url.startsWith('https://dexscreener.com/ethereum/')||url==='https://imd.fun/token/'?url:'https://imd.fun/token/',
+    provider:raw.provider==='Demo'?'Demo':'DEX Screener',priceNative:native!==null&&native>0?native:null,
+    capFromFdv:raw.capFromFdv===true,
+    ...(raw.change?{change:{m5:finite(c.m5),h1:finite(c.h1),h6:finite(c.h6),h24:finite(c.h24)}}:{}),
+    ...(raw.volumeUsd?{volumeUsd:{h1:positive(v.h1),h24:positive(v.h24)}}:{}),
+    ...(raw.txns?{txns:{h1:trades(t.h1),h24:trades(t.h24)}}:{})};
 }
 export function marketView(sample:MarketSample|null,now=Date.now()) {
-  const raw=object(sample?.data),price=positive(raw.priceUsd);
-  const quote=price!==null&&price>0?raw as MarketQuote:null;
-  const fresh=sample?.state==='fresh'&&sample.fetchedAt!==null&&now-sample.fetchedAt<=FRESH_MS&&now-sample.fetchedAt>=-10000;
+  const quote=marketQuoteOf(sample?.data),at=finite(sample?.fetchedAt);
+  const fresh=sample?.state==='fresh'&&at!==null&&isFreshAge(now,at,FRESH_MS);
   const state=quote?(fresh?'fresh':'stale'):'unavailable';
-  return {state,quote,fetchedAt:sample?.fetchedAt??null,weather:weatherForChange(fresh?finite(quote?.change24h):null),floor:floorView(sample,fresh?quote:null,now),
+  return {state,quote,fetchedAt:at,weather:weatherForChange(fresh?finite(quote?.change24h):null),floor:floorView(sample,fresh?quote:null,now),
     mood:marketMood(fresh?quote?.change?.h1:null)} as const;
 }
 /** Each 24h tier's own rain and wind, 0..1: gentle rain; heavy rain with wind (storm); torrential in a thunderstorm. */

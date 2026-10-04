@@ -1,0 +1,1099 @@
+{
+  "schema": "imd.submission7-counterfactual-controls/v1",
+  "baselinePrivateCommit": "f9a34cba0876306287b35aff0176e9dc38942624",
+  "evidence": "Team local counterfactuals, not third-party closures.",
+  "calibrationEvaluatorHashes": {
+    "auth-reference-model.mjs": "6c3259353fee927da1f759e8ce017e27cb03e7d81b3d124dcb4db21c8eaf942a",
+    "auth-scheduler-driver.mjs": "e0a8547b5badec4479ef316310b050b5ee81230e2942a08fc1cdad768a54ea72",
+    "auth-reference-scheduler.test.mjs": "bb180bed7b45d0a2c3e0ce6a6e962ca37a98ea087108a4a89e903edb236e8ca8"
+  },
+  "publicEvaluatorHashes": {
+    "auth-reference-model.mjs": "6c3259353fee927da1f759e8ce017e27cb03e7d81b3d124dcb4db21c8eaf942a",
+    "auth-scheduler-driver.mjs": "e0a8547b5badec4479ef316310b050b5ee81230e2942a08fc1cdad768a54ea72",
+    "auth-reference-scheduler.test.mjs": "5cc24fb1ebb7741af60d68c3428856ba40fd942e14841e0d3a435eca6b3b8318"
+  },
+  "normalization": "Private calibration used Windows CRLF working bytes; the frozen public/committed evaluator uses LF. All differing frozen inputs were proven newline-equivalent, except the separately documented test provenance enumeration extension; no oracle/driver policy change.",
+  "testFileDifference": "After calibration, the test only extended provenance input enumeration; oracle and driver semantics stayed identical.",
+  "minimizationLimit": "36 deletion trials; same invariant/witness; not globally smallest trace.",
+  "baselineFailures": [
+    {
+      "seed": 0,
+      "invariant": "AUTH-I3",
+      "message": "AUTH-I3: challenge needs this click own canonical ABSENT read",
+      "originalActions": [
+        {
+          "type": "fault-session",
+          "value": 503
+        },
+        {
+          "type": "start",
+          "tab": "a"
+        },
+        {
+          "type": "start",
+          "tab": "b"
+        },
+        {
+          "type": "worker",
+          "id": "r2"
+        },
+        {
+          "type": "headers",
+          "id": "r2"
+        },
+        {
+          "type": "expose",
+          "id": "r2"
+        },
+        {
+          "type": "body",
+          "id": "r2"
+        },
+        {
+          "type": "worker",
+          "id": "r1"
+        },
+        {
+          "type": "headers",
+          "id": "r1"
+        },
+        {
+          "type": "expose",
+          "id": "r1"
+        },
+        {
+          "type": "body",
+          "id": "r1"
+        },
+        {
+          "type": "click",
+          "tab": "a"
+        },
+        {
+          "type": "worker",
+          "id": "r3"
+        },
+        {
+          "type": "headers",
+          "id": "r3"
+        },
+        {
+          "type": "expose",
+          "id": "r3"
+        },
+        {
+          "type": "body",
+          "id": "r3"
+        },
+        {
+          "type": "worker",
+          "id": "r4"
+        },
+        {
+          "type": "headers",
+          "id": "r4"
+        },
+        {
+          "type": "expose",
+          "id": "r4"
+        },
+        {
+          "type": "body",
+          "id": "r4"
+        },
+        {
+          "type": "prompt",
+          "id": "p5"
+        },
+        {
+          "type": "worker",
+          "id": "r6"
+        },
+        {
+          "type": "headers",
+          "id": "r6"
+        },
+        {
+          "type": "expose",
+          "id": "r6"
+        },
+        {
+          "type": "body",
+          "id": "r6"
+        },
+        {
+          "type": "worker",
+          "id": "r8"
+        },
+        {
+          "type": "headers",
+          "id": "r8"
+        },
+        {
+          "type": "expose",
+          "id": "r8"
+        },
+        {
+          "type": "body",
+          "id": "r8"
+        },
+        {
+          "type": "click",
+          "tab": "b"
+        }
+      ],
+      "originalEvents": 30,
+      "minimizedTrace": {
+        "seed": 0,
+        "kernel": "lost-hint",
+        "generator": "r8-causal-scheduler-1",
+        "fixtureDigest": "23da4eb1a682422e95da0a79c147f9574674289a35207e9dbf00f8aa31495386",
+        "traceDigest": "2cac76ad4adf55acbff03a308245ba4c534d30c2cb8a44b949c60f18b946be41",
+        "eventCount": 29,
+        "actions": [
+          {
+            "type": "fault-session",
+            "value": 503
+          },
+          {
+            "type": "start",
+            "tab": "a"
+          },
+          {
+            "type": "start",
+            "tab": "b"
+          },
+          {
+            "type": "worker",
+            "id": "r2"
+          },
+          {
+            "type": "headers",
+            "id": "r2"
+          },
+          {
+            "type": "expose",
+            "id": "r2"
+          },
+          {
+            "type": "body",
+            "id": "r2"
+          },
+          {
+            "type": "worker",
+            "id": "r1"
+          },
+          {
+            "type": "headers",
+            "id": "r1"
+          },
+          {
+            "type": "expose",
+            "id": "r1"
+          },
+          {
+            "type": "click",
+            "tab": "a"
+          },
+          {
+            "type": "worker",
+            "id": "r3"
+          },
+          {
+            "type": "headers",
+            "id": "r3"
+          },
+          {
+            "type": "expose",
+            "id": "r3"
+          },
+          {
+            "type": "body",
+            "id": "r3"
+          },
+          {
+            "type": "worker",
+            "id": "r4"
+          },
+          {
+            "type": "headers",
+            "id": "r4"
+          },
+          {
+            "type": "expose",
+            "id": "r4"
+          },
+          {
+            "type": "body",
+            "id": "r4"
+          },
+          {
+            "type": "prompt",
+            "id": "p5"
+          },
+          {
+            "type": "worker",
+            "id": "r6"
+          },
+          {
+            "type": "headers",
+            "id": "r6"
+          },
+          {
+            "type": "expose",
+            "id": "r6"
+          },
+          {
+            "type": "body",
+            "id": "r6"
+          },
+          {
+            "type": "worker",
+            "id": "r8"
+          },
+          {
+            "type": "headers",
+            "id": "r8"
+          },
+          {
+            "type": "expose",
+            "id": "r8"
+          },
+          {
+            "type": "body",
+            "id": "r8"
+          },
+          {
+            "type": "click",
+            "tab": "b"
+          }
+        ],
+        "failure": {
+          "invariant": "AUTH-I3",
+          "message": "AUTH-I3: challenge needs this click own canonical ABSENT read",
+          "detail": {
+            "tab": "b"
+          }
+        },
+        "minimization": {
+          "attempts": 36,
+          "invalid": 30,
+          "reproduced": true,
+          "originalEvents": 30
+        }
+      },
+      "replayExitCode": 1,
+      "replayExpectedRejection": true
+    },
+    {
+      "seed": 3,
+      "invariant": "AUTH-I5",
+      "message": "AUTH-I5: pending challenge cancellation is local; it cannot dispatch a competing nonce cleanup",
+      "originalActions": [
+        {
+          "type": "fault-session",
+          "value": 503
+        },
+        {
+          "type": "start",
+          "tab": "a"
+        },
+        {
+          "type": "fault-session",
+          "value": 503
+        },
+        {
+          "type": "start",
+          "tab": "b"
+        },
+        {
+          "type": "worker",
+          "id": "r1"
+        },
+        {
+          "type": "headers",
+          "id": "r1"
+        },
+        {
+          "type": "expose",
+          "id": "r1"
+        },
+        {
+          "type": "body",
+          "id": "r1"
+        },
+        {
+          "type": "worker",
+          "id": "r2"
+        },
+        {
+          "type": "headers",
+          "id": "r2"
+        },
+        {
+          "type": "expose",
+          "id": "r2"
+        },
+        {
+          "type": "body",
+          "id": "r2"
+        },
+        {
+          "type": "click",
+          "tab": "a"
+        },
+        {
+          "type": "worker",
+          "id": "r3"
+        },
+        {
+          "type": "headers",
+          "id": "r3"
+        },
+        {
+          "type": "expose",
+          "id": "r3"
+        },
+        {
+          "type": "body",
+          "id": "r3"
+        },
+        {
+          "type": "worker",
+          "id": "r4"
+        },
+        {
+          "type": "headers",
+          "id": "r4"
+        },
+        {
+          "type": "expose",
+          "id": "r4"
+        },
+        {
+          "type": "click",
+          "tab": "b"
+        },
+        {
+          "type": "worker",
+          "id": "r5"
+        },
+        {
+          "type": "headers",
+          "id": "r5"
+        },
+        {
+          "type": "expose",
+          "id": "r5"
+        },
+        {
+          "type": "body",
+          "id": "r5"
+        },
+        {
+          "type": "worker",
+          "id": "r6"
+        },
+        {
+          "type": "headers",
+          "id": "r6"
+        },
+        {
+          "type": "expose",
+          "id": "r6"
+        },
+        {
+          "type": "body",
+          "id": "r6"
+        },
+        {
+          "type": "prompt",
+          "id": "p7"
+        },
+        {
+          "type": "worker",
+          "id": "r8"
+        },
+        {
+          "type": "headers",
+          "id": "r8"
+        },
+        {
+          "type": "expose",
+          "id": "r8"
+        },
+        {
+          "type": "body",
+          "id": "r8"
+        },
+        {
+          "type": "worker",
+          "id": "r10"
+        },
+        {
+          "type": "headers",
+          "id": "r10"
+        },
+        {
+          "type": "expose",
+          "id": "r10"
+        },
+        {
+          "type": "body",
+          "id": "r10"
+        },
+        {
+          "type": "hint",
+          "tab": "a"
+        },
+        {
+          "type": "worker",
+          "id": "r11"
+        },
+        {
+          "type": "headers",
+          "id": "r11"
+        },
+        {
+          "type": "expose",
+          "id": "r11"
+        },
+        {
+          "type": "body",
+          "id": "r11"
+        },
+        {
+          "type": "body",
+          "id": "r4"
+        },
+        {
+          "type": "account",
+          "tab": "a",
+          "account": "B"
+        }
+      ],
+      "originalEvents": 45,
+      "minimizedTrace": {
+        "seed": 3,
+        "kernel": "displayed-pending",
+        "generator": "r8-causal-scheduler-1",
+        "fixtureDigest": "23da4eb1a682422e95da0a79c147f9574674289a35207e9dbf00f8aa31495386",
+        "traceDigest": "725fe2d2835b62d02006c1058724459090f1c5b38b538cf8501cd259cc1dd2aa",
+        "eventCount": 43,
+        "actions": [
+          {
+            "type": "fault-session",
+            "value": 503
+          },
+          {
+            "type": "start",
+            "tab": "a"
+          },
+          {
+            "type": "fault-session",
+            "value": 503
+          },
+          {
+            "type": "start",
+            "tab": "b"
+          },
+          {
+            "type": "worker",
+            "id": "r1"
+          },
+          {
+            "type": "headers",
+            "id": "r1"
+          },
+          {
+            "type": "expose",
+            "id": "r1"
+          },
+          {
+            "type": "body",
+            "id": "r1"
+          },
+          {
+            "type": "worker",
+            "id": "r2"
+          },
+          {
+            "type": "headers",
+            "id": "r2"
+          },
+          {
+            "type": "expose",
+            "id": "r2"
+          },
+          {
+            "type": "body",
+            "id": "r2"
+          },
+          {
+            "type": "click",
+            "tab": "a"
+          },
+          {
+            "type": "worker",
+            "id": "r3"
+          },
+          {
+            "type": "headers",
+            "id": "r3"
+          },
+          {
+            "type": "expose",
+            "id": "r3"
+          },
+          {
+            "type": "body",
+            "id": "r3"
+          },
+          {
+            "type": "worker",
+            "id": "r4"
+          },
+          {
+            "type": "headers",
+            "id": "r4"
+          },
+          {
+            "type": "expose",
+            "id": "r4"
+          },
+          {
+            "type": "click",
+            "tab": "b"
+          },
+          {
+            "type": "worker",
+            "id": "r5"
+          },
+          {
+            "type": "headers",
+            "id": "r5"
+          },
+          {
+            "type": "expose",
+            "id": "r5"
+          },
+          {
+            "type": "body",
+            "id": "r5"
+          },
+          {
+            "type": "worker",
+            "id": "r6"
+          },
+          {
+            "type": "headers",
+            "id": "r6"
+          },
+          {
+            "type": "expose",
+            "id": "r6"
+          },
+          {
+            "type": "body",
+            "id": "r6"
+          },
+          {
+            "type": "prompt",
+            "id": "p7"
+          },
+          {
+            "type": "worker",
+            "id": "r8"
+          },
+          {
+            "type": "headers",
+            "id": "r8"
+          },
+          {
+            "type": "expose",
+            "id": "r8"
+          },
+          {
+            "type": "body",
+            "id": "r8"
+          },
+          {
+            "type": "worker",
+            "id": "r10"
+          },
+          {
+            "type": "headers",
+            "id": "r10"
+          },
+          {
+            "type": "hint",
+            "tab": "a"
+          },
+          {
+            "type": "worker",
+            "id": "r11"
+          },
+          {
+            "type": "headers",
+            "id": "r11"
+          },
+          {
+            "type": "expose",
+            "id": "r11"
+          },
+          {
+            "type": "body",
+            "id": "r11"
+          },
+          {
+            "type": "body",
+            "id": "r4"
+          },
+          {
+            "type": "account",
+            "tab": "a",
+            "account": "B"
+          }
+        ],
+        "failure": {
+          "invariant": "AUTH-I5",
+          "message": "AUTH-I5: pending challenge cancellation is local; it cannot dispatch a competing nonce cleanup",
+          "detail": {}
+        },
+        "minimization": {
+          "attempts": 36,
+          "invalid": 30,
+          "reproduced": true,
+          "originalEvents": 45
+        }
+      },
+      "replayExitCode": 1,
+      "replayExpectedRejection": true
+    },
+    {
+      "seed": 19,
+      "invariant": "INFO-1",
+      "message": "INFO-1: wallet lock reconciles uncertain verification without automatic logout",
+      "originalActions": [
+        {
+          "type": "fault-session",
+          "value": 503
+        },
+        {
+          "type": "start",
+          "tab": "a"
+        },
+        {
+          "type": "fault-session",
+          "value": 503
+        },
+        {
+          "type": "start",
+          "tab": "b"
+        },
+        {
+          "type": "worker",
+          "id": "r2"
+        },
+        {
+          "type": "headers",
+          "id": "r2"
+        },
+        {
+          "type": "worker",
+          "id": "r1"
+        },
+        {
+          "type": "headers",
+          "id": "r1"
+        },
+        {
+          "type": "expose",
+          "id": "r2"
+        },
+        {
+          "type": "body",
+          "id": "r2"
+        },
+        {
+          "type": "expose",
+          "id": "r1"
+        },
+        {
+          "type": "body",
+          "id": "r1"
+        },
+        {
+          "type": "click",
+          "tab": "a"
+        },
+        {
+          "type": "worker",
+          "id": "r3"
+        },
+        {
+          "type": "headers",
+          "id": "r3"
+        },
+        {
+          "type": "expose",
+          "id": "r3"
+        },
+        {
+          "type": "body",
+          "id": "r3"
+        },
+        {
+          "type": "worker",
+          "id": "r4"
+        },
+        {
+          "type": "headers",
+          "id": "r4"
+        },
+        {
+          "type": "expose",
+          "id": "r4"
+        },
+        {
+          "type": "body",
+          "id": "r4"
+        },
+        {
+          "type": "prompt",
+          "id": "p5"
+        },
+        {
+          "type": "worker",
+          "id": "r6"
+        },
+        {
+          "type": "headers",
+          "id": "r6"
+        },
+        {
+          "type": "expose",
+          "id": "r6"
+        },
+        {
+          "type": "lock",
+          "tab": "a"
+        }
+      ],
+      "originalEvents": 26,
+      "minimizedTrace": {
+        "seed": 19,
+        "kernel": "lock-active",
+        "generator": "r8-causal-scheduler-1",
+        "fixtureDigest": "23da4eb1a682422e95da0a79c147f9574674289a35207e9dbf00f8aa31495386",
+        "traceDigest": "5f65d35b941c8db31bfa3917c1e883d9db3ed315c2997bed9fbfcd10a60e4813",
+        "eventCount": 23,
+        "actions": [
+          {
+            "type": "fault-session",
+            "value": 503
+          },
+          {
+            "type": "start",
+            "tab": "a"
+          },
+          {
+            "type": "start",
+            "tab": "b"
+          },
+          {
+            "type": "worker",
+            "id": "r2"
+          },
+          {
+            "type": "headers",
+            "id": "r2"
+          },
+          {
+            "type": "worker",
+            "id": "r1"
+          },
+          {
+            "type": "headers",
+            "id": "r1"
+          },
+          {
+            "type": "expose",
+            "id": "r2"
+          },
+          {
+            "type": "expose",
+            "id": "r1"
+          },
+          {
+            "type": "click",
+            "tab": "a"
+          },
+          {
+            "type": "worker",
+            "id": "r3"
+          },
+          {
+            "type": "headers",
+            "id": "r3"
+          },
+          {
+            "type": "expose",
+            "id": "r3"
+          },
+          {
+            "type": "body",
+            "id": "r3"
+          },
+          {
+            "type": "worker",
+            "id": "r4"
+          },
+          {
+            "type": "headers",
+            "id": "r4"
+          },
+          {
+            "type": "expose",
+            "id": "r4"
+          },
+          {
+            "type": "body",
+            "id": "r4"
+          },
+          {
+            "type": "prompt",
+            "id": "p5"
+          },
+          {
+            "type": "worker",
+            "id": "r6"
+          },
+          {
+            "type": "headers",
+            "id": "r6"
+          },
+          {
+            "type": "expose",
+            "id": "r6"
+          },
+          {
+            "type": "lock",
+            "tab": "a"
+          }
+        ],
+        "failure": {
+          "invariant": "INFO-1",
+          "message": "INFO-1: wallet lock reconciles uncertain verification without automatic logout",
+          "detail": {}
+        },
+        "minimization": {
+          "attempts": 36,
+          "invalid": 29,
+          "reproduced": true,
+          "originalEvents": 26
+        }
+      },
+      "replayExitCode": 1,
+      "replayExpectedRejection": true
+    }
+  ],
+  "candidateReplay": {
+    "exitCode": 0,
+    "trace": {
+      "seed": 10,
+      "kernel": "slow-body-sibling",
+      "generator": "r8-causal-scheduler-1",
+      "fixtureDigest": "23da4eb1a682422e95da0a79c147f9574674289a35207e9dbf00f8aa31495386",
+      "traceDigest": "b5bca2d902e03cb9f12a84779f260ef0248c920576fed54e28c5f75096d67539",
+      "eventCount": 46,
+      "actions": [
+        {
+          "type": "start",
+          "tab": "a"
+        },
+        {
+          "type": "start",
+          "tab": "b"
+        },
+        {
+          "type": "worker",
+          "id": "r2"
+        },
+        {
+          "type": "headers",
+          "id": "r2"
+        },
+        {
+          "type": "worker",
+          "id": "r1"
+        },
+        {
+          "type": "expose",
+          "id": "r2"
+        },
+        {
+          "type": "body",
+          "id": "r2"
+        },
+        {
+          "type": "headers",
+          "id": "r1"
+        },
+        {
+          "type": "expose",
+          "id": "r1"
+        },
+        {
+          "type": "body",
+          "id": "r1"
+        },
+        {
+          "type": "click",
+          "tab": "a"
+        },
+        {
+          "type": "worker",
+          "id": "r3"
+        },
+        {
+          "type": "headers",
+          "id": "r3"
+        },
+        {
+          "type": "expose",
+          "id": "r3"
+        },
+        {
+          "type": "body",
+          "id": "r3"
+        },
+        {
+          "type": "worker",
+          "id": "r4"
+        },
+        {
+          "type": "headers",
+          "id": "r4"
+        },
+        {
+          "type": "expose",
+          "id": "r4"
+        },
+        {
+          "type": "body",
+          "id": "r4"
+        },
+        {
+          "type": "prompt",
+          "id": "p5"
+        },
+        {
+          "type": "worker",
+          "id": "r6"
+        },
+        {
+          "type": "headers",
+          "id": "r6"
+        },
+        {
+          "type": "expose",
+          "id": "r6"
+        },
+        {
+          "type": "hint",
+          "tab": "a"
+        },
+        {
+          "type": "worker",
+          "id": "r7"
+        },
+        {
+          "type": "headers",
+          "id": "r7"
+        },
+        {
+          "type": "expose",
+          "id": "r7"
+        },
+        {
+          "type": "body",
+          "id": "r7"
+        },
+        {
+          "type": "worker",
+          "id": "r9"
+        },
+        {
+          "type": "headers",
+          "id": "r9"
+        },
+        {
+          "type": "expose",
+          "id": "r9"
+        },
+        {
+          "type": "body",
+          "id": "r9"
+        },
+        {
+          "type": "click",
+          "tab": "b"
+        },
+        {
+          "type": "worker",
+          "id": "r10"
+        },
+        {
+          "type": "headers",
+          "id": "r10"
+        },
+        {
+          "type": "expose",
+          "id": "r10"
+        },
+        {
+          "type": "body",
+          "id": "r10"
+        },
+        {
+          "type": "worker",
+          "id": "r12"
+        },
+        {
+          "type": "headers",
+          "id": "r12"
+        },
+        {
+          "type": "worker",
+          "id": "r13"
+        },
+        {
+          "type": "headers",
+          "id": "r13"
+        },
+        {
+          "type": "expose",
+          "id": "r12"
+        },
+        {
+          "type": "body",
+          "id": "r12"
+        },
+        {
+          "type": "expose",
+          "id": "r13"
+        },
+        {
+          "type": "body",
+          "id": "r13"
+        },
+        {
+          "type": "body",
+          "id": "r6"
+        }
+      ]
+    }
+  },
+  "replayInstruction": "Extract an entry.minimizedTrace or candidateReplay.trace to trace.json. From source: node scripts/replay-auth-trace.mjs --replay trace.json. Candidate replay is not expected to reproduce every old failure ordering because the corrected client can emit different causal requests; run all supplied fixed/reference tests."
+}

@@ -2,6 +2,7 @@
 // the second — one read every 15 minutes is enough — but a failed first read must not leave the page "awaiting data"
 // for a whole cycle, so failures retry on a short, growing schedule until a read succeeds.
 import type {SourceSample} from './model.ts';
+import {isFreshAge} from '../shared/freshness.ts';
 
 /** Wait after a good read. */
 export const REFRESH_MS=15*60_000;
@@ -56,7 +57,11 @@ export type ReadResult=boolean|'soon'|'behind';
  *  this clock); 'soon' when either is still being read upstream. */
 export function worldReadResult(sources:{swarm:SourceSample;workers:SourceSample},now:number=Date.now()):ReadResult{
   const core=[sources.swarm,sources.workers];
-  if(core.every(s=>s.state==='fresh'))return core.some(s=>s.fetchedAt!==null&&now-s.fetchedAt>BEHIND_MS)?'behind':true;
+  if(core.every(s=>s.state==='fresh')){
+    // Remote fetchedAt is epoch time. A future/invalid value cannot be a successful fresh read.
+    if(core.some(s=>s.fetchedAt===null||!isFreshAge(now,s.fetchedAt,Number.MAX_VALUE)))return false;
+    return core.some(s=>!isFreshAge(now,s.fetchedAt!,BEHIND_MS+1))?'behind':true;
+  }
   return core.some(stillReading)?'soon':false;
 }
 /** The wait after a read: REFRESH_MS after a good one; after the nth failure in a row `first[n-1]` while there is one,
