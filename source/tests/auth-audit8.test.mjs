@@ -80,6 +80,78 @@ test('Audit1 passive first provider with a different account cannot revoke a coo
   }finally{off();reg.stop();q.stop();}
 });
 
+for(const mode of ['unlock-first','same-account-first-unlock','discovery-first','observed-switch','observed-lock-switch','observed-lock-same','mismatch-lock-same','observed-lock-discovery-switch','mismatch-lock-discovery-same','fresh-page','same-client-restart'])test(`Audit8 LOW2 ${mode}: only established identity changes own session cleanup`,async t=>{
+  const w=setup(),A=newAccount(),B=newAccount(),b=w.browser();
+  const observed=['observed-switch','observed-lock-switch','observed-lock-same','observed-lock-discovery-switch','fresh-page','same-client-restart'].includes(mode);
+  const mismatch=mode.startsWith('mismatch-lock-'),p=provider(observed?A:mismatch?B:null);
+  assert.equal((await b.signIn(A)).verify.status,200);
+  let chosen=mode==='discovery-first'?null:p,q=tab(w,b,p,{getProvider:()=>chosen});
+  try{
+    await until(()=>q.c.state.restored&&q.c.state.session&&!q.c.state.checking);
+    await flush();
+    if(observed||mismatch)assert.equal(q.c.state.account,(mismatch?B:A).address.toLowerCase());
+    else assert.equal(q.c.state.account,null);
+    if(mode==='fresh-page'){
+      q.stop();p.switchTo(null);q=tab(w,b,p);
+      await until(()=>q.c.state.restored&&q.c.state.session&&!q.c.state.checking);await flush();
+      assert.equal(q.c.state.account,null,'another page observation gives this page no switch authority');
+    }
+    if(mode==='same-client-restart'){
+      q.stop();p.switchTo(null);q.restart();await flush(20);p.switchTo(null);await flush();
+      assert.equal(q.c.state.account,null,'a previous lifetime observation gives this lifetime no switch authority');
+    }
+    const before=rows(w).counts,upstreamBefore=w.chain.state.calls.length;
+    if(mode.startsWith('observed-lock-')||mismatch){
+      p.switchTo(null);await flush();
+      assert.equal(q.c.state.account,null);assert.equal(rows(w).counts.live,1);
+      assert.equal(logouts(q).length,0,'locking alone cannot revoke the restored session');
+    }
+    const next=['same-account-first-unlock','observed-lock-same'].includes(mode)?A:B;
+    if(['discovery-first','observed-lock-discovery-switch','mismatch-lock-discovery-same'].includes(mode)){chosen=provider(next);q.observeProvider(chosen);q.notifyProvider('discovery');}
+    else p.switchTo(next);
+    const switched=['observed-switch','observed-lock-switch','observed-lock-discovery-switch'].includes(mode);
+    if(switched)await until(()=>logouts(q).some(e=>e.finished)&&q.channels.some(c=>c.messages.includes('signed-out')),
+      'account-switch cleanup response and callback settled');
+    else await flush(40);
+    record(t,'LOW2 '+mode,q,[p,...chosen&&chosen!==p?[chosen]:[]]);
+    t.diagnostic('LOW2_EFFECTS '+JSON.stringify({mode,before,after:rows(w).counts,
+      broadcast:q.channels.flatMap(c=>c.messages),upstreamBefore,upstreamAfter:w.chain.state.calls.length}));
+    assert.deepEqual(rows(w).counts,{created:1,live:switched?0:1,revoked:switched?1:0,challenges:1,used:1,pending:0,invalidated:0});
+    assert.equal(logouts(q).length,switched?1:0);
+    assert.equal(q.channels.flatMap(c=>c.messages).length,switched?1:0);
+    assert.equal(q.c.state.account,next.address.toLowerCase());
+    assert.equal(q.c.state.session?.address,switched?undefined:A.address.toLowerCase());
+    assert.equal(prompts([p]),0);assert.equal(p.calls.filter(method=>method==='eth_requestAccounts').length,0);
+    assert.equal(routeEvents(q,'/api/auth/challenge').length,0);assert.equal(routeEvents(q,'/api/auth/verify').length,0);
+    assert.equal(w.chain.state.calls.length,upstreamBefore,'account observation does not add ownership work');
+    if(switched){
+      assert.equal(logouts(q)[0].addressAssertion,true);assert.equal(logouts(q)[0].nonceAssertion,false);
+      assert.equal(logouts(q)[0].status,204);assert.equal(q.c.lifecycleSnapshot.cleanupPlans.at(-1).reason,'account-switch');
+    }else assert.equal((await (await b.get('/api/auth/session')).json()).signedIn,true);
+  }finally{q.stop();}
+});
+
+test('Audit8 LOW2 an explicit initial wallet grant establishes identity for later account-switch cleanup',async t=>{
+  const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),p=provider(A),request=p.request;
+  p.request=async args=>args.method==='eth_accounts'?[]:request(args);
+  const q=tab(w,b,p);
+  try{
+    await until(()=>q.c.state.restored&&!q.c.state.checking);assert.equal(q.c.state.account,null);
+    await q.signIn();assert.equal(rows(w).counts.live,1);assert.equal(prompts([p]),1);
+    assert.equal(p.calls.filter(method=>method==='eth_requestAccounts').length,1);
+    p.switchTo(B);
+    await until(()=>logouts(q).some(e=>e.finished)&&q.channels.some(c=>c.messages.includes('signed-out')),
+      'explicit-grant account-switch cleanup response and callback settled');
+    record(t,'LOW2 explicit initial grant then account switch',q,[p]);
+    assert.deepEqual(rows(w).counts,{created:1,live:0,revoked:1,challenges:1,used:1,pending:0,invalidated:0});
+    assert.equal(logouts(q).length,1);assert.equal(logouts(q)[0].addressAssertion,true);
+    assert.equal(logouts(q)[0].nonceAssertion,false);assert.equal(logouts(q)[0].status,204);
+    assert.equal(q.c.state.account,B.address.toLowerCase());assert.equal(q.c.state.session,null);
+    assert.equal(prompts([p]),1,'a genuine account switch never automatically signs the new account');
+    assert.equal(routeEvents(q,'/api/auth/challenge').length,1);assert.equal(routeEvents(q,'/api/auth/verify').length,1);
+  }finally{q.stop();}
+});
+
 for(const mode of ['accountsChanged','passive-different-account'])test(`Audit1 real identity change via ${mode} cleans old displayed authority`,async t=>{
   const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),first=provider(A),second=provider(B);let chosen=first;
   assert.equal((await b.signIn(A)).verify.status,200);

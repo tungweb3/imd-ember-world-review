@@ -16,6 +16,69 @@ const OWNER_OF=[{type:'function',name:'ownerOf',stateMutability:'view',inputs:[{
 const deferred=()=>{let resolve;return {promise:new Promise(r=>resolve=r),resolve};};
 const tick=()=>new Promise(r=>setImmediate(r));
 
+for(const delay of [0,1,2])test(`Audit8 Low1: post-proof D1 delay ${delay}ms cannot return expired owner authority`,async t=>{
+  const account=newAccount(),a=account.address.toLowerCase(),owners=[];owners[7]=a;
+  const chain=fakeChain({owners:{7:a}}),w=setup({chain,imd:fakeImd({seats:{7:'707'},owners,online:[7]})}),browser=w.browser();
+  let budget=0;w.env.CHAIN_LIMITER={limit:async({key})=>{if(key==='chain:index')budget++;return {success:true};}};
+  assert.equal((await browser.signIn(account)).verify.status,200);
+  const initial=await(await browser.get('/api/me/home')).json();assert.equal(initial.eligible,1);
+  w.clock.advance(29999);const prepare=w.db.prepare.bind(w.db);let held=true;
+  w.db.prepare=sql=>{const wrap=s=>({...s,bind:(...args)=>wrap(s.bind(...args)),all:async()=>{
+    if(held&&sql.startsWith('SELECT token_id,last_online_at')){held=false;chain.state.owners[7]='0x'+'2'.repeat(40);w.clock.advance(delay);}
+    return s.all();}});return wrap(prepare(sql));};
+  const response=await browser.get('/api/me/home'),home=await response.json();
+  const rpc=()=>chain.state.calls.filter(c=>c.body&&JSON.parse(c.body).method==='eth_call'&&JSON.parse(c.body).params[0].to===MULTICALL3).length;
+  const sessions=w.db.raw.prepare('SELECT count(*) created,sum(revoked_at IS NULL) live,sum(revoked_at IS NOT NULL) revoked FROM sessions').get();
+  t.diagnostic(JSON.stringify({delay,age:w.clock.now()-initial.checkedAt,status:response.status,home,rpc:rpc(),budget,sessions}));
+  assert.deepEqual({...sessions},{created:1,live:1,revoked:0});assert.equal(rpc(),1);assert.equal(budget,1);
+  if(delay===0){assert.equal(response.status,200);assert.equal(home.eligible,1);assert.equal(home.checkedAt,initial.checkedAt);}
+  else{assert.equal(response.status,503);assert.equal(home.error,'OWNERSHIP_UNAVAILABLE');assert.equal(home.eligible,undefined);
+    const next=await(await browser.get('/api/me/home')).json();assert.equal(next.eligible,0);assert.equal(rpc(),2);
+    assert.ok(next.checkedAt>=initial.checkedAt+OWNERSHIP_TTL_MS);assert.equal(budget,1,'fail closed adds no discovery amplification');}
+});
+
+for(const change of ['rollback','NaN','Infinity'])test(`Audit8 Low1: ${change} after enrichment fails closed`,async()=>{
+  const f=advancingFixture();f.state.advanceClock=false;
+  f.ownership.sightings=async()=>{f.state.live=change==='rollback'?START-1:change==='NaN'?NaN:Infinity;return new Map();};
+  await assert.rejects(f.ownership.home(A,f.request(START)),{message:'OWNERSHIP_UNAVAILABLE'});
+  assert.deepEqual([f.state.index,f.state.budget,f.state.rpc],[1,1,1]);
+});
+
+for(const admitted of [false,true])test(`Audit8 Low1: expired proof after ${admitted?'failed admitted':'refused'} lane is unavailable, never expired fallback`,async()=>{
+  const f=advancingFixture();f.state.advanceClock=false;f.state.ownerById[7]='0x'+'2'.repeat(40);
+  const req=f.request(START);req.budget=async()=>false;
+  req.lane=async()=>{f.state.live+=OWNERSHIP_TTL_MS;f.state.failRpc=true;return admitted;};
+  await assert.rejects(f.ownership.home(A,req),{message:'OWNERSHIP_UNAVAILABLE'});
+  assert.equal(f.state.rpc,admitted?2:1);assert.equal(f.state.index,admitted?1:0);
+  f.state.failRpc=false;const next=await f.ownership.home(A,f.request(f.state.live));
+  assert.equal(next.eligible,0);assert.ok(next.checkedAt>=START+OWNERSHIP_TTL_MS);
+});
+
+for(const [fresh,pageMs,pages] of [[false,7500,4],[true,200,1],[true,7475,4],[true,7500,4]])
+test(`Audit8 Low3: overlapping ${fresh?'fresh':'ordinary'}20 with ${pages} pages x ${pageMs}ms shares completed cohort`,async t=>{
+  const f=advancingFixture(),gate={started:deferred(),release:deferred()};f.state.advanceClock=false;
+  const original=f.request(START).chain.fetch;let indexCycles=0,pageFetches=0;
+  const fetcher=async(input,init={})=>{
+    if(String(input).startsWith(ALCHEMY_NFTS_URL+'?')){
+      const page=Number(new URL(input).searchParams.get('pageKey')??0);
+      if(page===0)indexCycles++;pageFetches++;f.state.live+=pageMs;
+      if(pageFetches===1){gate.started.resolve();await gate.release.promise;}
+      const reply=await(await original(input,init)).json();
+      return Response.json({...reply,pageKey:page+1<pages?String(page+1):null});
+    }
+    f.state.live+=100;return original(input,init);
+  };
+  const request=i=>({...f.request(START+i),chain:{key:'offline-fixture-only',fetch:fetcher},
+    budget:async()=>{f.state.budget++;f.state.live+=30;await tick();return true;}});
+  const pending=Array.from({length:20},(_,i)=>f.ownership.home(A,request(i),fresh));
+  await gate.started.promise;await tick();gate.release.resolve();
+  const views=await Promise.all(pending),epochs=[...new Set(views.map(v=>v.checkedAt))];
+  t.diagnostic(JSON.stringify({fresh,pageMs,pages,indexCycles,pageFetches,budget:f.state.budget,rpc:f.state.rpc,epochs,
+    elapsed:f.state.live-START,eligible:views.map(v=>v.eligible)}));
+  assert.deepEqual([f.state.budget,indexCycles,pageFetches,f.state.rpc,epochs.length],[1,1,pages,1,1]);
+  assert.ok(views.every(v=>v.eligible===1&&!v.recheck));assert.equal(epochs[0],START+30+pageMs*pages);
+});
+
 function advancingFixture(){
   const state={live:START,index:0,budget:0,rpc:0,tags:[],advanceClock:true,holdIndex:null,holdRpc:null,holdAllRpc:null,failRpc:false,
     roster:['7'],indexIds:['7'],ownerById:{7:A,8:A}};
@@ -47,6 +110,19 @@ function advancingFixture(){
     budget:async()=>{state.budget++;if(state.advanceClock)state.live+=30;await tick();return true;}});
   return {state,ownership,request};
 }
+
+for(const context of ['changed-roster','fresh-intent'])test(`Audit8 Low3 control: successful predecessor does not coalesce independent ${context}`,async t=>{
+  const f=advancingFixture(),gate={started:deferred(),release:deferred()};f.state.holdRpc=gate;
+  const first=f.ownership.home(A,f.request(START),false);await gate.started.promise;
+  if(context==='changed-roster')f.state.roster=['7','8'];
+  const second=f.ownership.home(A,f.request(f.state.live),context==='fresh-intent');
+  await tick();gate.release.resolve();const [one,two]=await Promise.all([first,second]);
+  t.diagnostic(JSON.stringify({context,first:one.eligible,second:two.eligible,index:f.state.index,budget:f.state.budget,rpc:f.state.rpc,tags:f.state.tags}));
+  assert.equal(one.eligible,1);assert.equal(two.eligible,context==='changed-roster'?2:1);
+  assert.deepEqual([f.state.index,f.state.budget,f.state.rpc],[1,1,context==='changed-roster'?2:1]);
+  assert.equal(two.checkedAt,one.checkedAt,'a missing delta never renews checkedAt');
+  if(context==='changed-roster')assert.deepEqual(f.state.tags,['latest','0x'+BLOCK.toString(16)]);
+});
 
 for(const fresh of [false,true])test(`Audit2 exact: 20 overlapping ${fresh?'fresh':'ordinary'} home reads with advancing live clock share one index/budget/proof`,async t=>{
   const f=advancingFixture(),gate={started:deferred(),release:deferred()};f.state.holdIndex=gate;

@@ -1,0 +1,106 @@
+{
+  "schema": "imd.submission9.anonymous-readback-expectations/v1",
+  "origin": "https://imdember.com",
+  "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+  "workerVersion": "06cbc8fe-112f-4a11-b84f-42907179afff",
+  "generatedAtUtc": "2026-10-05T01:14:47.679Z",
+  "provenance": "Expected hashes/headers generated from TEAM frozen build/upload record; this is not external reviewer evidence.",
+  "invocation": {
+    "canonicalMainInvoked": false,
+    "kind": "stage-separated build/upload; prior exact privileged full test gate"
+  },
+  "recordManifestSha256": "f786dfab027cdd5feeac12071766d2becc403a8bf321b03a75187de81ff38b4b",
+  "stageReceiptSha256": "fb35016de876b43ae0d2f8731b91de2348944963b6c20c2814c351e59d4580fb",
+  "distTreeSha256": "2bbd66f127f65292875df92e65c2d1e8fc8b70cd88e2249baa3c7e0d2d1eaa68",
+  "workerMain": {
+    "bytes": 316024,
+    "sha256": "0d1c6176b09a73dac605c5f19a126c8b4ae4496fe659f1197a909e7f87c849e2"
+  },
+  "requests": [
+    {
+      "path": "/",
+      "kind": "html",
+      "expectedBytes": 2618,
+      "expectedSha256": "cc0e1cf85a60c2afb2fbee36847d69e18a5f5c058e6a1eca5b424654ee984265",
+      "securityHeaders": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expectedContentTypePrefix": "text/html",
+      "setCookieExpected": false,
+      "qualifiedSingleManagedAnalyticsRemoval": true
+    },
+    {
+      "path": "/assets/index-ClYR0IrS.js",
+      "kind": "asset",
+      "expectedBytes": 1553842,
+      "expectedSha256": "71299ccf931e034ef5e7c9bba4d128ec2becac73418e5b47c23837202da31589",
+      "securityHeaders": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expectedContentTypePrefix": "text/javascript",
+      "setCookieExpected": false,
+      "cacheControl": "public, max-age=604800"
+    },
+    {
+      "path": "/assets/index-Ym1X_eiK.css",
+      "kind": "asset",
+      "expectedBytes": 68142,
+      "expectedSha256": "be70f6c11b0030c3401c1bce007e58a37cd6cb39e9adb9ffd5c6758582e6142a",
+      "securityHeaders": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expectedContentTypePrefix": "text/css",
+      "setCookieExpected": false,
+      "cacheControl": "public, max-age=604800"
+    },
+    {
+      "path": "/assets/InteriorView-B8CZAtGZ.js",
+      "kind": "asset",
+      "expectedBytes": 93242,
+      "expectedSha256": "287433410626b8171a5ff8ff2e071241e700971e59319d71f5d71229c915c473",
+      "securityHeaders": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-frame-options": "DENY",
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://nft-cdn.alchemy.com; connect-src 'self' blob: https://api.dexscreener.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "expectedContentTypePrefix": "text/javascript",
+      "setCookieExpected": false,
+      "cacheControl": "public, max-age=604800"
+    },
+    {
+      "path": "/api/auth/session",
+      "kind": "anonymous-session",
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "cross-origin-resource-policy": "same-origin",
+        "content-security-policy": "default-src 'none'; frame-ancestors 'none'"
+      },
+      "signedInExpected": false,
+      "setCookieExpected": false,
+      "corsHeaderExpected": false
+    }
+  ],
+  "limits": "Five anonymous GETs cannot independently establish Cloudflare deployment/bindings/Worker identity, authenticated cookies, wallet control, production limiter/WAF/concurrency, D1 mutation correctness or upstream ownership correctness."
+}

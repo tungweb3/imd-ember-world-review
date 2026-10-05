@@ -1,0 +1,267 @@
+{
+  "schema": "imd.submission9.tests/v1",
+  "candidateSourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+  "capturedAtUtc": "2026-10-05T01:21:28.261414+00:00",
+  "node": "v24.19.0",
+  "viem": "2.56.9",
+  "nodeSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+  "lockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+  "currentFinalStages": [
+    {
+      "stage": "final-baseline-artifact-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 1,
+      "startedAtUtc": "2026-10-05T01:06:58.721516+00:00",
+      "finishedAtUtc": "2026-10-05T01:06:59.264900+00:00",
+      "elapsedSeconds": 0.531,
+      "receiptSha256": "1df615de342b69e54b576c1be85d2516b0fdfa5b5c4def7ffc6052833a170991",
+      "stdoutSha256": "fd5ca752b9ad83af7adad674af0a509a0669b94873c80109990714b74a5184a0",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "assertions": {
+        "total": 13,
+        "passed": 4,
+        "failed": 9,
+        "skipped": 0
+      },
+      "interpretation": "Expected negative calibration: unchanged final evaluator on vulnerable baseline; exit 1 is retained."
+    },
+    {
+      "stage": "final-candidate-artifact-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:06:59.322973+00:00",
+      "finishedAtUtc": "2026-10-05T01:07:00.054279+00:00",
+      "elapsedSeconds": 0.734,
+      "receiptSha256": "a747858d91365c74529f1d49bc2ce1a20413331a7856896a7833466bdcfeea9a",
+      "stdoutSha256": "de052955fa273fa201671f97df2c7c24bfeac9ecbb41a83b21d3f35aa712d090",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "counts": {
+        "tests": 18,
+        "pass": 18,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "stage": "final-candidate-verifier-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:07:00.116799+00:00",
+      "finishedAtUtc": "2026-10-05T01:07:00.764437+00:00",
+      "elapsedSeconds": 0.64,
+      "receiptSha256": "83aebfd200953935a4c51c50128921bc44f2f6e157c2956bc2914ea24736daf1",
+      "stdoutSha256": "b4c92d1efe4859daadcce5a5343fed2450ccfd36afc326e53358aa7d4cc810fd",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "assertions": {
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "stage": "final-candidate-review-check-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:07:00.827955+00:00",
+      "finishedAtUtc": "2026-10-05T01:07:01.036111+00:00",
+      "elapsedSeconds": 0.219,
+      "receiptSha256": "31aa85d05a9443519ac5bbb5d4c98e3f84a1157220ac47333895fb431f4885cf",
+      "stdoutSha256": "7e925fdf7a2a810aff881738f213ba1b0216a64f2c17bb68dd317c1d9e173a79",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution"
+    },
+    {
+      "stage": "final-candidate-review-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:07:01.103622+00:00",
+      "finishedAtUtc": "2026-10-05T01:07:12.707405+00:00",
+      "elapsedSeconds": 11.609,
+      "receiptSha256": "3c71dcb5e76e1f97e3040b7c3a120411b4db992689757b8128e9124bddd98d12",
+      "stdoutSha256": "433e9780351068731c39c4b4d7c71da71ec48f29472d86b50ca690f6b250e587",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "counts": {
+        "tests": 613,
+        "pass": 613,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "stage": "final-candidate-private-full-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:07:12.773683+00:00",
+      "finishedAtUtc": "2026-10-05T01:08:43.839334+00:00",
+      "elapsedSeconds": 91.062,
+      "receiptSha256": "966ec6737aa7791f1c9c8693948c40b908c8dcd87029799525af9b38fb76c442",
+      "stdoutSha256": "df591712475114d54e70db03e566ad214295fa3fa831207f8e6ea8052407101e",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "counts": {
+        "tests": 1663,
+        "pass": 1663,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "stage": "final-clean-npm-ci-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:08:43.898043+00:00",
+      "finishedAtUtc": "2026-10-05T01:08:56.378958+00:00",
+      "elapsedSeconds": 12.484,
+      "receiptSha256": "084189c786d4a2682ec2091d154dcef53f1b31bd32812c157cbe509e1a31de78",
+      "stdoutSha256": "f71d999c701e26ab16a12c6d2a6b80c4096b8ea84089160001bd31abe5f7fd79",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution"
+    },
+    {
+      "stage": "final-clean-review-check-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:08:56.440954+00:00",
+      "finishedAtUtc": "2026-10-05T01:08:56.619866+00:00",
+      "elapsedSeconds": 0.172,
+      "receiptSha256": "47141dd7b315471d1f7b099d2d0af57e50e5cae27f33fe7d88e14714a5bfd8f8",
+      "stdoutSha256": "7e925fdf7a2a810aff881738f213ba1b0216a64f2c17bb68dd317c1d9e173a79",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution"
+    },
+    {
+      "stage": "final-clean-review-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:08:56.674768+00:00",
+      "finishedAtUtc": "2026-10-05T01:09:06.783712+00:00",
+      "elapsedSeconds": 10.11,
+      "receiptSha256": "4b8d2de95789136eee01622950b5d265ab0a66586f9e8c432ae9fd848e12832a",
+      "stdoutSha256": "0d8ddba0029759890705762f8a24f76637c395d59d65410a6c035aaad7bd0e9b",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "counts": {
+        "tests": 613,
+        "pass": 613,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "stage": "final-clean-artifact-verifier-admin",
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T01:09:06.843483+00:00",
+      "finishedAtUtc": "2026-10-05T01:09:07.408221+00:00",
+      "elapsedSeconds": 0.579,
+      "receiptSha256": "83cacfa8b81d7d20269d629e05e89656f01b1c9c7bdbcb33852f6e096f46e58b",
+      "stdoutSha256": "b4c92d1efe4859daadcce5a5343fed2450ccfd36afc326e53358aa7d4cc810fd",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": "TEAM actual frozen execution",
+      "assertions": {
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0
+      }
+    }
+  ],
+  "supportedPublicRunnerFiles": 23,
+  "privateFullSuite": {
+    "tests": 1663,
+    "pass": 1663,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "sourceSupportedRunner": {
+    "tests": 613,
+    "pass": 613,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "cleanSupportedRunner": {
+    "tests": 613,
+    "pass": 613,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "interpretation": "TEAM final frozen PRIVATE source and clean PRIVATE source-checkout measurements. Private full1663 and supported23-file613 are distinct, not external ninth Swarm results. Clean private checkout used fresh locked npm ci.",
+  "filteredPublicByteCheckoutRuntime": "NOT_DIRECTLY_RERUN_FILTERED_PUBLIC_BYTE_CHECKOUT; public/private correspondence verified separately. External reviewer is asked to execute the filtered23-file runner.",
+  "campaignCoverage": {
+    "core": "500 campaigns /428 distinct digests, inherited campaign identity; not500 vulnerabilities or global state-machine proof.",
+    "additional": "90 campaigns /54 distinct digests; distinct from core500. Do not combine as590 unique traces.",
+    "referenceReceipt": "../../Submission8/REFERENCE_SCHEDULER.json"
+  },
+  "historicalFailures": [
+    {
+      "sourceCommit": "e97847bef60aad79a95b0a587b099a921aaabc13",
+      "stage": "clean-review-admin",
+      "exitCode": 1,
+      "counts": {
+        "tests": 613,
+        "pass": 612,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "reason": "Test observation raced actual logout completion; final test waits for completion with assertions preserved."
+    },
+    {
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "stage": "final-full-medium-capability-check",
+      "exitCode": 1,
+      "counts": {
+        "tests": 1663,
+        "pass": 1660,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "reason": "Real file-symlink creation EPERM under medium Windows identity; actual elevated rerun above passes."
+    },
+    {
+      "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "stage": "final-clean-review-medium-capability-check",
+      "exitCode": 1,
+      "counts": {
+        "tests": 613,
+        "pass": 610,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "reason": "Same three actual file-link capability failures, not hidden skips."
+    }
+  ],
+  "noPrivateSelectorsOrMissingModuleStubs": true,
+  "limits": [
+    "TEAM measurements are not the external ninth reviewer verdict.",
+    "Only selected source is public; full frontend compilation is unavailable from this filtered repository.",
+    "No live wallet signatures, authenticated login/logout/write, ERC1271/on-chain wallet truth, phishing/browser matrix, WAF/limiter stress, process death or every production interleaving is measured.",
+    "Private assets, models, generated frontend/Worker response bodies, credentials, source Git history and backup data are withheld.",
+    "Sparse anonymous GETs prove a point-in-time served comparison, not permanent whole-site parity.",
+    "Passing tests, Low/Info labels and accepted/Completed jobs are not certification, endorsement, zero vulnerabilities or fund safety."
+  ]
+}

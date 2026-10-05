@@ -1,0 +1,13 @@
+# Five latest findings and causal closure mapping
+
+Private candidate `8c3b60171a22b3ce71854f12282e629bbf5ca06f`; previous reviewed public `88c130283efc45260f9e00da8d2d3055c38483bd`. Disposition for all five: **TEAM_PASS_EXTERNAL_REVIEW_PENDING**. Exact final runner and filesystem evidence is in [TEST_RESULTS.json](TEST_RESULTS.json) and [ARTIFACT_CLOSURE.json](ARTIFACT_CLOSURE.json).
+
+| Audit8 finding | Severity | Relation to prior findings | Exact trigger | Minimal repair and reverse controls |
+|---|---|---|---|---|
+| 1 Post-D1 ownership expiry | Low | NEW scoped counterexample, prior proof epochs |29999ms proof plus1/2ms awaited D1 work returned a sold owner's seat |Strict proof age is rechecked after all awaited enrichment/lanes; expiry/rollback/NaN/refused or failed lanes fail unavailable, with latest recovery and no renewed checkedAt |
+| 2 First locked-provider event revokes cookie session | Low | REOPENED partial passive-provider closure |CookieA, no observed accountA, locked[], first accountsChangedB logged outA |Track actual provider observation across lock and reset on lifecycle; first observation lacks old account cleanup authority; trueA-toB/A-lock-B and explicit flows retain cleanup |
+| 3 Slow fresh overlap admission amplification | Low | REOPENED partial overlap closure |Twenty early same-context fresh requests, four pages at7475/7500ms generated20cycles/80pages/20proofs |Already-joined matching successful flight shares a still-fresh proof; different/late intents and changed roster re-evaluate; original producer timestamp/budget preserved |
+| 4 Dangling final artifact symlink escape | Info | REOPENED artifact hygiene |existsSync missed dangling entry, final direct write followed outside target |lstat, exclusive regular sibling temp, fsync, parent/target identity rechecks and rename; real dangling/existing file links, directory links, substitutions and safe hardlink replacement tested |
+| 5 Absolute diagnostic path leak | Info | REOPENED separate artifact mechanism |Arbitrary POSIX roots and nested diagnostics survived |General persisted sanitizer covers spaces, parentheses, Windows drive slash variants and rooted backslash; URL/relative/action/nonce/event and real saved replay preserved |
+
+Same ownership evaluator on vulnerable baseline measured12cases:3pass/9fail, exit1; two slow fresh reproductions measured20cycles/80pages/20RPCs. Final expanded candidate ownership controls are included in all-green frozen runner. Same final Auth targeted evaluator measured baseline7/12pass,5fail; candidate12/12 and selected regression544/544. Pre-freeze targeted receipts retain their scope; acceptance comes from the exact final integrated gate.

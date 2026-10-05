@@ -39,6 +39,28 @@ node --input-type=module -e "import {createArtifactStore} from './tests/auth-art
 
 The cleanup leaves reviewer notes and unrecognized files intact. The optional output is a local reviewer working artifact, not an addition to the public source manifest.
 
+### Artifact closure policy
+
+The artifact store uses `lstat` to observe both existing and dangling links. It checks the canonical source directory and each directory from `source/tmp` to the configured artifact root, rejects symbolic links/junctions and non-directory parents, and rejects every non-regular final output entry. Missing directories are created individually and then rechecked. A normal existing regular file is explicitly **replaced**, rather than truncated in place; an outside hard-link alias retains its original bytes.
+
+Each write validates its parent chain, serializes/sanitizes the value, and validates again because serialization may invoke caller getters. It creates an exclusive regular temporary sibling using `O_EXCL|O_CREAT` and `O_NOFOLLOW` where supported, verifies directory and file identities, writes through the obtained descriptor, flushes/closes it, and rechecks parents/final entry/temp identity before renaming the complete sibling. There is no fallback to opening or writing the final path. Windows does not expose `O_NOFOLLOW`; exclusive creation remains required there. A failed write removes its temporary file only while the observed parent/file identities remain unchanged.
+
+The sanitizer masks arbitrary-root POSIX, drive-letter, UNC and `file://` local paths, including nested error strings and paths with spaces or parentheses. Quoted paths have an explicit endpoint. A bare absolute path in freeform diagnostic prose has an ambiguous endpoint, so the policy conservatively masks its remaining line segment; whitespace and parentheses do not end the path. This can remove trailing diagnostic prose on that same ambiguous segment. Network URL spans remain exact, and subsequent diagnostic lines and separate structured fields remain intact. Put a relative identifier in a separate field/line, or quote the absolute path, when it must remain available after that diagnostic. The policy preserves relative paths, action/event ordering, nonce/token aliases, classifications, and a finite list of actual scheduler protocol route identifiers (including `/api/me/home?fresh=1`). It does not exempt a generic `path` field or a whole object from masking.
+
+Single-letter URL-like prefixes are treated as Windows drive paths: `C://` and `D:///` do not receive URL protection. Windows rooted single-backslash paths are masked in whole values, nested diagnostics and quoted strings. Drive-relative values such as `C:relative` remain relative. Protected network URL schemes require at least two characters.
+
+Run the assertion-based verifier from the checkout:
+
+```sh
+node scripts/verify-artifact-closure.mjs
+```
+
+It prints machine-readable JSON and returns **exit 0 only when all 13 closure assertion groups pass**, including real dangling/existing file links, parent/final directory links, non-regular targets, regular replacement, deterministic target/parent substitution, persisted spaced/parenthesized path masking, and a saved complete trace replay through the actual Worker/SQLite driver. Any failed assertion or link-creation capability error returns **exit 1**; there are no skipped symlink controls. Windows must permit real file-symlink creation for these mandatory checks; a directory junction does not substitute for a file-symlink fixture. The normal review suite also executes these controls in `auth-artifacts.test.mjs` and prints its actual new total.
+
+For a separately recorded negative calibration only, the verifier accepts `--artifact-source ../baseline`. This selects only that checkout's actual `tests/auth-artifacts.mjs`; the causal replay driver and its dependencies remain those of the current checkout. The supported `test:review` command has no alternate-source selection.
+
+The filesystem trust assumption is a privately controlled artifact fixture/checkout on a local filesystem. Node has no portable directory-descriptor-relative `openat`/rename API: repeated parent identity checks reduce observed check/use substitutions but do not prove safety against a hostile process swapping directory ancestry between the final check and the OS operation. NFS/SMB exclusivity, all Windows reparse-point types, adversarial concurrent ancestry replacement, and crash durability of directory metadata are not certified by this bounded verifier. These limits must stay explicit in closure evidence. See [Node 24 filesystem flags](https://nodejs.org/docs/latest-v24.x/api/fs.html#file-system-flags).
+
 ## Failure replay
 
 Replay the saved original trace against this same checkout:

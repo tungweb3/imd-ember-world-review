@@ -12,8 +12,8 @@
 // the manifest. Nothing here reads .dev.vars, .env or credentials (only file names are listed); wrangler uses its own login.
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {readFileSync,readdirSync,statSync,mkdirSync,writeFileSync,existsSync,renameSync} from 'node:fs';
-import {join,relative,resolve,sep} from 'node:path';
+import {readFileSync,readdirSync,statSync,lstatSync,realpathSync,mkdirSync,writeFileSync,existsSync,renameSync} from 'node:fs';
+import {join,relative,resolve,sep,dirname,basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 export const ROOT=fileURLToPath(new URL('..',import.meta.url));
@@ -67,6 +67,59 @@ export function isEntry(argv1,url){
   return process.platform==='win32'?a.toLowerCase()===b.toLowerCase():a===b;
 }
 
+const samePath=(a,b)=>process.platform==='win32'?a.toLowerCase()===b.toLowerCase():a===b;
+const pause=ms=>Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,ms);
+const recordError=error=>({code:typeof error?.code==='string'?error.code:'UNKNOWN',syscall:typeof error?.syscall==='string'?error.syscall:null});
+const unsafeRecord=()=>{const error=new Error('unsafe or changed deploy record path');error.code='RECORD_UNSAFE_PATH';throw error;};
+function validateRecordRoot(root){
+  root=resolve(root);const parent=lstatSync(root);
+  if(parent.isSymbolicLink()||!parent.isDirectory()||!samePath(realpathSync(root),root))unsafeRecord();
+  return parent;
+}
+/** Record directories belong to this local operator. Reject aliases and pre-existing destinations, including dangling
+ * links, before every rename attempt. This is not a descriptor-relative defense against a hostile local process. */
+function validateRecordRename(root,tmp,rec,identity){
+  const fail=unsafeRecord;
+  root=resolve(root);tmp=resolve(tmp);rec=resolve(rec);
+  if(!samePath(dirname(tmp),root)||!samePath(dirname(rec),root)||basename(tmp)!==basename(rec)+'.partial')fail();
+  const parent=validateRecordRoot(root),source=lstatSync(tmp);
+  if(parent.isSymbolicLink()||!parent.isDirectory()||source.isSymbolicLink()||!source.isDirectory())fail();
+  if(!samePath(realpathSync(root),root)||!samePath(realpathSync(tmp),tmp))fail();
+  if(identity&&(parent.dev!==identity.parent.dev||parent.ino!==identity.parent.ino||source.dev!==identity.source.dev||source.ino!==identity.source.ino))fail();
+  try{lstatSync(rec);fail();}catch(error){if(error.code!=='ENOENT')throw error;}
+  return {parent:{dev:parent.dev,ino:parent.ino},source:{dev:source.dev,ino:source.ino}};
+}
+/** A bounded Windows transient-lock retry; never copies, replaces an existing record, reruns build or uploads.
+ * Original errors remain available to the caller; only codes/syscalls belong in the structured/public receipt. */
+export function finalizeRecord(tmp,rec,{recordsRoot=dirname(rec),platform=process.platform,rename=renameSync,wait=pause,identity}={}){
+  const errors=[],delays=[100,250,500];let attempts=0,firstError;
+  while(true){
+    try{identity=validateRecordRename(recordsRoot,tmp,rec,identity);}catch(error){
+      firstError??=error;errors.push({...recordError(error),stage:'validate'});
+      return {status:'failed',attempts,errors,originalError:firstError};
+    }
+    attempts++;
+    let stage='rename';
+    try{
+      rename(tmp,rec);stage='verify';const parent=validateRecordRoot(recordsRoot),target=lstatSync(rec);
+      if(target.isSymbolicLink()||!target.isDirectory()||!samePath(realpathSync(rec),resolve(rec))||
+        parent.dev!==identity.parent.dev||parent.ino!==identity.parent.ino||target.dev!==identity.source.dev||target.ino!==identity.source.ino)unsafeRecord();
+      return {status:'persisted',attempts,errors,originalError:firstError??null};
+    }catch(error){
+      firstError??=error;errors.push({...recordError(error),stage});
+      if(stage!=='rename'||platform!=='win32'||!['EPERM','EACCES','EBUSY'].includes(error.code)||attempts>delays.length)
+        return {status:'failed',attempts,errors,originalError:firstError};
+      wait(delays[attempts-1]);
+    }
+  }
+}
+/** Upload, build-byte verification and record persistence are separate outcomes. A green recorder cannot hide either
+ * prior failure, and a failed recorder after a successful upload must not be reported as a failed deployment. */
+export function deploymentOutcome(uploadExit,distUnchanged,persisted,dryRun=false){
+  return {deployment:uploadExit===0?(dryRun?'dry-run-passed':'uploaded'):'failed',verification:distUnchanged===true?'passed':'failed',
+    recordPersistence:persisted?'persisted':'failed',exitCode:uploadExit===0&&distUnchanged===true&&persisted?0:1};
+}
+
 function run(args,{capture=false,env}={}){
   const r=spawnSync(process.execPath,args,{cwd:ROOT,encoding:'utf8',stdio:capture?['ignore','pipe','pipe']:'inherit',env:{...process.env,...env}});
   if(r.error)throw r.error;return r;
@@ -83,12 +136,17 @@ function main(){
   for(const [label,args] of buildSteps(ROOT,skipTests)){
     console.log('> '+label);if(!runStep(args)){console.error(label+' failed; nothing was built or deployed');process.exit(1);}
   }
-  mkdirSync(tmp,{recursive:true});
+  validateRecordRoot(ROOT);
+  try{validateRecordRoot(join(ROOT,RECORDS_DIR));}catch(error){if(error.code!=='ENOENT')throw error;mkdirSync(join(ROOT,RECORDS_DIR));}
+  validateRecordRoot(join(ROOT,RECORDS_DIR));
+  // Exclusive creation refuses a repeated same-second record rather than mixing evidence from two invocations.
+  mkdirSync(tmp);
+  const recordIdentity=validateRecordRename(join(ROOT,RECORDS_DIR),tmp,rec);
   const dist=hashTree(join(ROOT,'dist'),ROOT);
   console.log('> wrangler deploy'+(dryRun?' --dry-run':''));
   const w=run(['node_modules/wrangler/bin/wrangler.js','deploy',...(dryRun?['--dry-run']:[]),'--outdir',join(tmp,'worker')],
     {capture:true,env:{WRANGLER_LOG_PATH:join(tmp,'wrangler-logs'),WRANGLER_SEND_METRICS:'false'}});
-  const log=(w.stdout??'')+(w.stderr??'');process.stdout.write(log);writeFileSync(join(tmp,'wrangler.log'),log);
+  const log=(w.stdout??'')+(w.stderr??'');process.stdout.write(log);
   const distAfter=hashTree(join(ROOT,'dist'),ROOT);
   const worker=existsSync(join(tmp,'worker'))?hashTree(join(tmp,'worker'),tmp):[];
   const file=p=>({path:p,sha256:sha256(readFileSync(join(ROOT,p)))});
@@ -103,10 +161,19 @@ function main(){
     // is not reproducible, because wrangler stamps README.md with the time and index.js.map with the absolute --outdir.
     worker:{main:worker.find(f=>f.path==='worker/index.js')??null,sha256:treeDigest(worker),files:worker}
   };
-  writeFileSync(join(tmp,'manifest.json'),JSON.stringify(manifest,null,1)+'\n');
-  writeFileSync(join(tmp,'SHA256SUMS'),sumsText([...dist,...worker.map(f=>({...f,path:RECORDS_DIR+'/'+name+'/'+f.path}))]));
-  renameSync(tmp,rec);
-  console.log(`record: ${relative(ROOT,rec)}  dist ${manifest.dist.sha256.slice(0,16)}  worker/index.js ${manifest.worker.main?.sha256.slice(0,16)??'-'}  version ${manifest.wrangler.versionId??'-'}`);
-  if(w.status!==0||!manifest.dist.unchangedDuringDeploy){console.error('wrangler failed or dist changed during the deploy; see the record');process.exit(1);}
+  let finalization;
+  try{
+    const options={flag:'wx',flush:true};
+    validateRecordRename(join(ROOT,RECORDS_DIR),tmp,rec,recordIdentity);
+    writeFileSync(join(tmp,'wrangler.log'),log,options);
+    writeFileSync(join(tmp,'manifest.json'),JSON.stringify(manifest,null,1)+'\n',options);
+    writeFileSync(join(tmp,'SHA256SUMS'),sumsText([...dist,...worker.map(f=>({...f,path:RECORDS_DIR+'/'+name+'/'+f.path}))]),options);
+    finalization=finalizeRecord(tmp,rec,{recordsRoot:join(ROOT,RECORDS_DIR),identity:recordIdentity});
+  }catch(error){finalization={status:'failed',attempts:0,errors:[{...recordError(error),stage:'write'}],originalError:error};}
+  const outcome=deploymentOutcome(w.status,manifest.dist.unchangedDuringDeploy,finalization.status==='persisted',dryRun);
+  console.log(JSON.stringify({kind:'imd-world deploy outcome',...outcome,record:relative(ROOT,finalization.status==='persisted'?rec:tmp),
+    finalization:{status:finalization.status,attempts:finalization.attempts,errors:finalization.errors}}));
+  if(finalization.status==='persisted')console.log(`record: ${relative(ROOT,rec)}  dist ${manifest.dist.sha256.slice(0,16)}  worker/index.js ${manifest.worker.main?.sha256.slice(0,16)??'-'}  version ${manifest.wrangler.versionId??'-'}`);
+  if(outcome.exitCode!==0){console.error('deploy outcome is incomplete; upload, verification and record persistence are reported separately');process.exit(1);}
 }
 if(isEntry(process.argv[1],import.meta.url))main();

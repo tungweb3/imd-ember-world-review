@@ -1,0 +1,5 @@
+# Latest external review identity
+
+Audit8 job `7716c3f5-5d6c-4953-a643-141da678d051` reviewed public `88c130283efc45260f9e00da8d2d3055c38483bd`, completed `2026-10-04T19:26:33.961Z` and published `2026-10-04T19:26:58Z`. The [immutable original](https://github.com/Identity-md/research/blob/d7f6e26bf449d9c5ea3a1ecb6557ca3adbd23632/jobs/7716c3f5-5d6c-4953-a643-141da678d051/files/AUDIT.md) is 32883bytes, SHA-256 `8c9baaa6838e8b0137baa44282d1fcc2704834d68c92dafcd4426a882905bcfc`: **three Low and two Info**.
+
+Report8 job `38438c89-b34c-4d38-8ae8-027c9d175fb1` completed earlier at `2026-10-04T19:13:53.530Z`. Its [original](https://github.com/Identity-md/research/blob/cdadc2923c04e905212f1f203b40aaf38cb65508/jobs/38438c89-b34c-4d38-8ae8-027c9d175fb1/files/artifacts/report.md) hash is `71c6f621342210c7f9abc6830babb20049dea8338e5492b9622a4783a6eed61f`. It does not supersede the later Audit counterexamples. All new candidate measurements are TEAM provenance; ninth external findings do not yet exist.

@@ -229,12 +229,14 @@ export class Ownership{
     const context=JSON.stringify([fresh,again,owned,[...agents].map(([id,a])=>[id,a.agentId===null?2:a.presence==='online'?0:1])
       .sort((a,b)=>compareIds(String(a[0]),String(b[0])))]);
     const pending=this.proofing.get(address);
-    // Serialise updates rather than returning another request's answer as complete. The caller may already have a
-    // different roster/fresh intent: after the first update settles it discovers/proves only its missing delta.
+    // A waiter that joined the same context shares that completed flight while its proof remains authoritative.
+    // Slow multi-page discovery does not make already-joined callers spend discovery again. Independent contexts
+    // still re-evaluate after settlement, and a completed proof never extends its original strict deadline.
     if(pending){const same=pending.context===context&&pending.chain.key===req.chain.key&&pending.chain.fetch===req.chain.fetch&&pending.db===req.db&&
         isFreshAge(req.clock?.()??req.now,pending.at,OWNERSHIP_TTL_MS);
       const evaluate=()=>this.proof(address,owners,agents,req,fresh,again);
-      return pending.promise.then(evaluate,same?undefined:evaluate);}
+      return pending.promise.then(proof=>same&&isFreshAge(req.clock?.()??req.now,proof.checkedAt,OWNERSHIP_TTL_MS)?proof:evaluate(),
+        same?undefined:evaluate);}
     // Active updates are never evicted (that would duplicate in-flight work). The existing isolate address cap also
     // bounds their metadata; a new key at capacity is unavailable and may retry after an existing update settles.
     if(this.proofing.size>=CACHE_LIMIT)return Promise.reject(new OwnershipUnavailable());
@@ -347,6 +349,9 @@ export class Ownership{
     if(proof.refused&&req.lane&&!proof.ids.some(id=>counts(world.agents.get(id),seen.get(id),req.now))&&await req.lane()){
       try{const p=await this.proof(a,world.owners,world.agents,{...req,budget:async()=>true},fresh,true),s=await this.sightings(p.ids,a,req.db);proof=p;seen=s;}
       catch(e){if(!(e instanceof OwnershipUnavailable))throw e;}}
+    // Enrichment and the optional lane may outlive the proof, including a lane failure that keeps the first pair.
+    // Do not return expired/future authority or silently renew checkedAt; a later request can prove at latest.
+    if(!isFreshAge(req.clock?.()??req.now,proof.checkedAt,OWNERSHIP_TTL_MS))throw new OwnershipUnavailable();
     const seats=proof.ids.map(id=>this.status(id,world.agents.get(id),seen.get(id),req.now)),eligible=seats.filter(s=>s.counts).length;
     return {address:getAddress(a),seats,eligible,size:eligible?houseSize(eligible):null,block:proof.block,checkedAt:proof.checkedAt,presence:world.presence,
       ...proof.limited?{recheck:'limited' as const}:proof.partial?{recheck:'partial' as const}:{}};

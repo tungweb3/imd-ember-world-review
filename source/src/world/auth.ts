@@ -133,6 +133,8 @@ export class AuthClient{
    *  R3-R1: accountEvents counts every accountsChanged it heard (a repeat and a lock too): a wallet answer about accounts
    *  that was awaited while one arrived is older than it, so it is applied only if it names the account the latest set. */
   private bound:Provider|null=null;private binds=0;private accountEvents=0;
+  /** A cookie is not a wallet observation. Keep the last observed account across a lock, within this page's binding. */
+  private observedAccount:string|null=null;
   /** The newest session read: a click waits until none is running, so a reload with a live cookie never asks for a signature. */
   private restoring:Promise<void>|null=null;private deps:AuthDeps;
   /** N-1: numbers every session read; only the newest one's answer, failure or body is applied (one overtaken by a newer
@@ -254,6 +256,7 @@ export class AuthClient{
    *  is not left in "Confirm in wallet"). */
   start(){
     const life=++this.life;
+    this.observedAccount=null;
     this.started=true;
     this.lifecycle.start();
     try{this.channel=this.deps.channel?.()??null;}catch{this.channel=null;}
@@ -267,12 +270,13 @@ export class AuthClient{
       // Security cleanup still runs after teardown; its old life/gen may never update this UI again.
       this.automaticCleanup('stop',this.gen,life,click,held);
       if(this.s.phase!=='idle'||this.s.waiting||this.s.leaving||this.s.checking)this.set({phase:'idle',waiting:false,leaving:false,checking:false});
-      off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.binds++;this.channel?.close();this.channel=null;
+      off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.observedAccount=null;this.binds++;this.channel?.close();this.channel=null;
       if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
   }
   /** Follows `p`: its already-granted account (eth_accounts, never a prompt) and its accountsChanged. chainChanged is not
    *  followed: the SIWE message is always chainId 1 and personal_sign does not depend on the wallet's chain. */
-  private bind(p:Provider|null,discovery=false,previousAccount=this.s.account){
+  private bind(p:Provider|null,discovery=false,previousAccount=this.observedAccount){
+    if(!discovery)this.observedAccount=null;
     this.unsub();this.unsub=()=>{};this.bound=p;const b=++this.binds;if(!p)return;
     const e=this.accountEvents;                                                        // R3-R1: an event while it was asked is newer than its answer
     void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b!==this.binds||e!==this.accountEvents)return;
@@ -280,10 +284,10 @@ export class AuthClient{
         // Object identity is transport, not authenticated identity. A restored cookie does not establish a previous
         // wallet account: first passive discovery may show a mismatch, but only a proven account change owns cleanup.
         if(a&&previousAccount&&a!==previousAccount&&a!==this.s.session?.address)this.accountChanged(a);
-        else{if(a){this.lifecycle.discovered(p,a);
+        else{if(a){this.observedAccount=a;this.lifecycle.discovered(p,a);
             for(const owner of this.lifecycle.retainedOwners)if(owner.cancellationReason==='lock-reconcile'&&owner.account===a)this.ownerProviders.set(owner,p);
           }this.set({account:a});}
-      }else if(a&&!this.s.account){this.lifecycle.discovered(p,a);this.set({account:a});}
+      }else if(a){this.observedAccount=a;if(!this.s.account){this.lifecycle.discovered(p,a);this.set({account:a});}}
     }).catch(()=>{});
     if(p.on){const h=(v:unknown)=>{if(b===this.binds)this.accountChanged(firstAccount(v));};p.on('accountsChanged',h);this.unsub=()=>p.removeListener?.('accountsChanged',h);}
   }
@@ -294,7 +298,7 @@ export class AuthClient{
     const p=this.deps.provider();if(p===this.bound)return;
     const abandoned=this.lifecycle.click,held=this.s.session??undefined;
     if(reason==='discovery'){
-      const account=this.s.account,uncertain=this.lifecycle.retainedOwners.length>0;
+      const account=this.observedAccount,uncertain=this.lifecycle.retainedOwners.length>0;
       if(abandoned||uncertain){this.gen++;this.lifecycle.cancel();this.cancelOwners('lock-reconcile');
         this.set({account:null,phase:'idle',waiting:false,notice:abandoned?'challenge-lost':null,checking:false});
         this.automaticCleanup('lock',this.gen,this.life,abandoned,held);
@@ -421,7 +425,7 @@ export class AuthClient{
         if(!click.valid||this.lifecycle.click!==click||g!==this.gen||life!==this.life||this.deps.provider()!==p)return;
         if(!account){this.set({notice:'connect-rejected'});return;}
         if(seen!==this.accountEvents&&this.s.account!==account)return;
-        if(!this.lifecycle.connected(click,account))return;this.set({account});
+        if(!this.lifecycle.connected(click,account))return;if(this.bound===p)this.observedAccount=account;this.set({account});
       }
       if(!live())return;
       if(this.s.session?.address===account){await this.refreshHome(true);return;}
@@ -575,12 +579,14 @@ export class AuthClient{
     *  and reconciles unresolved verify after its response fence; it does not grant a cleanup authority. */
   accountChanged(a:string|null){
     this.accountEvents++;
+    const previous=this.observedAccount;if(a)this.observedAccount=a;
     const click=this.lifecycle.click;
     if(a===this.s.account&&!(a===null&&click))return;
     // A wallet announcing the account of this click's explicit initial grant agrees with that grant.
     if(a&&click?.state==='CONNECTING_WALLET'&&click.accountAtClick===null&&click.account===null){this.set({account:a});return;}
     const wasFlow=!!click||this.lifecycle.retainedOwners.length>0;
-    const other=!!a&&!!this.s.session&&this.s.session.address!==a;
+    const changed=previous!==null&&previous!==a;
+    const other=!!a&&!!this.s.session&&this.s.session.address!==a&&(wasFlow||changed);
     const locked=this.lifecycle.retainedOwners;
     if(a&&!click&&!other&&locked.length>0&&locked.every(owner=>owner.cancellationReason==='lock-reconcile'&&
       owner.account===a&&this.ownerProviders.get(owner)===this.bound)){

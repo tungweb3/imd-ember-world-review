@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readFileSync,copyFileSync,existsSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readFileSync,copyFileSync,existsSync,renameSync,symlinkSync,lstatSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join,basename} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {hashTree,sumsText,treeDigest,parseVersionId,recordName,dirtyRefusal,envFiles,envRefusal,isEntry,RECORDS_DIR,ROOT,
-  skipRefusal,testArgs,buildSteps,runStep} from '../scripts/deploy.mjs';
+  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome} from '../scripts/deploy.mjs';
 // scripts/deploy.mjs's provenance helpers, run on real files. Hashes are checked against the published SHA-256 test
 // vectors ("abc", ""), never recomputed here. Importing the script must not deploy anything (it runs only as main).
 const ABC='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',EMPTY='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -108,5 +108,166 @@ test('the script itself, run on a throwaway git repo: a failing test stops a dry
     // With the suite green the gate lets the run through to tsc (absent in this throwaway repo, so it stops there).
     writeFileSync(join(dir,'tests/b.test.mjs'),pass);r=deploy('--dry-run');
     assert.equal(r.status,1);assert.match(r.out,/> npm test[\s\S]*> tsc[\s\S]*tsc failed; nothing was built or deployed/);assert.equal(existsSync(join(dir,RECORDS_DIR)),false);
+  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+function recordFixture(){
+  const name='20261005T000000Z-aaaaaaa',dir=tree({['records/'+name+'.partial/manifest.json']:'abc','outside/keep.txt':'private'});
+  return {dir,root:join(dir,'records'),tmp:join(dir,'records',name+'.partial'),rec:join(dir,'records',name),outside:join(dir,'outside')};
+}
+const renameError=code=>Object.assign(new Error('synthetic record lock'),{code,syscall:'rename'});
+
+test('record finalization moves a real directory once and preserves exact evidence bytes',()=>{
+  const f=recordFixture();try{
+    const before=hashTree(f.tmp),result=finalizeRecord(f.tmp,f.rec);
+    assert.equal(result.status,'persisted');assert.equal(result.attempts,1);assert.deepEqual(result.errors,[]);
+    assert.equal(existsSync(f.tmp),false);assert.deepEqual(hashTree(f.rec),before);assert.equal(readFileSync(join(f.rec,'manifest.json'),'utf8'),'abc');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+for(const code of ['EPERM','EACCES','EBUSY'])test('record finalization retries a Windows '+code+' once without changing the evidence or losing the original error',()=>{
+  const f=recordFixture(),error=renameError(code),waits=[];let calls=0;
+  try{
+    const result=finalizeRecord(f.tmp,f.rec,{platform:'win32',rename:(a,b)=>{if(++calls===1)throw error;renameSync(a,b);},wait:ms=>waits.push(ms)});
+    assert.equal(result.status,'persisted');assert.equal(result.attempts,2);assert.equal(calls,2);assert.deepEqual(waits,[100]);
+    assert.equal(result.originalError,error);assert.deepEqual(result.errors,[{code,syscall:'rename',stage:'rename'}]);
+    assert.equal(readFileSync(join(f.rec,'manifest.json'),'utf8'),'abc');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization exhausts a bounded retry, retains the partial bytes and reports persistence failure independently of successful upload',()=>{
+  const f=recordFixture(),error=renameError('EPERM'),waits=[];let calls=0;
+  try{
+    const result=finalizeRecord(f.tmp,f.rec,{platform:'win32',rename:()=>{calls++;throw error;},wait:ms=>waits.push(ms)});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,4);assert.equal(calls,4);assert.deepEqual(waits,[100,250,500]);
+    assert.equal(result.originalError,error);assert.equal(result.errors.length,4);assert.equal(existsSync(f.rec),false);
+    assert.equal(readFileSync(join(f.tmp,'manifest.json'),'utf8'),'abc');
+    assert.deepEqual(deploymentOutcome(0,true,false),{deployment:'uploaded',verification:'passed',recordPersistence:'failed',exitCode:1});
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('non-transient and non-Windows rename failures stop immediately, without copy or retry',()=>{
+  const f=recordFixture();try{
+    for(const [platform,code] of [['win32','EXDEV'],['linux','EPERM'],['win32','EIO']]){
+      const error=renameError(code);let calls=0;
+      const result=finalizeRecord(f.tmp,f.rec,{platform,rename:()=>{calls++;throw error;},wait:()=>assert.fail('unexpected retry')});
+      assert.equal(result.status,'failed');assert.equal(result.attempts,1);assert.equal(calls,1);assert.equal(result.originalError,error);
+      assert.equal(existsSync(f.rec),false);assert.equal(readFileSync(join(f.tmp,'manifest.json'),'utf8'),'abc');
+    }
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization refuses an existing destination without overwriting either evidence tree',()=>{
+  const f=recordFixture();try{
+    mkdirSync(f.rec);writeFileSync(join(f.rec,'prior.json'),'previous');
+    const result=finalizeRecord(f.tmp,f.rec,{rename:()=>assert.fail('unsafe rename')});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,0);assert.equal(result.errors[0].code,'RECORD_UNSAFE_PATH');
+    assert.equal(readFileSync(join(f.rec,'prior.json'),'utf8'),'previous');assert.equal(readFileSync(join(f.tmp,'manifest.json'),'utf8'),'abc');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization refuses paths outside the configured root',()=>{
+  const f=recordFixture();try{
+    const result=finalizeRecord(f.tmp,join(f.outside,'unexpected'),{recordsRoot:f.root,rename:()=>assert.fail('unsafe rename')});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,0);assert.equal(existsSync(join(f.outside,'unexpected')),false);
+    assert.equal(readFileSync(join(f.outside,'keep.txt'),'utf8'),'private');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization rejects an output junction, even when it points to a real directory',()=>{
+  const f=recordFixture();try{
+    symlinkSync(f.outside,f.rec,process.platform==='win32'?'junction':'dir');
+    assert.equal(lstatSync(f.rec).isSymbolicLink(),true);
+    const result=finalizeRecord(f.tmp,f.rec,{rename:()=>assert.fail('unsafe rename')});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,0);assert.equal(readFileSync(join(f.outside,'keep.txt'),'utf8'),'private');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization revalidates and rejects a destination junction introduced during retry',()=>{
+  const f=recordFixture(),error=renameError('EPERM');let calls=0;
+  try{
+    const result=finalizeRecord(f.tmp,f.rec,{platform:'win32',rename:()=>{calls++;throw error;},wait:()=>symlinkSync(f.outside,f.rec,process.platform==='win32'?'junction':'dir')});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,1);assert.equal(calls,1);assert.equal(result.originalError,error);
+    assert.deepEqual(result.errors.map(e=>e.stage),['rename','validate']);assert.equal(lstatSync(f.rec).isSymbolicLink(),true);
+    assert.equal(readFileSync(join(f.outside,'keep.txt'),'utf8'),'private');assert.equal(existsSync(join(f.outside,'manifest.json')),false);
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization rejects a source directory replaced by a junction between attempts',()=>{
+  const f=recordFixture(),error=renameError('EBUSY');let calls=0;
+  try{
+    const result=finalizeRecord(f.tmp,f.rec,{platform:'win32',rename:()=>{calls++;throw error;},wait:()=>{
+      renameSync(f.tmp,join(f.root,'saved-partial'));symlinkSync(f.outside,f.tmp,process.platform==='win32'?'junction':'dir');
+    }});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,1);assert.equal(calls,1);assert.equal(existsSync(f.rec),false);
+    assert.equal(result.errors.at(-1).stage,'validate');assert.equal(readFileSync(join(f.outside,'keep.txt'),'utf8'),'private');
+    assert.equal(readFileSync(join(f.root,'saved-partial/manifest.json'),'utf8'),'abc');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization does not report persistence when a replaced source junction is moved during rename',()=>{
+  const f=recordFixture();try{
+    const result=finalizeRecord(f.tmp,f.rec,{rename:(a,b)=>{
+      renameSync(a,join(f.root,'saved-partial'));symlinkSync(f.outside,a,process.platform==='win32'?'junction':'dir');renameSync(a,b);
+    }});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,1);assert.equal(result.errors[0].stage,'verify');
+    assert.equal(lstatSync(f.rec).isSymbolicLink(),true);assert.equal(readFileSync(join(f.outside,'keep.txt'),'utf8'),'private');
+    assert.equal(existsSync(join(f.outside,'manifest.json')),false);assert.equal(readFileSync(join(f.root,'saved-partial/manifest.json'),'utf8'),'abc');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('record finalization rejects a linked configured root and a non-directory partial entry',()=>{
+  const f=recordFixture();try{
+    const alias=join(f.dir,'alias');symlinkSync(f.root,alias,process.platform==='win32'?'junction':'dir');
+    let result=finalizeRecord(join(alias,basename(f.tmp)),join(alias,basename(f.rec)),{rename:()=>assert.fail('unsafe rename')});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,0);
+    const notDir=join(f.root,'file.partial');writeFileSync(notDir,'file');
+    result=finalizeRecord(notDir,join(f.root,'file'),{rename:()=>assert.fail('unsafe rename')});
+    assert.equal(result.status,'failed');assert.equal(result.attempts,0);assert.equal(readFileSync(notDir,'utf8'),'file');
+  }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('a successfully persisted record never hides upload failure, unknown upload exit or changed build bytes',()=>{
+  assert.deepEqual(deploymentOutcome(1,true,true),{deployment:'failed',verification:'passed',recordPersistence:'persisted',exitCode:1});
+  assert.equal(deploymentOutcome(null,true,true).exitCode,1);
+  assert.deepEqual(deploymentOutcome(0,false,true),{deployment:'uploaded',verification:'failed',recordPersistence:'persisted',exitCode:1});
+  assert.deepEqual(deploymentOutcome(0,true,true),{deployment:'uploaded',verification:'passed',recordPersistence:'persisted',exitCode:0});
+  assert.deepEqual(deploymentOutcome(0,true,true,true),{deployment:'dry-run-passed',verification:'passed',recordPersistence:'persisted',exitCode:0});
+});
+
+// Run main's real wiring over synthetic local executables, not Cloudflare or any credential reader. A copy of the
+// canonical script still controls the order, manifest and exit. The fake build/upload programs never use the network.
+for(const variant of ['good','upload-failed','dist-changed','record-locked'])test('canonical dry-run reports distinct upload/verification/persistence outcomes: '+variant,()=>{
+  const makeDist="import {mkdirSync,writeFileSync} from 'node:fs';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','abc');";
+  const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local dry-run, no network');"+
+    (variant==='upload-failed'?"process.exitCode=1;":variant==='dist-changed'?"writeFileSync('dist/index.html','changed');":'');
+  const dir=tree({'package.json':JSON.stringify({type:'module',scripts:{test:'node --test tests/*.test.mjs'}}),
+    '.gitignore':'deploy-records/\nnode_modules/\ndist/\n','package-lock.json':'{}','wrangler.jsonc':'{}','public/_headers':'/*\n',
+    'node_modules/typescript/package.json':'{"version":"1.0.0"}','node_modules/typescript/bin/tsc':'',
+    'node_modules/vite/package.json':'{"version":"1.0.0"}','node_modules/vite/bin/vite.js':makeDist,
+    'node_modules/wrangler/package.json':'{"version":"1.0.0"}','node_modules/wrangler/bin/wrangler.js':upload});
+  try{
+    mkdirSync(join(dir,'scripts'));copyFileSync(join(ROOT,'scripts/deploy.mjs'),join(dir,'scripts/deploy.mjs'));
+    for(const args of [['init','-q'],['add','-A'],['commit','-q','-m','synthetic deploy recorder fixture']]){
+      const r=spawnSync('git',['-c','user.name=t','-c','user.email=t@example.invalid','-c','commit.gpgsign=false',...args],{cwd:dir,encoding:'utf8'});assert.equal(r.status,0,r.stderr);
+    }
+    // A preload changes only this fixture process's native rename entry point to simulate a locked local record.
+    const preload="import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';fs.renameSync=()=>{const e=new Error('synthetic lock');e.code='EPERM';e.syscall='rename';throw e;};syncBuiltinESMExports();";
+    const args=variant==='record-locked'?['--import','data:text/javascript;base64,'+Buffer.from(preload).toString('base64')]:[];
+    const r=spawnSync(process.execPath,[...args,'scripts/deploy.mjs','--dry-run','--skip-tests'],{cwd:dir,encoding:'utf8',timeout:20000});
+    const outcome=r.stdout.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(line)).find(row=>row.kind==='imd-world deploy outcome');
+    assert.ok(outcome,r.stdout+r.stderr);assert.equal(r.status,variant==='good'?0:1,r.stdout+r.stderr);
+    assert.equal(outcome.deployment,variant==='upload-failed'?'failed':'dry-run-passed');
+    assert.equal(outcome.verification,variant==='dist-changed'?'failed':'passed');
+    assert.equal(outcome.recordPersistence,variant==='record-locked'?'failed':'persisted');
+    const names=readdirSync(join(dir,RECORDS_DIR));assert.equal(names.length,1);
+    assert.equal(names[0].endsWith('.partial'),variant==='record-locked');
+    const manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
+    assert.equal(manifest.mode,'dry-run');assert.equal(manifest.wrangler.exitCode,variant==='upload-failed'?1:0);
+    assert.equal(manifest.dist.unchangedDuringDeploy,variant!=='dist-changed');
+    if(variant==='record-locked'){
+      assert.ok(outcome.finalization.attempts>=1&&outcome.finalization.attempts<=4);
+      assert.equal(outcome.finalization.errors[0].code,'EPERM');
+    }
   }finally{rmSync(dir,{recursive:true,force:true});}
 });

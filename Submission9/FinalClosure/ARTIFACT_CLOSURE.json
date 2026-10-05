@@ -1,0 +1,88 @@
+{
+  "schema": "imd.submission9.artifact-closure/v1",
+  "candidateSourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+  "artifactSuite": {
+    "stage": "final-candidate-artifact-admin",
+    "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-05T01:06:59.322973+00:00",
+    "finishedAtUtc": "2026-10-05T01:07:00.054279+00:00",
+    "elapsedSeconds": 0.734,
+    "receiptSha256": "a747858d91365c74529f1d49bc2ce1a20413331a7856896a7833466bdcfeea9a",
+    "stdoutSha256": "de052955fa273fa201671f97df2c7c24bfeac9ecbb41a83b21d3f35aa712d090",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "provenance": "TEAM actual frozen execution",
+    "counts": {
+      "tests": 18,
+      "pass": 18,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "standaloneVerifier": {
+    "stage": "final-candidate-verifier-admin",
+    "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-05T01:07:00.116799+00:00",
+    "finishedAtUtc": "2026-10-05T01:07:00.764437+00:00",
+    "elapsedSeconds": 0.64,
+    "receiptSha256": "83aebfd200953935a4c51c50128921bc44f2f6e157c2956bc2914ea24736daf1",
+    "stdoutSha256": "b4c92d1efe4859daadcce5a5343fed2450ccfd36afc326e53358aa7d4cc810fd",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "provenance": "TEAM actual frozen execution",
+    "assertions": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "cleanVerifier": {
+    "stage": "final-clean-artifact-verifier-admin",
+    "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-05T01:09:06.843483+00:00",
+    "finishedAtUtc": "2026-10-05T01:09:07.408221+00:00",
+    "elapsedSeconds": 0.579,
+    "receiptSha256": "83cacfa8b81d7d20269d629e05e89656f01b1c9c7bdbcb33852f6e096f46e58b",
+    "stdoutSha256": "b4c92d1efe4859daadcce5a5343fed2450ccfd36afc326e53358aa7d4cc810fd",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "provenance": "TEAM actual frozen execution",
+    "assertions": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "negativeBaseline": {
+    "stage": "final-baseline-artifact-admin",
+    "sourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+    "exitCode": 1,
+    "startedAtUtc": "2026-10-05T01:06:58.721516+00:00",
+    "finishedAtUtc": "2026-10-05T01:06:59.264900+00:00",
+    "elapsedSeconds": 0.531,
+    "receiptSha256": "1df615de342b69e54b576c1be85d2516b0fdfa5b5c4def7ffc6052833a170991",
+    "stdoutSha256": "fd5ca752b9ad83af7adad674af0a509a0669b94873c80109990714b74a5184a0",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "provenance": "TEAM actual frozen execution",
+    "assertions": {
+      "total": 13,
+      "passed": 4,
+      "failed": 9,
+      "skipped": 0
+    },
+    "interpretation": "Expected negative calibration: unchanged final evaluator on vulnerable baseline; exit 1 is retained."
+  },
+  "moduleSha256": "69b9d2023fde69ec2b2b1719c721f0f99d5b0d7274aef5a548d75a96ec2fe2d7",
+  "verifierSha256": "edec8bcbe3a257f0e58d40b509fbb48c19c1840935489195c5fd4f930083c195",
+  "mechanism": "lstat observes dangling entries; canonical parent identities; exclusive regular sibling temporary file, fsync, repeated target/parent checks and validated replacement. General nested local-path sanitizer preserves network URLs, relative names and actual trace replay.",
+  "realFilesystemControls": "Actual elevated Windows file/directory links and substitutions; no filesystem stubs or skips.",
+  "limits": [
+    "Assumes a private locally controlled root; portable Node does not prove hostile concurrent ancestry-swap safety.",
+    "No SMB/NFS proof.",
+    "Conservative redaction can remove ambiguous same-line prose after an absolute path."
+  ]
+}

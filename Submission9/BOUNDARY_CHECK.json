@@ -1,0 +1,17 @@
+{
+  "schema": "imd.submission9.boundary/v1",
+  "candidateSourceCommit": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+  "sourceFiles": 141,
+  "rawByteExact": 125,
+  "maskedFiles": 16,
+  "maskedLines": 57,
+  "status": "PROJECTION_CHECKED_FINAL_PUBLIC_TREE_AND_OBJECT_SCAN_REQUIRED",
+  "projectionReceiptSha256": "a9941d88d73a2e79688f7d5ea44f4d82b9d8db85cf14278c4c705846720c0785",
+  "newTextOnlyReleaseFiles": [
+    "Submission9/SERVED_EXPECTATIONS.json",
+    "Submission9/verify-served-readback.mjs"
+  ],
+  "modelsMediaFullFrontendPrivateObjectsRawLogsResponseBodiesIncluded": false,
+  "maskedOriginalFingerprintsSerialized": false,
+  "finalPublicCommitKnown": false
+}

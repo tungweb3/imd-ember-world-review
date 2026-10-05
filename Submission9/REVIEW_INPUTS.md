@@ -1,0 +1,11 @@
+# Ninth review instructions
+
+The containing immutable public commit is the pin; fixed external submission texts are supplied separately after publication. Read FinalClosure/LATEST_AUDIT_IDENTITY.md before classifying any finding. Review all three Low and both Info from the latest eighth Audit. Do not substitute the earlier Report closure table.
+
+In source/, use Node24.x and the real frozen lock: `npm ci --ignore-scripts`; `node scripts/review-tests.mjs --check`; `npm run test:review`; `node scripts/verify-artifact-closure.mjs`. Record actual command, environment, exit, totals, failures, skips/todo/cancellation and real file-link capability. No private selectors, missing-module stubs, synthetic crypto/Worker/SQLite replacements or failing-file omissions. Deliberately withheld frontend compilation cannot be claimed passed.
+
+Provide two separate SOURCE-CLOSURE and RELEASE-READINESS verdicts. Cite pinned source/evidence per finding with severity, impact, blocker rationale, ordering, relevant database/counts, reproduction/argument, prior-finding mapping and unchecked boundaries. Separate fresh REVIEWER measurements, TEAM logs/claims, inherited/historical evidence, inference and unknown. Deployment/config source policy is not a fresh production measurement.
+
+The Audit scope remains offline synthetic local tests. The Report may additionally opt into exactly five sparse anonymous GETs via `node Submission9/verify-served-readback.mjs --execute`; no authenticated cookie, login, signature, write, transaction, stress, credentials or retries. Hash response bodies in memory only. This verifier cannot validate private build inputs or authenticated Cloudflare configuration. Production evidence in this package is TEAM provenance until independently remeasured.
+
+Write the Report in Traditional Chinese Markdown, approximately 2000–3000 Chinese characters for the main report plus an unlimited evidence appendix, with verdict table, five-finding closure matrix, actual test measurements, source/build/deployment correspondence, limitations and remaining actions. Keep code, hashes and URLs exact. Period: latest Audit8 through the frozen candidate/release timestamps in this snapshot; do not infer later production state. Accepted/Completed indicates output completion, not certification or fund safety.
