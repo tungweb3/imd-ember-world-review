@@ -267,6 +267,9 @@ export class AuthClient{
     this.bind(this.deps.provider());
     const off=this.deps.onProviderChange?.(reason=>{if(life===this.life)this.providerChanged(reason);})??(()=>{});
     const offVisible=this.env.onVisible(()=>{if(life===this.life)this.visible();});
+    // A new page lifetime is one existing causal retry trigger, not permission to forget uncertain cancellation.
+    for(const owner of this.lifecycle.retainedOwners)if(owner.abandoned&&owner.responseObserved&&
+      owner.cancellationReason!=='lock-reconcile')this.revokeAbandoned(owner);
     void this.restore();
     return ()=>{if(life!==this.life)return;const click=this.lifecycle.click,held=this.s.session??undefined;
       this.started=false;this.cleanupReadPending=false;this.lifecycle.cancel(true);this.life++;this.gen++;this.cancelOwners('stop');
@@ -305,8 +308,9 @@ export class AuthClient{
     const p=this.deps.provider();if(p===this.bound)return;
     const abandoned=this.lifecycle.click,held=this.s.session??undefined;
     if(reason==='discovery'){
-      const account=this.observedAccount,uncertain=this.lifecycle.retainedOwners.length>0;
-      if(abandoned||uncertain){this.gen++;this.lifecycle.cancel();this.cancelOwners('lock-reconcile');
+      const account=this.observedAccount,currentOwners=this.lifecycle.retainedOwners.filter(owner=>owner.life===this.life);
+      if(abandoned||currentOwners.length>0){this.gen++;this.lifecycle.cancel();
+        for(const owner of currentOwners)this.lifecycle.abandon(owner,'lock-reconcile');
         this.set({account:null,phase:'idle',waiting:false,notice:abandoned?'challenge-lost':null,checking:false});
         this.automaticCleanup('lock',this.gen,this.life,abandoned,held);
       }else this.set({account:null});
@@ -632,15 +636,15 @@ export class AuthClient{
     if(owner.cancellationReason==='lock-reconcile'){void this.reconcileLockedOwner(owner);return;}
     if(!this.lifecycle.abandon(owner,owner.cancellationReason??'context-switch')||!this.lifecycle.claimCleanup(owner))return;
     const g=owner.generation,life=owner.life;
-    this.sendLogout(ok=>{
-      const retry=this.lifecycle.cleanupDone(owner,ok);
+    this.hold(this.logoutReceipt({expectedNonce:owner.nonce}).then(({ok,conclusive})=>{
+      const retry=this.lifecycle.cleanupDone(owner,ok,conclusive);
       if(retry){this.revokeAbandoned(owner);return;}
       if(owner.status==='RETAINED')return;
       if(life!==this.life){this.requestCleanupRead();return;}
       if(!ok){if(g===this.gen||!this.busy&&this.s.phase==='idle')void this.restore();return;}
       if(g===this.gen){if(this.s.session)this.reconcileCleanup();else this.loggedOut(g);}
       else if(!this.busy&&this.s.phase==='idle')this.reconcileCleanup();
-    },{expectedNonce:owner.nonce});
+    }));
   }
   /** AUD3-04: a logout this page sent was confirmed (2xx: revoked, cookie cleared). Unless a newer flow began since it was
    *  sent (g; that flow's own gen++ already dropped every older read, and later reads are the new session's), every
@@ -668,7 +672,12 @@ export class AuthClient{
       if(r.status!==401)return false;return await code(r)==='SESSION_EXPIRED'?'expired':'stale';}catch{return false;}}
   /** POST /api/auth/logout; true only when the server answered 2xx (the session is revoked and the cookies cleared). */
   private async logoutRequest(context?:CleanupContext){
-    try{return (await this.deps.fetch('/api/auth/logout',JSON_POST(context??{}))).ok;}catch{return false;}}
+    return (await this.logoutReceipt(context)).ok;}
+  /** Only nonce rejection after the verify fence is conclusive refusal; network/5xx uncertainty retains ownership. */
+  private async logoutReceipt(context?:CleanupContext){
+    try{const r=await this.deps.fetch('/api/auth/logout',JSON_POST(context??{}));
+      return {ok:r.ok,conclusive:r.ok||!!context?.expectedNonce&&r.status===409};
+    }catch{return {ok:false,conclusive:false};}}
 }
 /** A refused signature burns its challenge at the server (S1), so every notice here ends the flow; the next click asks
  *  for a new challenge and a new signature, and nothing is retried by itself. */

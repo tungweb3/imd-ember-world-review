@@ -259,7 +259,10 @@ export class Ownership{
       const best=async(ids:Iterable<string>,limit=CANDIDATE_CAP)=>{const list=[...ids];if(limit<=0)return [];
         const sightings=list.length<=limit?new Map<string,number>():await(seen??=this.sightings([...new Set([...candidates,...list])]
           .filter(id=>rank(agents.get(id),undefined,req.now)===1),address,req.db).catch(()=>new Map<string,number>()));
-        const order=(id:string)=>rank(agents.get(id),sightings.get(id),req.now);
+        // Both cuts evaluate after sightings settle; the index/proof producer dates stay unchanged.
+        const rankingNow=current();
+        if(!Number.isFinite(rankingNow)||rankingNow<req.now)throw new OwnershipUnavailable();
+        const order=(id:string)=>rank(agents.get(id),sightings.get(id),rankingNow);
         return list.sort((x,y)=>order(x)-order(y)||compareIds(x,y)).slice(0,limit);};
       const discovery=await this.discovery.get(address,discoveryNow,CANDIDATES_TTL_MS,async()=>{
         const attemptedAt=current();
@@ -349,6 +352,7 @@ export class Ownership{
     // Presence can cross its inclusive 24 h boundary while D1 waits. Discovery's lane uses post-enrichment time,
     // and the final view takes another sample after any lane wait; neither sample renews the proof or index dates.
     const laneNow=req.clock?.()??req.now;
+    if(!isFreshAge(laneNow,proof.checkedAt,OWNERSHIP_TTL_MS))throw new OwnershipUnavailable();
     if(proof.refused&&req.lane&&!proof.ids.some(id=>counts(world.agents.get(id),seen.get(id),laneNow))&&await req.lane()){
       try{const p=await this.proof(a,world.owners,world.agents,{...req,budget:async()=>true},fresh,true),s=await this.sightings(p.ids,a,req.db);proof=p;seen=s;}
       catch(e){if(!(e instanceof OwnershipUnavailable))throw e;}}
@@ -367,9 +371,11 @@ export class Ownership{
     const a=address.toLowerCase(),world=await this.world(req.waitUntil),ids:string[]=[];
     world.owners.forEach((o,i)=>{if(typeof o==='string'&&o.toLowerCase()===a)ids.push(String(i));});
     const seen=await this.sightings(ids,a,req.db);
+    const characters=await this.characters(a,req),displayNow=req.clock?.()??req.now;
+    if(!Number.isFinite(displayNow)||displayNow<req.now)throw new OwnershipUnavailable();
     return {address:getAddress(a),source:'imd',fetchedAt:world.fetchedAt,
-      seats:ids.map(id=>({...this.status(id,world.agents.get(id),seen.get(id),req.now),image:null})),
-      characters:{collections:this.collections.map(c=>({id:c.id,name:c.name,contract:c.contract.toLowerCase()})),...await this.characters(a,req)}};
+      seats:ids.map(id=>({...this.status(id,world.agents.get(id),seen.get(id),displayNow),image:null})),
+      characters:{collections:this.collections.map(c=>({id:c.id,name:c.name,contract:c.contract.toLowerCase()})),...characters}};
   }
   private async characters(a:string,req:OwnershipRequest):Promise<{items:IndexedNft[];state:'ok'|'unavailable'}>{
     if(!this.collections.length)return {items:[],state:'ok'};

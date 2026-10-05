@@ -287,6 +287,7 @@ export async function pruneIndexProbes(db:D1Database,now:number,limit=INDEX_PROB
 /** Prune at most two expired scopes, then atomically reserve this probe. Missing 0008 or D1 failure gives no lane;
  *  keeping a reservation whose result was unreadable is conservative. Local outcomes never refund the marker. */
 async function reserveIndexProbe(db:D1Database,net:string,sub:string|null,now:number){
+  if(!Number.isFinite(now))return false;
   const scope=net+'|'+(sub??'');
   const [,r]=await db.batch([db.prepare(INDEX_PROBE_PRUNE).bind(now,INDEX_PROBE_OPPORTUNISTIC_PRUNE),
     db.prepare(INDEX_PROBE).bind(scope,net,sub,now,now+INDEX_PROBE_BACKOFF_MS,netScale(net))]);
@@ -732,7 +733,7 @@ async function accountRoute(request:Request,deps:AccountDeps,pathname:string):Pr
     if(assets){
       if(!await permit(deps,'api')||!await permit(deps,'seat'))return noted(fail(429,'RATE_LIMITED',[],{'Retry-After':'60'}),{reason:'api'});
       const budget=()=>permit(deps,'chain',CHAIN_KEYS.assets);
-      try{return reply(200,await deps.ownership.assets(assets[1],{chain:deps.chain,db,now,waitUntil:deps.waitUntil,budget}),[],{'Cache-Control':'public, max-age=300'});}
+      try{return reply(200,await deps.ownership.assets(assets[1],{chain:deps.chain,db,now,waitUntil:deps.waitUntil,budget,clock:()=>clock(deps)}),[],{'Cache-Control':'public, max-age=300'});}
       catch(e){if(e instanceof LimiterMissing)throw e;return fail(503,'OWNERSHIP_UNAVAILABLE');}
     }
     if(!db)return fail(503,'AUTH_UNAVAILABLE');
@@ -757,13 +758,18 @@ async function accountRoute(request:Request,deps:AccountDeps,pathname:string):Pr
     // D1 errors (including before migration 0005) give no lane. Missing limiter remains 503. Once reserved, no refund
     // for a sent/failed index read (AUD3-01); absent both RETURNING and changes also fails closed, keeping any row.
     const lane=async()=>{const net=deps.client??'net:unknown',sub=deps.sub??null;let t=clock(deps);
+      if(!Number.isFinite(t)||t<now)return false;
+      // Every awaited boundary may change temporal authority. Invalid/rolled-back samples never reach D1 or the
+      // local key; a probe already reserved at a finite time retains its original conservative 30 s backoff.
+      const sample=()=>{const next=clock(deps);if(!Number.isFinite(next)||next<t)return false;t=next;return true;};
       try{if(!await db.prepare(INDEX_LANE_READY).bind(net,sub,t,t-NETWORK_WINDOW_MS,netScale(net),t-INDEX_LANE_WINDOW_MS,INDEX_LANE_BUDGET).first())return false;}
       catch{return false;}
-      t=clock(deps);
+      if(!sample())return false;
       try{if(!await reserveIndexProbe(db,net,sub,t))return false;}
       catch{return false;}
+      if(!sample())return false;
       if(!await permit(deps,'chain',CHAIN_KEYS.indexLane))return false;
-      t=clock(deps);
+      if(!sample())return false;
       try{const r=await db.prepare(INDEX_LANE).bind(net,sub,t,t-NETWORK_WINDOW_MS,netScale(net),t-INDEX_LANE_WINDOW_MS,INDEX_LANE_BUDGET).run();
         return typeof r.results?.[0]?.id==='number'||r.meta.changes===1;}
       catch{return false;}};

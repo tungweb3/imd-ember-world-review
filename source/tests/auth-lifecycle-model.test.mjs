@@ -43,12 +43,14 @@ test('model: UNKNOWN read after response retains responsibility and cannot becom
   const {m,owner}=flow();m.observe(owner,12);m.read({kind:'UNKNOWN'},13,1,1);
   assert.equal(m.knowledge.kind,'UNKNOWN');assert.equal(m.snapshot.retainedCount,1);assert.equal(owner.status,'RETAINED');
 });
-test('model: refusal of cleanup dispatched before response, but delivered after it, drains exactly one later attempt',()=>{
+test('model: early refusal drains one later attempt; only post-fence conclusive refusal consumes',()=>{
   const {m,owner}=flow();m.cancel(true);assert.equal(m.abandon(owner),true);
   assert.equal(m.claimCleanup(owner),true);assert.equal(m.claimCleanup(owner),false);
-  m.observe(owner,12);assert.equal(m.cleanupDone(owner,false),true);assert.equal(owner.status,'RETAINED');
+  m.observe(owner,12);assert.equal(m.cleanupDone(owner,false,true),true);assert.equal(owner.status,'RETAINED');
   assert.equal(m.claimCleanup(owner),true);assert.equal(m.claimCleanup(owner),false);
-  assert.equal(m.cleanupDone(owner,false),false);assert.equal(owner.status,'CONSUMED');assert.equal(m.claimCleanup(owner),false);
+  assert.equal(m.cleanupDone(owner,false),false);assert.equal(owner.status,'RETAINED','transport uncertainty cannot consume');
+  assert.equal(m.claimCleanup(owner),true);assert.equal(m.cleanupDone(owner,false,true),false);
+  assert.equal(owner.status,'CONSUMED');assert.equal(m.claimCleanup(owner),false);
 });
 test('model: early successful pending cancellation consumes once; late response/body/stop never resurrect it',()=>{
   const {m,click,owner}=flow();m.abandon(owner);m.claimCleanup(owner);m.cleanupDone(owner,true);

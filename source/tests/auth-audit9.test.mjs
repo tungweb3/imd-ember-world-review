@@ -62,7 +62,9 @@ test('Audit9 LOW2 restart observing B followed by genuine B-to-A change cleans d
     const reads=routeEvents(q,'/api/auth/session').length;q.restart();
     await until(()=>routeEvents(q,'/api/auth/session').length>reads&&routeEvents(q,'/api/auth/session').at(-1).finished&&!q.c.state.checking);
     await flush(20);const bindingAccount=q.c.state.account,preSwitch=rows(w);
-    p.switchTo(A);await flush(40);observe(t,'LOW2 genuine B-to-A after restart',q,p,{bindingAccount,preSwitch});
+    p.switchTo(A);await until(()=>logouts(q).length>0&&logouts(q).every(e=>e.finished)&&
+      q.channels.flatMap(c=>c.messages).includes('signed-out'),'genuine B-to-A logout and notification completed');
+    observe(t,'LOW2 genuine B-to-A after restart',q,p,{bindingAccount,preSwitch});
     assert.equal(bindingAccount,address(B),'public and observed accounts must agree before the later event');
     assert.equal(q.c.state.account,address(A));assert.equal(logouts(q).length,1);
     assert.equal(logouts(q)[0].addressAssertion,true);assert.equal(logouts(q)[0].nonceAssertion,false);

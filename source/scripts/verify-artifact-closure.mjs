@@ -219,6 +219,18 @@ await check('H-S4-persisted-route-prefix-filenames-and-exact-route-controls',()=
   assert.deepEqual(saved.key,{'[local-path]':'masked filename key'});assert.equal(saved.knownOther,'Cannot read [local-path]');
   return {persistedFilenameVariants:filenames.length,exactRoutes:routes.length,quotedAndBareDiagnostics:true,URLAndReplayIdentitiesPreserved:true};
 }));
+await check('H-S5-persisted-spaced-route-prefix-filenames-and-complete-token-controls',()=>fixture(root=>{
+  const {store,path}=prepared(root),paths=['/api/auth/session private.log','/api/auth/session dir/file.ts','/api/auth/session (private)/x.ts',
+    '/api/auth/verify\tprivate.log','/api/me/home?fresh=1 private.log','/api/me/home/refresh dir/file.ts'];
+  const controls={routes:['/api/auth/session','/api/auth/verify','/api/me/home','/api/me/home?fresh=1','/api/me/home/refresh'],
+    log:'GET /api/me/home?fresh=1 200',listing:'route /api/auth/logout, then /api/auth/logout-all',url:'https://example.com/api/auth/session.log',
+    relative:'tests/auth-artifacts.test.mjs',nonce:'n1',actions:[{type:'start',tab:'a'}],events:[{index:0,type:'headers',id:'r1'}]};
+  store.write('core500-RESULT.json',{nested:{errors:paths.map(path=>({message:`Error at ${path}`}))},quoted:paths.map(path=>`Cannot read "${path}"`),controls});
+  const bytes=readFileSync(path),saved=JSON.parse(bytes);
+  assert.deepEqual(saved.nested.errors,paths.map(()=>({message:'Error at [local-path]'})),'a bare spaced filename must be masked from the route prefix, not only from an inner slash');
+  assert.deepEqual(saved.quoted,paths.map(()=>'Cannot read "[local-path]"'));assert.deepEqual(saved.controls,controls);
+  return {persistedSpacedFilenameVariants:paths.length,completeRouteControlsPreserved:true,persistedBytes:bytes.length,persistedSha256:createHash('sha256').update(bytes).digest('hex')};
+}));
 const failures=checks.filter(check=>check.status==='FAIL');
 console.log(JSON.stringify({schema:'artifact-closure-v1',status:failures.length?'FAIL':'PASS',node:process.version,platform:process.platform,
   artifactSource:relative(checkout,artifactSource)||'.',artifactModuleSha256:createHash('sha256').update(readFileSync(modulePath)).digest('hex'),

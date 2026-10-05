@@ -1,0 +1,2381 @@
+{
+  "schema": "imd.submission11.frozen-team-source-tests/v1",
+  "identity": {
+    "frozenSourceCommit": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceParent": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "frozenSourceTree": "bad5a87fb3c81b860d1453519a5fd1900de26f25",
+    "frozenAtUtc": "2026-10-05T18:03:59.481888+00:00",
+    "officialPriorPublicCommit": "c2f21a9ef9e1a093ed2c5808f8a99e4751fde643",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the immutable containing public checkout; do not substitute the private source commit.",
+    "selectedManifest": "manifests/submission11-published-source.json",
+    "selectedManifestSha256": "4c82cd864ef99cede0ecdca6314d15a23e9eddb3446e85dcc123d958c7b7b2fc"
+  },
+  "verdicts": {
+    "teamSourceEvidence": "PASS_BOUNDED_FROZEN_LOCAL_SOURCE",
+    "externalAudit11": "UNKNOWN",
+    "releaseReadiness": "UNKNOWN"
+  },
+  "privatePhase": "ACTUAL_COMPLETE_64_PRESERVED_PLUS5_RESUMED_STAGES",
+  "privatePhaseStartedAtUtc": "2026-10-05T18:09:27.604704+00:00",
+  "privatePhaseCompletedThroughUtc": "2026-10-05T18:36:12.275094+00:00",
+  "resumeStartedAtUtc": "2026-10-05T18:34:04.973943+00:00",
+  "runnerEnvironmentTransition": {
+    "classification": "Preserved environment-limited full execution; not converted to PASS",
+    "originalRunnerSha256": "48659eb0ffa62002230c85089adfffd2f73ccd9dc743d70224ef8f9c9a0267d7",
+    "resumedRunnerSha256": "b6263bf3feedd06b13ddaa02c7b03595b020ed3a4eb1b638999efe15e2f812f9",
+    "resumePlanSha256": "f59b7003b4ccaedb050e92e26716acbf49178b7563f75c6706f9dcdca22752e4",
+    "preservedStoppedReceiptSha256": "1cca4cff5a5d68d21abaa904126a1dd0112e4f5c96d4ac9766e6e1151b1aac7c",
+    "originalPassingStagesPreserved": 64,
+    "remainingPrivateStages": 5,
+    "remainingFinalPublicStages": 3,
+    "failedFullAttempt": {
+      "exitCode": 1,
+      "counts": {
+        "tests": 1765,
+        "pass": 1764,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "receiptSha256": "01811838e5d3d05e7d9807de41d9ca146e3ad8eefd57b258eff42b75a832a052",
+      "stdout": {
+        "bytes": 2418780,
+        "sha256": "45fa87498f733fbee26bef927e26792318739b36cb5450d63ebf2876eaeb6431"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    "environmentOnlyChange": "Exact checked-out-root safe.directory in child process environment; inherited Git config environment scrubbed. No global/system/repository Git settings changed.",
+    "sourceChanged": false,
+    "failedAttemptConvertedToPass": false
+  },
+  "localTestPlanSha256": "fd177518626dff234d728eeb5964ae8a031d4144944cb1e7bd4b2099b11123a5",
+  "supportedFileCount": 28,
+  "supportedReview": {
+    "tests": 715,
+    "pass": 715,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "privateFull": {
+    "tests": 1765,
+    "pass": 1765,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "cleanPrivateReview": {
+    "tests": 715,
+    "pass": 715,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "artifactTests": {
+    "tests": 36,
+    "pass": 36,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "artifactVerifier": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0
+  },
+  "cleanPrivateVerifier": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0
+  },
+  "semanticLow2Stability": {
+    "executions": 50,
+    "successfulExecutions": 50,
+    "testsPerExecution": 11,
+    "zeroFlakyFailures": true
+  },
+  "supportedReviewStability": {
+    "executions": 10,
+    "successfulExecutions": 10,
+    "testsPerExecution": 715,
+    "zeroFlakyFailures": true
+  },
+  "baselineSameEvaluator": {
+    "runtimeCommit": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "counts": {
+      "tests": 135,
+      "pass": 97,
+      "fail": 38,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "verifier": {
+      "total": 20,
+      "passed": 19,
+      "failed": 1,
+      "skipped": 0
+    },
+    "failureType": "ERR_ASSERTION",
+    "capabilityOrSetupFailure": false
+  },
+  "runtime": "Node24.19.0; locked viem2.56.9; offline actual AuthClient/Worker/SQLite; genuine Windows file-link capability",
+  "priorOrdinaryLinkCapabilityFailures": "Five EPERM failures preserved separately; not skipped or relabeled PASS.",
+  "finalExactPublicCheckout": "Required after static metadata commit, measured in separately bound publication/batch receipts.",
+  "stages": [
+    {
+      "stage": "frozen-baseline-six-issues",
+      "exitCode": 1,
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "startedAtUtc": "2026-10-05T18:09:28.458171+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:29.722792+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.265,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit10.test.mjs",
+        "tests/ownership-audit10.test.mjs",
+        "tests/artifacts-audit10.test.mjs",
+        "tests/auth-lifecycle-model.test.mjs"
+      ],
+      "summary": {
+        "tests": 135,
+        "pass": 97,
+        "fail": 38,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 277943,
+        "sha256": "8cd1db170a53b5f1bee2c169bffd2f60929d61d761299d6ac26913dd86da27d2"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-baseline-verifier",
+      "exitCode": 1,
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "startedAtUtc": "2026-10-05T18:09:29.792336+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:36.007316+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 6.203,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "summary": {
+        "total": 20,
+        "passed": 19,
+        "failed": 1,
+        "skipped": 0
+      },
+      "stdout": {
+        "bytes": 6374,
+        "sha256": "edc1af9018f7d0ba97e36a36a63782bcf9fde2a36135a0f5523df24813e78c7a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-candidate-verifier",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:36.069733+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:42.285208+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 6.219,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "summary": {
+        "total": 20,
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0
+      },
+      "stdout": {
+        "bytes": 5715,
+        "sha256": "d54b9c72f499334140b7c83c29c04094215ca0c1b63d1963562d38e5b34c7d39"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-candidate-artifacts",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:42.350411+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:48.805569+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 6.454,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-artifacts.test.mjs",
+        "tests/artifacts-audit10.test.mjs"
+      ],
+      "summary": {
+        "tests": 36,
+        "pass": 36,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 8762,
+        "sha256": "34d242f4679166868ffc6867abe736ed615b4a37c7c83dae615c4b7e72c2c731"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-01",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:48.903020+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:49.931037+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.016,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49707,
+        "sha256": "9735ae13cfd96944051395c0b4f272703106723da1aa2a7bfc9ecee40f0300e3"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-02",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:49.993428+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:50.877609+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.891,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "c07f1eef92b31112a550c244bb02e97c64a59d12fc0ce5e8593a4fbc33713d74"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-03",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:50.936689+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:51.805718+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.86,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "6e9675414fed951b400c4065ea7edfba845a83f2d42fd946d4586f144ae1b8c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-04",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:51.874675+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:52.805503+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.922,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49706,
+        "sha256": "ac2df2f11028df986c36d8b7f44425679ad81f84ffb70c30c7cdf59b4663e1d8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-05",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:52.866916+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:53.770683+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.906,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49706,
+        "sha256": "00a1dd24c3054380871f7f02f3d33ca83b0999bc3abf9e3a028fc3da38c247d6"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-06",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:53.840206+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:54.722554+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.875,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "4f294e5f693dd228a64cd044d2c25600c2cd0acf05bd1f34c9a462068aa369fd"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-07",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:54.785237+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:55.786780+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.0,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49708,
+        "sha256": "564fcafe2f0da481aeccba45ad284b94e4f489c6dd16d88dfb800d40f5bbf602"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-08",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:55.849372+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:56.833242+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.985,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "8fe7b8d419c80abacf515303099d50532da10769f2e42e386c56a8d2811d664b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-09",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:56.904741+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:57.848938+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.937,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "25dd5749834f190a00d5e7943bc2cb3732416f5bbf651e917e9b48ca2b76ddf5"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-10",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:57.907540+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:58.850042+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.937,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49708,
+        "sha256": "a70bd8862f7e19dad1addc0e085edb00df437fb29d937cbe6ed15b1fc5714125"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-11",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:58.908303+00:00",
+      "finishedAtUtc": "2026-10-05T18:09:59.866085+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.953,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "33ccfac6af419e0573bd6fee99120615ee5148300afd936259ac633c150febda"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-12",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:09:59.929224+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:00.937238+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.015,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "697f56192975476d3551fc55c560c635cd192e7c8120a3fbdf24a9e899ddfc85"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-13",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:01.000765+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:02.093946+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.093,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "3bd354d9098da39746d2613cb88de3becdf0ab52681846ac43c7fe30192faac5"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-14",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:02.152889+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:03.138552+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.984,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "ce21cfda695c4f1023c1b49ad0770f7b6168900b963eeb687599fddeae2b450b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-15",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:03.210180+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:04.188195+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.984,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "c1acc039832249e0f00b76f98903280cadb93685ec5ccd473fd1247b26a06d66"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-16",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:04.242719+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:05.159356+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.922,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "d5e8ea8f0d65fd9b0e8684ca2705c63b6659eaecaaf76a2e3428fc5dd0833b8a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-17",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:05.220092+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:06.111948+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.891,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "abca771cd1e6f0b5aa08dfd338dcaf36bb1bdd8a0101731a8e9878cf7ca00cd0"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-18",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:06.180199+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:07.147567+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.968,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "8fa14802e9e7289aaa35d9462897a9d8cae5a570c7d1800fb056b23a1daa3d52"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-19",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:07.211073+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:08.175734+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.969,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "3f875ff1d5fa6e8fb2a959b7a8311fb551d4db03c29d6222844a458da184a452"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-20",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:08.236184+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:09.201027+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.969,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "5af0a6ff8113a6ff9a3c9d9c7bb067d4ed3652a36656edbc2574354ceb2e55ca"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-21",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:09.256501+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:10.138645+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.89,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "bb491bbc6242a0609814e1dd4acb70de81276445a1c99afe5ddcfe8483deb184"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-22",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:10.207043+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:11.167323+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.969,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "d51aedf42f550f987419c02791532c0d8ff8908cd5b21ae531caf282dfcfea23"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-23",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:11.229858+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:12.142388+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.906,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "bb5ec4ce90c7bc77ece51e6f8a5875d64005b407ce7eeeca3432d96e71b0053f"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-24",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:12.200851+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:13.149990+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.937,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "2ef0c73817b3212f052aa65a20a9d7a69f672686602fe1d2d7e5fe5779fc70a4"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-25",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:13.217390+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:14.105736+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.891,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "55b6e48db086b791d21aa05597e5f23e9573b3273e1cde98e48cc5bd271a7f68"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-26",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:14.166090+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:15.122468+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.969,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49707,
+        "sha256": "aadc91b4347dfa8cf018d2df6e87c87abec9fc996742ae9b605ca9b0a41752f9"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-27",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:15.182751+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:16.137512+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 0.953,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "9f5b8c290a117d2dd8ac55787cafcb7e937df1f923281da04b09d1def5ebe6fb"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-28",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:16.200776+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:17.253788+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.047,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49707,
+        "sha256": "4d1674b41a2193cb2762ae22e6afa3801f5f772e3b0879ce53130ad08839c529"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-29",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:17.317558+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:18.373680+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.063,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "4312fe3defd45b980aced510ffbaf0d8357a3c22100ac3f48389b4c34c640e9a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-30",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:18.449078+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:19.494401+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.031,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "a88ddc3ecd0c64edc9957a8d939d92ec0ce7c03cc513d4e5140c39fd0f59f13f"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-31",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:19.559988+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:20.610009+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.047,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "3221d4bcc4dd9b4dbd29d59732d4a73e9af2d118c7e6c9d026c6737734702903"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-32",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:20.694974+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:21.768306+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.078,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49708,
+        "sha256": "5978f48d9081d522f596c0cc6b79a6d75ef0a0ca7f5ffda7ede83ac09701f675"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-33",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:21.854546+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:22.917002+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.047,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "aa1a517158d840a04b5121b602d1ba418d5a5d09b08da431d314742517b16acd"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-34",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:22.982651+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:24.046450+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.063,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "a8805722415f86616846fab6bfdda0a3beb511ec630e74766dfcdc5e125ba602"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-35",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:24.108104+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:25.136705+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.031,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "d4aac2f6c26a2ace361db34e0142a2758feb9528d735cf00acede171f44bc107"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-36",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:25.199116+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:26.247392+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.047,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "5d86e62be1762c55c44e7a2abb5b06f37d84abbf80188eae0f7cc415899719be"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-37",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:26.312537+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:27.378337+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.063,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "ee9497dfee60d1490692bd512d209cb2f985b1debe930e43678c54dc5b51fb4f"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-38",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:27.446884+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:28.511589+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.078,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "0840f6552c186132434dc79fa20d0e443353c1beccbc2d765c5fb2b20d989005"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-39",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:28.590984+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:29.647917+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.047,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "d6fb189d3a67dfc7aa1faca354625cb1568a7ca2cdcfa82dbf93d6942094ee7c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-40",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:29.713841+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:30.769485+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.062,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "21d004e8e3d975c7f9dc647a4604fa94d344ceb3c236964bdb05676922ad5776"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-41",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:30.837887+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:31.909801+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.078,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "e5193bcd00e1b9757156ef4460b21153e72ec3ce260f2f805fff95d207be1cd8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-42",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:31.980797+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:33.155967+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.172,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "f3871114f25af50f831070caa5367b60f01109301dccb24dbfc1bae9eeb45824"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-43",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:33.230810+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:34.293358+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.063,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "029aae1d60a9cec9c62f6d9fe259e0787fdc28ef9588d5b387a65bfd64e9017b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-44",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:34.376131+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:35.582846+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.203,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "e5578d6efbc9cb38db99fbbe7b6fecbeb06a6b18e9f57591e4ec6970e317884d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-45",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:35.664843+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:36.740387+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.078,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "fbb69400d7176e56ab30c64563c7a6ffbc52157705c84ac57fea6e0229c4b34d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-46",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:36.818040+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:37.913158+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.094,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49709,
+        "sha256": "c669d1f4b5ef8f94b77fdd76621262eac983ad3d7f0b6e38e3a5248cd72baf8a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-47",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:37.985820+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:39.081422+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.094,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "6ad8779414df31dcdc56eb178566701ce9ca51b24de7fd33cbba50fc8251aa3d"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-48",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:39.164388+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:40.241561+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.078,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "e39fdc2d2e79f083da82d16201a7df20259fb92c9a640c68a50a9f77ed69517c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-49",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:40.321582+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:41.482150+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.172,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49711,
+        "sha256": "91e0377cddd98c35da6609c133a91254e9dc3b394050aa71cd40b3359a1959c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-low2-50",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:41.583268+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:42.841504+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.265,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs"
+      ],
+      "summary": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 49710,
+        "sha256": "ec8886329a44a4b2454be345ab68d71a2b18ed64fd80b129d1d5d9af68bd3fea"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-01",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:42.933571+00:00",
+      "finishedAtUtc": "2026-10-05T18:10:57.842798+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 14.906,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2102095,
+        "sha256": "71bef3f5da6ec76467662efee3f0675fafa479af1374b3600787f9130bd38386"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-02",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:10:58.019460+00:00",
+      "finishedAtUtc": "2026-10-05T18:11:13.372964+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 15.36,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2100960,
+        "sha256": "468ce7f52c8d1f3ddbefbb7870d2445b6e396d8ad42a884b1b13c912671d1bb4"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-03",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:11:13.485559+00:00",
+      "finishedAtUtc": "2026-10-05T18:11:26.665664+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 13.172,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2101467,
+        "sha256": "06a6e430ce26ee3a4eb919d35f40dc76d26ee76edf7e997f0fd04ffe6c65f3ba"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-04",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:11:26.789576+00:00",
+      "finishedAtUtc": "2026-10-05T18:11:40.782091+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 14.0,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2102372,
+        "sha256": "40e2c8529935e02e751dc2a88360756ed50ff1a52771543c877051e2335b6598"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-05",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:11:40.900395+00:00",
+      "finishedAtUtc": "2026-10-05T18:11:56.758549+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 15.86,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2102363,
+        "sha256": "3f022776e37fd72cfd932351548836227d929443934faf93cb6599f73e61da21"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-06",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:11:56.907075+00:00",
+      "finishedAtUtc": "2026-10-05T18:12:12.335994+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 15.422,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2102400,
+        "sha256": "b55bb61a7382c7b50f97558adb59c3d4df1dbff273aadaeacfb97ca99b8d23c1"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-07",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:12:12.460844+00:00",
+      "finishedAtUtc": "2026-10-05T18:12:28.980664+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 16.531,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2102367,
+        "sha256": "483aed8c26a288d011d480cac2e22b6c4d25012e860a3a129a7fdf10d98f984c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-08",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:12:29.119832+00:00",
+      "finishedAtUtc": "2026-10-05T18:12:44.589975+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 15.484,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2101502,
+        "sha256": "ebb019c24d86813e776e16fff02974fd011ee1db18f5597f948bcb2284520acc"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-09",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:12:44.737988+00:00",
+      "finishedAtUtc": "2026-10-05T18:12:58.729167+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 13.984,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2101801,
+        "sha256": "f515b1ac19719b9472574306451254370642ee4654ef2128a3e5431f0cdfa325"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "stability-review-10",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:12:58.862551+00:00",
+      "finishedAtUtc": "2026-10-05T18:13:13.287188+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 14.422,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2101922,
+        "sha256": "b18ba4445c75267ccfbf49fa2656ebc7d16bbd646e3e6d24f695adc5d94a74a9"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-private-full",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:34:05.789661+00:00",
+      "finishedAtUtc": "2026-10-05T18:35:42.202964+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 96.422,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/*.test.mjs"
+      ],
+      "summary": {
+        "tests": 1765,
+        "pass": 1765,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2418491,
+        "sha256": "d67518cd8aa8c9420e4a73ed26f22ecc01557423a8d9b4ed6c36fb157a11ab6a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-typecheck",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:35:42.399885+00:00",
+      "finishedAtUtc": "2026-10-05T18:35:47.467200+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 5.078,
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "summary": null,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-build",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:35:47.535198+00:00",
+      "finishedAtUtc": "2026-10-05T18:35:49.140232+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 1.609,
+      "command": [
+        "node",
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "summary": null,
+      "stdout": {
+        "bytes": 3182,
+        "sha256": "d02da195d1b1c853817961d537e78c7664ef7409081ff5d739a3d5407da23e17"
+      },
+      "stderr": {
+        "bytes": 370,
+        "sha256": "d79e4144b596aba3efe480a763561840cbfef5eb0cb7529f9b108e6fedc4fb34"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-clean-review",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:35:49.202233+00:00",
+      "finishedAtUtc": "2026-10-05T18:36:05.206125+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 16.0,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 715,
+        "pass": 715,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2102358,
+        "sha256": "31f3b62dadc4df207127175b7f06008de02d16c865a0a07da7e92f89cb49997c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    },
+    {
+      "stage": "frozen-clean-verifier",
+      "exitCode": 0,
+      "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+      "startedAtUtc": "2026-10-05T18:36:05.343593+00:00",
+      "finishedAtUtc": "2026-10-05T18:36:12.275094+00:00",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "elapsedSeconds": 6.922,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "summary": {
+        "total": 20,
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0
+      },
+      "stdout": {
+        "bytes": 5715,
+        "sha256": "d54b9c72f499334140b7c83c29c04094215ca0c1b63d1963562d38e5b34c7d39"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false,
+      "rawStreamsHashVerified": true
+    }
+  ],
+  "limitations": [
+    "Offline synthetic actual AuthClient/Worker/viem and migration-backed SQLite; no production browser/provider/Cloudflare/D1 claim.",
+    "M1 writes persistent public profiles; this World is not wholly read-only. No Solidity contracts in scope.",
+    "Source closure and deployment/readiness are separate. This frozen candidate has not been deployed; no new production readback.",
+    "Local controlled roots only; no hostile concurrent ancestry replacement or SMB/NFS atomicity guarantee.",
+    "Route masking preserves explicit supported protocol grammar; no universal arbitrary unquoted filename parser guarantee. Masked diagnostic object-key collisions keep the last value.",
+    "Raw TEAM child logs/receipts stay private; only their validated hashes, counts and bounded interpretation are published. Reviewers must rerun independently.",
+    "Final exact public checkout tests, stored-object privacy and anonymous remote byte readback are required publication gates recorded separately after this static metadata commit.",
+    "Passing tests and completed/accepted outputs do not certify endorsement, zero vulnerabilities or fund safety.",
+    "Original private full attempt exited1 with1764/1765 because the elevated child Git check returned128. Its receipt and64 passing stages are preserved. Only exact-root process-local Git trust changed before separately measured remaining steps; the failed attempt is not relabeled PASS."
+  ]
+}

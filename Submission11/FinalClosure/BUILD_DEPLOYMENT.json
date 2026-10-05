@@ -1,0 +1,36 @@
+{
+  "schema": "imd.submission11.build-deployment/v1",
+  "identity": {
+    "frozenSourceCommit": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceParent": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "frozenSourceTree": "bad5a87fb3c81b860d1453519a5fd1900de26f25",
+    "frozenAtUtc": "2026-10-05T18:03:59.481888+00:00",
+    "officialPriorPublicCommit": "c2f21a9ef9e1a093ed2c5808f8a99e4751fde643",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the immutable containing public checkout; do not substitute the private source commit.",
+    "selectedManifest": "manifests/submission11-published-source.json",
+    "selectedManifestSha256": "4c82cd864ef99cede0ecdca6314d15a23e9eddb3446e85dcc123d958c7b7b2fc"
+  },
+  "privateDiagnosticTypecheckExit": 0,
+  "privateDiagnosticBuildExit": 0,
+  "privateBuildHasChunkSizeWarning": true,
+  "privateBuildRuntimeSourceClaim": "Actual complete private website build at frozen source; selected public snapshot excludes full renderer/media inputs.",
+  "publicFullFrontendBuild": "UNAVAILABLE_EXCLUDED_INPUTS",
+  "newDeployment": false,
+  "newProductionReadback": false,
+  "sourceBuildIdentityIsDeployed": false,
+  "releaseReadiness": "UNKNOWN",
+  "receiptHashes": {
+    "typecheckStdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheckStderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "buildStdout": "d02da195d1b1c853817961d537e78c7664ef7409081ff5d739a3d5407da23e17",
+    "buildStderr": "d79e4144b596aba3efe480a763561840cbfef5eb0cb7529f9b108e6fedc4fb34"
+  },
+  "requiredSeparateReleaseChecks": [
+    "authenticated Cloudflare/deployed source and build",
+    "real browser/provider/cookie flags/ERC1271",
+    "M1 write authorization",
+    "production D1 interleavings/WAF/limiter/upstream",
+    "process-death and cross-isolate concurrency"
+  ]
+}

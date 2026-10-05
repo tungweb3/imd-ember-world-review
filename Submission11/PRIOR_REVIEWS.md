@@ -1,0 +1,5 @@
+# Controlling prior review
+
+Audit10 reviewed public `c2f21a9ef9e1a093ed2c5808f8a99e4751fde643` and found1 Low and3 Info. [Original Audit10](https://github.com/Identity-md/research/blob/d2bbc2713f0c15d7542bc8afa09bafc4bf12ef12/jobs/e817a62e-1b9f-4469-90d7-7a761579af81/files/AUDIT.md) SHA-256 `37c079cf5da5ec71dabb16023372b0dd2b6e8adf645384e40ed239e2ef5dac3e`. [Original Report10](https://github.com/Identity-md/research/blob/7701ce0c6d860ba50616629d0a3a60e644135fe4/jobs/a3ec7191-f1ab-400e-bb5f-dfa858c6da65/files/artifacts/report.md) SHA-256 `f12c235f7591eb0b09d11b4fd93062174ffec242a46211c8b19ec342a134c115` also found non-finite lane persistence and nondeterministic LOW2 waiting. Both latest issue sets control this six-row closure.
+
+Historical [Submission10](../Submission10/README.md) and older local PASS labels are evidence context. They do not settle the later Audit10 adjacent examples. This package records TEAM frozen source measurements; independent external Audit11 is UNKNOWN until the new exact-pin job returns.

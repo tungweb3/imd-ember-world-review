@@ -1,0 +1,196 @@
+{
+  "schema": "imd.submission11.independent-team-challenges/v1",
+  "identity": {
+    "frozenSourceCommit": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceParent": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "frozenSourceTree": "bad5a87fb3c81b860d1453519a5fd1900de26f25",
+    "frozenAtUtc": "2026-10-05T18:03:59.481888+00:00",
+    "officialPriorPublicCommit": "c2f21a9ef9e1a093ed2c5808f8a99e4751fde643",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the immutable containing public checkout; do not substitute the private source commit.",
+    "selectedManifest": "manifests/submission11-published-source.json",
+    "selectedManifestSha256": "4c82cd864ef99cede0ecdca6314d15a23e9eddb3446e85dcc123d958c7b7b2fc"
+  },
+  "classification": "Independent agent within TEAM; not external Swarm review",
+  "behaviorCases": 9,
+  "provenanceControls": 2,
+  "candidateTests": 11,
+  "candidatePass": 11,
+  "baselineAssertionFailures": 8,
+  "dirtyAtIndependentTestTime": true,
+  "frozenFiveRuntimeModuleHashesMatchIndependentObservedBytes": true,
+  "independentSummarySha256": "d045c6d955991da469790aa023bd5c0af30607d5cabdacfc4096eaa6e2ea2a58",
+  "stages": [
+    {
+      "stage": "independent-challenge-v2-candidate",
+      "counts": {
+        "tests": 8,
+        "pass": 8,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "exitCode": 0,
+      "reporter": "node-spec",
+      "receiptSha256": "2e368de54f064c4cc1d0bececf3da6d41a2e2887da4f8d3a732453d9574e992b",
+      "stdout": {
+        "bytes": 4381,
+        "sha256": "c9fe3f545c951129e8c24a50b78731f4b3fb3acd42e315b2a812766dc5e33817"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "independent-challenge-v2-baseline",
+      "counts": {
+        "tests": 8,
+        "pass": 2,
+        "fail": 6,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "exitCode": 1,
+      "reporter": "node-spec",
+      "receiptSha256": "21ea9fde2ed1fe577c1af01e5ef805d282a7229efff9fac84704428a8b8b14ad",
+      "stdout": {
+        "bytes": 14773,
+        "sha256": "a45313024e739dc8044389e954f176134b4396705b90adc70aebdde1323a46e2"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "independent-auth-v2-candidate",
+      "counts": {
+        "tests": 3,
+        "pass": 3,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "exitCode": 0,
+      "reporter": "node-spec",
+      "receiptSha256": "1437d1e70f0a083fcc4061416f6e703999c75f34b8d5644f72a91f690ade03bc",
+      "stdout": {
+        "bytes": 6663,
+        "sha256": "5acdfa84121edd593eb0ed0d0a96322974fb6776aeb03d7cf24176725333a587"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "independent-auth-v2-baseline",
+      "counts": {
+        "tests": 3,
+        "pass": 1,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "exitCode": 1,
+      "reporter": "node-spec",
+      "receiptSha256": "ebee2ac135b1be25dd4ce8bc17d6931a54e749a74c13be36cab01693eb292dd3",
+      "stdout": {
+        "bytes": 3635,
+        "sha256": "281ef48917f2f5491915cf2ea0e5384c27276ecf217d16c018f638ecc32d594c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    }
+  ],
+  "measurements": [
+    {
+      "case": "refused discovery +257 roster candidates +2ms cap D1 wait",
+      "candidate": {
+        "status": 200,
+        "selected257": true,
+        "eligible": 1,
+        "checkedAt": "entry",
+        "index": 0,
+        "rpc": 2,
+        "budget": 1,
+        "lane": 0,
+        "durableIndexLaneProbeRows": 0
+      },
+      "baseline": {
+        "status": 200,
+        "selected257": false,
+        "eligible": 0,
+        "index": 1,
+        "rpc": 2,
+        "lane": 1,
+        "failure": "real candidate selection assertion"
+      }
+    },
+    {
+      "case": "refused discovery +30,000ms cap wait",
+      "both": "503 strict proof deadline; no durable index/lane/probe rows; +10m recovers200 with 256 seats and1 eligible;0 index/4 totalRPC/2 budget/0 lane",
+      "acceptedLimit": "A cap-ranking wait can consume the proof epoch; failure closes authority instead of extending checkedAt. This challenge does not demand newly dated evidence after arbitrary waits."
+    },
+    {
+      "case": "successful index cap wait2ms plus final enrichment wait30,000ms",
+      "candidate": "503 expired proof; D1 index retained read_at=entry and cap includes257; +10m recovers200 with1 eligible;2 totalindex/4 totalRPC/0 lanes",
+      "baseline": "503 likewise, but durable cap excludes257 because ranking used entrytime"
+    },
+    {
+      "case": "public sightings1ms plus character materialization1ms",
+      "candidate": "200; offline seat just beyond24h no longer counts; fetchedAt and last_online_at unchanged;1 character index/0RPC/0lane/0 seat index rows",
+      "baseline": "200 counts=true from earlier display sample"
+    },
+    {
+      "case": "lane finite clock advances +2 at sightings,+5 preflight,+10 probe then rolls back to+8 at limiter",
+      "candidate": "200 limited old proof;0 admitted lanes/0 index; finite probe retains +5 date and exactly30s backoff; +10m/+60m recover with2 laterindex and3 totalRPC",
+      "baseline": "rolls back but admits lane and sends index at+8"
+    },
+    {
+      "case": "same lane boundaries then Infinity",
+      "candidate": "503;0 admitted lanes/0 index; existing finite probe keeps original date/backoff; +10m/+60m recover with2 laterindex and3 totalRPC",
+      "baseline": "Infinity actually stored in admitted at; JSON diagnostic null is Infinity serialization, not SQLite NULL; +10m/+60m return limited and never admitindex"
+    },
+    {
+      "case": "persisted64 route-prefix punctuation/tab/Unicode-space path tails nested as values and keys",
+      "candidate": "0 routeprefix leaks; all values masked; controls exact; deterministic redaction collision leaves1 diagnostic object key",
+      "baseline": "40 of64 values preserve routeprefix paths;41 keys remain"
+    },
+    {
+      "case": "newer sameaddress sameexpiry canonical cookie while first oldnonce cleanup held; restart+sameaccount passive rebind",
+      "candidate": "current canonical newer session accepted before logout; old stop reason stays retained; no duplicate nonce or address logout; late204 captured oldcookie revokes only oldrow, clears browsercookie, and fresh canonical read returnsABSENT while newerrow remainslive;1 prompt/0 connect",
+      "baseline": "passive discovery weakens old stop reason tolock-reconcile"
+    },
+    {
+      "case": "oldnonce early transport failure then postfence503; newersameaddress cookie; restart503; causalstop409",
+      "candidate": "old cleanup staysRETAINED/stop through three bounded failures; late oldverify writes no stoppedUI; current canonical newer session staysaccepted; fourth attempt409 consumes responsibility; all attempts assertoriginalnonce;0 addresslogout; neither oldnornew DBrow revoked by409;1 prompt/0 connect/0 oldsignedinbroadcast",
+      "baseline": "postfence503 incorrectly consumes owner before latercausalretry"
+    }
+  ],
+  "independentProductBlockerFound": null,
+  "rawPrivateLogsPublished": false,
+  "externalAudit11": "UNKNOWN",
+  "limits": [
+    "Offline synthetic actual AuthClient/Worker/viem and migration-backed SQLite; no production browser/provider/Cloudflare/D1 claim.",
+    "M1 writes persistent public profiles; this World is not wholly read-only. No Solidity contracts in scope.",
+    "Source closure and deployment/readiness are separate. This frozen candidate has not been deployed; no new production readback.",
+    "Local controlled roots only; no hostile concurrent ancestry replacement or SMB/NFS atomicity guarantee.",
+    "Route masking preserves explicit supported protocol grammar; no universal arbitrary unquoted filename parser guarantee. Masked diagnostic object-key collisions keep the last value.",
+    "Raw TEAM child logs/receipts stay private; only their validated hashes, counts and bounded interpretation are published. Reviewers must rerun independently.",
+    "Final exact public checkout tests, stored-object privacy and anonymous remote byte readback are required publication gates recorded separately after this static metadata commit.",
+    "Passing tests and completed/accepted outputs do not certify endorsement, zero vulnerabilities or fund safety.",
+    "Original private full attempt exited1 with1764/1765 because the elevated child Git check returned128. Its receipt and64 passing stages are preserved. Only exact-root process-local Git trust changed before separately measured remaining steps; the failed attempt is not relabeled PASS."
+  ]
+}

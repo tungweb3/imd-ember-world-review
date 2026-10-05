@@ -100,17 +100,20 @@ export class AuthLifecycle{
     this.release(o);this.know({kind:'PRESENT',session});this.stage='PRESENT_ACCEPTED';return true;
   }
   abandon(o:CleanupOwner,reason:CancellationReason='context-switch'){
-    if(o.status!=='RETAINED')return false;o.abandoned=true;o.cancellationReason=reason;
+    if(o.status!=='RETAINED')return false;
+    // Passive uncertainty cannot weaken retained revocation; lock-to-stop/switch promotion remains valid.
+    if(reason==='lock-reconcile'&&o.cancellationReason&&o.cancellationReason!=='lock-reconcile')reason=o.cancellationReason;
+    o.abandoned=true;o.cancellationReason=reason;
     if(!this.stopped)this.stage=reason==='lock-reconcile'?'VERIFY_RECONCILING':'ABANDONED_CLEANUP_PENDING';return true;}
   claimCleanup(o:CleanupOwner){
     if(o.status!=='RETAINED'||!o.abandoned||o.inFlight)return false;
     o.inFlight=true;o.attemptObserved=o.responseObserved;return true;
   }
   /** Qualification is captured at dispatch, not completion: delayed early refusal still needs a post-fence attempt. */
-  cleanupDone(o:CleanupOwner,ok:boolean){
+  cleanupDone(o:CleanupOwner,ok:boolean,conclusive=false){
     o.inFlight=false;if(o.status!=='RETAINED')return false;
-    if(ok||o.attemptObserved){o.status='CONSUMED';this.owners.delete(o);return false;}
-    return o.responseObserved; // drain one post-observation retry of this same owner
+    if(ok||o.attemptObserved&&conclusive){o.status='CONSUMED';this.owners.delete(o);return false;}
+    return !o.attemptObserved&&o.responseObserved; // one post-fence retry, never a transport-failure loop
   }
   get snapshot(){
     const c=this.intent,o=this.lastOwner;

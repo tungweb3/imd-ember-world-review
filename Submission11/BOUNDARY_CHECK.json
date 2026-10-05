@@ -1,0 +1,124 @@
+{
+  "schema": "imd.submission11.boundary/v1",
+  "identity": {
+    "frozenSourceCommit": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceParent": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "frozenSourceTree": "bad5a87fb3c81b860d1453519a5fd1900de26f25",
+    "frozenAtUtc": "2026-10-05T18:03:59.481888+00:00",
+    "officialPriorPublicCommit": "c2f21a9ef9e1a093ed2c5808f8a99e4751fde643",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the immutable containing public checkout; do not substitute the private source commit.",
+    "selectedManifest": "manifests/submission11-published-source.json",
+    "selectedManifestSha256": "4c82cd864ef99cede0ecdca6314d15a23e9eddb3446e85dcc123d958c7b7b2fc"
+  },
+  "verdicts": {
+    "teamSourceEvidence": "PASS_BOUNDED_FROZEN_LOCAL_SOURCE",
+    "externalAudit11": "UNKNOWN",
+    "releaseReadiness": "UNKNOWN"
+  },
+  "selection": {
+    "sourceFiles": 146,
+    "rawByteExactFiles": 130,
+    "historicallyMaskedFiles": 16,
+    "preservedMaskLines": 57,
+    "linePreservationMismatches": 0
+  },
+  "measuredPrivatePhaseStageCount": 69,
+  "phaseCompletedThroughUtc": "2026-10-05T18:36:12.275094+00:00",
+  "sourceBytesVerifiedUnchanged": true,
+  "runnerEnvironmentTransition": {
+    "classification": "Preserved environment-limited full execution; not converted to PASS",
+    "originalRunnerSha256": "48659eb0ffa62002230c85089adfffd2f73ccd9dc743d70224ef8f9c9a0267d7",
+    "resumedRunnerSha256": "b6263bf3feedd06b13ddaa02c7b03595b020ed3a4eb1b638999efe15e2f812f9",
+    "resumePlanSha256": "f59b7003b4ccaedb050e92e26716acbf49178b7563f75c6706f9dcdca22752e4",
+    "preservedStoppedReceiptSha256": "1cca4cff5a5d68d21abaa904126a1dd0112e4f5c96d4ac9766e6e1151b1aac7c",
+    "originalPassingStagesPreserved": 64,
+    "remainingPrivateStages": 5,
+    "remainingFinalPublicStages": 3,
+    "failedFullAttempt": {
+      "exitCode": 1,
+      "counts": {
+        "tests": 1765,
+        "pass": 1764,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "receiptSha256": "01811838e5d3d05e7d9807de41d9ca146e3ad8eefd57b258eff42b75a832a052",
+      "stdout": {
+        "bytes": 2418780,
+        "sha256": "45fa87498f733fbee26bef927e26792318739b36cb5450d63ebf2876eaeb6431"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    "environmentOnlyChange": "Exact checked-out-root safe.directory in child process environment; inherited Git config environment scrubbed. No global/system/repository Git settings changed.",
+    "sourceChanged": false,
+    "failedAttemptConvertedToPass": false
+  },
+  "findingSeverityTotals": {
+    "Low": 1,
+    "Info": 5
+  },
+  "runtimeChangedFiles": [
+    "server/auth.ts",
+    "server/ownership.ts",
+    "src/world/auth.ts",
+    "src/world/authLifecycle.ts",
+    "tests/auth-artifacts.mjs"
+  ],
+  "testModelRunnerChangedFiles": [
+    "scripts/review-tests.mjs",
+    "scripts/verify-artifact-closure.mjs",
+    "tests/artifacts-audit10.test.mjs",
+    "tests/auth-audit10.test.mjs",
+    "tests/auth-audit9.test.mjs",
+    "tests/auth-lifecycle-model.test.mjs",
+    "tests/ownership-audit10.test.mjs",
+    "tests/review-runner.test.mjs"
+  ],
+  "dependencyUpgrade": false,
+  "productionRequests": false,
+  "newDeployment": false,
+  "newPaidJob": false,
+  "nativeCleanup": {
+    "nativeDecision": "BLOCK",
+    "nativeReviewPolicy": "block",
+    "nativeReceiptSha256": "93083aed3d6339465d0012481ba3f7f75164f8add4ad63767dd8a704e4a7b9ab",
+    "unresolvedReview": {
+      "dimension": 11,
+      "code": "update-coverage",
+      "status": "REVIEW",
+      "classification": "manual-only"
+    },
+    "notChecked": [
+      {
+        "dimension": 5,
+        "code": "sync-unconfigured",
+        "status": "NOT_CHECKED"
+      },
+      {
+        "dimension": 6,
+        "code": "release-doc-version-missing",
+        "status": "NOT_CHECKED"
+      }
+    ],
+    "boundedScopeException": "The source-closure package does not implement an automatic installer/update loop or claim a general release audit. Keep native BLOCK/REVIEW/NOT_CHECKED unchanged. Separately verify all146 selected public bytes and final publication privacy; do not relabel the native result PASS."
+  },
+  "finalPublicCommitTestAndPrivacyReceipt": "Separate gate on containing immutable HEAD after metadata assembly; no pre-measurement PASS claim.",
+  "limitations": [
+    "Offline synthetic actual AuthClient/Worker/viem and migration-backed SQLite; no production browser/provider/Cloudflare/D1 claim.",
+    "M1 writes persistent public profiles; this World is not wholly read-only. No Solidity contracts in scope.",
+    "Source closure and deployment/readiness are separate. This frozen candidate has not been deployed; no new production readback.",
+    "Local controlled roots only; no hostile concurrent ancestry replacement or SMB/NFS atomicity guarantee.",
+    "Route masking preserves explicit supported protocol grammar; no universal arbitrary unquoted filename parser guarantee. Masked diagnostic object-key collisions keep the last value.",
+    "Raw TEAM child logs/receipts stay private; only their validated hashes, counts and bounded interpretation are published. Reviewers must rerun independently.",
+    "Final exact public checkout tests, stored-object privacy and anonymous remote byte readback are required publication gates recorded separately after this static metadata commit.",
+    "Passing tests and completed/accepted outputs do not certify endorsement, zero vulnerabilities or fund safety.",
+    "Original private full attempt exited1 with1764/1765 because the elevated child Git check returned128. Its receipt and64 passing stages are preserved. Only exact-root process-local Git trust changed before separately measured remaining steps; the failed attempt is not relabeled PASS."
+  ]
+}

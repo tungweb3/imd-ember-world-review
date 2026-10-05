@@ -1,0 +1,243 @@
+{
+  "schema": "imd.submission11.artifact-evidence/v1",
+  "identity": {
+    "frozenSourceCommit": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceParent": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "frozenSourceTree": "bad5a87fb3c81b860d1453519a5fd1900de26f25",
+    "frozenAtUtc": "2026-10-05T18:03:59.481888+00:00",
+    "officialPriorPublicCommit": "c2f21a9ef9e1a093ed2c5808f8a99e4751fde643",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the immutable containing public checkout; do not substitute the private source commit.",
+    "selectedManifest": "manifests/submission11-published-source.json",
+    "selectedManifestSha256": "4c82cd864ef99cede0ecdca6314d15a23e9eddb3446e85dcc123d958c7b7b2fc"
+  },
+  "artifactTests": {
+    "tests": 36,
+    "pass": 36,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "candidateVerifier": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0
+  },
+  "cleanPrivateVerifier": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0
+  },
+  "baselineVerifier": {
+    "total": 20,
+    "passed": 19,
+    "failed": 1,
+    "skipped": 0
+  },
+  "baselineOnlyFailedGroup": "H-S5-persisted-spaced-route-prefix-filenames-and-complete-token-controls",
+  "prior19GroupsRetained": true,
+  "actualFileSymlinksUsed": true,
+  "shimOrSkip": false,
+  "checks": [
+    {
+      "id": "H-A1-dangling-output-file-symlink",
+      "status": "PASS",
+      "observed": {
+        "realFileSymlink": true,
+        "targetExistedBefore": false,
+        "rejected": true,
+        "outsideCreated": false
+      }
+    },
+    {
+      "id": "H-A2-existing-output-file-symlink",
+      "status": "PASS",
+      "observed": {
+        "realFileSymlink": true,
+        "targetBytesUnchanged": true
+      }
+    },
+    {
+      "id": "H-A3-final-directory-link",
+      "status": "PASS",
+      "observed": {
+        "type": "junction",
+        "outsideCreated": false
+      }
+    },
+    {
+      "id": "H-A3-dangling-parent-link",
+      "status": "PASS",
+      "observed": {
+        "outsideCreated": false
+      }
+    },
+    {
+      "id": "H-A3-artifact-root-link",
+      "status": "PASS",
+      "observed": {
+        "rejected": true
+      }
+    },
+    {
+      "id": "H-A4-H-A5-regular-write-safe-replacement",
+      "status": "PASS",
+      "observed": {
+        "regularWrite": true,
+        "exactBytes": true,
+        "replacementPolicy": "replace-entry",
+        "hardLinkAliasUnchanged": true
+      }
+    },
+    {
+      "id": "H-A6-nonregular-directory",
+      "status": "PASS",
+      "observed": {
+        "rejected": true
+      }
+    },
+    {
+      "id": "H-A7-final-entry-replacement-control",
+      "status": "PASS",
+      "observed": {
+        "substitutions": 1,
+        "rejected": true,
+        "outsideCreated": false
+      }
+    },
+    {
+      "id": "H-A7-parent-replacement-control",
+      "status": "PASS",
+      "observed": {
+        "substitutions": 1,
+        "rejected": true,
+        "outsideCreated": false
+      }
+    },
+    {
+      "id": "H-S1-generalized-local-path-masking",
+      "status": "PASS",
+      "observed": {
+        "syntheticPathForms": 10,
+        "nestedErrors": true,
+        "quotedSpaces": true,
+        "absoluteValueSpaces": true,
+        "absoluteKeys": true
+      }
+    },
+    {
+      "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+      "status": "PASS",
+      "observed": {
+        "url": true,
+        "relative": true,
+        "route": true,
+        "actions": true,
+        "nonceAlias": true,
+        "eventOrder": true
+      }
+    },
+    {
+      "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+      "status": "PASS",
+      "observed": {
+        "spacedParenthesizedForms": 9,
+        "persistedNestedErrors": true,
+        "multilineAndStructuredIdentitiesPreserved": true
+      }
+    },
+    {
+      "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+      "status": "PASS",
+      "observed": {
+        "actions": 46,
+        "workerCalls": 10,
+        "dbComparisons": 11,
+        "traceDigest": "93550e7acb3a1a47516f612b0f268ec8b8ffb51f7f8173a7d7e8b4937d4687e2",
+        "classificationUnchanged": true
+      }
+    },
+    {
+      "id": "H-C1-real-CLI-dangling-output-symlink",
+      "status": "PASS",
+      "observed": {
+        "actualCLI": true,
+        "realFileSymlink": true,
+        "targetCreated": false,
+        "inputBytesUnchanged": true
+      }
+    },
+    {
+      "id": "H-C2-real-CLI-existing-output-symlink",
+      "status": "PASS",
+      "observed": {
+        "actualCLI": true,
+        "realFileSymlink": true,
+        "targetBytesUnchanged": true,
+        "inputBytesUnchanged": true
+      }
+    },
+    {
+      "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+      "status": "PASS",
+      "observed": {
+        "actualCLI": true,
+        "nonregularRejected": true,
+        "outsideRootRejected": true,
+        "namespaceRejected": true,
+        "parentLinkRejected": true,
+        "inputBytesUnchanged": true
+      }
+    },
+    {
+      "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+      "status": "PASS",
+      "observed": {
+        "actualCLI": true,
+        "regularWriteAndReplacement": true,
+        "realFailureInvariant": "HARNESS-CAUSAL",
+        "originalActions": 47,
+        "defaultReplayWorkerCalls": 10
+      }
+    },
+    {
+      "id": "H-C5-real-CLI-input-directory-alias-identity",
+      "status": "PASS",
+      "observed": {
+        "actualCLI": true,
+        "realDirectoryAlias": true,
+        "canonicalInputCollisionRejected": true,
+        "separateSafeOutputWritten": true,
+        "originalActions": 47,
+        "inputBytesUnchanged": true,
+        "missingAndMalformedInputs": "REPLAY_ERROR"
+      }
+    },
+    {
+      "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+      "status": "PASS",
+      "observed": {
+        "persistedFilenameVariants": 9,
+        "exactRoutes": 8,
+        "quotedAndBareDiagnostics": true,
+        "URLAndReplayIdentitiesPreserved": true
+      }
+    },
+    {
+      "id": "H-S5-persisted-spaced-route-prefix-filenames-and-complete-token-controls",
+      "status": "PASS",
+      "observed": {
+        "persistedSpacedFilenameVariants": 6,
+        "completeRouteControlsPreserved": true,
+        "persistedBytes": 1237,
+        "persistedSha256": "5293e85c0632bc1ae2b4e9cf320490290bce48f6d004f15dc256c5bbcb844dbd"
+      }
+    }
+  ],
+  "routePolicy": "Route masking preserves explicit supported protocol grammar; no universal arbitrary unquoted filename parser guarantee. Masked diagnostic object-key collisions keep the last value.",
+  "writerLimit": "Local controlled roots only; no hostile concurrent ancestry replacement or SMB/NFS atomicity guarantee.",
+  "syntheticDataLimit": "Synthetic filenames do not establish production leakage."
+}

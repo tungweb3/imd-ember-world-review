@@ -9,12 +9,21 @@ const routeIds=new Set(['/api/auth/session','/api/auth/challenge','/api/auth/ver
 const absoluteStart=/(?<![A-Za-z0-9._~%+\\/-])(?:file:\/\/|[A-Za-z]:[\\/]|[\\/])/gi;
 // A single-letter "scheme" is a Windows drive, even with repeated slash separators.
 const networkURLs=/\b(?!file:)[A-Za-z][A-Za-z0-9+.-]+:\/\/[^\s"'<>]+/gi;
+function completeRouteToken(chunk,index,id){
+  const tail=chunk.slice(index+id.length),quote=chunk[index-1];
+  if(/^[ \t]*$/.test(tail)||/^[,;|)<>]+[ \t]*$/.test(tail))return true;
+  if((quote==='"'||quote==="'")&&tail.startsWith(quote))return true;
+  // These are explicit protocol log/list grammars, not arbitrary trailing prose.
+  if(/^(?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)[ \t]+$/.test(chunk.slice(0,index))&&/^[ \t]+[1-5]\d{2}[ \t]*$/.test(tail))return true;
+  if(/^route[ \t]+/.test(chunk))return chunk.replace(/^route[ \t]+/,'').split(/[,;|][ \t]+(?:then[ \t]+)?/).every(token=>routeIds.has(token.trim()));
+  return false;
+}
 function sanitizeBare(chunk){
   absoluteStart.lastIndex=0;let match;
   while((match=absoluteStart.exec(chunk))){
-    // Preserve complete protocol tokens; filename dots and punctuation suffixes
-    // must not inherit a route exemption, for example /api/auth/session.log.
-    const route=[...routeIds].find(id=>chunk.startsWith(id,match.index)&&/^(?:$|[ \t]|[,;|)"'<>](?=[ \t]|$))/.test(chunk.slice(match.index+id.length)));
+    // Whitespace is not a sufficient route terminator: a local filename can
+    // contain spaces. Ambiguous bare trailing prose follows the masking policy.
+    const route=[...routeIds].find(id=>chunk.startsWith(id,match.index)&&completeRouteToken(chunk,match.index,id));
     if(route){absoluteStart.lastIndex=match.index+route.length;continue;}
     // A bare path may contain spaces/parentheses. Its end is ambiguous: conservatively
     // remove the remainder of this freeform line segment, rather than leak its suffix.
