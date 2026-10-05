@@ -1,0 +1,696 @@
+{
+  "schema": "imd.submission10.team-final-evidence.v1",
+  "status": "TEAM_LOCAL_FROZEN_COMPLETE",
+  "sourceClosure": "TEAM SOURCE-CLOSURE PASS BOUNDED",
+  "releaseReadiness": "RELEASE UNKNOWN",
+  "externalSwarmReview": "UNKNOWN",
+  "candidateFrozenSourceCommit": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+  "localSelectedSourceTestCommit": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+  "finalPublicationCommit": null,
+  "finalPublicationTreeUrl": null,
+  "publicTestIdentityLimit": "59df is the measured selected-source test projection. The containing checkout is the final publication identity; its source bytes must match all143 measured public hashes.",
+  "newDeploymentClaimed": false,
+  "finalPublicationPrivacyGate": "Required final-commit gate; separate private publication receipt, not a source test measurement",
+  "verdict": "CLOSED_TEAM_BOUNDED",
+  "candidateArtifactTests": {
+    "tests": 28,
+    "pass": 28,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "publicArtifactTests": {
+    "tests": 28,
+    "pass": 28,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "candidateVerifier": {
+    "name": "frozen-candidate-artifact-verifier",
+    "scope": "candidate",
+    "kind": "verifier",
+    "receiptSha256": "4969a25e47965becd8a15700e403ff70bf2c765d580107d57b928ec31ac1494c",
+    "launched": true,
+    "exitCode": 0,
+    "finishedAtUtc": "2026-10-05T14:02:02.543184+00:00",
+    "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "dirty": false,
+    "sourceSelectorsCleared": true,
+    "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "streamHashesVerified": true,
+    "command": [
+      "node",
+      "scripts/verify-artifact-closure.mjs"
+    ],
+    "rawTeamReceiptPublished": false,
+    "stdout": {
+      "bytes": 5342,
+      "sha256": "d462b0b876567d7a8063e0257e9fc7d2310f8bfc084b126de693aa66d5958254"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "verifier": {
+      "status": "PASS",
+      "node": "v24.19.0",
+      "platform": "win32",
+      "assertions": {
+        "total": 19,
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0
+      },
+      "checks": [
+        {
+          "id": "H-A1-dangling-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A2-existing-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-final-directory-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-dangling-parent-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-artifact-root-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A4-H-A5-regular-write-safe-replacement",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A6-nonregular-directory",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-final-entry-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-parent-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S1-generalized-local-path-masking",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+          "status": "PASS"
+        },
+        {
+          "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C1-real-CLI-dangling-output-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C2-real-CLI-existing-output-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C5-real-CLI-input-directory-alias-identity",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+          "status": "PASS"
+        }
+      ],
+      "limits": [
+        "Local filesystem; no NFS/SMB exclusivity claim.",
+        "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+      ]
+    }
+  },
+  "freshPrivateVerifier": {
+    "name": "frozen-clean-artifact-verifier",
+    "scope": "clean",
+    "kind": "verifier",
+    "receiptSha256": "082af65a145ab28be33c87f2fab049442749259bc9b09f92854fa5a6ea193d7a",
+    "launched": true,
+    "exitCode": 0,
+    "finishedAtUtc": "2026-10-05T14:04:15.960613+00:00",
+    "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "dirty": false,
+    "sourceSelectorsCleared": true,
+    "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "streamHashesVerified": true,
+    "command": [
+      "node",
+      "scripts/verify-artifact-closure.mjs"
+    ],
+    "rawTeamReceiptPublished": false,
+    "stdout": {
+      "bytes": 5342,
+      "sha256": "d462b0b876567d7a8063e0257e9fc7d2310f8bfc084b126de693aa66d5958254"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "verifier": {
+      "status": "PASS",
+      "node": "v24.19.0",
+      "platform": "win32",
+      "assertions": {
+        "total": 19,
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0
+      },
+      "checks": [
+        {
+          "id": "H-A1-dangling-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A2-existing-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-final-directory-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-dangling-parent-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-artifact-root-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A4-H-A5-regular-write-safe-replacement",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A6-nonregular-directory",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-final-entry-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-parent-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S1-generalized-local-path-masking",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+          "status": "PASS"
+        },
+        {
+          "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C1-real-CLI-dangling-output-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C2-real-CLI-existing-output-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C5-real-CLI-input-directory-alias-identity",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+          "status": "PASS"
+        }
+      ],
+      "limits": [
+        "Local filesystem; no NFS/SMB exclusivity claim.",
+        "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+      ]
+    }
+  },
+  "freshPublicVerifier": {
+    "name": "frozen-public-artifact-verifier",
+    "scope": "public",
+    "kind": "verifier",
+    "receiptSha256": "850f22306199f68a56446e944357b873715aadd8f186f715d0872ca66e67075c",
+    "launched": true,
+    "exitCode": 0,
+    "finishedAtUtc": "2026-10-05T14:04:43.332936+00:00",
+    "sourceHead": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+    "dirty": false,
+    "sourceSelectorsCleared": true,
+    "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "streamHashesVerified": true,
+    "command": [
+      "node",
+      "scripts/verify-artifact-closure.mjs"
+    ],
+    "rawTeamReceiptPublished": false,
+    "stdout": {
+      "bytes": 5342,
+      "sha256": "d462b0b876567d7a8063e0257e9fc7d2310f8bfc084b126de693aa66d5958254"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "verifier": {
+      "status": "PASS",
+      "node": "v24.19.0",
+      "platform": "win32",
+      "assertions": {
+        "total": 19,
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0
+      },
+      "checks": [
+        {
+          "id": "H-A1-dangling-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A2-existing-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-final-directory-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-dangling-parent-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-artifact-root-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A4-H-A5-regular-write-safe-replacement",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A6-nonregular-directory",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-final-entry-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-parent-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S1-generalized-local-path-masking",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+          "status": "PASS"
+        },
+        {
+          "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C1-real-CLI-dangling-output-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C2-real-CLI-existing-output-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C5-real-CLI-input-directory-alias-identity",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+          "status": "PASS"
+        }
+      ],
+      "limits": [
+        "Local filesystem; no NFS/SMB exclusivity claim.",
+        "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+      ]
+    }
+  },
+  "matchedBaselineVerifier": {
+    "name": "frozen-baseline-artifact-verifier",
+    "scope": "baseline",
+    "kind": "verifier",
+    "receiptSha256": "f2e662ebcce82ba39cfe99551fc1d647f8497e2e8b65e93cba02ecb5f0238b41",
+    "launched": true,
+    "exitCode": 1,
+    "finishedAtUtc": "2026-10-05T14:01:49.104838+00:00",
+    "sourceHead": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+    "dirty": true,
+    "sourceSelectorsCleared": true,
+    "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "streamHashesVerified": true,
+    "command": [
+      "node",
+      "scripts/verify-artifact-closure.mjs"
+    ],
+    "rawTeamReceiptPublished": false,
+    "stdout": {
+      "bytes": 26850,
+      "sha256": "2bd5c09ebba7cd0e4ae5ecd252c5aee003cf7c55da681c08bf36469781261277"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "verifier": {
+      "status": "FAIL",
+      "node": "v24.19.0",
+      "platform": "win32",
+      "assertions": {
+        "total": 19,
+        "passed": 14,
+        "failed": 5,
+        "skipped": 0
+      },
+      "checks": [
+        {
+          "id": "H-A1-dangling-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A2-existing-output-file-symlink",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-final-directory-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-dangling-parent-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A3-artifact-root-link",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A4-H-A5-regular-write-safe-replacement",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A6-nonregular-directory",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-final-entry-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-A7-parent-replacement-control",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S1-generalized-local-path-masking",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+          "status": "PASS"
+        },
+        {
+          "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+          "status": "PASS"
+        },
+        {
+          "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C1-real-CLI-dangling-output-symlink",
+          "status": "FAIL",
+          "errorCode": "ERR_ASSERTION"
+        },
+        {
+          "id": "H-C2-real-CLI-existing-output-symlink",
+          "status": "FAIL",
+          "errorCode": "ERR_ASSERTION"
+        },
+        {
+          "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+          "status": "FAIL",
+          "errorCode": "ERR_ASSERTION"
+        },
+        {
+          "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+          "status": "PASS"
+        },
+        {
+          "id": "H-C5-real-CLI-input-directory-alias-identity",
+          "status": "FAIL",
+          "errorCode": "ERR_ASSERTION"
+        },
+        {
+          "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+          "status": "FAIL",
+          "errorCode": "ERR_ASSERTION"
+        }
+      ],
+      "limits": [
+        "Local filesystem; no NFS/SMB exclusivity claim.",
+        "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+      ]
+    }
+  },
+  "ordinaryPreFreezeCapabilityHistory": {
+    "candidate": {
+      "total": 19,
+      "pass": 14,
+      "fail": 5,
+      "skipped": 0,
+      "exit": 1,
+      "remainingFailures": "5 mandatory real file-symlink capability controls: EPERM"
+    },
+    "baseline": {
+      "total": 19,
+      "pass": 11,
+      "fail": 8,
+      "skipped": 0,
+      "exit": 1,
+      "failureSeparation": "5 EPERM capability failures plus3 source-assertion failures"
+    },
+    "command": "node scripts/verify-artifact-closure.mjs",
+    "calibration": "artifacts-alias-fixed-verifier / artifacts-alias-baseline-final-verifier"
+  },
+  "ordinaryPreFreezeTestHistory": {
+    "formalCases": 28,
+    "candidate": {
+      "total": 28,
+      "pass": 23,
+      "fail": 5,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exit": 1,
+      "remainingFailures": "5 mandatory real file-symlink capability controls: EPERM"
+    },
+    "baseline": {
+      "total": 28,
+      "pass": 17,
+      "fail": 11,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exit": 1,
+      "failureSeparation": "5 EPERM capability failures plus6 source-assertion failures"
+    },
+    "test": "tests/auth-artifacts.test.mjs",
+    "calibration": "artifacts-alias-fixed-tests / artifacts-alias-baseline-final-tests"
+  },
+  "fiveEPERMControlsActuallyRerunInCapableBatch": true,
+  "mandatoryFileSymlinkControlsSkipped": false,
+  "aliasEvidence": "Actual alias collision rejected ARTIFACT_REJECTED; both20,226-byte input views and same public synthetic input hash preserved; safe separate output/default replay and regular replacement pass. Before-fix independent probe replaced input with13,255 bytes.",
+  "replayErrorBoundary": "Missing/malformed input produces REPLAY_ERROR; unsafe sink produces ARTIFACT_REJECTED. HARNESS-CAUSAL childexit1 alone is not sink rejection/Auth vulnerability.",
+  "routeMaskingBoundary": "Persisted quoted/bare nested route-prefix filenames/suffixes masked, supported exact route/query/subroute/URL/relative/action/nonce/replay identities preserved",
+  "independentProbeReceipts": [
+    {
+      "teamPrivateReceiptId": "input-alias-counterexample",
+      "receiptSha256": "1d1dcb65c5e7ccc2eac1bbd38b55ff7b2ed1bfa157ebac99506a72fc6758a44d",
+      "finishedAtUtc": "2026-10-05T09:56:34.480192+00:00",
+      "exitCode": 1,
+      "stableSourceDuringMeasurement": true,
+      "scope": "One actual CLI replay/minimization sink over a private checkout/tmp fixture, pre-existing directory alias, real offline causal trace; no file-symlink capability rerun, full suite, production, hostile concurrent ancestor, or network filesystem claim.",
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 469,
+        "sha256": "42cba22e397b76669313d0f512544bffa3a0d455632eede265bf22d8af9042d4"
+      },
+      "stderr": {
+        "bytes": 77541,
+        "sha256": "248f61c39124203549f2f1ec7b016a549a981ab3493cc1026d91369636dcce6e"
+      }
+    },
+    {
+      "teamPrivateReceiptId": "input-alias-final",
+      "receiptSha256": "89bc7e572c517525548a7b4434e548a453343c7ab3577b5ed08d0c0fc430c24e",
+      "finishedAtUtc": "2026-10-05T10:08:17.301998+00:00",
+      "exitCode": 0,
+      "stableSourceDuringMeasurement": true,
+      "scope": "One actual CLI replay/minimization sink over a private checkout/tmp fixture, pre-existing directory alias, real offline causal trace; no file-symlink capability rerun, full suite, production, hostile concurrent ancestor, or network filesystem claim.",
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 466,
+        "sha256": "17cd57d0e373339dcf27307ec28168166c9b9968aa220ed1154fba2032b2050c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "limits": [
+    "Offline synthetic real AuthClient/Worker/migration-backed SQLite regression models remain bounded, not exhaustive provider/RPC/state-space proof.",
+    "Actual source-only fresh checkout659/659+19/19 does not compile withheld full frontend; private full build is separate TEAM measurement.",
+    "Local artifact writer uses controlled roots; hostile concurrent ancestor swaps and SMB/NFS guarantees remain out of scope.",
+    "No real production Cloudflare/browser/provider/cookie flags/ERC1271/M1/D1/WAF/limiter/upstream/process-death/cross-isolate release proof is supplied.",
+    "Completed/accepted or low/info labels do not certify endorsement, zero vulnerabilities or fund safety."
+  ],
+  "exactArtifactFindingCalibration": [
+    {
+      "id": "AUDIT9-INFO4",
+      "number": 4,
+      "severity": "Info",
+      "title": "Replay CLI minimization bypasses the artifact store and follows a dangling output symlink",
+      "status": "PASS_FROZEN_LOCAL_BOUNDED",
+      "baselineCounts": {
+        "tests": 9,
+        "passed": 2,
+        "failed": 7,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "candidateCounts": {
+        "tests": 9,
+        "passed": 9,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "baselineFailingCaseNames": [
+        "Audit9 minimization CLI rejects a dangling final file symlink without creating its target",
+        "Audit9 minimization CLI rejects an existing final file symlink and preserves target bytes",
+        "Audit9 minimization CLI rejects nonregular final output through the validated writer",
+        "Audit9 minimization CLI refuses parent directory aliases without following them",
+        "Audit9 minimization CLI refuses outputs outside checkout/tmp and invalid scheduler names",
+        "Audit9 minimization CLI never overwrites its replay input",
+        "Audit9 minimization CLI preserves replay input identity through an existing directory alias"
+      ],
+      "reverseControlsCandidatePassed": [
+        "Audit9 minimization CLI writes and safely replaces a regular contained artifact with real replay data",
+        "Audit9 successful default CLI replay creates no minimized artifact",
+        "Audit9 minimization CLI preserves replay input identity through an existing directory alias"
+      ]
+    },
+    {
+      "id": "AUDIT9-INFO5",
+      "number": 5,
+      "severity": "Info",
+      "title": "Route-prefix exemptions leave absolute filenames unmasked in persisted diagnostics",
+      "status": "PASS_FROZEN_LOCAL_BOUNDED",
+      "baselineCounts": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "candidateCounts": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "baselineFailingCaseNames": [
+        "Audit9 persisted route-prefix filenames are masked while exact protocol routes and replay identities survive"
+      ],
+      "reverseControlsCandidatePassed": [
+        "absolute local path masking covers arbitrary POSIX roots, drive paths, UNC and nested errors",
+        "persisted bare absolute diagnostics redact complete spaced and parenthesized path suffixes",
+        "network URLs, relative paths, scheduler route IDs, actions and aliases retain semantic bytes",
+        "saved sanitized artifact retains a complete non-vacuous real-Worker replay",
+        "Audit9 persisted route-prefix filenames are masked while exact protocol routes and replay identities survive"
+      ]
+    }
+  ],
+  "baselineFailedVerifierGroupIds": [
+    "H-C1-real-CLI-dangling-output-symlink",
+    "H-C2-real-CLI-existing-output-symlink",
+    "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+    "H-C5-real-CLI-input-directory-alias-identity",
+    "H-S4-persisted-route-prefix-filenames-and-exact-route-controls"
+  ]
+}

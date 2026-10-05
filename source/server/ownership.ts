@@ -346,13 +346,17 @@ export class Ownership{
     // AUD3-01 (Swarm audit 1ef8e8a6 #1): the lane's read was sent, so if it (or the ownerOf read after it) fails, this
     // request keeps the proof it already has, refused and so 'limited', with that proof's sightings (the pair replaces
     // only together), and the lane stays spent: no refund for a read that went out. Any other error propagates.
-    if(proof.refused&&req.lane&&!proof.ids.some(id=>counts(world.agents.get(id),seen.get(id),req.now))&&await req.lane()){
+    // Presence can cross its inclusive 24 h boundary while D1 waits. Discovery's lane uses post-enrichment time,
+    // and the final view takes another sample after any lane wait; neither sample renews the proof or index dates.
+    const laneNow=req.clock?.()??req.now;
+    if(proof.refused&&req.lane&&!proof.ids.some(id=>counts(world.agents.get(id),seen.get(id),laneNow))&&await req.lane()){
       try{const p=await this.proof(a,world.owners,world.agents,{...req,budget:async()=>true},fresh,true),s=await this.sightings(p.ids,a,req.db);proof=p;seen=s;}
       catch(e){if(!(e instanceof OwnershipUnavailable))throw e;}}
     // Enrichment and the optional lane may outlive the proof, including a lane failure that keeps the first pair.
     // Do not return expired/future authority or silently renew checkedAt; a later request can prove at latest.
-    if(!isFreshAge(req.clock?.()??req.now,proof.checkedAt,OWNERSHIP_TTL_MS))throw new OwnershipUnavailable();
-    const seats=proof.ids.map(id=>this.status(id,world.agents.get(id),seen.get(id),req.now)),eligible=seats.filter(s=>s.counts).length;
+    const now=req.clock?.()??req.now;
+    if(!isFreshAge(now,proof.checkedAt,OWNERSHIP_TTL_MS))throw new OwnershipUnavailable();
+    const seats=proof.ids.map(id=>this.status(id,world.agents.get(id),seen.get(id),now)),eligible=seats.filter(s=>s.counts).length;
     return {address:getAddress(a),seats,eligible,size:eligible?houseSize(eligible):null,block:proof.block,checkedAt:proof.checkedAt,presence:world.presence,
       ...proof.limited?{recheck:'limited' as const}:proof.partial?{recheck:'partial' as const}:{}};
   }

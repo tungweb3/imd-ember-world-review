@@ -1,0 +1,82 @@
+{
+  "schema": "imd.submission10.team-final-evidence.v1",
+  "status": "TEAM_LOCAL_FROZEN_COMPLETE",
+  "sourceClosure": "TEAM SOURCE-CLOSURE PASS BOUNDED",
+  "releaseReadiness": "RELEASE UNKNOWN",
+  "externalSwarmReview": "UNKNOWN",
+  "candidateFrozenSourceCommit": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+  "localSelectedSourceTestCommit": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+  "finalPublicationCommit": null,
+  "finalPublicationTreeUrl": null,
+  "publicTestIdentityLimit": "59df is the measured selected-source test projection. The containing checkout is the final publication identity; its source bytes must match all143 measured public hashes.",
+  "newDeploymentClaimed": false,
+  "finalPublicationPrivacyGate": "Required final-commit gate; separate private publication receipt, not a source test measurement",
+  "independentReadOnlyFinalReceiptReview": "PASS_WITHIN_RECORDED_LOCAL_SCOPE, no actual blocker; all14 finished receipt bytes/hashes/exits/TAP counts, tool/lock/source provenance inspected",
+  "sameByteBaselineEvaluator": true,
+  "independentProbes": [
+    {
+      "teamPrivateReceiptId": "final-auth-review",
+      "receiptSha256": "db5b1cfdaeee82d62e2c925a78f1e46d48c516a767bb5323f6fa697db1e3a3f0",
+      "finishedAtUtc": "2026-10-05T09:49:32.671654+00:00",
+      "exitCode": 0,
+      "stableSourceDuringMeasurement": true,
+      "scope": "Single offline synthetic real AuthClient/Worker/node:sqlite counterexample; no live browser/wallet/Cloudflare/D1 measurement.",
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 1133,
+        "sha256": "f746c4bc368fcd07f9c734484d01b896ec7538681dff3a89fd0189433de62d1a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "teamPrivateReceiptId": "input-alias-counterexample",
+      "receiptSha256": "1d1dcb65c5e7ccc2eac1bbd38b55ff7b2ed1bfa157ebac99506a72fc6758a44d",
+      "finishedAtUtc": "2026-10-05T09:56:34.480192+00:00",
+      "exitCode": 1,
+      "stableSourceDuringMeasurement": true,
+      "scope": "One actual CLI replay/minimization sink over a private checkout/tmp fixture, pre-existing directory alias, real offline causal trace; no file-symlink capability rerun, full suite, production, hostile concurrent ancestor, or network filesystem claim.",
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 469,
+        "sha256": "42cba22e397b76669313d0f512544bffa3a0d455632eede265bf22d8af9042d4"
+      },
+      "stderr": {
+        "bytes": 77541,
+        "sha256": "248f61c39124203549f2f1ec7b016a549a981ab3493cc1026d91369636dcce6e"
+      }
+    },
+    {
+      "teamPrivateReceiptId": "input-alias-final",
+      "receiptSha256": "89bc7e572c517525548a7b4434e548a453343c7ab3577b5ed08d0c0fc430c24e",
+      "finishedAtUtc": "2026-10-05T10:08:17.301998+00:00",
+      "exitCode": 0,
+      "stableSourceDuringMeasurement": true,
+      "scope": "One actual CLI replay/minimization sink over a private checkout/tmp fixture, pre-existing directory alias, real offline causal trace; no file-symlink capability rerun, full suite, production, hostile concurrent ancestor, or network filesystem claim.",
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 466,
+        "sha256": "17cd57d0e373339dcf27307ec28168166c9b9968aa220ed1154fba2032b2050c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "probeProvenanceLimit": "Independent probes were pre-freeze bounded real offline measures; final exact cases/reverse controls also run in the frozen supported/full/public suites. They are not new external Swarm reruns.",
+  "earlyClickCalibration": "First independent failure observation was transcribed, original source fingerprint was not captured before author correction. Author raw9-pass/2-fail11-case vulnerable-candidate calibration/source snapshot is separate; later independent exit0 cannot be relabeled initial failure.",
+  "earlyClickFinalFact": "Start clears prior-life public A before held B reply; actual explicit B grant/signature required; A conditional cleanup once; delayed reply cannot overwrite new grant. Locked[] keeps valid cookie A without stale A fast path.",
+  "inputAliasFinalFact": "Unchanged exact independent probe exits0 after fix; underlying actual CLI collision exits1 ARTIFACT_REJECTED and preserves both input views. Initial probe actually overwrote input and exits1, not accepted rejection.",
+  "externalSwarmReviewerFacts": null,
+  "requiredClaimSeparation": [
+    "REVIEWER freshly reproduced",
+    "TEAM frozen measurements",
+    "historical calibration",
+    "inference",
+    "unmeasured conditions"
+  ],
+  "acceptance": "Completed/accepted is output completion, not endorsement/certification/zero vulnerabilities/fund safety"
+}

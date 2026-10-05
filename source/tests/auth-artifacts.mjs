@@ -12,7 +12,9 @@ const networkURLs=/\b(?!file:)[A-Za-z][A-Za-z0-9+.-]+:\/\/[^\s"'<>]+/gi;
 function sanitizeBare(chunk){
   absoluteStart.lastIndex=0;let match;
   while((match=absoluteStart.exec(chunk))){
-    const route=[...routeIds].find(id=>chunk.startsWith(id,match.index)&&/^(?:$|[\s.,;|)"'<>])/.test(chunk.slice(match.index+id.length)));
+    // Preserve complete protocol tokens; filename dots and punctuation suffixes
+    // must not inherit a route exemption, for example /api/auth/session.log.
+    const route=[...routeIds].find(id=>chunk.startsWith(id,match.index)&&/^(?:$|[ \t]|[,;|)"'<>](?=[ \t]|$))/.test(chunk.slice(match.index+id.length)));
     if(route){absoluteStart.lastIndex=match.index+route.length;continue;}
     // A bare path may contain spaces/parentheses. Its end is ambiguous: conservatively
     // remove the remainder of this freeform line segment, rather than leak its suffix.

@@ -1,0 +1,88 @@
+{
+  "schema": "imd.submission10.team-final-evidence.v1",
+  "status": "TEAM_LOCAL_FROZEN_COMPLETE",
+  "sourceClosure": "TEAM SOURCE-CLOSURE PASS BOUNDED",
+  "releaseReadiness": "RELEASE UNKNOWN",
+  "externalSwarmReview": "UNKNOWN",
+  "candidateFrozenSourceCommit": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+  "localSelectedSourceTestCommit": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+  "finalPublicationCommit": null,
+  "finalPublicationTreeUrl": null,
+  "publicTestIdentityLimit": "59df is the measured selected-source test projection. The containing checkout is the final publication identity; its source bytes must match all143 measured public hashes.",
+  "newDeploymentClaimed": false,
+  "finalPublicationPrivacyGate": "Required final-commit gate; separate private publication receipt, not a source test measurement",
+  "typecheck": {
+    "name": "frozen-candidate-typecheck",
+    "receiptSha256": "01265e176b54719527fc8ac73ad3a105afad0e1559be9443b33e9dc94f7d8a7d",
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "launched": true,
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-05T10:07:32.876364+00:00",
+    "finishedAtUtc": "2026-10-05T10:07:36.984164+00:00",
+    "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "dirty": false,
+    "sourceSelectorsCleared": true,
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "runnerSha256": null,
+    "runnerHashCaptureLimit": "Older pre-batch receipt did not capture launcher SHA; do not invent one retrospectively",
+    "rawTeamReceiptPublished": false,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "privateBuild": {
+    "name": "frozen-candidate-private-build",
+    "receiptSha256": "8b195e231d58ed18a80dde4a7e713c88ca7716ed4025482703f8958a9ac58799",
+    "command": [
+      "node",
+      "<installed npm-cli.js>",
+      "run",
+      "build"
+    ],
+    "launched": true,
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-05T10:10:58.213161+00:00",
+    "finishedAtUtc": "2026-10-05T10:11:04.250451+00:00",
+    "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+    "dirty": false,
+    "sourceSelectorsCleared": true,
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+    "runnerSha256": null,
+    "runnerHashCaptureLimit": "Older pre-batch receipt did not capture launcher SHA; do not invent one retrospectively",
+    "rawTeamReceiptPublished": false,
+    "stdout": {
+      "bytes": 3218,
+      "sha256": "b73bc4591a0029d33e699d61981c11f7be271671ffacaa855cc178f19470d1a5"
+    },
+    "stderr": {
+      "bytes": 360,
+      "sha256": "351b524197fb492920789369e7f1a271420c757633fbb553b280a181ac4c31a4"
+    }
+  },
+  "privateBuildOutcome": "PASS_WITH_WARNING",
+  "privateBuildWarning": "Bundler reports some minified chunks above500kB; exit0. Build outputs/model/media filenames and files remain private and are not included.",
+  "buildHashesAreDiagnosticReceiptHashesOnly": true,
+  "fullFrontendBuildAvailableInPublicSelection": false,
+  "publicFrontendBuildState": "UNAVAILABLE selected-source build inputs; not claimed successful compilation",
+  "deploymentPerformedByThisSubmission": false,
+  "servedProductionVersion": null,
+  "servedSourceEqualityMeasured": null,
+  "releaseGatesUnmeasured": [
+    "Authenticated Cloudflare",
+    "production browser/provider/cookie flags/ERC1271",
+    "M1 write authorization",
+    "production D1 interleaving/WAF/limiter/upstream",
+    "cross-isolate/process-death"
+  ]
+}

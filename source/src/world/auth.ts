@@ -259,6 +259,9 @@ export class AuthClient{
     this.observedAccount=null;
     this.started=true;
     this.lifecycle.start();
+    // Public wallet context also belongs to this lifetime. A click before the initial binding reply must obtain
+    // the current explicit grant instead of taking a same-session fast path with the previous lifetime's account.
+    this.set({account:null});
     try{this.channel=this.deps.channel?.()??null;}catch{this.channel=null;}
     this.channel?.addEventListener('message',()=>{if(life===this.life)void this.restore();}); // queued old callback is not new-life intent
     this.bind(this.deps.provider());
@@ -277,9 +280,9 @@ export class AuthClient{
    *  followed: the SIWE message is always chainId 1 and personal_sign does not depend on the wallet's chain. */
   private bind(p:Provider|null,discovery=false,previousAccount=this.observedAccount){
     if(!discovery)this.observedAccount=null;
-    this.unsub();this.unsub=()=>{};this.bound=p;const b=++this.binds;if(!p)return;
-    const e=this.accountEvents;                                                        // R3-R1: an event while it was asked is newer than its answer
-    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b!==this.binds||e!==this.accountEvents)return;
+    this.unsub();this.unsub=()=>{};this.bound=p;const b=++this.binds;if(!p){this.set({account:null});return;}
+    const e=this.accountEvents,g=this.gen;                                             // Events and explicit grants supersede a pending passive reply.
+    void p.request({method:'eth_accounts'}).then(v=>{const a=firstAccount(v);if(b!==this.binds||e!==this.accountEvents||g!==this.gen)return;
       if(discovery){
         // Object identity is transport, not authenticated identity. A restored cookie does not establish a previous
         // wallet account: first passive discovery may show a mismatch, but only a proven account change owns cleanup.
@@ -287,7 +290,11 @@ export class AuthClient{
         else{if(a){this.observedAccount=a;this.lifecycle.discovered(p,a);
             for(const owner of this.lifecycle.retainedOwners)if(owner.cancellationReason==='lock-reconcile'&&owner.account===a)this.ownerProviders.set(owner,p);
           }this.set({account:a});}
-      }else if(a){this.observedAccount=a;if(!this.s.account){this.lifecycle.discovered(p,a);this.set({account:a});}}
+      }else{
+        // A new binding/lifetime has no earlier wallet observation. Its first fenced reply replaces stale public
+        // account state, including a lock, without acquiring logout authority from the prior lifetime or cookie.
+        if(a){this.observedAccount=a;this.lifecycle.discovered(p,a);}this.set({account:a});
+      }
     }).catch(()=>{});
     if(p.on){const h=(v:unknown)=>{if(b===this.binds)this.accountChanged(firstAccount(v));};p.on('accountsChanged',h);this.unsub=()=>p.removeListener?.('accountsChanged',h);}
   }
@@ -584,10 +591,12 @@ export class AuthClient{
     if(a===this.s.account&&!(a===null&&click))return;
     // A wallet announcing the account of this click's explicit initial grant agrees with that grant.
     if(a&&click?.state==='CONNECTING_WALLET'&&click.accountAtClick===null&&click.account===null){this.set({account:a});return;}
-    const wasFlow=!!click||this.lifecycle.retainedOwners.length>0;
+    // Old lifetimes retain their own nonce cleanup, never this lifetime's account-change intent.
+    const currentOwners=this.lifecycle.retainedOwners.filter(owner=>owner.life===this.life);
+    const wasFlow=!!click||currentOwners.length>0;
     const changed=previous!==null&&previous!==a;
     const other=!!a&&!!this.s.session&&this.s.session.address!==a&&(wasFlow||changed);
-    const locked=this.lifecycle.retainedOwners;
+    const locked=currentOwners;
     if(a&&!click&&!other&&locked.length>0&&locked.every(owner=>owner.cancellationReason==='lock-reconcile'&&
       owner.account===a&&this.ownerProviders.get(owner)===this.bound)){
       // Returning to the same account cannot turn a failed lock read into nonce-revocation authority. This current

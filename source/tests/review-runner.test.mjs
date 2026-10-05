@@ -4,9 +4,9 @@ import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readdirSync,readFileSync} fro
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {REVIEW_TEST_FILES,reviewEnvironment,reviewArguments,checkReviewPrerequisites} from '../scripts/review-tests.mjs';
-test('review runner retains all 17 prior review files and includes every Audit8 regression',()=>{
-  assert.equal(REVIEW_TEST_FILES.length,23);assert.equal(new Set(REVIEW_TEST_FILES).size,23);
-  for(const name of ['auth-audit8.test.mjs','ownership-audit8.test.mjs','clock-skew-audit8.test.mjs','auth-audit8-causal.test.mjs','auth-artifacts.test.mjs','review-runner.test.mjs'])
+test('review runner retains all 23 prior review files and includes every Audit9 regression',()=>{
+  assert.equal(REVIEW_TEST_FILES.length,25);assert.equal(new Set(REVIEW_TEST_FILES).size,25);
+  for(const name of ['auth-audit8.test.mjs','ownership-audit8.test.mjs','clock-skew-audit8.test.mjs','auth-audit8-causal.test.mjs','auth-artifacts.test.mjs','review-runner.test.mjs','auth-audit9.test.mjs','ownership-audit9.test.mjs'])
     assert.ok(REVIEW_TEST_FILES.includes('tests/'+name));
   assert.deepEqual(reviewArguments().slice(3),REVIEW_TEST_FILES);assert.ok(REVIEW_TEST_FILES.includes('tests/auth-reference-scheduler.test.mjs'));
 });
@@ -28,6 +28,6 @@ test('review preflight requires Node24, every listed file, and a locally install
     put('package.json',{dependencies:{viem:'2.56.9'}});put('package-lock.json',{packages:{'node_modules/viem':{version:'2.56.9'}}});
     assert.throws(()=>checkReviewPrerequisites({sourceDir:root,nodeVersion:'v24.19.0'}),/Local pinned viem is missing/);
     put('node_modules/viem/package.json',{version:'2.56.8'});assert.throws(()=>checkReviewPrerequisites({sourceDir:root,nodeVersion:'v24.19.0'}),/differs/);
-    put('node_modules/viem/package.json',{version:'2.56.9'});assert.deepEqual(checkReviewPrerequisites({sourceDir:root,nodeVersion:'v24.19.0'}),{node:'v24.19.0',viem:'2.56.9',testFiles:23});
+    put('node_modules/viem/package.json',{version:'2.56.9'});assert.deepEqual(checkReviewPrerequisites({sourceDir:root,nodeVersion:'v24.19.0'}),{node:'v24.19.0',viem:'2.56.9',testFiles:25});
   }finally{rmSync(root,{recursive:true,force:true});}
 });

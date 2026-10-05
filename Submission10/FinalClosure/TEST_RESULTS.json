@@ -1,0 +1,1450 @@
+{
+  "schema": "imd.submission10.team-final-evidence.v1",
+  "status": "TEAM_LOCAL_FROZEN_COMPLETE",
+  "sourceClosure": "TEAM SOURCE-CLOSURE PASS BOUNDED",
+  "releaseReadiness": "RELEASE UNKNOWN",
+  "externalSwarmReview": "UNKNOWN",
+  "candidateFrozenSourceCommit": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+  "localSelectedSourceTestCommit": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+  "finalPublicationCommit": null,
+  "finalPublicationTreeUrl": null,
+  "publicTestIdentityLimit": "59df is the measured selected-source test projection. The containing checkout is the final publication identity; its source bytes must match all143 measured public hashes.",
+  "newDeploymentClaimed": false,
+  "finalPublicationPrivacyGate": "Required final-commit gate; separate private publication receipt, not a source test measurement",
+  "batchCompletedAtUtc": "2026-10-05T14:04:44.131075+00:00",
+  "batchStageCount": 14,
+  "batchStatus": "COMPLETED",
+  "batchStatusSha256": "d228492255812b2be02a7f75a51772732d91fcd0f9213c3a9d801f7ac74bb599",
+  "localTestPlanSha256": "0f0424191c35defb49dcf09db766d9789c40a754e62ac1fbfd6fcfdbccc91648",
+  "independentReadOnlyReceiptInterpretation": "PASS_WITHIN_RECORDED_LOCAL_SCOPE",
+  "supportedFileCount": 25,
+  "finalSupportedRunner": {
+    "tests": 659,
+    "pass": 659,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "finalPrivateFull": {
+    "tests": 1709,
+    "pass": 1709,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "freshPrivateRunner": {
+    "tests": 659,
+    "pass": 659,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "freshSelectedPublicRunner": {
+    "tests": 659,
+    "pass": 659,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "finalArtifactVerifier": {
+    "total": 19,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+  },
+  "runtime": "Node v24.19.0, viem2.56.9, Windows capable local batch; actual AuthClient/Worker/migration-backed SQLite, offline synthetic accounts",
+  "stageMeasurements": [
+    {
+      "name": "frozen-baseline-audit9",
+      "scope": "baseline",
+      "kind": "tap",
+      "receiptSha256": "a252c1f6d467d51a1220c4389a359434eb91512c16b598a08a4436aff666a379",
+      "launched": true,
+      "exitCode": 1,
+      "finishedAtUtc": "2026-10-05T14:01:45.193216+00:00",
+      "sourceHead": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "dirty": true,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-audit9.test.mjs",
+        "tests/ownership-audit9.test.mjs",
+        "tests/auth-artifacts.test.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 673147,
+        "sha256": "e77c6d023dd9d69df18d7173cf9274c30188af479b677f86ce1574238965d859"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 64,
+        "pass": 40,
+        "fail": 24,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 64,
+      "topLevelNotOkCount": 24
+    },
+    {
+      "name": "frozen-baseline-artifact-verifier",
+      "scope": "baseline",
+      "kind": "verifier",
+      "receiptSha256": "f2e662ebcce82ba39cfe99551fc1d647f8497e2e8b65e93cba02ecb5f0238b41",
+      "launched": true,
+      "exitCode": 1,
+      "finishedAtUtc": "2026-10-05T14:01:49.104838+00:00",
+      "sourceHead": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "dirty": true,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 26850,
+        "sha256": "2bd5c09ebba7cd0e4ae5ecd252c5aee003cf7c55da681c08bf36469781261277"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "verifier": {
+        "status": "FAIL",
+        "node": "v24.19.0",
+        "platform": "win32",
+        "assertions": {
+          "total": 19,
+          "passed": 14,
+          "failed": 5,
+          "skipped": 0
+        },
+        "checks": [
+          {
+            "id": "H-A1-dangling-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A2-existing-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-final-directory-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-dangling-parent-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-artifact-root-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A4-H-A5-regular-write-safe-replacement",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A6-nonregular-directory",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-final-entry-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-parent-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S1-generalized-local-path-masking",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+            "status": "PASS"
+          },
+          {
+            "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C1-real-CLI-dangling-output-symlink",
+            "status": "FAIL",
+            "errorCode": "ERR_ASSERTION"
+          },
+          {
+            "id": "H-C2-real-CLI-existing-output-symlink",
+            "status": "FAIL",
+            "errorCode": "ERR_ASSERTION"
+          },
+          {
+            "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+            "status": "FAIL",
+            "errorCode": "ERR_ASSERTION"
+          },
+          {
+            "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C5-real-CLI-input-directory-alias-identity",
+            "status": "FAIL",
+            "errorCode": "ERR_ASSERTION"
+          },
+          {
+            "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+            "status": "FAIL",
+            "errorCode": "ERR_ASSERTION"
+          }
+        ],
+        "limits": [
+          "Local filesystem; no NFS/SMB exclusivity claim.",
+          "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+        ]
+      }
+    },
+    {
+      "name": "frozen-candidate-artifact",
+      "scope": "candidate",
+      "kind": "tap",
+      "receiptSha256": "afbd67b48d2a36946d0fd4c4a28810893eaee311900192e84c1690f8842317b9",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:01:55.849489+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-artifacts.test.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 6675,
+        "sha256": "dfaa7832f449931d901f2a07252e3241e7d39a674cd61ebbe951bd3b9ccc1deb"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 28,
+        "pass": 28,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 28,
+      "topLevelNotOkCount": 0
+    },
+    {
+      "name": "frozen-candidate-artifact-verifier",
+      "scope": "candidate",
+      "kind": "verifier",
+      "receiptSha256": "4969a25e47965becd8a15700e403ff70bf2c765d580107d57b928ec31ac1494c",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:02:02.543184+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 5342,
+        "sha256": "d462b0b876567d7a8063e0257e9fc7d2310f8bfc084b126de693aa66d5958254"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "verifier": {
+        "status": "PASS",
+        "node": "v24.19.0",
+        "platform": "win32",
+        "assertions": {
+          "total": 19,
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        "checks": [
+          {
+            "id": "H-A1-dangling-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A2-existing-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-final-directory-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-dangling-parent-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-artifact-root-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A4-H-A5-regular-write-safe-replacement",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A6-nonregular-directory",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-final-entry-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-parent-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S1-generalized-local-path-masking",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+            "status": "PASS"
+          },
+          {
+            "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C1-real-CLI-dangling-output-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C2-real-CLI-existing-output-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C5-real-CLI-input-directory-alias-identity",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+            "status": "PASS"
+          }
+        ],
+        "limits": [
+          "Local filesystem; no NFS/SMB exclusivity claim.",
+          "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+        ]
+      }
+    },
+    {
+      "name": "frozen-candidate-review-check",
+      "scope": "candidate",
+      "kind": "check",
+      "receiptSha256": "6b484e1f986ccc55ecac9cf13f7f0585fa5ac3834f54142aaafb3c03244d2385",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:02:02.787277+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs",
+        "--check"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 72,
+        "sha256": "17d4138338a8d2cc0a1c61b9ab590e136dbc0fa33f4e679b1ace3dbbbbb0c1fd"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "reviewPrerequisites": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 25
+      }
+    },
+    {
+      "name": "frozen-candidate-review",
+      "scope": "candidate",
+      "kind": "tap",
+      "receiptSha256": "93b6b840141bdd0fa7709b8fa19ffaa7daf4c18cde1538569d1cd3a10023f33d",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:02:16.959574+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 1873936,
+        "sha256": "a0862f42c222764c0a3c03a0b586660950b7f1fa24e179e1f0cff5ab02f051c8"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 659,
+        "pass": 659,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 659,
+      "topLevelNotOkCount": 0,
+      "reviewPrerequisites": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 25
+      }
+    },
+    {
+      "name": "frozen-candidate-private-full",
+      "scope": "candidate",
+      "kind": "tap",
+      "receiptSha256": "f7b5581f0794a7cc64f4dcc2fa020b9525d3ac498f69e729c79a64233d64d1f8",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:03:55.535388+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/*.test.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 2189204,
+        "sha256": "b5fe3d6a5e0c964c43d1b16d75503412622d762b2e0ef51aafdef7e0b1ee8672"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 1709,
+        "pass": 1709,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 1709,
+      "topLevelNotOkCount": 0
+    },
+    {
+      "name": "frozen-clean-review-check",
+      "scope": "clean",
+      "kind": "check",
+      "receiptSha256": "a0d11e0884a45dc2c713273f8aa511be6532a7962ca659ab9aaa579e584792f6",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:03:55.890386+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs",
+        "--check"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 72,
+        "sha256": "17d4138338a8d2cc0a1c61b9ab590e136dbc0fa33f4e679b1ace3dbbbbb0c1fd"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "reviewPrerequisites": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 25
+      }
+    },
+    {
+      "name": "frozen-clean-review",
+      "scope": "clean",
+      "kind": "tap",
+      "receiptSha256": "51c462b7b54b7fb1c65528464df0cb1845f942adcddd00926a23302f8c13f72f",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:04:09.484993+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 1873001,
+        "sha256": "bb63004a0b03dddb9a96efe6a001bdc2d14407b9f6f158647ba150e7845930a1"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 659,
+        "pass": 659,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 659,
+      "topLevelNotOkCount": 0,
+      "reviewPrerequisites": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 25
+      }
+    },
+    {
+      "name": "frozen-clean-artifact-verifier",
+      "scope": "clean",
+      "kind": "verifier",
+      "receiptSha256": "082af65a145ab28be33c87f2fab049442749259bc9b09f92854fa5a6ea193d7a",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:04:15.960613+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 5342,
+        "sha256": "d462b0b876567d7a8063e0257e9fc7d2310f8bfc084b126de693aa66d5958254"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "verifier": {
+        "status": "PASS",
+        "node": "v24.19.0",
+        "platform": "win32",
+        "assertions": {
+          "total": 19,
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        "checks": [
+          {
+            "id": "H-A1-dangling-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A2-existing-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-final-directory-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-dangling-parent-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-artifact-root-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A4-H-A5-regular-write-safe-replacement",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A6-nonregular-directory",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-final-entry-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-parent-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S1-generalized-local-path-masking",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+            "status": "PASS"
+          },
+          {
+            "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C1-real-CLI-dangling-output-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C2-real-CLI-existing-output-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C5-real-CLI-input-directory-alias-identity",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+            "status": "PASS"
+          }
+        ],
+        "limits": [
+          "Local filesystem; no NFS/SMB exclusivity claim.",
+          "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+        ]
+      }
+    },
+    {
+      "name": "frozen-public-review-check",
+      "scope": "public",
+      "kind": "check",
+      "receiptSha256": "038781eb7f8b8b3c12f4befcf82f7200820bd06891a596adadb60dc9e90a3a74",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:04:16.198587+00:00",
+      "sourceHead": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs",
+        "--check"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 72,
+        "sha256": "17d4138338a8d2cc0a1c61b9ab590e136dbc0fa33f4e679b1ace3dbbbbb0c1fd"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "reviewPrerequisites": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 25
+      }
+    },
+    {
+      "name": "frozen-public-artifact",
+      "scope": "public",
+      "kind": "tap",
+      "receiptSha256": "c08faaba3bac41157f0a70213e851cb5673c2d4dcd40f42e327da84cbf5093a5",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:04:22.679714+00:00",
+      "sourceHead": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/auth-artifacts.test.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 6676,
+        "sha256": "5146247721c5888afb8a703e703c3d6efc1e93c2786e45cda5634db8617eb190"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 28,
+        "pass": 28,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 28,
+      "topLevelNotOkCount": 0
+    },
+    {
+      "name": "frozen-public-review",
+      "scope": "public",
+      "kind": "tap",
+      "receiptSha256": "913ab0c3b9fe892abbb5239fa59584f2e0fd0d5fb7bf5701bc33a125c6c9515e",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:04:36.764366+00:00",
+      "sourceHead": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 1873642,
+        "sha256": "b3abd377eeaa4b9236a87c358b5d83eb94dafccb9752e0ee052444ee1caa02ef"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tap": {
+        "tests": 659,
+        "pass": 659,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "tapPlan": 659,
+      "topLevelNotOkCount": 0,
+      "reviewPrerequisites": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 25
+      }
+    },
+    {
+      "name": "frozen-public-artifact-verifier",
+      "scope": "public",
+      "kind": "verifier",
+      "receiptSha256": "850f22306199f68a56446e944357b873715aadd8f186f715d0872ca66e67075c",
+      "launched": true,
+      "exitCode": 0,
+      "finishedAtUtc": "2026-10-05T14:04:43.332936+00:00",
+      "sourceHead": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "streamHashesVerified": true,
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 5342,
+        "sha256": "d462b0b876567d7a8063e0257e9fc7d2310f8bfc084b126de693aa66d5958254"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "verifier": {
+        "status": "PASS",
+        "node": "v24.19.0",
+        "platform": "win32",
+        "assertions": {
+          "total": 19,
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        "checks": [
+          {
+            "id": "H-A1-dangling-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A2-existing-output-file-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-final-directory-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-dangling-parent-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A3-artifact-root-link",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A4-H-A5-regular-write-safe-replacement",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A6-nonregular-directory",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-final-entry-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-A7-parent-replacement-control",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S1-generalized-local-path-masking",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S2-URL-relative-path-protocol-identity-preservation",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S3-persisted-spaced-parenthesized-diagnostics",
+            "status": "PASS"
+          },
+          {
+            "id": "H-R1-actual-saved-trace-nonvacuous-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C1-real-CLI-dangling-output-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C2-real-CLI-existing-output-symlink",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C3-real-CLI-boundary-nonregular-parent-and-input-controls",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C4-real-CLI-regular-replacement-and-default-replay",
+            "status": "PASS"
+          },
+          {
+            "id": "H-C5-real-CLI-input-directory-alias-identity",
+            "status": "PASS"
+          },
+          {
+            "id": "H-S4-persisted-route-prefix-filenames-and-exact-route-controls",
+            "status": "PASS"
+          }
+        ],
+        "limits": [
+          "Local filesystem; no NFS/SMB exclusivity claim.",
+          "Node has no portable dirfd/openat parent-relative atomic rename: adversarial concurrent ancestry swaps remain outside the private fixture-root trust assumption."
+        ]
+      }
+    }
+  ],
+  "freshInstalls": [
+    {
+      "name": "frozen-clean-npm-ci",
+      "receiptSha256": "b96cabf6fc7bf8f4774289d50fb8db4677017afac604cb97d488aff6c78c047e",
+      "command": [
+        "node",
+        "<installed npm-cli.js>",
+        "ci",
+        "--ignore-scripts",
+        "--offline",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "launched": true,
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T10:07:55.324996+00:00",
+      "finishedAtUtc": "2026-10-05T10:08:06.091911+00:00",
+      "sourceHead": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "runnerSha256": null,
+      "runnerHashCaptureLimit": "Older pre-batch receipt did not capture launcher SHA; do not invent one retrospectively",
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 26,
+        "sha256": "aae14d90592d66b7db742d12c44e63a94125331f080b0dccc87b5c5426df7626"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "frozen-public-npm-ci-v2",
+      "receiptSha256": "9742f76a3a23a82478a40393b859898c5e9934d9b0dac11db3ffca8b8a5ffd2d",
+      "command": [
+        "node",
+        "<installed npm-cli.js>",
+        "ci",
+        "--ignore-scripts",
+        "--offline",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "launched": true,
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-05T10:29:05.597906+00:00",
+      "finishedAtUtc": "2026-10-05T10:29:15.579577+00:00",
+      "sourceHead": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+      "dirty": false,
+      "sourceSelectorsCleared": true,
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "packageLockSha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+      "runnerHashCaptureLimit": null,
+      "rawTeamReceiptPublished": false,
+      "stdout": {
+        "bytes": 26,
+        "sha256": "aae14d90592d66b7db742d12c44e63a94125331f080b0dccc87b5c5426df7626"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "retryHistory": [
+    {
+      "measurement": {
+        "name": "frozen-public-npm-ci",
+        "receiptSha256": "2945c9e6dc91ca466cc2ca72f3556b4f5977aeaf69cb265d27c44b90c4e3dd6b",
+        "command": [
+          "node",
+          "<installed npm-cli.js>",
+          "ci",
+          "--ignore-scripts",
+          "--offline",
+          "--no-audit",
+          "--no-fund"
+        ],
+        "launched": false,
+        "exitCode": 1,
+        "startedAtUtc": "2026-10-05T10:27:34.881231+00:00",
+        "finishedAtUtc": "2026-10-05T10:27:34.947599+00:00",
+        "sourceHead": null,
+        "dirty": null,
+        "sourceSelectorsCleared": true,
+        "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "packageLockSha256": null,
+        "runnerSha256": "14dd1ab9f7e602c558691bda856276f033c6b7822aa133a789c6f771db2d48e0",
+        "runnerHashCaptureLimit": null,
+        "rawTeamReceiptPublished": false,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "bytes": 56,
+          "sha256": "4d9981687e83e8bc19afff56fc0a346d19a163d0ec2929d51dc546a39d77c162"
+        }
+      },
+      "reason": "Initial wrong working-directory argument failed before child launch: NotADirectoryError WinError267. Retry corrected cwd to source directory; no product/test/dependency substitution."
+    }
+  ],
+  "calibrationHistory": {
+    "baselineFrozenEvaluator": {
+      "head": "8c3b60171a22b3ce71854f12282e629bbf5ca06f",
+      "dirty": true,
+      "dirtyReason": "Current same-byte regression evaluators and canonical dependency lock intentionally applied to vulnerable baseline; original baseline production implementation unchanged",
+      "combined": {
+        "tests": 64,
+        "pass": 40,
+        "fail": 24,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "artifactVerifier": {
+        "total": 19,
+        "passed": 14,
+        "failed": 5,
+        "skipped": 0
+      },
+      "capabilityErrors": "None; remaining baseline artifact verifier5 failures are actual ERR_ASSERTION, not EPERM"
+    },
+    "matchedEvaluatorBytes": true,
+    "matchedEvaluators": [
+      "tests/auth-audit9.test.mjs",
+      "tests/ownership-audit9.test.mjs",
+      "tests/auth-artifacts.test.mjs",
+      "scripts/verify-artifact-closure.mjs"
+    ],
+    "preFreezeOrdinaryEnvironment": {
+      "authAudit9": {
+        "formalCases": 11,
+        "candidate": {
+          "total": 11,
+          "pass": 11,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "exit": 0
+        },
+        "baseline": {
+          "total": 11,
+          "pass": 3,
+          "fail": 8,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "exit": 1
+        },
+        "test": "tests/auth-audit9.test.mjs",
+        "calibration": "auth-candidate-audit9-initial-clear / auth-baseline-audit9-initial-clear"
+      },
+      "ownershipAudit9": {
+        "formalCases": 25,
+        "candidateEvidence": "all 25 cases included in measured five-file160/160 ownership subset; standalone frozen rerun pending",
+        "candidateSubset": {
+          "files": 5,
+          "total": 160,
+          "pass": 160,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "exit": 0
+        },
+        "baseline": {
+          "total": 25,
+          "pass": 17,
+          "fail": 8,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "exit": 1
+        },
+        "test": "tests/ownership-audit9.test.mjs",
+        "calibration": "ownership-regression-candidate-final / ownership-audit9-baseline-final"
+      },
+      "artifactTests": {
+        "formalCases": 28,
+        "candidate": {
+          "total": 28,
+          "pass": 23,
+          "fail": 5,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "exit": 1,
+          "remainingFailures": "5 mandatory real file-symlink capability controls: EPERM"
+        },
+        "baseline": {
+          "total": 28,
+          "pass": 17,
+          "fail": 11,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0,
+          "exit": 1,
+          "failureSeparation": "5 EPERM capability failures plus6 source-assertion failures"
+        },
+        "test": "tests/auth-artifacts.test.mjs",
+        "calibration": "artifacts-alias-fixed-tests / artifacts-alias-baseline-final-tests"
+      },
+      "artifactVerifier": {
+        "candidate": {
+          "total": 19,
+          "pass": 14,
+          "fail": 5,
+          "skipped": 0,
+          "exit": 1,
+          "remainingFailures": "5 mandatory real file-symlink capability controls: EPERM"
+        },
+        "baseline": {
+          "total": 19,
+          "pass": 11,
+          "fail": 8,
+          "skipped": 0,
+          "exit": 1,
+          "failureSeparation": "5 EPERM capability failures plus3 source-assertion failures"
+        },
+        "command": "node scripts/verify-artifact-closure.mjs",
+        "calibration": "artifacts-alias-fixed-verifier / artifacts-alias-baseline-final-verifier"
+      }
+    },
+    "historyLimit": "Pre-freeze dirty-working-tree targeted runs and ordinary EPERM failures are distinct from final clean frozen capable batch; do not overwrite or relabel them"
+  },
+  "afterBatchPlanSourceHashChecks": [
+    {
+      "scope": "candidate",
+      "fileCount": 673,
+      "hashesMatchPlan": true
+    },
+    {
+      "scope": "clean",
+      "fileCount": 673,
+      "hashesMatchPlan": true
+    },
+    {
+      "scope": "public",
+      "fileCount": 143,
+      "hashesMatchPlan": true
+    },
+    {
+      "scope": "baseline",
+      "fileCount": 673,
+      "hashesMatchPlan": true
+    }
+  ],
+  "sourceSelectorsCleared": true,
+  "shimsOrHiddenSkipsUsed": false,
+  "rawEvidenceAvailability": "TEAM raw receipts/streams retained privately. Only sanitized measured identities/hashes/counts are embedded here; not claimed as public raw files or new Swarm reviewer reruns.",
+  "limits": [
+    "Offline synthetic real AuthClient/Worker/migration-backed SQLite regression models remain bounded, not exhaustive provider/RPC/state-space proof.",
+    "Actual source-only fresh checkout659/659+19/19 does not compile withheld full frontend; private full build is separate TEAM measurement.",
+    "Local artifact writer uses controlled roots; hostile concurrent ancestor swaps and SMB/NFS guarantees remain out of scope.",
+    "No real production Cloudflare/browser/provider/cookie flags/ERC1271/M1/D1/WAF/limiter/upstream/process-death/cross-isolate release proof is supplied.",
+    "Completed/accepted or low/info labels do not certify endorsement, zero vulnerabilities or fund safety."
+  ],
+  "finalFrozenFindingCalibration": {
+    "summarySha256": "e12da28c38a0d35b8c18b2eec8a10eecd2822bcd153d581274b3e8ecff6399d9",
+    "summaryOrigin": "Root independently extracted actual retained completed local receipts; names/counts inline, no extra public file",
+    "measurementIdentity": "ACTUAL_COMPLETED_FROZEN_LOCAL_RECEIPTS",
+    "officialFindings": [
+      {
+        "id": "AUDIT9-LOW1",
+        "number": 1,
+        "severity": "Low",
+        "title": "Post-await household eligibility uses request-start time and counts sightings older than 24 hours",
+        "status": "PASS_FROZEN_LOCAL_BOUNDED",
+        "baselineCounts": {
+          "tests": 25,
+          "passed": 17,
+          "failed": 8,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "candidateCounts": {
+          "tests": 25,
+          "passed": 25,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "baselineFailingCaseNames": [
+          "Audit9 Low1: D1 wait 2ms counts the inclusive 24h sighting at the final clock",
+          "Audit9 Low1: D1 wait 5000ms counts the inclusive 24h sighting at the final clock",
+          "Audit9 Low1 control: online roster still counts after enrichment and lastOnlineAt reflects the live clock",
+          "Audit9 Low1: expired sighting during D1 wait enters refused lane using live eligibility",
+          "Audit9 Low1: expired sighting during D1 wait enters failed-index lane using live eligibility",
+          "Audit9 Low1: expired sighting during D1 wait enters successful-index lane using live eligibility",
+          "Audit9 Low1: a sighting expiring during the second admitted-lane D1 read cannot regain eligibility",
+          "Audit9 Low1 control: D1 wait 29999ms never renews the strict 30s ownerOf deadline"
+        ],
+        "reverseControlsCandidatePassed": [
+          "Audit9 Low1 control: undelayed sighting age 86400000ms preserves the inclusive rule",
+          "Audit9 Low1 control: undelayed sighting age 86400001ms preserves the inclusive rule",
+          "Audit9 Low1 control: online roster still counts after enrichment and lastOnlineAt reflects the live clock",
+          "Audit9 Low1 control: another owner recent sighting never counts for this household",
+          "Audit9 Low1 control: D1 wait 29999ms never renews the strict 30s ownerOf deadline",
+          "Audit9 Low1 control: D1 wait 30000ms never renews the strict 30s ownerOf deadline",
+          "Audit9 Low1 control: D1 wait 30001ms never renews the strict 30s ownerOf deadline",
+          "Audit9 Low1 control: next latest valid request recovers after a post-D1 expired proof without renewing old evidence"
+        ]
+      },
+      {
+        "id": "AUDIT9-LOW2",
+        "number": 2,
+        "severity": "Low",
+        "title": "Restarted AuthClient retains a prior wallet account instead of its current eth_accounts reply",
+        "status": "PASS_FROZEN_LOCAL_BOUNDED",
+        "baselineCounts": {
+          "tests": 8,
+          "passed": 2,
+          "failed": 6,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "candidateCounts": {
+          "tests": 8,
+          "passed": 8,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "baselineFailingCaseNames": [
+          "Audit9 LOW2 same-client restart different-account adopts the first binding reply without cleanup",
+          "Audit9 LOW2 same-client restart locked adopts the first binding reply without cleanup",
+          "Audit9 LOW2 same-client restart no-provider adopts the first binding reply without cleanup",
+          "Audit9 LOW2 restart observing B followed by genuine B-to-A change cleans displayed cookie B once",
+          "Audit9 LOW2 early click during restarted different-account binding never uses the prior lifetime account",
+          "Audit9 LOW2 early click during restarted locked binding never uses the prior lifetime account"
+        ],
+        "reverseControlsCandidatePassed": [
+          "Audit9 LOW2 restart observing B followed by genuine B-to-A change cleans displayed cookie B once",
+          "Audit9 LOW2 late initial empty reply cannot overwrite a newer explicit wallet grant",
+          "Audit9 LOW2 early click during restarted different-account binding never uses the prior lifetime account",
+          "Audit9 LOW2 early click during restarted locked binding never uses the prior lifetime account",
+          "Audit9 LOW2 passive replacement during restarted initial binding has no prior-life switch authority"
+        ]
+      },
+      {
+        "id": "AUDIT9-LOW3",
+        "number": 3,
+        "severity": "Low",
+        "title": "A stopped lifetime's retained verify owner authorizes revocation on the new lifetime's first wallet observation",
+        "status": "PASS_FROZEN_LOCAL_BOUNDED",
+        "baselineCounts": {
+          "tests": 3,
+          "passed": 1,
+          "failed": 2,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "candidateCounts": {
+          "tests": 3,
+          "passed": 3,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "baselineFailingCaseNames": [
+          "Audit9 LOW3 detached old owner first-observation retains nonce responsibility without first-observation revocation",
+          "Audit9 LOW3 detached old owner current-switch retains nonce responsibility without first-observation revocation"
+        ],
+        "reverseControlsCandidatePassed": [
+          "Audit9 LOW3 detached old owner no-event retains nonce responsibility without first-observation revocation",
+          "Audit9 LOW3 detached old owner current-switch retains nonce responsibility without first-observation revocation"
+        ]
+      },
+      {
+        "id": "AUDIT9-INFO4",
+        "number": 4,
+        "severity": "Info",
+        "title": "Replay CLI minimization bypasses the artifact store and follows a dangling output symlink",
+        "status": "PASS_FROZEN_LOCAL_BOUNDED",
+        "baselineCounts": {
+          "tests": 9,
+          "passed": 2,
+          "failed": 7,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "candidateCounts": {
+          "tests": 9,
+          "passed": 9,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "baselineFailingCaseNames": [
+          "Audit9 minimization CLI rejects a dangling final file symlink without creating its target",
+          "Audit9 minimization CLI rejects an existing final file symlink and preserves target bytes",
+          "Audit9 minimization CLI rejects nonregular final output through the validated writer",
+          "Audit9 minimization CLI refuses parent directory aliases without following them",
+          "Audit9 minimization CLI refuses outputs outside checkout/tmp and invalid scheduler names",
+          "Audit9 minimization CLI never overwrites its replay input",
+          "Audit9 minimization CLI preserves replay input identity through an existing directory alias"
+        ],
+        "reverseControlsCandidatePassed": [
+          "Audit9 minimization CLI writes and safely replaces a regular contained artifact with real replay data",
+          "Audit9 successful default CLI replay creates no minimized artifact",
+          "Audit9 minimization CLI preserves replay input identity through an existing directory alias"
+        ]
+      },
+      {
+        "id": "AUDIT9-INFO5",
+        "number": 5,
+        "severity": "Info",
+        "title": "Route-prefix exemptions leave absolute filenames unmasked in persisted diagnostics",
+        "status": "PASS_FROZEN_LOCAL_BOUNDED",
+        "baselineCounts": {
+          "tests": 1,
+          "passed": 0,
+          "failed": 1,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "candidateCounts": {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "baselineFailingCaseNames": [
+          "Audit9 persisted route-prefix filenames are masked while exact protocol routes and replay identities survive"
+        ],
+        "reverseControlsCandidatePassed": [
+          "absolute local path masking covers arbitrary POSIX roots, drive paths, UNC and nested errors",
+          "persisted bare absolute diagnostics redact complete spaced and parenthesized path suffixes",
+          "network URLs, relative paths, scheduler route IDs, actions and aliases retain semantic bytes",
+          "saved sanitized artifact retains a complete non-vacuous real-Worker replay",
+          "Audit9 persisted route-prefix filenames are masked while exact protocol routes and replay identities survive"
+        ]
+      }
+    ],
+    "adjacentRefinements": [
+      {
+        "name": "Audit9 minimization CLI preserves replay input identity through an existing directory alias",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "relationship": "ADJACENT_REFINEMENT_UNDER_EXISTING_FINDING"
+      },
+      {
+        "name": "Audit9 LOW2 early click during restarted different-account binding never uses the prior lifetime account",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "relationship": "ADJACENT_REFINEMENT_UNDER_EXISTING_FINDING"
+      },
+      {
+        "name": "Audit9 LOW2 early click during restarted locked binding never uses the prior lifetime account",
+        "baseline": "FAIL",
+        "candidate": "PASS",
+        "relationship": "ADJACENT_REFINEMENT_UNDER_EXISTING_FINDING"
+      }
+    ],
+    "baselineCapabilityFailures": 0,
+    "baselineSetupFailures": 0,
+    "candidateAuthFormalCases": {
+      "total": 11,
+      "passed": 11
+    },
+    "candidateOwnershipFormalCases": {
+      "total": 25,
+      "passed": 25
+    },
+    "externalSwarmVerdict": "UNKNOWN",
+    "limits": [
+      "Measurements were executed by the authorized local test runner and extracted independently from retained raw receipts; they are TEAM local evidence, not an external swarm verdict.",
+      "The baseline uses the original implementation with the same updated formal tests and verifier copied in; expected assertion failures are retained.",
+      "The filtered public source checkout was actually rerun; its measured checkout precedes final release metadata/publication and is not a claim about an unmeasured later commit.",
+      "Historical normal-user EPERM, setup failures and prefrozen measurements are preserved; these fresh frozen privileged measurements do not relabel old failures.",
+      "A baseline failure can stop before later assertions; final whole-case passes establish the preserved reverse controls.",
+      "Offline actual AuthClient/Worker/SQLite and controlled local filesystem only; no live wallet, browser, Cloudflare, D1, fund-safety, zero-vulnerability or certification claim.",
+      "Local artifact ancestry checks are bounded by private fixture-root trust; no portable dirfd/openat atomicity, hostile concurrent ancestry swap, all reparse points, NFS/SMB or crash-durability proof."
+    ]
+  }
+}

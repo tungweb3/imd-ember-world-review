@@ -1,0 +1,41 @@
+{
+  "schema": "imd.submission10.team-final-evidence.v1",
+  "status": "TEAM_LOCAL_FROZEN_COMPLETE",
+  "sourceClosure": "TEAM SOURCE-CLOSURE PASS BOUNDED",
+  "releaseReadiness": "RELEASE UNKNOWN",
+  "externalSwarmReview": "UNKNOWN",
+  "candidateFrozenSourceCommit": "a2e6aca828858730cfb6b60931abea20ba9b6ab6",
+  "localSelectedSourceTestCommit": "59dfc4a90a52de181c1420f0babe6170c1dc08d7",
+  "finalPublicationCommit": null,
+  "finalPublicationTreeUrl": null,
+  "publicTestIdentityLimit": "59df is the measured selected-source test projection. The containing checkout is the final publication identity; its source bytes must match all143 measured public hashes.",
+  "newDeploymentClaimed": false,
+  "finalPublicationPrivacyGate": "Required final-commit gate; separate private publication receipt, not a source test measurement",
+  "selection": {
+    "sourceFiles": 143,
+    "rawByteExactFiles": 127,
+    "historicallyMaskedFiles": 16,
+    "preservedMaskLines": 57,
+    "linePreservationMismatches": 0,
+    "selectedManifestReference": "manifests/submission10-published-source.json",
+    "selectedManifestSha256": "6e22edd28321251cff9ec4d9f9eb853eb23010433f3e8b28dfc4194de36eccc6",
+    "publicCodeHashesOnly": true,
+    "maskedPrivateOriginalFingerprintsIncluded": false
+  },
+  "scope": "World / Member M1 selected source; no Solidity; M1 persistent public profiles",
+  "exclusions": [
+    "3D/models/scenes/media/avatar/selfie/UI/full frontend",
+    "private originals/history/backups/databases/credentials",
+    "Genesis/Mint",
+    "Ember Coin",
+    "Fren Pet"
+  ],
+  "sourceProjectionHashesMatch": true,
+  "afterTestsSelectedSourceBytesUnchanged": true,
+  "rootMustVerifyFinalMetadataOnlyCommitKeepsSourceHashes": true,
+  "completeFrozenLocalTests": "PASS_BOUNDED",
+  "independentReadOnlyReceiptReview": "PASS_WITHIN_RECORDED_LOCAL_SCOPE",
+  "independentFinalStoredObjectPrivacyGate": null,
+  "publicationAuthorizedByThisMetadata": false,
+  "productionRequestsOrDeployment": false
+}
