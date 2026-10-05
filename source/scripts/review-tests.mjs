@@ -10,7 +10,8 @@ export const REVIEW_TEST_FILES=Object.freeze([
   'tests/auth-reference-scheduler.test.mjs','tests/auth-audit8.test.mjs','tests/ownership-audit8.test.mjs',
   'tests/clock-skew-audit8.test.mjs','tests/auth-audit8-causal.test.mjs','tests/auth-artifacts.test.mjs','tests/review-runner.test.mjs',
   'tests/auth-audit9.test.mjs','tests/ownership-audit9.test.mjs',
-  'tests/auth-audit10.test.mjs','tests/ownership-audit10.test.mjs','tests/artifacts-audit10.test.mjs'
+  'tests/auth-audit10.test.mjs','tests/ownership-audit10.test.mjs','tests/artifacts-audit10.test.mjs',
+  'tests/scheduled-audit11.test.mjs'
 ]);
 export function reviewEnvironment(input=process.env){const env={...input};
   // All source selectors are test-only escape hatches. Clear the entire suffix,

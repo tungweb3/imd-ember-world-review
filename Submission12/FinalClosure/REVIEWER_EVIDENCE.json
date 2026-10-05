@@ -1,0 +1,150 @@
+{
+  "schema": "imd.submission12.independent-team-evidence/v1",
+  "identity": {
+    "frozenSourceCommit": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+    "frozenSourceParent": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceTree": "b3966db22d04f423646ad52369bfc0e5075cc560",
+    "frozenAtUtc": "2026-10-05T20:10:19.343032+00:00",
+    "officialPriorPublicCommit": "35ace952824ebf711fd9fa6cb7ea1cc83b75cd6a",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the containing immutable public checkout; source and public commits are distinct.",
+    "selectedManifest": "manifests/submission12-published-source.json",
+    "selectedManifestSha256": "194c8f033c38294110613ce889fc8da8b63e4c99c603607af957c5882a3d0c42"
+  },
+  "classification": "Independent agents within TEAM, not external Swarm review",
+  "scopeReview": "PASS_BOUNDED_FOUR_FILE_SCOPE",
+  "scopeReceiptSha256": "69a140ff4df68150d0e3dd6653b04b6d23eaca789578086e1d192809986ad964",
+  "canonicalTrackedPrivateFilesVerified": 677,
+  "onlyProductionChange": "worker/app.ts",
+  "helperFilesByteIdenticalToParent": true,
+  "independentOfflineProbe": {
+    "candidateTests": 1,
+    "candidatePass": 1,
+    "baselineTests": 1,
+    "baselineAssertionFailures": 1,
+    "stages": [
+      {
+        "stage": "independent-offline-probe-candidate-final",
+        "exitCode": 0,
+        "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+        "startedAtUtc": "2026-10-05T20:11:09.377507+00:00",
+        "finishedAtUtc": "2026-10-05T20:11:10.036130+00:00",
+        "elapsedSeconds": 0.656,
+        "receiptSha256": "f29c5275b800344655407cfcebf673a1c4d4a0c4a8b1a010e2c7c8e4d6d9ba9c",
+        "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "command": [
+          "node",
+          "--test",
+          "--test-reporter=tap",
+          "[private independent offline control]"
+        ],
+        "summary": {
+          "tests": 1,
+          "pass": 1,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "stdout": {
+          "bytes": 1159,
+          "sha256": "b35b8194aeb000851e6e5d9cfdb7e06d3b7b3da40fcac93478d4e88ced11d358"
+        },
+        "stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "rawPrivateLogPublished": false
+      },
+      {
+        "stage": "independent-offline-probe-baseline-final",
+        "exitCode": 1,
+        "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+        "startedAtUtc": "2026-10-05T20:12:18.807758+00:00",
+        "finishedAtUtc": "2026-10-05T20:12:19.369917+00:00",
+        "elapsedSeconds": 0.547,
+        "receiptSha256": "e3a3cc76b5c063929207572f6d02d2f935b26f6de8a236df2b309233422691a9",
+        "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "command": [
+          "node",
+          "--test",
+          "--test-reporter=tap",
+          "[private independent offline control]"
+        ],
+        "summary": {
+          "tests": 1,
+          "pass": 0,
+          "fail": 1,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "stdout": {
+          "bytes": 2280,
+          "sha256": "601d156479299fceb93eb81b0ec819d8a8717e9e8e3d776c3a6595703f0e5c82"
+        },
+        "stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "rawPrivateLogPublished": false
+      }
+    ],
+    "measurements": {
+      "source": {
+        "beforeWork": {
+          "index": 0,
+          "rpc": 1,
+          "budget": 1,
+          "lane": 1
+        },
+        "afterWork": {
+          "index": 0,
+          "rpc": 1,
+          "budget": 1,
+          "lane": 1
+        },
+        "scheduledSamples": 3,
+        "scheduledTasks": 0,
+        "liveProbePreserved": true,
+        "actualLaneAdmissions": 1,
+        "rawDBRowsPublished": false
+      },
+      "baseline": {
+        "beforeWork": {
+          "index": 0,
+          "rpc": 1,
+          "budget": 1,
+          "lane": 1
+        },
+        "afterWork": {
+          "index": 0,
+          "rpc": 1,
+          "budget": 1,
+          "lane": 2
+        },
+        "scheduledSamples": 3,
+        "scheduledTasks": 3,
+        "liveProbePreserved": false,
+        "actualLaneAdmissions": 2,
+        "rawDBRowsPublished": false
+      }
+    }
+  },
+  "externalAudit12": "UNKNOWN",
+  "rawPrivateLogsPublished": false,
+  "history": {
+    "initialFixtureAndLauncherFailures": "Preserved privately as unsuccessful attempts; final canonical controls alone support current counts.",
+    "supersededCheckoutBytePolicy": "Cached checkout line-ending/freeze mismatch evidence remains private; canonical 677 tracked files now match exact Git blobs.",
+    "initialDependencyCacheAndRouteSetupFailures": "Preserved as setup failures; locked dependencies and product/evaluator assertions were not weakened.",
+    "failedAttemptsRelabeledPass": false
+  },
+  "limits": [
+    "Offline synthetic actual Worker/AuthClient/locked viem and migration-backed SQLite; no production provider, browser, Cloudflare or D1 claim.",
+    "M1 writes persistent public profiles. No Solidity, wallet asset operations, new feature or deployment is in scope.",
+    "Private raw receipts and DB/network/nonce logs are withheld. Published summaries contain validated counts and stream hashes only; reviewers must rerun.",
+    "Final exact containing-public-commit tests, stored/reachable-object privacy and anonymous all-file readback remain separate publication gates.",
+    "Production source/build, cookies/ERC1271, D1 interleavings, WAF/limiter/upstream, process death and cross-isolate behavior remain unmeasured.",
+    "Tests, bounded PASS, completed/accepted jobs and Low/Info labels do not establish endorsement, zero vulnerabilities or fund safety."
+  ]
+}

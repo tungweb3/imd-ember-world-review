@@ -1,0 +1,89 @@
+{
+  "schema": "imd.submission12.boundary/v1",
+  "identity": {
+    "frozenSourceCommit": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+    "frozenSourceParent": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceTree": "b3966db22d04f423646ad52369bfc0e5075cc560",
+    "frozenAtUtc": "2026-10-05T20:10:19.343032+00:00",
+    "officialPriorPublicCommit": "35ace952824ebf711fd9fa6cb7ea1cc83b75cd6a",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the containing immutable public checkout; source and public commits are distinct.",
+    "selectedManifest": "manifests/submission12-published-source.json",
+    "selectedManifestSha256": "194c8f033c38294110613ce889fc8da8b63e4c99c603607af957c5882a3d0c42"
+  },
+  "verdicts": {
+    "teamSourceEvidence": "PASS_BOUNDED_FROZEN_LOCAL_SOURCE",
+    "externalAudit12": "UNKNOWN_PENDING_EXTERNAL_REVIEW",
+    "releaseReadiness": "UNKNOWN",
+    "deployment": "NOT_DEPLOYED",
+    "finalContainingPublicCommitGates": "PENDING_SEPARATE_ROOT_MEASUREMENT"
+  },
+  "selection": {
+    "sourceFiles": 147,
+    "rawByteExactFiles": 131,
+    "historicallyMaskedFiles": 16,
+    "preservedMaskLines": 57,
+    "linePreservationMismatches": 0
+  },
+  "actualPrivatePhaseStages": 9,
+  "phaseCompletedThroughUtc": "2026-10-05T20:20:32.874832+00:00",
+  "sourceBytesVerifiedUnchanged": true,
+  "canonicalTrackedPrivateFilesVerified": 677,
+  "findingSeverityTotals": {
+    "Low": 1,
+    "Info": 1
+  },
+  "runtimeChangedFiles": [
+    "worker/app.ts"
+  ],
+  "testRunnerChangedFiles": [
+    "scripts/review-tests.mjs",
+    "tests/review-runner.test.mjs",
+    "tests/scheduled-audit11.test.mjs"
+  ],
+  "previousSixIssues": "Previously closed, unchanged; not additional closure rows.",
+  "dependencyUpgrade": false,
+  "schemaChange": false,
+  "helperChange": false,
+  "productionRequests": false,
+  "newDeployment": false,
+  "newPaidJob": false,
+  "nativeCleanup": {
+    "nativeDecision": "BLOCK",
+    "nativeReviewPolicy": "block",
+    "nativeReceiptSha256": "50464bd6f32220f8c158cadb68d342724a940545fdf5de996a096d3569d32786",
+    "unresolvedReview": {
+      "dimension": 11,
+      "code": "update-coverage",
+      "status": "REVIEW",
+      "classification": "manual-only"
+    },
+    "notChecked": [
+      {
+        "dimension": 5,
+        "code": "sync-unconfigured",
+        "status": "NOT_CHECKED"
+      },
+      {
+        "dimension": 6,
+        "code": "release-doc-version-missing",
+        "status": "NOT_CHECKED"
+      }
+    ],
+    "boundedScopeException": "Source-only closure excludes automatic updater implementation and general release readiness. Preserve native BLOCK/REVIEW/NOT_CHECKED; verify selected correspondence and publication independently."
+  },
+  "history": {
+    "initialFixtureAndLauncherFailures": "Preserved privately as unsuccessful attempts; final canonical controls alone support current counts.",
+    "supersededCheckoutBytePolicy": "Cached checkout line-ending/freeze mismatch evidence remains private; canonical 677 tracked files now match exact Git blobs.",
+    "initialDependencyCacheAndRouteSetupFailures": "Preserved as setup failures; locked dependencies and product/evaluator assertions were not weakened.",
+    "failedAttemptsRelabeledPass": false
+  },
+  "limitations": [
+    "Offline synthetic actual Worker/AuthClient/locked viem and migration-backed SQLite; no production provider, browser, Cloudflare or D1 claim.",
+    "M1 writes persistent public profiles. No Solidity, wallet asset operations, new feature or deployment is in scope.",
+    "Private raw receipts and DB/network/nonce logs are withheld. Published summaries contain validated counts and stream hashes only; reviewers must rerun.",
+    "Final exact containing-public-commit tests, stored/reachable-object privacy and anonymous all-file readback remain separate publication gates.",
+    "Production source/build, cookies/ERC1271, D1 interleavings, WAF/limiter/upstream, process death and cross-isolate behavior remain unmeasured.",
+    "Tests, bounded PASS, completed/accepted jobs and Low/Info labels do not establish endorsement, zero vulnerabilities or fund safety."
+  ]
+}

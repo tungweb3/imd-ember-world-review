@@ -1,0 +1,54 @@
+{
+  "schema": "imd.submission12.build-deployment/v1",
+  "identity": {
+    "frozenSourceCommit": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+    "frozenSourceParent": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceTree": "b3966db22d04f423646ad52369bfc0e5075cc560",
+    "frozenAtUtc": "2026-10-05T20:10:19.343032+00:00",
+    "officialPriorPublicCommit": "35ace952824ebf711fd9fa6cb7ea1cc83b75cd6a",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the containing immutable public checkout; source and public commits are distinct.",
+    "selectedManifest": "manifests/submission12-published-source.json",
+    "selectedManifestSha256": "194c8f033c38294110613ce889fc8da8b63e4c99c603607af957c5882a3d0c42"
+  },
+  "privateDiagnosticTypecheckExit": 0,
+  "privateFrontendBuild": "NOT_RUN_THIS_SOURCE_ONLY_ROUND",
+  "publicFullFrontendBuild": "UNAVAILABLE_EXCLUDED_RENDERER_MEDIA_INPUTS",
+  "newDeployment": false,
+  "newProductionReadback": false,
+  "sourceBuildIdentityIsDeployed": false,
+  "releaseReadiness": "UNKNOWN",
+  "typecheckEvidence": {
+    "stage": "frozen-typecheck",
+    "exitCode": 0,
+    "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+    "startedAtUtc": "2026-10-05T20:20:27.619846+00:00",
+    "finishedAtUtc": "2026-10-05T20:20:32.874832+00:00",
+    "elapsedSeconds": 5.266,
+    "receiptSha256": "8fbb0cf0823fb8f569554061c531c57eede08049c896643408e3ce48febeeb73",
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "summary": {
+      "exitCode": 0
+    },
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rawPrivateLogPublished": false
+  },
+  "requiredSeparateReleaseChecks": [
+    "Authenticated deployment/source/build identity",
+    "Real browser/provider/cookies/ERC1271",
+    "M1 write authorization and production D1/WAF/limiter/upstream interleavings",
+    "Process-death and cross-isolate behavior"
+  ]
+}

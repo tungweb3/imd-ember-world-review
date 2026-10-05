@@ -149,12 +149,17 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
      *  bounded batches. No database: skip. A database still on 0006: reads stay available and cleanup skips safely. */
     async scheduled(_controller:ScheduledController,env:Env,ctx:Context):Promise<void> {
       if(!env.DB)return;
-      ctx.waitUntil(recordPresence(gateway,env.DB,now(),p=>ctx.waitUntil(p)).then(r=>console.log('presence',JSON.stringify(r))));
-      ctx.waitUntil(pruneMemberRecords(env.DB,now()).then(r=>console.log('member_cleanup',JSON.stringify(r)))
+      // Validate every housekeeping clock before starting any persistent work; preserve each helper's finite sample.
+      const presenceNow=now(),memberNow=now(),probeNow=now();
+      if(![presenceNow,memberNow,probeNow].every(Number.isFinite)){
+        console.log('scheduled',JSON.stringify({status:'invalid_clock'}));return;
+      }
+      ctx.waitUntil(recordPresence(gateway,env.DB,presenceNow,p=>ctx.waitUntil(p)).then(r=>console.log('presence',JSON.stringify(r))));
+      ctx.waitUntil(pruneMemberRecords(env.DB,memberNow).then(r=>console.log('member_cleanup',JSON.stringify(r)))
         .catch(()=>console.log('member_cleanup',JSON.stringify({status:'unavailable'}))));
       // Probe backoff has an independent lifecycle: an absent M1 schema must not gate it, and a failed probe prune
       // must not cancel presence/member housekeeping. The helper caps the deletion batch at 200 rows.
-      ctx.waitUntil(pruneIndexProbes(env.DB,now()).then(r=>console.log('index_probe_cleanup',JSON.stringify(r)))
+      ctx.waitUntil(pruneIndexProbes(env.DB,probeNow).then(r=>console.log('index_probe_cleanup',JSON.stringify(r)))
         .catch(()=>console.log('index_probe_cleanup',JSON.stringify({status:'unavailable'}))));
     }
   };

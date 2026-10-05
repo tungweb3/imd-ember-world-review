@@ -1,0 +1,391 @@
+{
+  "schema": "imd.submission12.frozen-team-source-tests/v1",
+  "identity": {
+    "frozenSourceCommit": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+    "frozenSourceParent": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceTree": "b3966db22d04f423646ad52369bfc0e5075cc560",
+    "frozenAtUtc": "2026-10-05T20:10:19.343032+00:00",
+    "officialPriorPublicCommit": "35ace952824ebf711fd9fa6cb7ea1cc83b75cd6a",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the containing immutable public checkout; source and public commits are distinct.",
+    "selectedManifest": "manifests/submission12-published-source.json",
+    "selectedManifestSha256": "194c8f033c38294110613ce889fc8da8b63e4c99c603607af957c5882a3d0c42"
+  },
+  "verdicts": {
+    "teamSourceEvidence": "PASS_BOUNDED_FROZEN_LOCAL_SOURCE",
+    "externalAudit12": "UNKNOWN_PENDING_EXTERNAL_REVIEW",
+    "releaseReadiness": "UNKNOWN",
+    "deployment": "NOT_DEPLOYED",
+    "finalContainingPublicCommitGates": "PENDING_SEPARATE_ROOT_MEASUREMENT"
+  },
+  "privatePhase": "NINE_ACTUAL_PRIVATE_GATES_COMPLETE",
+  "startedAtUtc": "2026-10-05T20:17:49.898046+00:00",
+  "completedThroughUtc": "2026-10-05T20:20:32.874832+00:00",
+  "receiptHashes": {
+    "frozenPacket": "894c37afdd6740f2a5aed78f7f01bb5964b0e9b1c50eb32ebbd4dfbbc9c981e0",
+    "localPlan": "93413bcacef52a16402907df26e2cbf1e9483824c61ff7acb8ec5797b174f339",
+    "batchStatus": "dc74d61e8df4c95c6cdf899561d0d28c583d638e471c5c2d3c879e977d0d91ac",
+    "strictCleanup": "50464bd6f32220f8c158cadb68d342724a940545fdf5de996a096d3569d32786",
+    "independentScope": "69a140ff4df68150d0e3dd6653b04b6d23eaca789578086e1d192809986ad964"
+  },
+  "supportedFileCount": 29,
+  "targeted": {
+    "tests": 13,
+    "pass": 13,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "supportedReview": {
+    "tests": 728,
+    "pass": 728,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "privateFull": {
+    "tests": 1778,
+    "pass": 1778,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "freshExactReview": {
+    "tests": 728,
+    "pass": 728,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "candidateVerifier": {
+    "checks": 20,
+    "passed": 20
+  },
+  "freshVerifier": {
+    "checks": 20,
+    "passed": 20
+  },
+  "typecheckExitCode": 0,
+  "baselineSameEvaluator": {
+    "stage": "scheduled-author-baseline",
+    "exitCode": 1,
+    "sourceHead": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "startedAtUtc": "2026-10-05T20:11:08.966416+00:00",
+    "finishedAtUtc": "2026-10-05T20:11:09.557785+00:00",
+    "elapsedSeconds": 0.719,
+    "receiptSha256": "591d43b29afde03977ea4d7964ea1c0c6688919b46202210640998e28d1c6259",
+    "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "command": [
+      "node",
+      "--test",
+      "--test-reporter=tap",
+      "tests/scheduled-audit11.test.mjs (same-evaluator baseline selector)"
+    ],
+    "summary": {
+      "tests": 13,
+      "pass": 4,
+      "fail": 9,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "stdout": {
+      "bytes": 130631,
+      "sha256": "7f08da8973a2cea498ca8f089df85f1faee9523ffd35731465220bfd290b5bdb"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rawPrivateLogPublished": false
+  },
+  "stages": [
+    {
+      "stage": "frozen-targeted",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:17:50.879517+00:00",
+      "finishedAtUtc": "2026-10-05T20:17:54.516303+00:00",
+      "elapsedSeconds": 3.64,
+      "receiptSha256": "594b06030da19bc054c15369f476cfb31632f87a5eb990edc0c6bd2f5395cda0",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/scheduled-audit11.test.mjs"
+      ],
+      "summary": {
+        "tests": 13,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 13504,
+        "sha256": "100ac436912a40f81e69c097a8a5da443da25f87cf9ed0c7584a6b95d1608a87"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "frozen-review-preflight",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:17:55.291677+00:00",
+      "finishedAtUtc": "2026-10-05T20:17:55.529723+00:00",
+      "elapsedSeconds": 0.25,
+      "receiptSha256": "65b5e593345814259d129ff0a08cb2bccc06780498f89c6849c04e5851b46b57",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "scripts/review-tests.mjs",
+        "--check"
+      ],
+      "summary": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 29
+      },
+      "stdout": {
+        "bytes": 72,
+        "sha256": "f3c8736368e76f9eef7f9f5aa29aea6d7e07a8ed3b347ff4996f72e532ba7f67"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "frozen-review",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:17:56.318598+00:00",
+      "finishedAtUtc": "2026-10-05T20:18:11.933253+00:00",
+      "elapsedSeconds": 15.625,
+      "receiptSha256": "e45fe58d5690495a1799bebe96636db5d339d61c31d832c14508b0a8d53c0ab3",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 728,
+        "pass": 728,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2114727,
+        "sha256": "87fc0db8187fe3795aa200232de1824c408d76a26160b446aa0a5a724b251bcb"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "frozen-artifact",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:18:12.793513+00:00",
+      "finishedAtUtc": "2026-10-05T20:18:20.278101+00:00",
+      "elapsedSeconds": 7.484,
+      "receiptSha256": "e8447ad279b1e177b6287710e198bc54673c3f600d0b0fae54424a5a3df2c9fc",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "summary": {
+        "checks": 20,
+        "passed": 20
+      },
+      "stdout": {
+        "bytes": 5715,
+        "sha256": "d54b9c72f499334140b7c83c29c04094215ca0c1b63d1963562d38e5b34c7d39"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "frozen-private-full",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:18:21.138055+00:00",
+      "finishedAtUtc": "2026-10-05T20:20:02.972746+00:00",
+      "elapsedSeconds": 101.828,
+      "receiptSha256": "01b94daf2921c197c1d0dac72c05120811c06d29ce0dc6bbd6eaac0989155e45",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "tests/*.test.mjs"
+      ],
+      "summary": {
+        "tests": 1778,
+        "pass": 1778,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2433089,
+        "sha256": "7b53b860b2a4d1eaa51bc8df3a726f7283e31dc8b5e373e5f3509be02f2103aa"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "fresh-review-preflight",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:20:03.880941+00:00",
+      "finishedAtUtc": "2026-10-05T20:20:04.136203+00:00",
+      "elapsedSeconds": 0.265,
+      "receiptSha256": "91aa7de98ee0d499201dc02f5fcc6b7acc710d314874b876062418b1f4d71db5",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "scripts/review-tests.mjs",
+        "--check"
+      ],
+      "summary": {
+        "node": "v24.19.0",
+        "viem": "2.56.9",
+        "testFiles": 29
+      },
+      "stdout": {
+        "bytes": 72,
+        "sha256": "f3c8736368e76f9eef7f9f5aa29aea6d7e07a8ed3b347ff4996f72e532ba7f67"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "fresh-review",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:20:04.886233+00:00",
+      "finishedAtUtc": "2026-10-05T20:20:19.222402+00:00",
+      "elapsedSeconds": 14.328,
+      "receiptSha256": "f74bfe9693603103f1ceb7c5631ec384b368554bbfc8c688107f00be02d92591",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "scripts/review-tests.mjs"
+      ],
+      "summary": {
+        "tests": 728,
+        "pass": 728,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "stdout": {
+        "bytes": 2113043,
+        "sha256": "e2a406d7b60ce54b772074535652a40d9a3dac19bf6ffbb3e8b04508a6df996a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "fresh-artifact",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:20:20.183394+00:00",
+      "finishedAtUtc": "2026-10-05T20:20:26.727797+00:00",
+      "elapsedSeconds": 6.531,
+      "receiptSha256": "227c170c773f2db101ccc69f4f31e308e9459d355e6f03edde8598a96cad1a0c",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "scripts/verify-artifact-closure.mjs"
+      ],
+      "summary": {
+        "checks": 20,
+        "passed": 20
+      },
+      "stdout": {
+        "bytes": 5715,
+        "sha256": "d54b9c72f499334140b7c83c29c04094215ca0c1b63d1963562d38e5b34c7d39"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    },
+    {
+      "stage": "frozen-typecheck",
+      "exitCode": 0,
+      "sourceHead": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+      "startedAtUtc": "2026-10-05T20:20:27.619846+00:00",
+      "finishedAtUtc": "2026-10-05T20:20:32.874832+00:00",
+      "elapsedSeconds": 5.266,
+      "receiptSha256": "8fbb0cf0823fb8f569554061c531c57eede08049c896643408e3ce48febeeb73",
+      "executableSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "summary": {
+        "exitCode": 0
+      },
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "rawPrivateLogPublished": false
+    }
+  ],
+  "runtime": "Node 24.19.0; locked viem 2.56.9; actual Worker/AuthClient/migration-backed SQLite; real local file-link capability",
+  "finalExactPublicCheckout": "PENDING: root separately tests this metadata-containing immutable public commit before push.",
+  "history": {
+    "initialFixtureAndLauncherFailures": "Preserved privately as unsuccessful attempts; final canonical controls alone support current counts.",
+    "supersededCheckoutBytePolicy": "Cached checkout line-ending/freeze mismatch evidence remains private; canonical 677 tracked files now match exact Git blobs.",
+    "initialDependencyCacheAndRouteSetupFailures": "Preserved as setup failures; locked dependencies and product/evaluator assertions were not weakened.",
+    "failedAttemptsRelabeledPass": false
+  },
+  "limitations": [
+    "Offline synthetic actual Worker/AuthClient/locked viem and migration-backed SQLite; no production provider, browser, Cloudflare or D1 claim.",
+    "M1 writes persistent public profiles. No Solidity, wallet asset operations, new feature or deployment is in scope.",
+    "Private raw receipts and DB/network/nonce logs are withheld. Published summaries contain validated counts and stream hashes only; reviewers must rerun.",
+    "Final exact containing-public-commit tests, stored/reachable-object privacy and anonymous all-file readback remain separate publication gates.",
+    "Production source/build, cookies/ERC1271, D1 interleavings, WAF/limiter/upstream, process death and cross-isolate behavior remain unmeasured.",
+    "Tests, bounded PASS, completed/accepted jobs and Low/Info labels do not establish endorsement, zero vulnerabilities or fund safety."
+  ]
+}

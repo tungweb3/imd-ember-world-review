@@ -1,0 +1,21 @@
+{
+  "schema": "imd.submission12.production-readback/v1",
+  "identity": {
+    "frozenSourceCommit": "3a1ea7d0cabd40aaf1bd171d64fa64edeb6a2548",
+    "frozenSourceParent": "e20f6da6d6baa17743a5a01d87055d0761051353",
+    "frozenSourceTree": "b3966db22d04f423646ad52369bfc0e5075cc560",
+    "frozenAtUtc": "2026-10-05T20:10:19.343032+00:00",
+    "officialPriorPublicCommit": "35ace952824ebf711fd9fa6cb7ea1cc83b75cd6a",
+    "finalPublicationCommit": null,
+    "finalPublicationIdentityRule": "Use git rev-parse HEAD in the containing immutable public checkout; source and public commits are distinct.",
+    "selectedManifest": "manifests/submission12-published-source.json",
+    "selectedManifestSha256": "194c8f033c38294110613ce889fc8da8b63e4c99c603607af957c5882a3d0c42"
+  },
+  "status": "UNKNOWN",
+  "newProductionRequests": 0,
+  "newDeployment": false,
+  "currentProductionSourceMeasured": false,
+  "currentProductionBuildMeasured": false,
+  "releaseReadiness": "UNKNOWN",
+  "limit": "No production readiness inferred from source tests, typecheck or historical deployment records."
+}

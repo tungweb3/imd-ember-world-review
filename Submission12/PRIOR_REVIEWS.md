@@ -1,0 +1,5 @@
+# Controlling latest review
+
+Audit11 reviewed public `35ace952824ebf711fd9fa6cb7ea1cc83b75cd6a` and found 1 Low plus 1 Info in scheduled non-finite housekeeping. [Original Audit11](https://github.com/Identity-md/research/blob/e7c4bb596a725863a8c23992926f6d2c59040005/jobs/63c31e2b-5d52-4a3b-a94c-21ef15f52e90/files/AUDIT.md) SHA-256 `af016f6ec1e8239bb5ce92adf86e0ff0f4d74f74d4e0755ef248e5667cbd42cc`. [Original Report11](https://github.com/Identity-md/research/blob/193d49fca202162f17206af81aa8db6f1f7bda48/jobs/260746ad-ac5f-4013-89e1-2d70eb6dfc47/files/artifacts/report.md) SHA-256 `cc48391281c5c451f29b3daced45dcda7117b11da3e7abee2c89ab25936f7290` had earlier given bounded source PASS with release UNKNOWN and closed the six prior rows. The later Audit11 findings control this package; the combined BLOCKED interpretation is a TEAM inference, not a quoted separate Audit verdict.
+
+Historical [Submission11](../Submission11/README.md) remains unchanged. Its six earlier issue rows are previously closed and unchanged, not rewritten here. Current external Audit12 is UNKNOWN until independent exact-pin results arrive.
