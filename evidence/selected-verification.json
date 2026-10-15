@@ -1,0 +1,105 @@
+{
+  "schema": "imd.world.economy-selected-public-verification/v3",
+  "status": "CLEAN_COPY_COLD_DEPENDENCY_SELECTED_SOURCE_REPRODUCTION_PASSED; NOT_A_SWARM_AUDIT",
+  "businessDateTaipei": "2026-10-16",
+  "productSourceCommit": "5c4922a8a8004e071a53974884251b9171e2ec6a",
+  "publicContainingCommit": null,
+  "publicContainingCommitSource": "Read actual containing Git checkout HEAD; not preassigned by local packet",
+  "published": false,
+  "sourceManifestSha256": "165da3685d1ebf177b810c2f3416cd2121509e1aaad79e1ee62cd3f3bad4e3ef",
+  "selectedSourceFiles": 68,
+  "selectedSourceBytes": 893475,
+  "selectedTestFiles": 11,
+  "command": "node tools/run-review-tests.mjs",
+  "nativeExit": 0,
+  "contractBuildAndProjectionCheck": "PASS; exact Solidity, ABI, creation/runtime bytecode, metadata and public token fixture",
+  "contractTests": {
+    "files": 2,
+    "tests": 26,
+    "suites": 0,
+    "pass": 26,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "financialTests": {
+    "files": 11,
+    "tests": 136,
+    "suites": 0,
+    "pass": 136,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "runtime": {
+    "node": "v24.19.0",
+    "npm": "11.17.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "dependencies": {
+    "resolution": "Independent physical cold installs; no copied node_modules or junctions",
+    "command": "node npm-cli.js ci --ignore-scripts --no-audit --no-fund",
+    "worldInstall": {
+      "nativeExit": 0,
+      "packagesAdded": 78
+    },
+    "contractsInstall": {
+      "nativeExit": 0,
+      "packagesAdded": 75
+    },
+    "locksUnchangedAcrossSourceCheckpointUpdate": true,
+    "lockSha256": {
+      "world-source": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "contracts": "82d9f1c24051a41d336d8dd6fa53e443a661efa52fa335ea7901222dad4dce37"
+    },
+    "lifecycleScriptsExecuted": false,
+    "dependenciesUpgraded": false,
+    "versions": {
+      "world-source": {
+        "viem": "2.56.9",
+        "@noble/curves": "1.9.1",
+        "typescript": "5.9.3",
+        "react": "19.2.6",
+        "react-dom": "19.2.6",
+        "three": "0.186.1"
+      },
+      "contracts": {
+        "solc": "0.8.37",
+        "@openzeppelin/contracts": "5.4.0",
+        "ethers": "6.15.0",
+        "hardhat": "3.19.0",
+        "@nomicfoundation/edr": "0.22.2"
+      }
+    }
+  },
+  "cleanCopyProcess": "Initial exact allowlisted payload copied without local dependency links; both locks cold installed. New fixed-source changes then copied into the same installed tree, locks unchanged. Complete selected runner executed on the new fixed source.",
+  "payloadFilesVerifiedBeforeAndAfterExecution": 129,
+  "afterRunSourceAndContractPublicBytesMatched": true,
+  "postRunChanges": "Only result documents and this sanitized receipt were updated after the gate; executable sources, source/context manifests, package locks, contracts and runners remain the tested bytes.",
+  "contractPublicManifestSha256": "daeaa690feb79e95c81431cde01d47da36b6fa1b9db5e46e099487f532be6cd9",
+  "privateRawLogHashes": {
+    "stdoutSha256": "9fcc9b0a7f13ebca74506b9335ad986f2d36a65b862bbf4d9578c45a736024ba",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "wholeWorldIncluded": false,
+  "fullWorkerTestIncluded": false,
+  "cleanCopyColdInstallCrosscheck": "PASS_WINDOWS_X64; exact locks with scripts disabled",
+  "containingPublicGitCheckoutVerification": "SEPARATE_PUBLISHER_GATE",
+  "externalSwarmReview": "NOT_PERFORMED_BY_THIS_GATE",
+  "publicChainWrites": false,
+  "productionWalletsUsed": false,
+  "productionDatabaseUsed": false,
+  "deployment": false,
+  "limitations": [
+    "Isolated synthetic EDR/native SQLite and mocked wallet transports; not real extensions, mainnet or production service execution.",
+    "One fixed RPC provider is trusted to enumerate matching logs; header/receipt consistency does not prove complete log enumeration.",
+    "The 10000 relevant-event ceiling is an engineering cap; a legitimate larger block can stall cursor progress.",
+    "Large batched receipts, real Workers 50 ms CPU, D1 quotas/throughput and large-population reward latency remain unmeasured.",
+    "Contract accounts can accrue GOLD, but current EOA-only payment authorization does not support their spending.",
+    "Windows x64 measured; Linux/macOS native execution unmeasured.",
+    "A containing public Git commit and final public-Git checkout verification remain publisher gates."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "PUBLIC_FIXED_SUPPLY_ERC20_BYTECODE_FIXTURE_ONLY",
+  "chainId": 1,
+  "token": "0x2b82cdeb8477415d541799abb0cc48044c8ea5f3",
+  "runtimeBytes": 1722,
+  "runtimeKeccak256": "0x01fb92b21a7414fcac4480618142f8968a5d2bae8071370fb5e9369b97fc55bc",
+  "compiler": "0.8.26+commit.8a97fa7a",
+  "source": "https://github.com/identity-md-launches/launch-944-emberevo-token-symbol-embeo/blob/cecf25b92d44568f8a0f81c34f4b634df905d1e5/src/LaunchToken.sol",
+  "license": "MIT",
+  "artifactSha256": "02bd4fda2a656dd1727de840d4cbf89b1b4b74a3d134bdfa1f90a9c23ea6f2aa",
+  "creationBytecodeSha256": "b289a1e68858616135e4f8fcaf3f2b00b372001cd7ec9fe414119b29a79e36d7",
+  "runtimeBytecodeSha256": "34c88e2345fc1b93f60ace20e3933e251f0bff4149e279544ba3a6a72459062f",
+  "containsProductionState": false
+}

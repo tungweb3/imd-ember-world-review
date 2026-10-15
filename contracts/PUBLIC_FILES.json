@@ -1,0 +1,204 @@
+{
+  "schema": "imd.world.economy-public-files/v1",
+  "scope": "EXPLICIT_PORTABLE_CONTRACT_PUBLIC_ALLOWLIST",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 52,
+      "sha256": "3bd35d23e46f8ad4b48f17c13e501e799556d5f4c137f2bbc71568a48955c987"
+    },
+    {
+      "path": "DEPENDENCIES.md",
+      "bytes": 1970,
+      "sha256": "69ad977e71a7faadf75b3b9dc446b433dfb640cf0eb5ea41da6855016bec5567"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 1233,
+      "sha256": "80e2c610c131bf475fc954cd1eefa78561d9704bf3007545f494cef41262b8cf"
+    },
+    {
+      "path": "LICENSES/EDR-MIT.txt",
+      "bytes": 1354,
+      "sha256": "806e3b98541d048da2d4596e63250caa679b2da875bd5ab15bdb63dff1b79863"
+    },
+    {
+      "path": "LICENSES/ETHERS-MIT.txt",
+      "bytes": 1075,
+      "sha256": "44eea86637405118248327fbe9d9fa95d04c7a57221c7e8c155f736db9f1b612"
+    },
+    {
+      "path": "LICENSES/HARDHAT-MIT.txt",
+      "bytes": 1073,
+      "sha256": "a5568cbcc009084c9c9a3e67ab8a3122aaf86d41bac500728c8b4bdc22c864b4"
+    },
+    {
+      "path": "LICENSES/OPENZEPPELIN-MIT.txt",
+      "bytes": 1090,
+      "sha256": "13cd784a6c31361f0e0c6aa3b410a1cb9a079868b7314c13e3eb8a75351746b9"
+    },
+    {
+      "path": "LICENSES/SOLC-JS-MIT.txt",
+      "bytes": 1067,
+      "sha256": "852bcc033a46c62f99fb5ffd43b3241ba2c0c440c6034aa2114505f2c4f03c4a"
+    },
+    {
+      "path": "LICENSES/SOLIDITY-COMPILER-GPL-3.0.txt",
+      "bytes": 35148,
+      "sha256": "0ae0485a5bd37a63e63603596417e4eb0e653334fa6c7f932ca3a0e85d4af227"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3065,
+      "sha256": "0fb5319489e927fad92e1b6a334328b5b5ad09e6b8cb6bbf5d12022d1d83db21"
+    },
+    {
+      "path": "artifacts/EmbeoPayments.json",
+      "bytes": 28724,
+      "sha256": "c186d35ec48fa3081eed7999bf69a4bc7dbcaefafe5e9229a954d148bf762d42"
+    },
+    {
+      "path": "artifacts/EmbeoStakingVault.json",
+      "bytes": 32794,
+      "sha256": "2ef542c1471e6ac9ccc6e9e402ef2e8c8e631d92cab1cea15d9e3b4306d1f876"
+    },
+    {
+      "path": "artifacts/build.json",
+      "bytes": 4201,
+      "sha256": "acdd2b62d7edba89c1c5aaff60cbe0db61decc2469a281e7a0404f2d9712a239"
+    },
+    {
+      "path": "artifacts/compiler-input.json",
+      "bytes": 30275,
+      "sha256": "4563cc91ff9341837a1c5b0b56ce2c4292b84e02a149aa3d876c5e99d6a063bf"
+    },
+    {
+      "path": "baseline/EmbeoPayments.json",
+      "bytes": 28724,
+      "sha256": "c186d35ec48fa3081eed7999bf69a4bc7dbcaefafe5e9229a954d148bf762d42"
+    },
+    {
+      "path": "baseline/EmbeoStakingVault.json",
+      "bytes": 32794,
+      "sha256": "2ef542c1471e6ac9ccc6e9e402ef2e8c8e631d92cab1cea15d9e3b4306d1f876"
+    },
+    {
+      "path": "baseline/compiler-input.json",
+      "bytes": 30275,
+      "sha256": "4563cc91ff9341837a1c5b0b56ce2c4292b84e02a149aa3d876c5e99d6a063bf"
+    },
+    {
+      "path": "baseline/projection-manifest.json",
+      "bytes": 1720,
+      "sha256": "02110cba51c420e7e6e84ea494e8334d50ff2add0c83b503a5e60dfa20909cb1"
+    },
+    {
+      "path": "evidence/public-verification.json",
+      "bytes": 1477,
+      "sha256": "7ac2c444c994e403e9e4fd19019eccee25935829703db1ae24929723faab425d"
+    },
+    {
+      "path": "fixtures/embeo-token-artifact.json",
+      "bytes": 15452,
+      "sha256": "02bd4fda2a656dd1727de840d4cbf89b1b4b74a3d134bdfa1f90a9c23ea6f2aa"
+    },
+    {
+      "path": "fixtures/embeo-token-provenance.json",
+      "bytes": 789,
+      "sha256": "a0d0c394ad5b2ba4ce891fcfc03ce0eb44f56cb2e9416c0a0a63adca30523f6c"
+    },
+    {
+      "path": "interface.json",
+      "bytes": 11657,
+      "sha256": "b064b1bd85592f1a82272c072dc7b1f5cd4a322a59ed61b5fa7bd0b35e1d36bc"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 51332,
+      "sha256": "82d9f1c24051a41d336d8dd6fa53e443a661efa52fa335ea7901222dad4dce37"
+    },
+    {
+      "path": "package.json",
+      "bytes": 791,
+      "sha256": "e067ebf015f816416fc6ac60716d7590e29523bece42be8a44aec0082084da6b"
+    },
+    {
+      "path": "src/EmbeoPayments.sol",
+      "bytes": 1521,
+      "sha256": "930c7cf994942919bbbadee50cfa9b1683689c6c4848ed553b13f17ca33e4437"
+    },
+    {
+      "path": "src/EmbeoStakingVault.sol",
+      "bytes": 2133,
+      "sha256": "39e792c0c52ff5a4a58cf905850a452fd1756bf1aa8b821f12d455382b35a109"
+    },
+    {
+      "path": "src/ExactEmbeo.sol",
+      "bytes": 1941,
+      "sha256": "03515d2c88315655178d31e3283e7403a08cf1b22c7bdc5071772ae91b245db3"
+    },
+    {
+      "path": "test/AdversarialToken.sol",
+      "bytes": 2364,
+      "sha256": "2cfa01f61cb4aa9a240fd24a5c67475e57d89aa07ac5b0cd6b00971094d2e7ae"
+    },
+    {
+      "path": "test/contracts.test.mjs",
+      "bytes": 23895,
+      "sha256": "58c09381e288152dbec64d610390ff56a76478ee2ca7617b2a325fa975e8102c"
+    },
+    {
+      "path": "test/preflight.test.mjs",
+      "bytes": 1741,
+      "sha256": "a010163eeae0d30aa079481585a0ea58da153f2e51c19201077994c860e19065"
+    },
+    {
+      "path": "test/runtime.mjs",
+      "bytes": 3067,
+      "sha256": "f94f2c24bb341e282e41c674ec9b789e6473e70ef221dd110136707453e95bd3"
+    },
+    {
+      "path": "tools/build.mjs",
+      "bytes": 4553,
+      "sha256": "7fe1495baee2174b1b43aa9260e81d40e33ebcc875fa3ebc1cbf4d947fb20c68"
+    },
+    {
+      "path": "tools/check-projection.mjs",
+      "bytes": 2112,
+      "sha256": "fabbb41c58296f8c175cc713bf644ab36b56f47e45b54baa8e52a51252a1d053"
+    },
+    {
+      "path": "tools/manifest.mjs",
+      "bytes": 2087,
+      "sha256": "c60639f379743b3f491501016e4e5a2240b2d30703ea3d62074fb84e1b2f2c32"
+    },
+    {
+      "path": "tools/preflight.mjs",
+      "bytes": 7244,
+      "sha256": "14198ecd7edd640a76b7504f3162e8cd401af405ce962fa44cba059aed13964e"
+    },
+    {
+      "path": "tools/runtime.mjs",
+      "bytes": 2927,
+      "sha256": "c63a0dd6745893f550f298043bb9cb496151d079545c993fe7abdc3c4a1206d1"
+    },
+    {
+      "path": "vendor/compiler-provenance.json",
+      "bytes": 959,
+      "sha256": "2b8fcd61dad0da1d94075885297c8677f118555ebe89203e4ac220d7e521432d"
+    },
+    {
+      "path": "vendor/soljson-v0.8.37+commit.f401782d.cjs",
+      "bytes": 9222701,
+      "sha256": "d73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f"
+    }
+  ],
+  "omitted": [
+    "node_modules/",
+    ".rd/",
+    ".cache/",
+    "evidence/local-evm.json",
+    "all machine execution stdout/stderr and private receipts"
+  ],
+  "manifestSelfHashExcluded": true
+}

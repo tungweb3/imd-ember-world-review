@@ -1,0 +1,85 @@
+{
+  "schema": "imd.world.economy-contract-build/v1",
+  "status": "LOCAL_REVIEW_CANDIDATE",
+  "compiler": "0.8.37+commit.f401782d.Emscripten.clang",
+  "compilerInputSha256": "4563cc91ff9341837a1c5b0b56ce2c4292b84e02a149aa3d876c5e99d6a063bf",
+  "sourceInputs": {
+    "src/EmbeoPayments.sol": "930c7cf994942919bbbadee50cfa9b1683689c6c4848ed553b13f17ca33e4437",
+    "src/EmbeoStakingVault.sol": "39e792c0c52ff5a4a58cf905850a452fd1756bf1aa8b821f12d455382b35a109",
+    "src/ExactEmbeo.sol": "03515d2c88315655178d31e3283e7403a08cf1b22c7bdc5071772ae91b245db3",
+    "@openzeppelin/contracts/utils/ReentrancyGuard.sol": "32fbb1c908ec1b4de85cc1bb10091aebd5816ffe80dfdd5ca5e084fbea67a462",
+    "@openzeppelin/contracts/token/ERC20/IERC20.sol": "01b6f5c4fa45fd38822b286ecef6daf983d27306dd6362496fa71b3e4600b72c",
+    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": "0b7132f17d14d1d84b41b0bb429be62dafdff00fd3470f68724d8018eb07f57a",
+    "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": "ac1fd9fa99b194a8db8dfa9ae8e3ff44feaa8f16668241fd2b66ae8b47d7c082",
+    "@openzeppelin/contracts/interfaces/IERC1363.sol": "9c3a75a925a6dac9e88b03cddc58d42fe3131b0aaaad84408521f3f7af2f991b",
+    "@openzeppelin/contracts/interfaces/IERC20.sol": "0158e2d3e0e28bedd99eec13dcf1a8aa3a70a5b7e4bb2ad709609c95fcc740d1",
+    "@openzeppelin/contracts/interfaces/IERC165.sol": "dfb3f56fa928a7c6cae41a7ce2c86b9210fa18d33fa26389099d66a0fa790368",
+    "@openzeppelin/contracts/utils/introspection/IERC165.sol": "9055c2994b37dea1a41b7b7926dcb510f05dbe2540b0aafc5fbee9558fffd0ca"
+  },
+  "runtimeEvidence": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "arch": "x64",
+    "compiler": "0.8.37+commit.f401782d.Emscripten.clang",
+    "compilerPayloadSha256": "d73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f",
+    "compilerPayload": "vendor/soljson-v0.8.37+commit.f401782d.cjs",
+    "compilerOfficialSource": "https://binaries.soliditylang.org/bin/soljson-v0.8.37+commit.f401782d.js",
+    "dependencyLockSha256": "82d9f1c24051a41d336d8dd6fa53e443a661efa52fa335ea7901222dad4dce37",
+    "packages": {
+      "solc": {
+        "version": "0.8.37",
+        "packageSha256": "b3a90035cab4e8aa43068f33f01497dccfb77b294e1ea30c5fb32a9631e33491"
+      },
+      "@openzeppelin/contracts": {
+        "version": "5.4.0",
+        "packageSha256": "8c5b490fe133a9dda13c9a2915761c6b6c2e003a16c95863a800ce5527992bc4"
+      },
+      "ethers": {
+        "version": "6.15.0",
+        "packageSha256": "957d5092241ed59860532077633008c49852b98b384493bb0f04225a414eb601"
+      },
+      "hardhat": {
+        "version": "3.19.0",
+        "packageSha256": "2919dd82c13cefefb7323093a22fe9881a67ea7d2a37e4ddf48b4b08237dd618"
+      },
+      "@nomicfoundation/edr": {
+        "version": "0.22.2",
+        "packageSha256": "52af7446b33e6ea1ed617b7c10d7b38b03f12963c9cb7fa343cb082e5ad4bcec"
+      }
+    },
+    "nativePackages": [
+      {
+        "name": "@nomicfoundation/edr-win32-x64-msvc",
+        "version": "0.22.2",
+        "packageSha256": "6642154cdeb72c1dae00e287173cef8f88d72330b0b54b9199dfae095db471e4",
+        "binary": "edr.win32-x64-msvc.node",
+        "binarySha256": "03c724f964919d21371ff8a62d371e8c7228862b79dba968e6de78f43e4d7ab1"
+      }
+    ],
+    "backend": "Hardhat EDR in-process",
+    "evmVersion": "cancun",
+    "localOnly": true,
+    "publicChainWrites": false,
+    "limitations": [
+      "EDR chain 31337; no public RPC or funded wallet in tests",
+      "Platform execution is measured only where the suite is run"
+    ]
+  },
+  "warnings": [],
+  "inventory": [
+    {
+      "contractName": "EmbeoStakingVault",
+      "artifactSha256": "2ef542c1471e6ac9ccc6e9e402ef2e8c8e631d92cab1cea15d9e3b4306d1f876",
+      "creationBytes": 3436,
+      "runtimeTemplateBytes": 2847,
+      "runtimeTemplateKeccak256": "0xaeea4785e0de5985da358682b7e0f55e52e5a920aa83fac3e0d1093364e7c32d"
+    },
+    {
+      "contractName": "EmbeoPayments",
+      "artifactSha256": "c186d35ec48fa3081eed7999bf69a4bc7dbcaefafe5e9229a954d148bf762d42",
+      "creationBytes": 3302,
+      "runtimeTemplateBytes": 2551,
+      "runtimeTemplateKeccak256": "0xca954cb1407fbf641ed084c588f894ff73f1d7bc1d13c8ccc92723f1c0311c70"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+# Pinned reproduction dependencies
+
+Use Node 24.x (measured Windows x64 host: 24.19.0). Native `node:sqlite` executes the actual additive SQL migrations; replacing it with an in-memory JavaScript accounting imitation is not equivalent. Use each supplied lock file and `npm ci --ignore-scripts --no-audit --no-fund`. Lifecycle scripts remain disabled; no native postinstall is needed on the measured Windows x64 EDR runtime. Dependencies are not vendored as `node_modules` and machine junctions must never be committed.
+
+| Package | Pin | Purpose |
+|---|---|---|
+| viem | 2.56.9 | Server message recovery/RPC encoding; independent client ABI reference in tests. |
+| @noble/curves | 1.9.1 | Existing identity verification dependency. |
+| TypeScript | 5.9.3 | Transpile the actual React component into lifecycle test fixtures. |
+| React / React DOM | 19.2.6 | Preserved client package/type context; original lock unchanged. |
+| Three | 0.186.1 | Preserved type/dependency closure only; no World asset files are copied. |
+| solc | 0.8.37 wrapper, official 0.8.37+commit.f401782d payload | Exact contract compilation. The verified official payload differs from npm's bundled soljson. |
+| OpenZeppelin contracts | 5.4.0 | Exact SafeERC20, ReentrancyGuard and imported interfaces. |
+| ethers | 6.15.0 | Isolated contract interaction and original-token runtime checks. |
+| Hardhat | 3.19.0 | In-process Cancun runtime, with no public RPC/fork/listening socket. |
+| EDR | 0.22.2 | Native isolated execution; platform package chosen by the supplied lock. |
+
+Compiler settings are optimizer enabled/runs 200, viaIR false, Cancun, metadata bytecode hash none. Official compiler payload SHA-256 is `d73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f`; compiler version must be `0.8.37+commit.f401782d.Emscripten.clang`. The portable package provides provenance, complete standard input, imported source hashes, exact artifacts, immutable bindings and relevant licenses. Raw private machine paths are omitted.
+
+`world-source/package.json` and its lock are preserved exact source evidence, including existing Vite/Wrangler/native tool dependencies. This selected package intentionally lacks the original renderer/assets and full deployment closure. Use the packet root's explicit `test`/`test:financial`/`test:contracts` scripts; running preserved full-World build or deployment scripts is unsupported here.
+
+The financial runner verifies the exact manifest, creates an ignored local `release/` directory for the journey's relative evidence path, and passes an explicit eleven-file list to Node with test concurrency 2. The forwarded/constructor/batched receipt test compiles an inline test actor using the same portable compiler/runtime; production contract bytecode is unchanged. Migration backup fixtures use a newly created OS temporary directory with verified cleanup boundaries. Contract tests run serially against fresh EDR memory. These local fixture operations do not read or reset production data.
+
+Windows fresh dependency installation and native execution evidence must be recorded from the exact portable package. Availability of a Linux/macOS native EDR binary does not prove that it was executed here. No package install, checksum comparison or compiler success establishes Swarm acceptance, production CPU/D1 capacity or permission to deploy.
