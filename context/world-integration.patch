@@ -1,0 +1,138 @@
+diff --git a/server/vite-plugin.ts b/server/vite-plugin.ts
+index 7ca32c2..e064fec 100644
+--- a/server/vite-plugin.ts
++++ b/server/vite-plugin.ts
+@@ -7,0 +8 @@ import {handleAIMarketAdmin} from './aimarket-admin.ts';
++import {handleEconomyApi} from './economy.ts';
+@@ -17 +18 @@ export function imdGatewayPlugin():Plugin {
+-    const response=await handleAIMarketAdmin(request,{})??await handleMemberApi(request,{})??await handleAccountApi(request,{ownership,chain:{key:process.env.ALCHEMY_API_KEY||undefined,fetch}})??
++    const response=await handleEconomyApi(request,{})??await handleAIMarketAdmin(request,{})??await handleMemberApi(request,{})??await handleAccountApi(request,{ownership,chain:{key:process.env.ALCHEMY_API_KEY||undefined,fetch}})??
+diff --git a/src/world/WorldApp.tsx b/src/world/WorldApp.tsx
+index 322fc90..dbcfce1 100644
+--- a/src/world/WorldApp.tsx
++++ b/src/world/WorldApp.tsx
+@@ -71,0 +72 @@ const ClashPane=deferPanel<Parameters<typeof import('./GamePane.tsx').GamePane>[
++const EconomyPane=deferPanel<Parameters<typeof import('./EconomyPane.tsx').EconomyPane>[0]>(()=>import('./EconomyPane.tsx').then(m=>({default:m.EconomyPane})));
+@@ -117 +118,2 @@ function WorldContent(){
+-  const portalOpen=research||library||game,audioCovered=library||game,audioCoveredNow=useRef(audioCovered);audioCoveredNow.current=audioCovered;
++  const [economy,setEconomy]=useState(()=>new URLSearchParams(location.search).get('portal')==='economy');
++  const portalOpen=research||library||game||economy,audioCovered=library||game||economy,audioCoveredNow=useRef(audioCovered);audioCoveredNow.current=audioCovered;
+@@ -121,0 +124 @@ function WorldContent(){
++  const closeEconomy=useCallback(()=>{setEconomy(false);const url=new URL(location.href);if(url.searchParams.get('portal')==='economy'){url.searchParams.delete('portal');history.replaceState(null,'',url);}requestAnimationFrame(()=>host.current?.querySelector('canvas')?.focus());},[]);
+@@ -187,3 +190,4 @@ function WorldContent(){
+-  const openResearch=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setLibrary(false);setGame(false);collapse();setResearch(true);},[collapse]);
+-  const openLibrary=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setGame(false);collapse();setLibrary(true);},[collapse]);
+-  const openGame=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);collapse();setGame(true);},[collapse]);
++  const openResearch=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setLibrary(false);setGame(false);setEconomy(false);collapse();setResearch(true);},[collapse]);
++  const openLibrary=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setGame(false);setEconomy(false);collapse();setLibrary(true);},[collapse]);
++  const openGame=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);setEconomy(false);collapse();setGame(true);},[collapse]);
++  const openEconomy=useCallback(()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);setGame(false);collapse();setEconomy(true);},[collapse]);
+@@ -210,0 +215 @@ function WorldContent(){
++      scene.current.onEconomy=openEconomy;
+@@ -478,0 +484 @@ function WorldContent(){
++    {economy&&<EconomyPane panelZh={zh} panelOverlay panelClose={closeEconomy} language={language} state={authState} onSignIn={()=>void auth.signIn()} onClose={closeEconomy}/>}
+diff --git a/src/world/publicHalls/runtime.ts b/src/world/publicHalls/runtime.ts
+index 646497e..efca146 100644
+--- a/src/world/publicHalls/runtime.ts
++++ b/src/world/publicHalls/runtime.ts
+@@ -6,0 +7 @@ import {emberClashEntry} from '../gameEntry.ts';
++import {economyEntry} from '../economyEntry.ts';
+@@ -44,0 +46 @@ export interface PublicHallsHost {
++  onEconomy?:()=>void;
+@@ -297 +299,7 @@ export class PublicHallsRuntime {
+-    }else if(id==='fortune'||id==='hive'||id==='staking'||id==='pepe2pepe'){
++    }else if(id==='staking'){
++      this.modal.append(node('p',zh?'管理 EMBEO 質押、查看 GOLD 帳本及支付 World 服務費用。':'Manage EMBEO staking, view your GOLD ledger and pay for World services.'));
++      const manage=node('button',zh?'管理質押與 GOLD':'Manage staking and GOLD');manage.type='button';let disposed=false;
++      manage.onclick=()=>{if(disposed)return;this.close();if(this.h.onEconomy)this.h.onEconomy();else window.location.assign(economyEntry(this.language));};
++      this.boardDispose=()=>{disposed=true;manage.onclick=null;};this.modal.append(manage);
++      this.status=node('p',zh?'正式開放須完成新增功能審核。':'Opening requires review of the new features.');this.status.className='public-halls-status';this.modal.append(this.status);
++    }else if(id==='fortune'||id==='hive'||id==='pepe2pepe'){
+diff --git a/src/world/scene.ts b/src/world/scene.ts
+index 46e8c0f..e1aa5b8 100644
+--- a/src/world/scene.ts
++++ b/src/world/scene.ts
+@@ -12,0 +13 @@ import {emberClashEntry} from './gameEntry.ts';
++import {economyEntry} from './economyEntry.ts';
+@@ -421 +422 @@ export class WorldScene {
+-        try{this.publicHalls=new PublicHallsRuntime({scene:this.scene,camera:this.camera,host,preparedRoads,buildingNames:this.nameLabels,onResearch:this.openResearch,onLibrary:this.openLibrary,onGame:this.openGame,observer:()=>this.cameraMode==='god',observeHall:id=>this.observePublicHall(id),field:renderField,player:()=>({x:this.player.root.position.x,z:this.player.root.position.z}),terrainOverride:civicGround,nightGlow:()=>this.daynight.glow,lightBudget:this.decorativeLights,reducedMotion:()=>this.reduced,launchpadAtFormerEcosystem:mountainLayout,omitEcosystem:mountainLayout,
++        try{this.publicHalls=new PublicHallsRuntime({scene:this.scene,camera:this.camera,host,preparedRoads,buildingNames:this.nameLabels,onResearch:this.openResearch,onLibrary:this.openLibrary,onGame:this.openGame,onEconomy:this.openEconomy,observer:()=>this.cameraMode==='god',observeHall:id=>this.observePublicHall(id),field:renderField,player:()=>({x:this.player.root.position.x,z:this.player.root.position.z}),terrainOverride:civicGround,nightGlow:()=>this.daynight.glow,lightBudget:this.decorativeLights,reducedMotion:()=>this.reduced,launchpadAtFormerEcosystem:mountainLayout,omitEcosystem:mountainLayout,
+@@ -447 +448 @@ export class WorldScene {
+-  onError?:()=>void;onReady?:()=>void;onResearch?:()=>void;onLibrary?:()=>void;onGame?:()=>void;
++  onError?:()=>void;onReady?:()=>void;onResearch?:()=>void;onLibrary?:()=>void;onGame?:()=>void;onEconomy?:()=>void;
+@@ -450,0 +452 @@ export class WorldScene {
++  private openEconomy=()=>{if(this.onEconomy)this.onEconomy();else window.location.assign(economyEntry(this.language));};
+diff --git a/src/world/wallet.ts b/src/world/wallet.ts
+index 9ba4e73..93175d4 100644
+--- a/src/world/wallet.ts
++++ b/src/world/wallet.ts
+@@ -1,2 +1,3 @@
+-// Read-only wallet link (EIP-1193). The game never sends transactions. The only signature it ever asks for is the SIWE
+-// sign-in (auth.ts); moving house needs that session and asks the wallet for nothing (moves.ts).
++// Wallet discovery and identity link (EIP-1193). This module never sends transactions; auth.ts asks only for SIWE
++// sign-in. The separate economyWallet.ts controller requires an explicit action for each asset operation or GOLD payment.
++// Moving house needs the identity session and asks the wallet for nothing (moves.ts).
+diff --git a/worker/app.ts b/worker/app.ts
+index 5e22010..c46f0e8 100644
+--- a/worker/app.ts
++++ b/worker/app.ts
+@@ -7,0 +8,4 @@ import {handleAIMarketAdmin} from '../server/aimarket-admin.ts';
++import {handleEconomyApi} from '../server/economy.ts';
++import {reviewedEconomyConfig} from '../server/economy-deployment.ts';
++import {createEconomyRpc,syncEconomyChain,type EconomyRpc} from '../server/economy-rpc.ts';
++import type {EconomyConfig} from '../server/economy-config.ts';
+@@ -24 +28 @@ export type Env={ASSETS:AssetsBinding;API_LIMITER?:RateLimit;SEAT_LIMITER?:RateL
+-  DB?:D1Database;CHAIN_MOCK_OWNERS?:string;AIMARKET_BRIDGE_SECRET?:string};
++  DB?:D1Database;CHAIN_MOCK_OWNERS?:string;AIMARKET_BRIDGE_SECRET?:string;ECONOMY_LIMITER?:RateLimit;ECONOMY_CHAIN_LIMITER?:RateLimit};
+@@ -131,0 +136,3 @@ type ScheduledController={scheduledTime:number;cron:string};
++/** Internal test seam. The deployed entry passes no override; requests and
++ * environment values cannot supply a deployment record or an RPC endpoint. */
++export type EconomyWorkerDeps={config:()=>Promise<EconomyConfig|null>;rpc?:(env:Env)=>EconomyRpc};
+@@ -135 +142 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+-  edgeCache:()=>EdgeCache|undefined=defaultCache) {
++  edgeCache:()=>EdgeCache|undefined=defaultCache,economy:EconomyWorkerDeps={config:reviewedEconomyConfig}) {
+@@ -136,0 +144,10 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
++  const syncEconomy=async(env:Env,at:number)=>{
++    if(!env.DB)return;
++    const config=await economy.config();if(!config||!env.ECONOMY_CHAIN_LIMITER)return;
++    const base=economy.rpc?.(env)??createEconomyRpc({key:env.ALCHEMY_API_KEY||undefined,fetch:chainFetch});
++    const rpc:EconomyRpc=async(method,params)=>{
++      if(!(await env.ECONOMY_CHAIN_LIMITER!.limit({key:'economy:rpc'})).success)throw Error('ECONOMY_RPC_RATE_LIMITED');
++      return base(method,params);
++    };
++    await syncEconomyChain(env.DB,config,{rpc,nowMs:at});
++  };
+@@ -146,0 +164,9 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
++      const path=new URL(request.url).pathname;
++      if(path==='/api/me/economy'||path.startsWith('/api/economy/')){
++        let config:EconomyConfig|null=null;try{config=await economy.config();}catch{/* A failed release gate remains closed. */}
++        const response=await handleEconomyApi(request,{db:env.DB,config,now,client:rateLimitKey(ip),allow:async key=>{
++          if(!env.ECONOMY_LIMITER)throw new LimiterMissing('ECONOMY_LIMITER');
++          return (await env.ECONOMY_LIMITER.limit({key})).success;
++        }});
++        if(response)return response;
++      }
+@@ -160,0 +187,6 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
++      // Financial indexing/settlement has its own bounded minute tick. It does
++      // not run presence, prune sessions, or consume the identity/NFT budgets.
++      if(_controller.cron==='* * * * *'){
++        const at=now();if(!Number.isSafeInteger(at)||at<=0)return;
++        ctx.waitUntil(syncEconomy(env,at).catch(()=>console.log('economy_sync',JSON.stringify({status:'unavailable'}))));return;
++      }
+diff --git a/wrangler.jsonc b/wrangler.jsonc
+index 150f501..e6d3cf5 100644
+--- a/wrangler.jsonc
++++ b/wrangler.jsonc
+@@ -31 +31 @@
+-    "run_worker_first": ["/api/world/*", "/api/auth/*", "/api/me/*", "/api/wallet/*", "/api/aimarket-auth/*"]
++    "run_worker_first": ["/api/world/*", "/api/auth/*", "/api/me/*", "/api/wallet/*", "/api/aimarket-auth/*", "/api/economy/*"]
+@@ -58 +58,5 @@
+-    { "name": "CHAIN_LIMITER", "namespace_id": "4104", "simple": { "limit": 20, "period": 60 } }
++    { "name": "CHAIN_LIMITER", "namespace_id": "4104", "simple": { "limit": 20, "period": 60 } },
++    // New economy routes and confirmed-chain reads have a separate namespace;
++    // neither consumes the previously audited identity/NFT read budgets.
++    { "name": "ECONOMY_LIMITER", "namespace_id": "4105", "simple": { "limit": 20, "period": 60 } },
++    { "name": "ECONOMY_CHAIN_LIMITER", "namespace_id": "4106", "simple": { "limit": 600, "period": 60 } }
+@@ -67 +71 @@
+-  "triggers": { "crons": ["*/15 * * * *"] }
++  "triggers": { "crons": ["*/15 * * * *", "* * * * *"] }

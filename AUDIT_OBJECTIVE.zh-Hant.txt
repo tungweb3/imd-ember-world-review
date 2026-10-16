@@ -1,0 +1,23 @@
+請審核指定不可變 commit 的 Ember World 新增 EMBEO 質押、付款與不可轉讓 GOLD 模組。這是獨立原始碼審核，不是代幣發行、建立網站或延續舊 token 工作。允許本機編譯及執行測試；不得部署、動用真資產、發布網站、變更原服務或自動套用修正。
+
+範圍必須同時涵蓋 Solidity 合約與 TypeScript／D1／錢包操作邊界。若工具只支援 Solidity，請明列鏈下帳本未審，不能視為滿足本次需求。新增金融檔案按清單逐筆保留原 bytes；舊 auth／ownership／types 只供依賴脈絡。World 接線僅提供零上下文新增差異與 base／來源雜湊；完整 World 測試另存，不代表公開包涵蓋整站、renderer 或正式環境。舊登入或 token 審核不涵蓋本次新增資金功能。
+
+規則：Ethereum mainnet 的 EMBEO 為 0x2b82cdeb8477415d541799abb0cc48044c8ea5f3，18 decimals。每 100000 EMBEO 為一份，每次存入建立獨立持倉。持有完整 UTC [00:00，次日00:00) 的每份才取得 1 GOLD，且必須等 finalized 鏈上資料完整入帳。日中存入從下一個完整日開始；本金可隨時以正整數份取回，只取消取出部分當日資格，其餘份數及先前 GOLD 保留，後加本金不得追溯拿舊日獎勵。GOLD 綁定已驗證錢包，不可交易或轉帳，改名字不得改變金額權限。質押本金與固定付款收款人 0x1C651928150DADDDA9C2C040a9D4901d862f8eC4 的服務營收分離。
+
+檢查合約保管、越權取回、實收實扣精確、token runtime／供應綁定、重入、授權額度、付款 order 重放及錯誤 payer／金額／收款人。核對官方 solc 0.8.37+commit.f401782d、Cancun、optimizer 200、viaIR false、完整依賴、ABI、artifact 與部署 immutable slot 核對方式。EDR chain31337 為獨立合成本機鏈，不是主網或 fork。
+
+檢查 finalized block／parent hash 連續性、cursor 重組偵測與持久 halt、成功 canonical receipt 及固定 emitter 的精確 log、RPC allowlist、有限可續跑 staging、event／cursor 原子提交、bigint、UTC 邊界、並發／防重發放、溢位與重啟。forwarder、constructor、batch 的外層 from／to 不等於事件持有人；合法 LOG0、其他資料及大量 receipt log 不得卡住有效事件。10000事件為工程上限，合法超限區塊仍會停止cursor，不是每交易gas的保證。偽造、撤銷、重複、過舊或不完整資料不得產生權益。halt 不得沒收本金。合約帳號可累積 GOLD，但目前EOA-only授權不能花費；須評估這項限制、大receipt及真Workers50ms容量。
+
+本輪加查：numeric header 到達宣告 finalized 高度時，完整 block identity 必須相符，含 optional witness；尚未走到該高度的分頁仍信任 RPC ancestry 與完整 log 列舉，不能稱為獨立密碼學證明。訂單改用伺服器隨機 256-bit ID，錢包／request 防重仍須保留同一原價；ID 不是付款授權。精確付款同區塊的秒級時間可能早於建立報價的伺服器毫秒，不得因此卡住履約。報價／challenge 在讀取之後須重取時間，最後 SQL 保留 session 撤銷／到期與訂單期限條件，測試 await 期間失效情境。
+
+檢查同源限制、session／account 綁定及最後寫入時的有效授權。每筆 GOLD 必須獨立以 canonical personal_sign 綁定 origin、wallet、order、service、amount、request、nonce 與期限；舊 SIWE、Permit、錯誤簽名者／網域／訂單／金額、過期簽名都不得扣帳。扣款、journal、履約／訂單與 nonce 消耗須同一交易完成，不得負餘額或重複履約。EMBEO 履約必須匹配伺服器訂單及 finalized 精確付款事件，正常但較晚確認的付款仍須正確入帳。
+
+檢查前端所有 await 後的 provider／account／chain／session 變動、過期報價、精確歸零與授權、另按最終確認、取消／卸載、連點及結果未明處理。送交易前必須保存並讀回 send intent，重開不得遺失，舊 callback 不得覆蓋新 intent；未知交易不得自動重送，storage 失敗須停止送出。核對 GOLD 閉合 canonical 文字及負控制，GOLD 簽名不得順帶呼叫 token 交易。
+
+另核對 pending nonce／chain 持久保存、同源 Web Lock 全程涵蓋錢包確認視窗、忙碌立即拒絕而非排隊稍後送出、缺支援就停止。錯誤手填 hash 不得改寫 intent；替換交易須核對同 sender／chain／nonce 與 canonical finalized receipt，不同 payload 只能顯示已替換，不能當舊操作成功。接納另一頁 intent 須清掉無關 plan。錢包原回傳 hash 仍為一般 mined 確認，不能宣稱 GOLD 已 finalized 入帳。legacy／無 hash 人工解鎖只代表玩家已查歷史，不能證明所有 mempool 都未廣播；跨 profile／裝置／網站與獨立錢包行為不受此鎖協調，真 extension nonce override／速提取消相容性仍未實測。
+
+請回報嚴重度、具體路徑／行、攻擊前提、可執行重現、實際測試結果及未涵蓋項目。須區分本機通過、送審入場及真正完成的外部報告；沒有正式 catalogue／部署、真錢包或負載證據不能推定已上線。請明說 Solidity 與 TypeScript 經濟邊界是否均已審核，列出必要修正及阻擋開放的不確定事項。
+
+第二輪複查：以真實 server→client 快照往返驗證同時段 EMBEO 付款；區塊秒級時間早於訂單毫秒時間仍須可讀。JSON 列舉欄位必須為字串，陣列或物件不得藉強制轉型通過。等待 pending nonce 後，必須重新核對訂單到期及索引暫停，才可寫入意圖或呼叫錢包。GOLD 最後一次登入查核等待後、付款 POST 前，須重新檢查已觀察到的 halt；POST 已付款後才出現 halt，不得抹掉有效 paid 結果。API 錯誤型別應回明確用戶端錯誤且不得寫入。部署前後唯讀工具須比對完整 finalized 區塊身分及跨供應者 hash、parent、timestamp 與可用 gas limit。
+
+持久時間下界：針對跨請求或 worker 的假設性 server clock 回退，GOLD challenge 不得早於 order.createdMs，扣款不得早於訂單建立或 challenge.issuedMs。任何寫入前拒絕，不得把時間強行 clamp。這是防禦性伺服器時鐘假設，不是客戶端可控時鐘，也不是已證實正式環境事件；EMBEO 合法同時段鏈上秒級與伺服器毫秒時間差仍須接受。

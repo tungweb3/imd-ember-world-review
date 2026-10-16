@@ -1,0 +1,67 @@
+{
+  "schema": "imd.world.economy.integration-context/v1",
+  "baseCommit": "b5dd12ad852743c855ed68a8178a183ff2bdcd4f",
+  "candidateCommit": "adb13e9a98a3505229dbd866c6c268bca790d057",
+  "contextLines": 0,
+  "patchSha256": "4ce57c326c06b0960b14a2758a3b6fc9d2615cd7f3d38063ea5664b27627eb1e",
+  "patchBytes": 11910,
+  "scope": "Exact new integration diff only; full Worker/renderer/configuration excluded. Separate private complete-World test gate.",
+  "files": [
+    {
+      "sourcePath": "worker/app.ts",
+      "baseSha256": "4cb05515f5e69bb910b8ac1c4bce406fecfc1ef0e5092414e494060809099eb9",
+      "candidateSha256": "08f4fcd414bb12f7e067703120cc46c1b6bc55dae4e4269c572ee64ddf29e386",
+      "baseGitBlob": "5e220107ab66a6c2ddc5963d243071f1762a4ab3",
+      "candidateGitBlob": "c46f0e8bf4ff02529f8638d254d6d705f8f03ece",
+      "wholeFileIncluded": false
+    },
+    {
+      "sourcePath": "wrangler.jsonc",
+      "baseSha256": "9a04e0d78385a3328dc0fea23f3bda791213515b4660756d59751fff84c5eda4",
+      "candidateSha256": "94e997975cfdfd2818d5b6b113fef34bbbfebdee4dffcd87f87a531a9dda25e5",
+      "baseGitBlob": "150f5019dfef709c88350f6689a295200a47f693",
+      "candidateGitBlob": "e6d3cf5e0e15e8c687755754c1a61db1e619b9e8",
+      "wholeFileIncluded": false
+    },
+    {
+      "sourcePath": "src/world/WorldApp.tsx",
+      "baseSha256": "f77c783b0ff93eea11e95c3795c80a77dfec5b8a2c41fe9419951884bb55db58",
+      "candidateSha256": "d3dc39bc2631a8ea8680971b1c4b3bb17572c5a607e1fa0d79bcc3948e9b3ede",
+      "baseGitBlob": "322fc908f5c278db091ba156800688217c28b4a5",
+      "candidateGitBlob": "dbcfce18ddfd1ee904053995e499c69c117996a1",
+      "wholeFileIncluded": false
+    },
+    {
+      "sourcePath": "src/world/scene.ts",
+      "baseSha256": "f937b243875f05ab66cd5df2b04ddd7eb6fd50cea31adc89473491719424d88a",
+      "candidateSha256": "7e5142c4dd6d8e8d69f9cc70e78f891dced167a7115f94dfbc5a62ac92afafb0",
+      "baseGitBlob": "46e8c0f9b54bee07bc53c98b53115d7ee1964151",
+      "candidateGitBlob": "e1aa5b8912ded362f63f05dc80a80b2a4fd1e738",
+      "wholeFileIncluded": false
+    },
+    {
+      "sourcePath": "src/world/publicHalls/runtime.ts",
+      "baseSha256": "419aa766edc3498b2c8fc5a3c103c01511fcfdcefc0ab669095a8d1b0956833a",
+      "candidateSha256": "0e4b4043b9f175749961c6f727437b9438977710acf885cc0070d8279b027af7",
+      "baseGitBlob": "646497e37292a11335c98b554f30fda38b3e818a",
+      "candidateGitBlob": "efca146f2282bf9c80702f1e2c60250a50aacbbe",
+      "wholeFileIncluded": false
+    },
+    {
+      "sourcePath": "server/vite-plugin.ts",
+      "baseSha256": "ee7e6d441a52a93c691a378390b3dcb33d45c421859b7b6bdba77db03b74746f",
+      "candidateSha256": "7ced5b6bcb7e896b15690729813d6516cc68966d9ea29f2f2a83eafa87a65f33",
+      "baseGitBlob": "7ca32c2775b766f5a01155b90bdfcfedeed70393",
+      "candidateGitBlob": "e064fec66f24fe2cf7743a3da8760940d3081244",
+      "wholeFileIncluded": false
+    },
+    {
+      "sourcePath": "src/world/wallet.ts",
+      "baseSha256": "05d5aa59f1eacc0514afd2107a08f33c76b4347dd06e51bd97e224621c3b05d1",
+      "candidateSha256": "05971f38a3f8051241d6e937df4664414e6893a7389099a17d5d2d7e48010f2b",
+      "baseGitBlob": "9ba4e7388a9f107a32ae002dee0ab2b04237a312",
+      "candidateGitBlob": "93175d45aa8b558959b200e1835af27b19649d31",
+      "wholeFileIncluded": true
+    }
+  ]
+}

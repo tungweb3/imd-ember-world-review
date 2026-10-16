@@ -1,0 +1,47 @@
+{
+  "schema": "imd.world.economy-portable-public-verification/v1",
+  "status": "LOCAL_SECOND_RECHECK_PASSED_NOT_AN_AUDIT",
+  "runtime": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "install": {
+    "command": "npm ci --ignore-scripts --no-audit --no-fund",
+    "nativeExit": 0,
+    "lifecycleScriptsEnabled": false,
+    "nativePostinstallRequired": false
+  },
+  "test": {
+    "command": "node tools/run-review-tests.mjs (portable contract stage)",
+    "nativeExit": 0,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "evmCases": 24,
+    "pureControlCases": 5
+  },
+  "compilerPayloadSha256": "d73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f",
+  "lockSha256": "82d9f1c24051a41d336d8dd6fa53e443a661efa52fa335ea7901222dad4dce37",
+  "compilerInputSha256": "4563cc91ff9341837a1c5b0b56ce2c4292b84e02a149aa3d876c5e99d6a063bf",
+  "nativePackages": [
+    {
+      "name": "@nomicfoundation/edr-win32-x64-msvc",
+      "version": "0.22.2",
+      "packageSha256": "6642154cdeb72c1dae00e287173cef8f88d72330b0b54b9199dfae095db471e4",
+      "binary": "edr.win32-x64-msvc.node",
+      "binarySha256": "03c724f964919d21371ff8a62d371e8c7228862b79dba968e6de78f43e4d7ab1"
+    }
+  ],
+  "sourceAndArtifactsExact": true,
+  "projection": "Only package resolution and fixture paths/build evidence change; Solidity, ABI, creation/runtime templates and compiler metadata are exact",
+  "publicChainWrites": false,
+  "productionReady": false,
+  "unmeasuredPlatforms": [
+    "linux",
+    "darwin"
+  ],
+  "thisRoundFreshNpmCi": false,
+  "measuredAtUtc": "2026-10-16T04:28:43.846219+00:00",
+  "currentDependencyResolution": "Reused prior independently cold-installed pinned dependencies; no npm ci or lifecycle scripts this round"
+}

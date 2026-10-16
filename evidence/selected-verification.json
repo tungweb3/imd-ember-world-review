@@ -1,0 +1,121 @@
+{
+  "schema": "imd.world.economy-selected-public-verification/v5",
+  "status": "LOCAL_SELECTED_SECOND_RECHECK_PASSED; EXTERNAL_HOLD; NOT_A_SWARM_AUDIT",
+  "businessDateTaipei": "2026-10-16",
+  "productSourceCommit": "adb13e9a98a3505229dbd866c6c268bca790d057",
+  "previousProductSourceCommit": "5a24850b35fa39db5cc36fd44ed22c2293ccce17",
+  "publicContainingCommit": null,
+  "publicContainingCommitSource": "No publication in this round; read actual containing Git HEAD if later authorized",
+  "published": false,
+  "sourceManifestSha256": "899d5eaefb044ba8a02e12e19b4b5848550f45d7ffd4a0eb0302a110639988b3",
+  "selectedSourceFiles": 71,
+  "selectedSourceBytes": 949613,
+  "selectedTestFiles": 14,
+  "command": "node tools/run-review-tests.mjs",
+  "nativeExit": 0,
+  "contractBuildAndProjectionCheck": "PASS; exact Solidity, ABI, creation/runtime bytecode, metadata and public token fixture",
+  "contractTests": {
+    "files": 2,
+    "tests": 29,
+    "suites": 0,
+    "pass": 29,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "financialTests": {
+    "files": 14,
+    "tests": 188,
+    "suites": 0,
+    "pass": 188,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "runtime": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "dependencies": {
+    "thisRoundFreshNpmCi": false,
+    "lifecycleScriptsExecutedThisRound": false,
+    "dependenciesUpgraded": false,
+    "resolution": "Two ignored local node_modules junctions to prior independently cold-installed physical dependencies; links excluded from public payload",
+    "lockSha256": {
+      "world-source": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "contracts": "82d9f1c24051a41d336d8dd6fa53e443a661efa52fa335ea7901222dad4dce37"
+    },
+    "locksUnchangedFromPriorColdInstall": true,
+    "priorColdInstallCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+    "priorColdInstallNativeExits": [
+      0,
+      0
+    ],
+    "versions": {
+      "world-source": {
+        "viem": "2.56.9",
+        "@noble/curves": "1.9.1",
+        "typescript": "5.9.3",
+        "react": "19.2.6",
+        "react-dom": "19.2.6",
+        "three": "0.186.1"
+      },
+      "contracts": {
+        "solc": "0.8.37",
+        "@openzeppelin/contracts": "5.4.0",
+        "ethers": "6.15.0",
+        "hardhat": "3.19.0",
+        "@nomicfoundation/edr": "0.22.2"
+      }
+    }
+  },
+  "newRegressionScope": [
+    "Complete identity at an obtained announced-finalized-height header",
+    "Opaque random order IDs with wallet/request idempotence",
+    "Real EDR same-slot Paid reconciliation through ordinary and staged ingestion",
+    "Fresh quote/challenge time and final SQL expiry/revocation guards",
+    "Nonce/chain persistence, busy/missing Web Locks, wrong-hash rejection, finalized same-nonce replacement and legacy manual exit",
+    "Another-tab intent adoption clears unrelated prepared plan",
+    "Actual server-to-client paid snapshot roundtrip, same-slot timestamp domains and strict JSON enum types",
+    "Fresh quote expiry and chain halt guard after pending nonce await",
+    "GOLD final authorization-await observed halt checked before POST; valid paid POST retained when halt arrives later",
+    "Malformed API request types fail as client errors with no writes",
+    "Portable read-only deployment preflight finalized and cross-provider complete header identity",
+    "Persisted GOLD order/challenge/debit time lower bounds reject hypothetical cross-request/worker server-clock regression before mutation, without clamping; EMBEO chain/server clock skew remains legal"
+  ],
+  "payloadFilesVerifiedBeforeAndAfterExecution": 132,
+  "afterRunSourceAndContractPublicBytesMatched": true,
+  "oldSealed129FilePacketPreserved": true,
+  "postRunChanges": "Only measured result documents, sanitized receipts and dependent contract manifests were updated after execution. Executable source, compiler, artifacts, locks and runner bytes remain the tested bytes.",
+  "contractPublicManifestSha256": "939e26f2a4ebfe0be1dee49fbda24ef7164faf08b35587a0be5045d864187183",
+  "privateRawLogHashes": {
+    "stdoutSha256": "70d340afc9223b8764d5218bf29e40224947de510aeb79f375c2343cfb7a69f5",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "wholeWorldIncluded": false,
+  "fullWorkerTestIncluded": false,
+  "cleanInstallForThisRound": "NOT_RUN; PINNED_PRIOR_INSTALL_REUSED",
+  "externalSwarmReview": "HOLD_NOT_PERFORMED",
+  "publicGitActionsPerformed": false,
+  "publicChainWrites": false,
+  "productionWalletsUsed": false,
+  "productionDatabaseUsed": false,
+  "deployment": false,
+  "limitations": [
+    "One fixed RPC provider remains trusted for ancestry below the announced finalized height and for complete log enumeration; an optional witness is not a cryptographic completeness proof.",
+    "10000 matching events is an engineering cap; a legitimate larger block can stall cursor progress.",
+    "Large batched receipts, real Workers 50 ms CPU, D1 capacity/quotas and large-population reward latency are unmeasured production gates.",
+    "Web Locks coordinate this origin/browser scope only, not other origins/profiles/devices or independent wallet actions. Missing support fails closed.",
+    "Real extension nonce overrides, speed-up and cancellation compatibility are unmeasured; mocked transport tests do not prove wallet UI behavior.",
+    "A wallet-returned original hash uses ordinary mined confirmation, separate from finalized GOLD credit. Manual replacement proof requires canonical finalized inclusion.",
+    "Legacy/hashless acknowledgement follows user history checks and does not prove universal non-broadcast.",
+    "Contract accounts can accrue GOLD but cannot use the current EOA-only GOLD debit authority.",
+    "Windows x64 execution measured; other native platforms not measured. No production catalogue, real wallet, mainnet deployment or production database is used.",
+    "Containing-public-Git verification, accepted external report, findings disposition and production release checks remain separate gates. External actions are on hold."
+  ],
+  "oldSealed131FilePacketPreserved": true,
+  "oldSealed132FilePacketPreserved": true
+}
