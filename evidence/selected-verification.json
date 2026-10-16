@@ -1,0 +1,108 @@
+{
+  "schema": "imd.world.reconciliation-public-verification/v1",
+  "status": "LOCAL_TESTED_EXACT_SOURCE; NOT_PUBLISHED_REVIEWED_OR_DEPLOYED",
+  "productSourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2",
+  "previousProductSourceCommit": "b46ed512cb841cd31019aaae5eaef4d566b33065",
+  "publicContainingCommit": null,
+  "readContainingCommitFromGit": true,
+  "payloadFiles": 142,
+  "selectedSourceFiles": 79,
+  "selectedTestFiles": 16,
+  "sourceManifestSha256": "4bffe2462c8fc086730a45ed6761f44b78cc210d8916ec1131dcbb59018bfca4",
+  "nativeExit": 0,
+  "contractTests": {
+    "tests": 30,
+    "suites": 0,
+    "pass": 30,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "financialTests": {
+    "tests": 212,
+    "suites": 0,
+    "pass": 212,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "all142PayloadBytesStableAcrossSelectedExecution": true,
+  "postTestChanges": "Measured documents, sanitized receipts and dependent contract manifests only; all executable/lock/compiler/artifact/runner bytes remain tested bytes",
+  "thisRoundFreshNpmCi": false,
+  "dependencyUpgrades": false,
+  "dependencyResolution": "Two ignored junctions to prior independently cold-installed physical dependencies; exact unchanged locks",
+  "runtime": {
+    "node": "24.19.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "completePrivateWorldGate": {
+    "tests": 2660,
+    "pass": 2655,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 5,
+    "todo": 0,
+    "typescript": "PASS",
+    "viteBuild": "PASS",
+    "worker": "DRY_RUN_ONLY_NO_UPLOAD"
+  },
+  "publicPackageContainsWholeWorld": false,
+  "fullWorkerTestIncluded": false,
+  "localWorkerdD1": {
+    "recovery": {
+      "status": "PASS",
+      "requests": 7,
+      "resultSha256": "a4727794f739cd18c76874717b7b207b168278868c631712e2624b4f3e08c722"
+    },
+    "capacity": {
+      "status": "PASS",
+      "requests": 243,
+      "resultSha256": "696cf02a1d91f42bc8817ffa87688164b9197ab662923891be2152a8a58bc143"
+    },
+    "capacityEvents": 10000,
+    "capacityStagePages": 79,
+    "capacitySettlementRequests": 157,
+    "realProductionCpuD1CapacityProved": false
+  },
+  "reconciliation": {
+    "model": "Independent whole-share UTC event replay; credits minus earned rewards and past adjustments, never balance",
+    "localReconciliationTestGroups": 12,
+    "apply": "One atomic D1 batch guarded by exact reviewed hash and original financial snapshots",
+    "preserves": "Old events/journals/immutable quotes and spent GOLD; valid late events alone can complete pending orders",
+    "noNewHttpWalletAuthority": true,
+    "noArbitraryCreditInput": true,
+    "noTransferOrRefund": true,
+    "paymentContractReplacement": "REJECTED",
+    "limits": {
+      "events": 5000,
+      "days": 366,
+      "ancestors": 16,
+      "statements": 64,
+      "boundValueBytes": 524288,
+      "planBytes": 4194304
+    }
+  },
+  "previousAudit": {
+    "job": "592da0ae-6f65-4f4d-9636-b10cb6d9d71b",
+    "publicPin": "143ac7e0a709c25cf5dffd247e34cd8fa3570f0a",
+    "doesNotCoverThisSource": true
+  },
+  "limits": [
+    "Controlled rebuilt exports must originate from the existing finalized receipt-verifying indexer; these snapshots are not independent consensus/log-completeness proof.",
+    "Only bounded same-vault/same-payment-contract earlier-start recovery is supported; larger plans and contract replacement require a separately reviewed migration.",
+    "Actual production CPU/D1/large receipts, real wallet nonce/replacement, canonical token independent-provider and undeployed new-contract readback, catalogue and live migration/postflight remain open.",
+    "No automatic treasury refund or verified treasury-control claim.",
+    "No fresh install this round; Node24 Windowsx64 measured, other native environments unmeasured."
+  ],
+  "cleanupAdapterCalibration": "NOT_CHECKED; historical timeout retained",
+  "publicRawLogHashes": {
+    "stdoutSha256": "c7fa89bf7ebd294f12c1761b16a8abf46ac40e5f845fc7b4f5a6a9bb819e091d",
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "published": false,
+  "formalAuditPassed": false,
+  "deployed": false
+}

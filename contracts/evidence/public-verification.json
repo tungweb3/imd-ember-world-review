@@ -1,0 +1,19 @@
+{
+  "schema": "imd.world.economy-contract-public-verification/v2",
+  "status": "LOCAL_CURRENT_PACKET_PASSED_NOT_AN_AUDIT",
+  "test": {
+    "tests": 30,
+    "suites": 0,
+    "pass": 30,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "evmCases": 25,
+  "preflightControls": 5,
+  "measuredAt": "2026-10-16T19:28:24.208547+00:00",
+  "thisRoundFreshNpmCi": false,
+  "publicChainWrites": false,
+  "deployed": false
+}

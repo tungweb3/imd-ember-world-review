@@ -1,0 +1,7 @@
+# Exact source publication inventory
+
+This local candidate has142allowlisted files. The selected-source manifest binds79exact World files (1,042,460bytes) and16financial test files to product `6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2`. The separate portable contract inventory contains41files, preserving the previously frozen remediation Solidity/compiler/artifact projection while independently rerunning this checkout.
+
+Includes root scope/requirements/objectives/findings/reproduction/privacy documents, exact source/context manifests, zero-context World integration patch, sanitized test receipts, root verification/runners, selected financial server/client/SQL/test modules and the offline-copy recovery script/runbook. The full World renderer, complete Worker configuration/tests and unrelated assets/admin projects are omitted. The root objective contains the full scope; the separately prepared form references it and states the new recovery/authority boundaries.
+
+Excluded even if present locally: ignored dependency junctions, .git ancestry, .rd/.wrangler/release, private receipts/logs, any true original/rebuilt/staged database, snapshots, recovery-plan.private.json, migration-batch.private.json, payment case/action exports, keys/signatures/credentials, owner-role lists and World media. Actual player data must never be added for convenience. Canonical token and immutable treasury are public protocol data. This inventory is not publication or deployment authorization; verify containing Git blobs against the frozen path/mode/size/SHA256 list.

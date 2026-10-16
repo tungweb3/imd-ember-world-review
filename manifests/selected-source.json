@@ -1,0 +1,743 @@
+{
+  "schema": "imd.world.economy.selected-public-source/v1",
+  "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2",
+  "sourceBaseCommit": "b5dd12ad852743c855ed68a8178a183ff2bdcd4f",
+  "status": "BYTE_EXACT_SELECTED_SOURCE_MANIFEST; TEST_RESULTS_RECORDED_SEPARATELY",
+  "wholeWorldIncluded": false,
+  "fullWorkerTestsIncluded": false,
+  "sourceFiles": [
+    {
+      "path": "world-source/docs/economy/README.md",
+      "sourcePath": "docs/economy/README.md",
+      "classification": "new-financial-source",
+      "bytes": 11026,
+      "sha256": "493cd0412c5cee919c1ca18804ff9ed7ce280c761dd2e77c609faba136d6bf62",
+      "gitBlob": "ee6710d520b4da8919a8a7377c9acb7aaad82c2d",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/docs/economy/RECONCILIATION.md",
+      "sourcePath": "docs/economy/RECONCILIATION.md",
+      "classification": "new-financial-source",
+      "bytes": 9068,
+      "sha256": "fc4a0d08e7744cccb93510a62618b46df7f86b7339243d9cb64cf05bec685171",
+      "gitBlob": "9871774c8ead50eebb0fecb1e0824d7511f93f0e",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0001_wallet_login.sql",
+      "sourcePath": "migrations/0001_wallet_login.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1694,
+      "sha256": "696eeccbebd66ce944d86ec248540a0afa10a0283e255c0bf9df85c2cfc22a71",
+      "gitBlob": "b64e58cf82c7d06a639d73728509303ee41bce32",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0002_sign_in_budgets.sql",
+      "sourcePath": "migrations/0002_sign_in_budgets.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1354,
+      "sha256": "685531c5e7a0a1f7160a4e80312c58794556a9d8e57419b69a6a51e68f6cde55",
+      "gitBlob": "e74306c38db81e495903908ee8ddf816d44a7cb6",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0003_sign_in_layers.sql",
+      "sourcePath": "migrations/0003_sign_in_layers.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 2258,
+      "sha256": "d58c12bd78a4453fef098a19181eb7361612a2c931cd61f7e70acb7127200953",
+      "gitBlob": "e8951f69553a2b2e33dda8993201b9a4c208e81f",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0004_index_candidates.sql",
+      "sourcePath": "migrations/0004_index_candidates.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1341,
+      "sha256": "fb186abcc36f4f1eecc4a0cd1de55f04832457fe5816ed6bac0034dc9dc0f787",
+      "gitBlob": "5ecc353125f3fc2c5f923af6eae2f4d7d626363f",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0005_lanes_and_subnets.sql",
+      "sourcePath": "migrations/0005_lanes_and_subnets.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1872,
+      "sha256": "dfa3c6462072204d3607a2ea90aac4cf7f292812024ccefd5f3d439bc0aca876",
+      "gitBlob": "adc5da49e0d2ea9e1a9e495c9aaaf06fea212b09",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0006_members.sql",
+      "sourcePath": "migrations/0006_members.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 8328,
+      "sha256": "8c158d2be281331728e357fec06a252354a38cc698e208306c86a981841e3298",
+      "gitBlob": "756602f8d6d7dca1194c2e699c351774ee3a0ecf",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0008_member_hardening.sql",
+      "sourcePath": "migrations/0008_member_hardening.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1822,
+      "sha256": "4cb40da03cebd49a7f0bf3d0d787b56e31aff4b1cba9a90a66c4c322de5c288c",
+      "gitBlob": "b945d651c83658fb5bfab8273f61a2445fa66f64",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0009_aimarket_bridge.sql",
+      "sourcePath": "migrations/0009_aimarket_bridge.sql",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 867,
+      "sha256": "a2f5bd0398296b341427ae4c39a148b5c89638f758db397abce40b29d82e7b3e",
+      "gitBlob": "3751a596bc2266257ff908583ef987fa160bfdf9",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0010_world_economy.sql",
+      "sourcePath": "migrations/0010_world_economy.sql",
+      "classification": "new-financial-source",
+      "bytes": 9544,
+      "sha256": "88d4e9f502def890213b55a0d0c72e4acd7215a144bb48d61ba3fee887dadd71",
+      "gitBlob": "f8f68d806072895a1b34b527c7a9846b42ed7e47",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0011_world_economy_staging.sql",
+      "sourcePath": "migrations/0011_world_economy_staging.sql",
+      "classification": "new-financial-source",
+      "bytes": 1145,
+      "sha256": "bc65b8ac2b163bb91a29c865c60c64aff4df228af54d50e419719c6c7c9fef3d",
+      "gitBlob": "405e821809ee3f3397dd5cc67584eb2db4ee8772",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0012_economy_reward_bindings.sql",
+      "sourcePath": "migrations/0012_economy_reward_bindings.sql",
+      "classification": "new-financial-source",
+      "bytes": 1114,
+      "sha256": "8fc2902b444ae7a0ef3a4e697d64e3ec3060f306aa2b955746a4f3ca8347cbae",
+      "gitBlob": "01743a588131cc4f2cc6a7ecaf989c15c8d725e6",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/migrations/0013_economy_reconciliation.sql",
+      "sourcePath": "migrations/0013_economy_reconciliation.sql",
+      "classification": "new-financial-source",
+      "bytes": 4974,
+      "sha256": "d4ecba4488e59e8c77bd4756efe1c33cfc9407eee489d67beac33b2e1a7b8dc4",
+      "gitBlob": "23fed9a45c876b086132257827b3547e312ed0dc",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/package-lock.json",
+      "sourcePath": "package-lock.json",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 87792,
+      "sha256": "9f86565e314090d5c399fd2998ecc5dd901746fb6dc7502470ec77dfd911b95b",
+      "gitBlob": "b55eb002dbbe7180f3e6d36ba6e08a2994b336da",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/package.json",
+      "sourcePath": "package.json",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1157,
+      "sha256": "4f95615a3298e8e90022ad1e50aa4ea60e7f35890738452ba669eff3fb35a3b2",
+      "gitBlob": "627c31fe683b050808461dcee442b94d09568760",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/scripts/economy-recovery.mjs",
+      "sourcePath": "scripts/economy-recovery.mjs",
+      "classification": "new-financial-source",
+      "bytes": 7984,
+      "sha256": "b51145dedc5eda4603c77fd511dd0348e851e1036d5dfa34b14945681093f955",
+      "gitBlob": "f146929c4180e8d1d51cc6fa4e0ac3e1f82a7a08",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/auth.ts",
+      "sourcePath": "server/auth.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 75133,
+      "sha256": "d674e6248b9d81faa9b5e455a97e0d7a69fdcd812696f6bf4a416899c717a4dd",
+      "gitBlob": "676ab7451a82da917376c754c6e66f4a0e89d955",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/d1.ts",
+      "sourcePath": "server/d1.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 708,
+      "sha256": "67b345fe451e42a97f37ac9d44df27997914faea59275a3d3821b50a8f34f65e",
+      "gitBlob": "f5ce6f6fee11d20f637612fee80ba7ab0c5c168d",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-config.ts",
+      "sourcePath": "server/economy-config.ts",
+      "classification": "new-financial-source",
+      "bytes": 4269,
+      "sha256": "6926e78b28304dae8a24251a52db832b93d455b44edb3549ce9949ec97961810",
+      "gitBlob": "0be19dce92d97a660705eadfd2807cccb1e5695d",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-deployment.ts",
+      "sourcePath": "server/economy-deployment.ts",
+      "classification": "new-financial-source",
+      "bytes": 523,
+      "sha256": "44201a9946f05055953065f4de7d40aefc52f4d0b0c3c47896cbea1eeb6ceb11",
+      "gitBlob": "9da9d88aa2cd9e19806892869e5be56df4a1ef47",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-ledger.ts",
+      "sourcePath": "server/economy-ledger.ts",
+      "classification": "new-financial-source",
+      "bytes": 31551,
+      "sha256": "7e49661ffe5e4235b7488839e7e5baaeff6161eda0fb61958be8b4e609b84146",
+      "gitBlob": "326c5b4c45bec73dfe30f9c488b9738e8f9f8ec8",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-reconciliation.ts",
+      "sourcePath": "server/economy-reconciliation.ts",
+      "classification": "new-financial-source",
+      "bytes": 6003,
+      "sha256": "4dcb3df5774890fd111f5e665c5871e2d4f72a43407a778aee7b30568916faa0",
+      "gitBlob": "a2cc282650cb968af24006b571ce78f82215ecea",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-recovery.ts",
+      "sourcePath": "server/economy-recovery.ts",
+      "classification": "new-financial-source",
+      "bytes": 19291,
+      "sha256": "885ee467edb115ebc2b5db82c2cb991b24eceed9a61fd7c2e5715dff94c9507c",
+      "gitBlob": "3680fa982b4337c7986ef5d708df9ee74af0dbdc",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-rpc.ts",
+      "sourcePath": "server/economy-rpc.ts",
+      "classification": "new-financial-source",
+      "bytes": 17893,
+      "sha256": "3e730b120c32ac16d5464f4b18de4a041f1ff218dc5e9e8dcd0d35884077070a",
+      "gitBlob": "06ec15e9397af1beb2c0cc3ce9e30480bac6103f",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy-staging.ts",
+      "sourcePath": "server/economy-staging.ts",
+      "classification": "new-financial-source",
+      "bytes": 9098,
+      "sha256": "0e2f5e0470c4a1fd21a5ffbb0247e3207589fdef43b126d3c98475bc6afabd04",
+      "gitBlob": "31797519757240a9bc0566b5f79173456f702cc1",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/economy.ts",
+      "sourcePath": "server/economy.ts",
+      "classification": "new-financial-source",
+      "bytes": 7631,
+      "sha256": "09f7f40b1269e1a61759d090a551258aeb86caa79101f648e1e2a275fd39503b",
+      "gitBlob": "fa85a347578464935b481cf5dd759126d4e3b08a",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/gateway.ts",
+      "sourcePath": "server/gateway.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 26405,
+      "sha256": "f48adf7bd91aeb30fdfd2f9e76f2b967022dd998d80c851581e31512b7cd98d9",
+      "gitBlob": "357754c5667c9d4f7ef0d0d591b11dcd79ce90ae",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/ownership.ts",
+      "sourcePath": "server/ownership.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 34295,
+      "sha256": "30b8447d4599f4a1db8e8e149a284a253b67d62094befcd10e0df3b095644c72",
+      "gitBlob": "ddc9deebec35cb317ecfdb4c2fbddf3b923ee0e1",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/presence.ts",
+      "sourcePath": "server/presence.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 6249,
+      "sha256": "61ea5ae25d38dd4572cc0d987fdc2746161dc77c7f8b23758c0f5745de0efe81",
+      "gitBlob": "d6393818edea9a323fd12845b25574d2bdcfb850",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/server/world-api.ts",
+      "sourcePath": "server/world-api.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 5818,
+      "sha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669",
+      "gitBlob": "f22d87875f886b7f4500d9ce5aaab9fa4ccbf146",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/shared/freshness.ts",
+      "sourcePath": "src/shared/freshness.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1303,
+      "sha256": "1929d582520028ca543e7eaa8998979055a28fd642d1df404ad778275c815986",
+      "gitBlob": "6af598f26b09a6a24ec6d144721cb0f5b08e3be8",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/EconomyPane.tsx",
+      "sourcePath": "src/world/EconomyPane.tsx",
+      "classification": "new-financial-source",
+      "bytes": 31739,
+      "sha256": "1b560991b54e0e385eaaca8f315f859dcadfc178d8f29f76d530b2ec12672e5b",
+      "gitBlob": "25d440f6d9a9d5bb553073df86d1d8454c925886",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/auth.ts",
+      "sourcePath": "src/world/auth.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 63914,
+      "sha256": "f2e7be50da1b2473aab3a9f97e00f73b482e6a8fe77cb2e45d9cce4416e96647",
+      "gitBlob": "e4f0b8464a59f2a68fdddab7b42fb179cefa259d",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/authCleanup.ts",
+      "sourcePath": "src/world/authCleanup.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1793,
+      "sha256": "de5e50fe3a7d68d4dd3ffd5b489cdaa2e2a2e789c21ee590ef9cfd716b418c90",
+      "gitBlob": "c415fe64e739f0572e76021453944ba874466397",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/authLifecycle.ts",
+      "sourcePath": "src/world/authLifecycle.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 9767,
+      "sha256": "9e19a45950ced3f4ce9f04c13169da1597b2e061420927cdaa852f8e0c4e5dce",
+      "gitBlob": "6818c92da0750b78d9dc7b149b1ce60161c9a6b3",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/cadence.ts",
+      "sourcePath": "src/world/cadence.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 8827,
+      "sha256": "864cfb696ef9234299eaabf795e2112f2735f4e66c3ec37c3d61f0076ea23518",
+      "gitBlob": "6c42ab0311fdb316580a5006b4d8b5c19808a666",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/collections.ts",
+      "sourcePath": "src/world/collections.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 547,
+      "sha256": "e16162ff5fac9960678fba72a333075071fc280c1b64a9a28d3cc7df89772949",
+      "gitBlob": "db20e1e573dbc4c6c4e44228fbd3c69e5054e765",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/economyClient.ts",
+      "sourcePath": "src/world/economyClient.ts",
+      "classification": "new-financial-source",
+      "bytes": 17202,
+      "sha256": "6fa176f44d5cf99d14e1e0d23f51e03922679dc340e86c8ca10256b23285c473",
+      "gitBlob": "3914ee7b941e49cc0b656078aeaa6af02d78a49f",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/economyEntry.ts",
+      "sourcePath": "src/world/economyEntry.ts",
+      "classification": "new-financial-source",
+      "bytes": 552,
+      "sha256": "22eef542168a55c2a0b1f069491d12d521638b603ae79a5e5f2418c2b5f5c698",
+      "gitBlob": "5f95d70e8b067a42ec2ffa572141421aa732f92e",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/economyPane.css",
+      "sourcePath": "src/world/economyPane.css",
+      "classification": "new-financial-source",
+      "bytes": 4661,
+      "sha256": "b24375f5bd009ee6ed97288ffd56a9a9d4c1d73d5146916c2145e715fbf06a11",
+      "gitBlob": "cc9563adfe32fa525dce18a09c42b917b02773cb",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/economyWallet.ts",
+      "sourcePath": "src/world/economyWallet.ts",
+      "classification": "new-financial-source",
+      "bytes": 26087,
+      "sha256": "a089ef9bcf0bc0c26252ec1b6c8bd5d3b473c07b084ce8dd76c54ebf624d5e87",
+      "gitBlob": "38da9a2842133c4a86b90a20dcd85edd37bd18ee",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/houseSize.ts",
+      "sourcePath": "src/world/houseSize.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 547,
+      "sha256": "86911f567f77cf9a01ce75147af7541bf016610f41251e155154547dfebb8aa8",
+      "gitBlob": "f1315d1d313d9163379677913a4b8d078c5f7444",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/households.ts",
+      "sourcePath": "src/world/households.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 12411,
+      "sha256": "178d7343dcc316416f5457957610512e891794f1c8423ebadbbf8be7ef2ce235",
+      "gitBlob": "06962bc2a8426f65f3467cd91bf453ec2a4600a8",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/layout.ts",
+      "sourcePath": "src/world/layout.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 100610,
+      "sha256": "18abd191c4d83857531375152956e99343da36c58416379b0b2237d5a2cb88a7",
+      "gitBlob": "dea477fcc4fc3ee626303f30389bbb9f3f57fdac",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/layoutBaked.ts",
+      "sourcePath": "src/world/layoutBaked.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 12726,
+      "sha256": "7fa798fbf6b89f43686c548f307a198a79b1d3618b9596f88f7baa4e999a08d6",
+      "gitBlob": "63cee93aee7813658d21eb5ebece62032666db79",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/links.ts",
+      "sourcePath": "src/world/links.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 7897,
+      "sha256": "6a837eaf33a6b7e0b5ce97b7cd30130b1bdb9b074724d9fb7573130372f74f56",
+      "gitBlob": "f2ce6a97bd7d4b0253215b5e25465a77129bf994",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/market.ts",
+      "sourcePath": "src/world/market.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 13093,
+      "sha256": "08143343580ea8197f465a66578813633a19745ef841ae1957da50fcf8461b5f",
+      "gitBlob": "bc4bde695781d8fc81e4e8ed3d7332c691f31206",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/model.ts",
+      "sourcePath": "src/world/model.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 15964,
+      "sha256": "a558fee386eb170bc432e90e0317b4459012dcec9ce9d8c2db37e6c6aa9cdea6",
+      "gitBlob": "0c6850f27f9446832fca54deb7a9b410a93df46e",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/moves.ts",
+      "sourcePath": "src/world/moves.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 5009,
+      "sha256": "ff5a1f600d6faa96cb95380efdcab9d0e27beb197404cde36dbc7509210d7624",
+      "gitBlob": "f05f5dc5297b6eced76ea3616ea23374f2db298a",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/publicHashes.ts",
+      "sourcePath": "src/world/publicHashes.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1783,
+      "sha256": "89a1929462bae64d206862f868bf3a90fd65c5b05e96d087c54431fdecf21201",
+      "gitBlob": "41271f03db66b6d7a56d87e125a6e701ef5c67d0",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/publicUrl.ts",
+      "sourcePath": "src/world/publicUrl.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1956,
+      "sha256": "d19b999798d10fbf5ffb984000e8715849c6d4241a1a0b1319507286f1242de6",
+      "gitBlob": "8ab8cf595a340c002e39447422716be872470c86",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/siwe.ts",
+      "sourcePath": "src/world/siwe.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 3508,
+      "sha256": "c5d6f1518939f206f193346cfcd83de5c66b0eccce5ef74aeda33619d6292296",
+      "gitBlob": "fa969278d2b14c189dca6cbcaace45790d0b28c7",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/skin/daynight.ts",
+      "sourcePath": "src/world/skin/daynight.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 20025,
+      "sha256": "f81d267a1d16520cbd93eb7d87fe0a4757fa4d03ac062e8f53165431eb8704f5",
+      "gitBlob": "ff62573d1bd782b919723cd630dcd8e5a004c84d",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/skin/houses.ts",
+      "sourcePath": "src/world/skin/houses.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 7801,
+      "sha256": "47525f97a507ee337cfb18be3a568c2f812ee5747ad143c2a33e424d628fc324",
+      "gitBlob": "07b3b55307ea729e6db8b68f85e4c398f0c69d34",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/skin/kit.ts",
+      "sourcePath": "src/world/skin/kit.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 4779,
+      "sha256": "6a90a4f385509ebe0d0c78b3e5fb0d497c8bf92d2690fb93dca45c1a9f35a821",
+      "gitBlob": "6e90a1b820e3af910de32440e88a6cdff3921cdf",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/skin/sceneMaterialIndex.ts",
+      "sourcePath": "src/world/skin/sceneMaterialIndex.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 2332,
+      "sha256": "6b89b9e1505ea6fc9a74f21a113083366b3d8b2d9cd027931b0f8c713763d557",
+      "gitBlob": "7a336af07dd1d23c965ae94626705d2c42b69303",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/status.ts",
+      "sourcePath": "src/world/status.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 4638,
+      "sha256": "3db2191ad96abe7dd4f0685414b0b49d334a7246fb26fbcc0df1115bbe1ec00f",
+      "gitBlob": "fe98b3986d278e05bf2b8503c7347b3faf61709b",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/wallet.ts",
+      "sourcePath": "src/world/wallet.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 7982,
+      "sha256": "05971f38a3f8051241d6e937df4664414e6893a7389099a17d5d2d7e48010f2b",
+      "gitBlob": "93175d45aa8b558959b200e1835af27b19649d31",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/walletView.ts",
+      "sourcePath": "src/world/walletView.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 11122,
+      "sha256": "82303e87042fbe6c8d36022c1402a3dcd92decf19bcd200f3377ae9f691abc7a",
+      "gitBlob": "0c572efd34f3c0774e5486d90921fb4f829bab89",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/src/world/worldTime.ts",
+      "sourcePath": "src/world/worldTime.ts",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 4569,
+      "sha256": "b10874c3e730a3b41cccdde17f563de3e4968bb2e93833048d4f8ac795f33e10",
+      "gitBlob": "64e12d3cd417a00e748bc0a2c9b0a4e410ffa26c",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/d1-sqlite.mjs",
+      "sourcePath": "tests/d1-sqlite.mjs",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 1633,
+      "sha256": "f641f626c38d71f0194ad9546931ac1e9f1c17af62ecb7c3a0f938a8dfa06601",
+      "gitBlob": "8166defd8f54e70784ff08557e81d713baff651f",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-adversarial.test.mjs",
+      "sourcePath": "tests/economy-adversarial.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 9049,
+      "sha256": "ccdc52344b30ffded1f79962add56058e03772d9c482abaf3d957ec197b26427",
+      "gitBlob": "ffb1ec26eaf8248201a2a63d55e4d49c1d7b8dfb",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-api.test.mjs",
+      "sourcePath": "tests/economy-api.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 16093,
+      "sha256": "8034dc9a969544a1c6448289d17d2b743301e779f0506e06e5dff6818f4aed31",
+      "gitBlob": "910b6141d681499078791b02e33664d9ba5379e9",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-audit-regressions.test.mjs",
+      "sourcePath": "tests/economy-audit-regressions.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 10913,
+      "sha256": "ad8a268ba9937a4d2c40eb29b52c20de5f78620f6890738d95e24dc63b735b98",
+      "gitBlob": "c95a3dde9e067f3b228f676e7c8a08b879aedee9",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-client.test.mjs",
+      "sourcePath": "tests/economy-client.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 35387,
+      "sha256": "8a9e0e191591fd2861bb67a981724f36cce76dd929985dfc3be3b4b83d35e8d1",
+      "gitBlob": "e524d3d92403b91d81499ea7b0083eb5fc80ecd7",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-forwarder.test.mjs",
+      "sourcePath": "tests/economy-forwarder.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 13150,
+      "sha256": "df807f1bb1a09572fcd048269f10eea43bfbc9c5ba6dfa605bf43392f54e41bb",
+      "gitBlob": "490ae44d827b4eccb2e668b2b35cdbe8568e364c",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-journey.test.mjs",
+      "sourcePath": "tests/economy-journey.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 12082,
+      "sha256": "9a6ac5838eec9d521b103f0f78091466e50aaa602daa26dad5109b04cd4e78d3",
+      "gitBlob": "d8f6b4ac7cc69621719335c50c17221731af8cc4",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-ledger.test.mjs",
+      "sourcePath": "tests/economy-ledger.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 16705,
+      "sha256": "bac7f526a0df1738ac863c8bd7bcaa80f71ae6c71bb4776f214c03b6f38f3a28",
+      "gitBlob": "a29e2f35563f35f3c5c9c53e7a92fe2f3b1e5910",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-migration.test.mjs",
+      "sourcePath": "tests/economy-migration.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 2742,
+      "sha256": "ad1633ad25791377caecde3b01e9b506cb16a68e1a9202512d5671b1fc0727cb",
+      "gitBlob": "8bad46396bdbebf30b4a6c0b94122f3dbd469080",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-pane.test.mjs",
+      "sourcePath": "tests/economy-pane.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 24407,
+      "sha256": "c0c425113dc8e1053873cbb9b0b5b2fc5180278aef9aee8cba1648d7163d833e",
+      "gitBlob": "406471264cb0e47d9a741624f703097c1a0976f2",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-payload-roundtrip.test.mjs",
+      "sourcePath": "tests/economy-payload-roundtrip.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 6550,
+      "sha256": "28849e9374c2e3bb6676540c3f2f066f70acaf2e6f88dea44a978edcf4321a4f",
+      "gitBlob": "5a63dc0999077218fa5fbb9ecd498837cb3bcc4a",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-payment-timing.test.mjs",
+      "sourcePath": "tests/economy-payment-timing.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 12204,
+      "sha256": "0c8067363568fce861b2e630844d7a78121390f9b767474eca11391a4b2f6ffd",
+      "gitBlob": "585c648932948c7b3dd382db79c0b4befc3261c1",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-reconciliation.test.mjs",
+      "sourcePath": "tests/economy-reconciliation.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 20774,
+      "sha256": "88c4602014d43a86f760d1dfa79b844eda4e6dc4cb33d4020ff976700b3c825c",
+      "gitBlob": "ee7dff697bea96ac4b40115ae35ae23adc22b8eb",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-rpc.test.mjs",
+      "sourcePath": "tests/economy-rpc.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 24396,
+      "sha256": "f72824cb967e6a542f1b967827cc770f9975ed51f0f451d5b110601440048a46",
+      "gitBlob": "b5e9eca453701db982fba5ad680352fdba8e47a1",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-settlement.test.mjs",
+      "sourcePath": "tests/economy-settlement.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 9721,
+      "sha256": "46edff6b7aabb50afa932ccea757e3adcbf9c62dc51b4f8f6848e6e310dac65c",
+      "gitBlob": "267cd798b4fd24dcff7188e9c49ba3a53180dd72",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-staging.test.mjs",
+      "sourcePath": "tests/economy-staging.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 7242,
+      "sha256": "9d06041660c036b345ba58d121917976c89e9cd77106d3144f91416dc5a0729e",
+      "gitBlob": "e7774d134c816e9d4c5f863e68db4308902ceb47",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tests/economy-wallet-recovery.test.mjs",
+      "sourcePath": "tests/economy-wallet-recovery.test.mjs",
+      "classification": "new-financial-source",
+      "bytes": 15642,
+      "sha256": "2b97da94ea43a1c2b4ab968642006cadc25d2462be6991968f0a08ede8590d89",
+      "gitBlob": "24fd4c8efbf5578b966bac52ecd0f5c902e947bf",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    },
+    {
+      "path": "world-source/tsconfig.json",
+      "sourcePath": "tsconfig.json",
+      "classification": "existing-selected-dependency-context",
+      "bytes": 419,
+      "sha256": "03c177649a9bb7b7b64c8a7b7211ecad6fa1a9cc6d6cfe11eceb5e00ba53e3c3",
+      "gitBlob": "242ed44039ca85ed1d516d788506f3a059344829",
+      "sourceCommit": "6732aa3f75971a3ecb371dfaf9a7adcff77b7cb2"
+    }
+  ],
+  "selectedTests": [
+    "world-source/tests/economy-adversarial.test.mjs",
+    "world-source/tests/economy-api.test.mjs",
+    "world-source/tests/economy-audit-regressions.test.mjs",
+    "world-source/tests/economy-client.test.mjs",
+    "world-source/tests/economy-forwarder.test.mjs",
+    "world-source/tests/economy-journey.test.mjs",
+    "world-source/tests/economy-ledger.test.mjs",
+    "world-source/tests/economy-migration.test.mjs",
+    "world-source/tests/economy-pane.test.mjs",
+    "world-source/tests/economy-payload-roundtrip.test.mjs",
+    "world-source/tests/economy-payment-timing.test.mjs",
+    "world-source/tests/economy-reconciliation.test.mjs",
+    "world-source/tests/economy-rpc.test.mjs",
+    "world-source/tests/economy-settlement.test.mjs",
+    "world-source/tests/economy-staging.test.mjs",
+    "world-source/tests/economy-wallet-recovery.test.mjs"
+  ],
+  "externalRuntimeImports": [
+    "contracts/test/runtime.mjs"
+  ],
+  "supersedesProductCommit": "b46ed512cb841cd31019aaae5eaef4d566b33065"
+}
