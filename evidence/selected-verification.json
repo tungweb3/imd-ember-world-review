@@ -1,0 +1,45 @@
+{
+  "schema": "imd.world.audit3-public-verification/v1",
+  "at": "2026-10-17T11:15:33.116Z",
+  "status": "PASS_LOCAL_EXACT_SOURCE_ONLY",
+  "productSourceCommit": "e8afd02f650fb8b3f9696b8e02004c226105889a",
+  "selectedSourceFiles": 81,
+  "selectedTestFiles": 18,
+  "selectedFinancial": {
+    "tests": 261,
+    "pass": 261,
+    "fail": 0,
+    "skipped": 0
+  },
+  "portableContracts": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0,
+    "skipped": 0
+  },
+  "privateFullWorld": {
+    "tests": 2709,
+    "pass": 2704,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 5,
+    "durationMs": 463664.6765
+  },
+  "newRegressionFile": {
+    "tests": 31,
+    "pass": 31,
+    "fail": 0
+  },
+  "nativeLocalD1": {
+    "requests": 9,
+    "pass": 9,
+    "productionCapacityProved": false
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "workerDryRun": "PASS_NO_UPLOAD",
+  "newNpmCi": false,
+  "newExternalAuditAccepted": false,
+  "sourcePublished": false,
+  "productionDeployed": false
+}

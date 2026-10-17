@@ -1,0 +1,12 @@
+# 本機修正版複審目標
+
+來源 e8afd02f650fb8b3f9696b8e02004c226105889a，前版 d4b897e9cc1f3b066517e4abd276d67a95e72768／公開8f89b6d4／job e70ee73c。前版報告2中等、1低、1資訊不涵蓋本版。請獨立審查 Solidity 與 TypeScript/D1/客戶端全部原範圍，再複核以下修復：
+
+B-01：僅指定無效持倉提款halt接受未日結或部分日結，以實際已發journal及歷次adjustments扣除事件重建權益，不能用餘額或分頁carry當已領；原子退役舊來源、保留原證據、封口新歷史日、只補正差額。
+B-03：首批空狀態須完整盤點，僅採既有索引器驗證的被拒首批前一區塊，保留pending訂單與challenge、祖先scope及有效staging前綴，不任選新邊界或清除halt。
+B-02：未交付精確付款不可提前鎖成matched；對帳明列deferred及awaitingFulfillment，玩家只看自己的唯讀pending-fulfillment。真正owner/lineage交付後才以physical key定最終分類；metadata補建不能代替交付。雙精確事件是防禦測試，固定合約EVM防重拒絕同payer/order/amount重付，單筆owner未交付另有實例。
+B-04：config停機範圍與wallet共用GOLD明示，正式一次只接固定一個設定，多設定政策另審。
+
+GOLD綁定錢包不可轉讓交易，EMBEO與GOLD是分別付款選項，沒有交易對或兌換。每十萬EMBEO一份、完整UTC日一GOLD、部分取回只失去當日該份獎勵。保留所有原授權、GOLD過期成功重播、非法過期支出拒絕、精確晚到EMBEO、UTC/錢包/nonce/WebLock/SQL原子性及主網token約束。請依英文完整目標和REQUIREMENTS/SCOPE驗證，不只看新增測試。
+
+本包81個選取來源、18個金流測試檔；完整私有World、正式CPU/D1容量、真實錢包及主網部署另有獨立關卡。尚未公開、付費送審或正式上線。
