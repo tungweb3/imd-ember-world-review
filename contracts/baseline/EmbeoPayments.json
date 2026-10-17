@@ -1,0 +1,714 @@
+{
+  "contractName": "EmbeoPayments",
+  "sourceName": "src/EmbeoPayments.sol",
+  "compiler": "0.8.37+commit.f401782d.Emscripten.clang",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "treasury_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "ExactTransferRequired",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidOrder",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidToken",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidTransferParties",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidTreasury",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OrderAlreadyPaid",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ReentrancyGuardReentrantCall",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "SafeERC20FailedOperation",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TokenChanged",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "orderId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "payer",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Paid",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "payer",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "orderId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "paid",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "orderId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "pay",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "token",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tokenCodeHash",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tokenSupply",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "treasury",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x610100604052348015610010575f5ffd5b50604051610d04380380610d0483398101604081905261002f916101e7565b816001600160a01b0381163b15806100aa5750806001600160a01b031663313ce5676040518163ffffffff1660e01b8152600401602060405180830381865afa15801561007e573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906100a29190610218565b60ff16601214155b156100c85760405163c1ab6dc160e01b815260040160405180910390fd5b6001600160a01b0381166080819052803f60a052604080516318160ddd60e01b815290516318160ddd916004808201926020929091908290030181865afa158015610115573d5f5f3e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610139919061023f565b60c08190525f0361015d5760405163c1ab6dc160e01b815260040160405180910390fd5b5060015f556001600160a01b038116158061018057506001600160a01b03811630145b8061019c5750816001600160a01b0316816001600160a01b0316145b156101ba576040516302979eb960e31b815260040160405180910390fd5b6001600160a01b031660e05250610256565b80516001600160a01b03811681146101e2575f5ffd5b919050565b5f5f604083850312156101f8575f5ffd5b610201836101cc565b915061020f602084016101cc565b90509250929050565b5f60208284031215610228575f5ffd5b815160ff81168114610238575f5ffd5b9392505050565b5f6020828403121561024f575f5ffd5b5051919050565b60805160a05160c05160e051610a156102ef5f395f818160690152818161023f015261027401525f818160ad015281816103d2015261077901525f818160e2015261037e01525f8181610161015281816102a00152818161039f015281816103f3015281816104b301528181610542015281816105e10152818161061b0152818161066b01528181610705015261079a0152610a155ff3fe608060405234801561000f575f5ffd5b5060043610610060575f3560e01c806361d027b3146100645780637824407f146100a85780638aba2e35146100dd578063d0ee4de014610104578063e9c1121e14610119578063fc0c546a1461015c575b5f5ffd5b61008b7f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020015b60405180910390f35b6100cf7f000000000000000000000000000000000000000000000000000000000000000081565b60405190815260200161009f565b6100cf7f000000000000000000000000000000000000000000000000000000000000000081565b610117610112366004610954565b610183565b005b61014c610127366004610974565b600160209081525f938452604080852082529284528284209052825290205460ff1681565b604051901515815260200161009f565b61008b7f000000000000000000000000000000000000000000000000000000000000000081565b61018b6102fd565b816101a95760405163af61069360e01b815260040160405180910390fd5b805f036101c95760405163162908e360e11b815260040160405180910390fd5b335f908152600160209081526040808320858452825280832084845290915290205460ff161561020c57604051630fec370d60e31b815260040160405180910390fd5b335f8181526001602081815260408084208785528252808420868552909152909120805460ff19168217905561026691907f0000000000000000000000000000000000000000000000000000000000000000908490610325565b604080516001600160a01b037f000000000000000000000000000000000000000000000000000000000000000081168252602082018490527f00000000000000000000000000000000000000000000000000000000000000001691339185917f060bb954af967ecb7aa08a0072a7f8fe308ceee2f5d15f4a9d4a5275a5fe79e9910160405180910390a46102f960015f55565b5050565b60025f540361031f57604051633ee5aeb560e01b815260040160405180910390fd5b60025f55565b826001600160a01b0316846001600160a01b0316148061034c57506001600160a01b038416155b8061035e57506001600160a01b038316155b1561037c57604051637a60e4e560e11b815260040160405180910390fd5b7f00000000000000000000000000000000000000000000000000000000000000007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163f14158061047457507f00000000000000000000000000000000000000000000000000000000000000007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166318160ddd6040518163ffffffff1660e01b8152600401602060405180830381865afa15801561044d573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061047191906109b1565b14155b156104925760405163617e564560e11b815260040160405180910390fd5b6040516370a0823160e01b81526001600160a01b0385811660048301525f917f0000000000000000000000000000000000000000000000000000000000000000909116906370a0823190602401602060405180830381865afa1580156104fa573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061051e91906109b1565b6040516370a0823160e01b81526001600160a01b0386811660048301529192505f917f000000000000000000000000000000000000000000000000000000000000000016906370a0823190602401602060405180830381865afa158015610587573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906105ab91906109b1565b9050838210156105ce576040516322e588db60e11b815260040160405180910390fd5b821561060e576106096001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016878787610841565b610642565b6106426001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001686866108ae565b61064c84836109dc565b6040516370a0823160e01b81526001600160a01b0388811660048301527f000000000000000000000000000000000000000000000000000000000000000016906370a0823190602401602060405180830381865afa1580156106b0573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906106d491906109b1565b14158061077157506106e684826109f5565b6040516370a0823160e01b81526001600160a01b0387811660048301527f000000000000000000000000000000000000000000000000000000000000000016906370a0823190602401602060405180830381865afa15801561074a573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061076e91906109b1565b14155b8061081b57507f00000000000000000000000000000000000000000000000000000000000000007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166318160ddd6040518163ffffffff1660e01b8152600401602060405180830381865afa1580156107f4573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061081891906109b1565b14155b15610839576040516322e588db60e11b815260040160405180910390fd5b505050505050565b6040516001600160a01b0384811660248301528381166044830152606482018390526108a89186918216906323b872dd906084015b604051602081830303815290604052915060e01b6020820180516001600160e01b0383818316178352505050506108e4565b50505050565b6040516001600160a01b038381166024830152604482018390526108df91859182169063a9059cbb90606401610876565b505050565b5f5f60205f8451602086015f885af180610903576040513d5f823e3d81fd5b50505f513d9150811561091a578060011415610927565b6001600160a01b0384163b155b156108a857604051635274afe760e01b81526001600160a01b038516600482015260240160405180910390fd5b5f5f60408385031215610965575f5ffd5b50508035926020909101359150565b5f5f5f60608486031215610986575f5ffd5b83356001600160a01b038116811461099c575f5ffd5b95602085013595506040909401359392505050565b5f602082840312156109c1575f5ffd5b5051919050565b634e487b7160e01b5f52601160045260245ffd5b818103818111156109ef576109ef6109c8565b92915050565b808201808211156109ef576109ef6109c856fea164736f6c6343000825000a",
+  "deployedBytecode": "0x608060405234801561000f575f5ffd5b5060043610610060575f3560e01c806361d027b3146100645780637824407f146100a85780638aba2e35146100dd578063d0ee4de014610104578063e9c1121e14610119578063fc0c546a1461015c575b5f5ffd5b61008b7f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020015b60405180910390f35b6100cf7f000000000000000000000000000000000000000000000000000000000000000081565b60405190815260200161009f565b6100cf7f000000000000000000000000000000000000000000000000000000000000000081565b610117610112366004610954565b610183565b005b61014c610127366004610974565b600160209081525f938452604080852082529284528284209052825290205460ff1681565b604051901515815260200161009f565b61008b7f000000000000000000000000000000000000000000000000000000000000000081565b61018b6102fd565b816101a95760405163af61069360e01b815260040160405180910390fd5b805f036101c95760405163162908e360e11b815260040160405180910390fd5b335f908152600160209081526040808320858452825280832084845290915290205460ff161561020c57604051630fec370d60e31b815260040160405180910390fd5b335f8181526001602081815260408084208785528252808420868552909152909120805460ff19168217905561026691907f0000000000000000000000000000000000000000000000000000000000000000908490610325565b604080516001600160a01b037f000000000000000000000000000000000000000000000000000000000000000081168252602082018490527f00000000000000000000000000000000000000000000000000000000000000001691339185917f060bb954af967ecb7aa08a0072a7f8fe308ceee2f5d15f4a9d4a5275a5fe79e9910160405180910390a46102f960015f55565b5050565b60025f540361031f57604051633ee5aeb560e01b815260040160405180910390fd5b60025f55565b826001600160a01b0316846001600160a01b0316148061034c57506001600160a01b038416155b8061035e57506001600160a01b038316155b1561037c57604051637a60e4e560e11b815260040160405180910390fd5b7f00000000000000000000000000000000000000000000000000000000000000007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163f14158061047457507f00000000000000000000000000000000000000000000000000000000000000007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166318160ddd6040518163ffffffff1660e01b8152600401602060405180830381865afa15801561044d573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061047191906109b1565b14155b156104925760405163617e564560e11b815260040160405180910390fd5b6040516370a0823160e01b81526001600160a01b0385811660048301525f917f0000000000000000000000000000000000000000000000000000000000000000909116906370a0823190602401602060405180830381865afa1580156104fa573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061051e91906109b1565b6040516370a0823160e01b81526001600160a01b0386811660048301529192505f917f000000000000000000000000000000000000000000000000000000000000000016906370a0823190602401602060405180830381865afa158015610587573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906105ab91906109b1565b9050838210156105ce576040516322e588db60e11b815260040160405180910390fd5b821561060e576106096001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016878787610841565b610642565b6106426001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001686866108ae565b61064c84836109dc565b6040516370a0823160e01b81526001600160a01b0388811660048301527f000000000000000000000000000000000000000000000000000000000000000016906370a0823190602401602060405180830381865afa1580156106b0573d5f5f3e3d5ffd5b505050506040513d601f19601f820116820180604052508101906106d491906109b1565b14158061077157506106e684826109f5565b6040516370a0823160e01b81526001600160a01b0387811660048301527f000000000000000000000000000000000000000000000000000000000000000016906370a0823190602401602060405180830381865afa15801561074a573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061076e91906109b1565b14155b8061081b57507f00000000000000000000000000000000000000000000000000000000000000007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166318160ddd6040518163ffffffff1660e01b8152600401602060405180830381865afa1580156107f4573d5f5f3e3d5ffd5b505050506040513d601f19601f8201168201806040525081019061081891906109b1565b14155b15610839576040516322e588db60e11b815260040160405180910390fd5b505050505050565b6040516001600160a01b0384811660248301528381166044830152606482018390526108a89186918216906323b872dd906084015b604051602081830303815290604052915060e01b6020820180516001600160e01b0383818316178352505050506108e4565b50505050565b6040516001600160a01b038381166024830152604482018390526108df91859182169063a9059cbb90606401610876565b505050565b5f5f60205f8451602086015f885af180610903576040513d5f823e3d81fd5b50505f513d9150811561091a578060011415610927565b6001600160a01b0384163b155b156108a857604051635274afe760e01b81526001600160a01b038516600482015260240160405180910390fd5b5f5f60408385031215610965575f5ffd5b50508035926020909101359150565b5f5f5f60608486031215610986575f5ffd5b83356001600160a01b038116811461099c575f5ffd5b95602085013595506040909401359392505050565b5f602082840312156109c1575f5ffd5b5051919050565b634e487b7160e01b5f52601160045260245ffd5b818103818111156109ef576109ef6109c8565b92915050565b808201808211156109ef576109ef6109c856fea164736f6c6343000825000a",
+  "immutableReferences": {
+    "12": [
+      {
+        "length": 32,
+        "start": 105
+      },
+      {
+        "length": 32,
+        "start": 575
+      },
+      {
+        "length": 32,
+        "start": 628
+      }
+    ],
+    "369": [
+      {
+        "length": 32,
+        "start": 353
+      },
+      {
+        "length": 32,
+        "start": 672
+      },
+      {
+        "length": 32,
+        "start": 927
+      },
+      {
+        "length": 32,
+        "start": 1011
+      },
+      {
+        "length": 32,
+        "start": 1203
+      },
+      {
+        "length": 32,
+        "start": 1346
+      },
+      {
+        "length": 32,
+        "start": 1505
+      },
+      {
+        "length": 32,
+        "start": 1563
+      },
+      {
+        "length": 32,
+        "start": 1643
+      },
+      {
+        "length": 32,
+        "start": 1797
+      },
+      {
+        "length": 32,
+        "start": 1946
+      }
+    ],
+    "371": [
+      {
+        "length": 32,
+        "start": 226
+      },
+      {
+        "length": 32,
+        "start": 894
+      }
+    ],
+    "373": [
+      {
+        "length": 32,
+        "start": 173
+      },
+      {
+        "length": 32,
+        "start": 978
+      },
+      {
+        "length": 32,
+        "start": 1913
+      }
+    ]
+  },
+  "immutableBindings": {
+    "12": "treasury",
+    "369": "token",
+    "371": "tokenCodeHash",
+    "373": "tokenSupply"
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 557,
+        "contract": "src/EmbeoPayments.sol:EmbeoPayments",
+        "label": "_status",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 20,
+        "contract": "src/EmbeoPayments.sol:EmbeoPayments",
+        "label": "paid",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_address,t_mapping(t_bytes32,t_mapping(t_uint256,t_bool)))"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_mapping(t_bytes32,t_mapping(t_uint256,t_bool)))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(bytes32 => mapping(uint256 => bool)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_uint256,t_bool))"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_uint256,t_bool))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(uint256 => bool))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_uint256,t_bool)"
+      },
+      "t_mapping(t_uint256,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  },
+  "metadata": {
+    "compiler": {
+      "version": "0.8.37+commit.f401782d"
+    },
+    "language": "Solidity",
+    "output": {
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token_",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "treasury_",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ExactTransferRequired",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidAmount",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidOrder",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidToken",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidTransferParties",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidTreasury",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "OrderAlreadyPaid",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "ReentrancyGuardReentrantCall",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            }
+          ],
+          "name": "SafeERC20FailedOperation",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "TokenChanged",
+          "type": "error"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "bytes32",
+              "name": "orderId",
+              "type": "bytes32"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "payer",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "receiver",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "Paid",
+          "type": "event"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "payer",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "orderId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "paid",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "orderId",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "pay",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "token",
+          "outputs": [
+            {
+              "internalType": "contract IERC20",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "tokenCodeHash",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "tokenSupply",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "treasury",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ],
+      "devdoc": {
+        "details": "The backend must match a finalized Paid event against the exact wallet, order, price and receipt. Calling pay does not grant a service or authorize an arbitrary quote.",
+        "errors": {
+          "ReentrancyGuardReentrantCall()": [
+            {
+              "details": "Unauthorized reentrant call."
+            }
+          ],
+          "SafeERC20FailedOperation(address)": [
+            {
+              "details": "An operation with an ERC-20 token failed."
+            }
+          ]
+        },
+        "kind": "dev",
+        "methods": {},
+        "version": 1
+      },
+      "userdoc": {
+        "kind": "user",
+        "methods": {},
+        "notice": "Transfers only the caller's approved EMBEO directly to the immutable treasury.",
+        "version": 1
+      }
+    },
+    "settings": {
+      "compilationTarget": {
+        "src/EmbeoPayments.sol": "EmbeoPayments"
+      },
+      "evmVersion": "cancun",
+      "libraries": {},
+      "metadata": {
+        "bytecodeHash": "none"
+      },
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "remappings": []
+    },
+    "sources": {
+      "@openzeppelin/contracts/interfaces/IERC1363.sol": {
+        "keccak256": "0xd5ea07362ab630a6a3dee4285a74cf2377044ca2e4be472755ad64d7c5d4b69d",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://da5e832b40fc5c3145d3781e2e5fa60ac2052c9d08af7e300dc8ab80c4343100",
+          "dweb:/ipfs/QmTzf7N5ZUdh5raqtzbM11yexiUoLC9z3Ws632MCuycq1d"
+        ]
+      },
+      "@openzeppelin/contracts/interfaces/IERC165.sol": {
+        "keccak256": "0x0afcb7e740d1537b252cb2676f600465ce6938398569f09ba1b9ca240dde2dfc",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://1c299900ac4ec268d4570ecef0d697a3013cd11a6eb74e295ee3fbc945056037",
+          "dweb:/ipfs/Qmab9owJoxcA7vJT5XNayCMaUR1qxqj1NDzzisduwaJMcZ"
+        ]
+      },
+      "@openzeppelin/contracts/interfaces/IERC20.sol": {
+        "keccak256": "0x1a6221315ce0307746c2c4827c125d821ee796c74a676787762f4778671d4f44",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://1bb2332a7ee26dd0b0de9b7fe266749f54820c99ab6a3bcb6f7e6b751d47ee2d",
+          "dweb:/ipfs/QmcRWpaBeCYkhy68PR3B4AgD7asuQk7PwkWxrvJbZcikLF"
+        ]
+      },
+      "@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+        "keccak256": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://5282825a626cfe924e504274b864a652b0023591fa66f06a067b25b51ba9b303",
+          "dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
+        ]
+      },
+      "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+        "keccak256": "0xd6fa4088198f04eef10c5bce8a2f4d60554b7ec4b987f684393c01bf79b94d9f",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://f95ee0bbd4dd3ac730d066ba3e785ded4565e890dbec2fa7d3b9fe3bad9d0d6e",
+          "dweb:/ipfs/QmSLr6bHkPFWT7ntj34jmwfyskpwo97T9jZUrk5sz3sdtR"
+        ]
+      },
+      "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": {
+        "keccak256": "0x982c5cb790ab941d1e04f807120a71709d4c313ba0bfc16006447ffbd27fbbd5",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://8150ceb4ac947e8a442b2a9c017e01e880b2be2dd958f1fa9bc405f4c5a86508",
+          "dweb:/ipfs/QmbcBmFX66AY6Kbhnd5gx7zpkgqnUafo43XnmayAM7zVdB"
+        ]
+      },
+      "@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
+        "keccak256": "0x11a5a79827df29e915a12740caf62fe21ebe27c08c9ae3e09abe9ee3ba3866d3",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://3cf0c69ab827e3251db9ee6a50647d62c90ba580a4d7bbff21f2bea39e7b2f4a",
+          "dweb:/ipfs/QmZiKwtKU1SBX4RGfQtY7PZfiapbbu6SZ9vizGQD9UHjRA"
+        ]
+      },
+      "@openzeppelin/contracts/utils/introspection/IERC165.sol": {
+        "keccak256": "0x8891738ffe910f0cf2da09566928589bf5d63f4524dd734fd9cedbac3274dd5c",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://971f954442df5c2ef5b5ebf1eb245d7105d9fbacc7386ee5c796df1d45b21617",
+          "dweb:/ipfs/QmadRjHbkicwqwwh61raUEapaVEtaLMcYbQZWs9gUkgj3u"
+        ]
+      },
+      "src/EmbeoPayments.sol": {
+        "keccak256": "0x09b74dac5f0419ef1dccaab2f263269bdebc8376124e033023558940820412fa",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://6c1bb0e08aeb514b7b23fe11d80a10da34016e63d3967c471a744876e0591247",
+          "dweb:/ipfs/Qmb64A7CZpRtwkYqGk9G3nBE5hP3dyY8FkAHddbJ1hTTTU"
+        ]
+      },
+      "src/ExactEmbeo.sol": {
+        "keccak256": "0x8e8e77ea4da319c93086ad32f9bd165aae9cfd0fc8a50a5dc6fa91b94047bc90",
+        "license": "MIT",
+        "urls": [
+          "bzz-raw://5d4aba4627332e5ffabd98c5852c8c532c13316f89daed0b98e4e2d6b0623ba0",
+          "dweb:/ipfs/QmZTTiRhRs1JppMZQQckvZhHzeVd7d3w21nisP9KmdYyuv"
+        ]
+      }
+    },
+    "version": 1
+  },
+  "productionReady": false,
+  "deployedToPublicChain": false
+}

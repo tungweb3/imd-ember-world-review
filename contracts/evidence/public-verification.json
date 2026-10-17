@@ -1,0 +1,17 @@
+{
+  "schema": "imd.world.economy-contract-public-verification/v2",
+  "status": "PASS_FRESH_PORTABLE_REPRODUCTION",
+  "at": "2026-10-17T02:05:03.898Z",
+  "tests": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0,
+    "skipped": 0
+  },
+  "exactProjectionMatched": true,
+  "soliditySourcesUnchanged": true,
+  "compiler": "0.8.37+commit.f401782d",
+  "publicChainWrites": false,
+  "deployed": false,
+  "newNpmCi": false
+}
