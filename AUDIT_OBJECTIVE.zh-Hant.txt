@@ -1,0 +1,7 @@
+# Audit4 複審目標
+
+原始碼 fe920ae748155d7d7ed9aaa98ebb6f9fb2c3a81f；前版 e8afd02f650fb8b3f9696b8e02004c226105889a／公開 ca2ed8a1fd509e9d03989924b2ef1c77e4ab5037／job658db620。前版報告不涵蓋本版。請審查兩份 Solidity 與 TypeScript／D1／客戶端全部既有範圍，再依 docs/economy/AUDIT4_REMEDIATION.md 重現六項修復及正負控制。
+
+重點為含保留首批前綴的連續兩次復原、不可變 receipt 與 lineage 的來源驗證、合法外部金庫歷史與 pending 隔離、同域空同步和經濟足跡區分、分頁完整快照及原子並行保護、有界事件匯入順序、唯讀容量預檢與超限零寫入、中英文待交付與例外清單。
+
+GOLD 綁定錢包不可轉讓交易，沒有交易對／兌換。十萬 EMBEO 一份、完整 UTC 日一 GOLD、提款當日只扣除取出份數的規則維持。合約、migration、登入與啟用設定未改。請依英文完整目標核對 A／B 歷史負控制，不只看新增案例。公開為部分選取來源，完整私有 World、真實錢包、主網部署及正式 Workers／D1 容量仍是獨立關卡。

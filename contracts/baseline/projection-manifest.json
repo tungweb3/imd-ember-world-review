@@ -1,0 +1,28 @@
+{
+  "schema": "imd.world.economy-public-contract-projection/v1",
+  "scope": "EXACT_REMEDIATION_SOLIDITY_AND_ARTIFACTS; TOOLING_PORTED",
+  "originalSourceSha256": {
+    "src/EmbeoPayments.sol": "df7cf883f5578be1f6d7801b85580a15509915eee0f0d5110b00cf52dd2f98f3",
+    "src/EmbeoStakingVault.sol": "39e792c0c52ff5a4a58cf905850a452fd1756bf1aa8b821f12d455382b35a109",
+    "src/ExactEmbeo.sol": "03515d2c88315655178d31e3283e7403a08cf1b22c7bdc5071772ae91b245db3"
+  },
+  "contracts": {
+    "EmbeoStakingVault": {
+      "artifactSha256": "74274c75b2e3034de90b68ea8159554b0c1a41197b1f709210953c40721a7c43",
+      "creationBytecodeSha256": "09127c772b37e058ba516830ba9d93527a2427dfa65efb8e2aadd7372f64e28b",
+      "runtimeTemplateSha256": "31d71c7cbe64920465d0d0712cdd8e8f6007bdb16832c53401fdae2fb2f7b537",
+      "compiler": "0.8.37+commit.f401782d.Emscripten.clang"
+    },
+    "EmbeoPayments": {
+      "artifactSha256": "0036fc322657a31d318a230b1a173435823b25dfc2bbf84ca5ab0c82d44a876e",
+      "creationBytecodeSha256": "625c007a495105a7f03f8209bb2728f25a24be126c27383b0d7b744a9394002f",
+      "runtimeTemplateSha256": "27d61ac78495371921e1c3d0fe101c9cc4744d45a8af167d973ab6cb5e3a9c24",
+      "compiler": "0.8.37+commit.f401782d.Emscripten.clang"
+    }
+  },
+  "compilerInputSha256": "bd7db2fcdf2ecbe8733d7244f3c40594d6476a3659f905986bd479c830fcc1ee",
+  "interfaceSha256": "114afe156021a6ebdae0ad366f9b25fa9f80496c06f1e9898486656e5ed9a1b7",
+  "tokenArtifactSha256": "02bd4fda2a656dd1727de840d4cbf89b1b4b74a3d134bdfa1f90a9c23ea6f2aa",
+  "tokenCreationBytecodeSha256": "b289a1e68858616135e4f8fcaf3f2b00b372001cd7ec9fe414119b29a79e36d7",
+  "tokenRuntimeBytecodeSha256": "34c88e2345fc1b93f60ace20e3933e251f0bff4149e279544ba3a6a72459062f"
+}
