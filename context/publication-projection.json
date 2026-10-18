@@ -1,0 +1,40 @@
+{
+  "sourceCommit": "57ce2d598eedf2ded2a2080582efcd29b4214adb",
+  "repository": "tungweb3/imd-ember-world-review",
+  "branch": "economy-shared-gold-20261018-57ce2d59",
+  "authorizedAt": "2026-10-18T16:05:41.081099+08:00",
+  "authorization": "User directly requested GitHub upload and Audit form preparation.",
+  "sourcePacketSha256": "483f036f070d952662c572451890c236c69195c90bd986f13f5e44ce5d3866fc",
+  "sealedPacketPreserved": true,
+  "publicationMetadataChanges": [
+    {
+      "path": "README.md",
+      "beforeSha256": "2a425268cb2fff616c855fcb9a43cf0144197d62d83ba9eeeb52302e1f1f1a83",
+      "afterSha256": "1512aacfc152b31b732a2036dbd5d1fb92a388cab3d4d38a4fc086c4aecf3237",
+      "reason": "Publication status wording only; no executable source change."
+    },
+    {
+      "path": "SCOPE.md",
+      "beforeSha256": "bf3c726a1d8b25a119517c63cca3771a0085383c495a68ad3bdaf6063367179c",
+      "afterSha256": "f3ca92b217adb80db154e53f3cfc5031d23e03a9f76f6ecd0a7134543a97d51b",
+      "reason": "Publication authorization/status wording only; all release gates retained."
+    },
+    {
+      "path": "context/candidate.json",
+      "beforeSha256": "056d64b7d41b93048f098a584650c455757da20e65153dee699f4cceed2593e0",
+      "afterSha256": "b5f376e2a7a3ac5e7047b2e577a797ed0a52faadd79a2615a013c61ce48dd2f5",
+      "reason": "Publication metadata only; actual remote commit recorded separately after push."
+    }
+  ],
+  "financialCodeChanged": false,
+  "previousCandidateTests": {
+    "workspacePassed": 2804,
+    "workspaceFailed": 0,
+    "workspaceExistingSkipped": 5,
+    "portableFinancialPassed": 366,
+    "portableContractsPassed": 30,
+    "pythonTrialPassed": 7
+  },
+  "scope": "Shared GOLD / EMBEO topup / R4 shared reserve / delivery-refund / admin / authenticated World trial. Game development handoff is excluded.",
+  "limitations": "Local fixtures and selected sources only. No real external report provider, mainnet/runtime/finality, real wallet or production D1 capacity proved. No deployment or paid audit submission."
+}

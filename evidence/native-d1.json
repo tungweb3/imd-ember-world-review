@@ -1,0 +1,13 @@
+{
+  "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+  "facts": [
+    "exact production migrations accepted by local workerd D1",
+    "D1 concurrent projection credits once",
+    "D1 legacy debit cannot spend held GOLD",
+    "D1 hold consumption and debit commit once",
+    "D1 admin writes retain atomic before/after evidence"
+  ],
+  "productionCapacityProved": false,
+  "publicChainUsed": false,
+  "fixtureChainProfile": false
+}

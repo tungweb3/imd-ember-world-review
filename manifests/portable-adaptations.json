@@ -1,0 +1,59 @@
+[
+  {
+    "path": "world-source/scripts/world-gold-local-runtime.mjs",
+    "beforeSha256": "bdd0b92eba6888de7fa14389fde8ae59b1dd2e782d9416b5408243bb89e4f982",
+    "afterSha256": "858105905ed88d6a4e36fe562a6f13ad057e84d6301730bbd6ec21dec7cd743c",
+    "reason": "Resolve the same byte-exact payment artifact inside this portable packet."
+  },
+  {
+    "path": "contracts/tools/runtime.mjs",
+    "beforeSha256": "c63a0dd6745893f550f298043bb9cb496151d079545c993fe7abdc3c4a1206d1",
+    "afterSha256": "640a71df9728ff5dadf1d26b44f930ea1237d1bd7331fc6a7f05a4f09c16411f",
+    "reason": "Expose the verified compiler payload path required by the unchanged R4 artifact verifier."
+  },
+  {
+    "path": "mint/contract/tools/runtime.mjs",
+    "beforeSha256": "2bac85537add48cae447fa42e542605f16722ca1ef771b711d6a4424fbd7a023",
+    "afterSha256": "6775fbd7228646ed757447f0c7a325fafed5f82f869c912cc736a89e2a1b32bc",
+    "reason": "Replace local-machine dependency lookup with pinned portable Hardhat/EDR and the same public test mnemonic."
+  },
+  {
+    "path": "mint/contract/artifacts/test-artifacts.json",
+    "originalPath": "mint/contract/artifacts/test-artifacts.private.json",
+    "reason": "Synthetic compiler artifact filename only."
+  },
+  {
+    "path": "mint/contract/artifacts/build-receipt.json",
+    "originalPath": "mint/contract/artifacts/build-receipt.private.json",
+    "reason": "Synthetic compiler artifact filename only."
+  },
+  {
+    "path": "mint/contract/artifacts/standard-input.json",
+    "originalPath": "mint/contract/artifacts/standard-input.private.json",
+    "reason": "Synthetic compiler artifact filename only."
+  },
+  {
+    "path": "mint/service/artifacts.mjs",
+    "beforeSha256": "eebe3700738eb2f717a7edcff85c86ef06ca1e9196d4d79edef09fc526ddda9a",
+    "afterSha256": "3aaad4f2cdb1e56cf3236c08295981b425d140901aff82d4f8dea9946cf460b8",
+    "reason": "Portable artifact filenames only; verification conditions and hashes are unchanged."
+  },
+  {
+    "path": "mint/contract/tools/compile.mjs",
+    "beforeSha256": "4309c694f53327d26859cc31a9af64ac4557d33ef66c0e9099b61afef8bfc7ed",
+    "afterSha256": "3fd9be408ad07cb807ea87e287526aef70ed85b7d228e5045197d110a3d76ad2",
+    "reason": "Portable artifact filenames only; verification conditions and hashes are unchanged."
+  },
+  {
+    "path": "mint/contract/artifacts/build-receipt.json",
+    "beforeSha256": "1b7b72aee8637d0880a84ccea9b8121c2f89a5ff889f5674ab0823e7a62d6d57",
+    "afterSha256": "4f994f1380fdc81275d682f55a37306b13d07265b10f19d6f1efaa331a5cd150",
+    "reason": "Remove original machine paths from compiler receipt metadata; retain all verifier-relevant source and artifact hashes."
+  },
+  {
+    "path": "world-source/scripts/world-gold-native-d1.mjs",
+    "beforeSha256": "14f7a9418c54ce39669b1fefd569664ac4b8dc36b89d6df40b245205c90204f0",
+    "afterSha256": "635de618f8ef422989cd6558305800f2a3f981b8e00ed98f1f7285cc01935898",
+    "reason": "Write synthetic native-D1 test evidence with a public output filename."
+  }
+]

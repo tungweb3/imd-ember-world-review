@@ -1,0 +1,70 @@
+{
+  "status": "LOCAL_INTEGRATION_TESTED_AUDIT_PACKET_PREPARED",
+  "sourceCommit": "57ce2d598eedf2ded2a2080582efcd29b4214adb",
+  "completedAt": "2026-10-18T14:39:53.058547+08:00",
+  "fullWorkspace": {
+    "tests": 2809,
+    "pass": 2804,
+    "fail": 0,
+    "skipped": 5,
+    "logSha256": "17ef0b036f68767de753fc8a879b52027def0d5198289a636b10f074e2622813"
+  },
+  "selectedPortableFinancial": {
+    "tests": 366,
+    "pass": 366,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "a2d0efbade996e09932c7453dc630e06d84a905080aae930d356ff466b3242fe"
+  },
+  "portableContractTests": {
+    "tests": 30,
+    "passed": 30,
+    "failed": 0
+  },
+  "pythonTrialTests": {
+    "tests": 7,
+    "passed": 7,
+    "failed": 0
+  },
+  "precisionRegression": {
+    "tests": 60,
+    "pass": 60,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "ae7cdc2022d2921f1be01232a4759fa4f6762be1a847aabdf8362b5a8e2ec374"
+  },
+  "nativeLocalD1": {
+    "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+    "facts": [
+      "exact production migrations accepted by local workerd D1",
+      "D1 concurrent projection credits once",
+      "D1 legacy debit cannot spend held GOLD",
+      "D1 hold consumption and debit commit once",
+      "D1 admin writes retain atomic before/after evidence"
+    ],
+    "productionCapacityProved": false,
+    "publicChainUsed": false,
+    "fixtureChainProfile": false
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "workerDryRun": "PASS_NO_UPLOAD",
+  "dependencies": "Reused existing pinned Windows dependencies through local junctions; no fresh npm install claimed.",
+  "fullSuiteSkipReason": "Five existing native file-symlink assertions are not checked on this Windows token; no new financial test was skipped.",
+  "preserved": {
+    "r3Files": 70,
+    "r4Files": 50,
+    "mismatches": 0,
+    "publicAssetsChanged": 0
+  },
+  "productionReady": false,
+  "deployed": false,
+  "sourcePublished": false,
+  "auditSubmitted": false,
+  "limitations": [
+    "Fixture prices, local synthetic sessions and private EDR chain only.",
+    "AIMarket/fortune provider results remain explicit fixtures; actual VPS/provider wiring is a separate release gate.",
+    "EDR memory is not recovered by SQLite restoration; source/chain identity must be retained before settling old holds.",
+    "Target production D1/CPU/row capacity, real wallets, public chain/runtime/finality and migration/rollback still need deployment-specific validation."
+  ]
+}
