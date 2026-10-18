@@ -1,0 +1,36 @@
+Workstation paths redacted; original log SHA256: 733650330a95857bc04229044de448e0e42362a63de92dbc418e2055f442bdb0
+
+test_expired_introspection_denies_and_revokes_instead_of_outage (test_world_trial_audit6.IdentityExpiryAuditTests.test_expired_introspection_denies_and_revokes_instead_of_outage) ... ERROR
+test_expired_login_is_source_expired_denial (test_world_trial_audit6.IdentityExpiryAuditTests.test_expired_login_is_source_expired_denial) ... ERROR
+
+======================================================================
+ERROR: test_expired_introspection_denies_and_revokes_instead_of_outage (test_world_trial_audit6.IdentityExpiryAuditTests.test_expired_introspection_denies_and_revokes_instead_of_outage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "[local-path]", line 19, in test_expired_introspection_denies_and_revokes_instead_of_outage
+    self.assertEqual(w.session_eligible('S'*43, require_profile='world'), (None, False))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "[local-path]", line 367, in session_eligible
+    identity = _identity(_world_post("/session", dict(client_id=CLIENT_ID, bridge_session=row["bridge_session"])), row["bridge_session"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "[local-path]", line 244, in _identity
+    raise BridgeUnavailable("invalid_world_response")
+web.world_auth.BridgeUnavailable: invalid_world_response
+
+======================================================================
+ERROR: test_expired_login_is_source_expired_denial (test_world_trial_audit6.IdentityExpiryAuditTests.test_expired_login_is_source_expired_denial)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "[local-path]", line 32, in test_expired_login_is_source_expired_denial
+    w.complete_login(state, start.flow_cookie, 'C'*43, profile='world')
+  File "[local-path]", line 307, in complete_login
+    identity = _identity(_world_post("/token", dict(grant_type="authorization_code", client_id=CLIENT_ID,
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "[local-path]", line 244, in _identity
+    raise BridgeUnavailable("invalid_world_response")
+web.world_auth.BridgeUnavailable: invalid_world_response
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.054s
+
+FAILED (errors=2)

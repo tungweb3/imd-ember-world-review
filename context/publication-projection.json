@@ -1,0 +1,41 @@
+{
+  "sourceCommit": "41ca333db50696a0a2f4c886d6fe7171637908cc",
+  "repository": "tungweb3/imd-ember-world-review",
+  "branch": "economy-shared-gold-audit6-20261019-41ca333d",
+  "preparedAt": "2026-10-19T01:32:14.571324+08:00",
+  "authorization": "User directly requested GitHub upload and Audit form preparation.",
+  "sealedPacketSha256": "27643f6aac2d0e14f81dea637ccc48f0a7f7edda3fca3cb00cd6387d4f0a8566",
+  "sealedPacketPreserved": true,
+  "financialCodeChanged": false,
+  "publicationMetadataChanges": [
+    {
+      "path": "README.md",
+      "beforeSha256": "16fa218fc75a7ca66a4e42b2e022bb58fe15eb1d46bedc820845fc857fe7a084",
+      "afterSha256": "5ee3b53b89c28cee75eed19e3f5d7bf7ead31b455d48607445d0ba274f9738bf",
+      "reason": "Publication status only; tested financial source unchanged."
+    },
+    {
+      "path": "SCOPE.md",
+      "beforeSha256": "05edbd568fee42da67f87cfd691bbef0c3ac49765615122e6e5289fcb28f20a9",
+      "afterSha256": "cd8c3167478e9f2e0b1df17509729af3fa2d8f00d2f57e5ba8c8c9c2142e3386",
+      "reason": "Direct user authorization and precise handoff scope."
+    },
+    {
+      "path": "context/candidate.json",
+      "beforeSha256": "bc8f57c00312428ed8d438c3721120cda4d119da152dd83e1ba84718cd7bcb78",
+      "afterSha256": "df928021d0778da9c6743c764419acdd674ffaae206ce7ba3552c90d0201df28",
+      "reason": "Publication metadata only; actual public SHA recorded after push."
+    }
+  ],
+  "previousAuditJob": "188a3018-0379-413a-bccc-79f278452e8f",
+  "localTests": {
+    "worldPassed": 2867,
+    "worldFailed": 0,
+    "worldExistingSkipped": 5,
+    "portableFinancialPassed": 433,
+    "portableContractsPassed": 30,
+    "pythonPassed": 18
+  },
+  "evidenceNote": "Sealed local evidence remains byte-identical and describes its state before publication.",
+  "limitations": "Local fixtures only. Real provider/VPS, public finalized reader, actual wallets/runtime, production capacity, migration/rollback/postflight remain unverified and disabled. No paid submission or deployment."
+}

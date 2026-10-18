@@ -1,0 +1,27 @@
+Workstation paths redacted; original log SHA256: b802e8adb392d06c465567bba40131d1b89a5f020906a661870cbe0459127f85
+
+✖ expanded inspection: signature-time success cannot debit after a shared readiness await crosses expiry (66.6349ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 958.9729
+
+✖ failing tests:
+
+test at tests\world-gold-audit6-matrix.test.mjs:165:1
+✖ expanded inspection: signature-time success cannot debit after a shared readiness await crosses expiry (66.6349ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /CHALLENGE_EXPIRED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

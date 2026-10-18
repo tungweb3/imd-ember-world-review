@@ -1,0 +1,12 @@
+# Confirmed rules and invariants
+
+- GOLD is wallet-bound off-chain points, nontransferable, nonredeemable, with no EMBEO/GOLD AMM pair. Purchased, staking and eligible future game GOLD have equal spending rights, including paid Mint.
+- Keep one existing economy_gold_accounts book balance. Available = book - held. Old and new consumers cannot spend held funds. Every receipt/source/order entitlement applies at most once, including partial legacy credits, retry, replay and concurrent admin/automatic repair.
+- EMBEO topup income goes to the confirmed treasury; do not spend staking principal, introduce burn or revenue sharing. Price versions affect new orders; valid original orders reconcile at their locked original amounts.
+- Staking and withdrawal are positive multiples of 100000 EMBEO. A full UTC day gives 1 GOLD per unit after next-day finalized confirmation. Withdrawn units forfeit that day's production; principal withdrawal and earned other-day/other-unit GOLD remain valid. No rolling per-second replacement is introduced.
+- Free and paid Mint open simultaneously with shared 2222 supply, first successfully completed wins. Eligible Active Agent wallet gets one free Mint without either fee. No three-day limit or free reservation pool. Paid Mint still requires both EMBEO and GOLD; buying GOLD does not offset the Mint EMBEO fee.
+- Service debit creates one durable job. Reopening one completed result costs no more GOLD. Unknown provider timeout is not confirmed failure; only proven terminal nondelivery can return original GOLD once. Late completion cannot overwrite refunded state.
+- Owner commands use the three user-confirmed public owner wallets and current World session. No arbitrary balance setter/mint amount is exposed. Repair is bounded by the original unpaid entitlement difference; log request, actor, reason and atomic before/after state.
+- AIMarket free activity starts/ends in UTC, has half-open time bounds, can be stopped manually, is rechecked by World portal sessions, and never opens the external profile via trial claims. No second research-login signature is introduced by trial.
+- Pause only new admissions by feature. Existing finalized payments, reconciliation, saved results, lawful refunds and principal withdrawals must remain serviceable.
+- No product issuance cap or game budget is invented. Integer safety limits are technical constraints. Game rewards must not accept client claimed wins; game work is postponed in this candidate.

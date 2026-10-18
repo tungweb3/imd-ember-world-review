@@ -1,0 +1,6 @@
+import type {Session} from './auth.ts';
+export type AIMarketTrial={active:boolean;endsMs:number|null;version:number};
+export async function fetchAIMarketTrialStatus(session:Session,{fetch:request=fetch,signal,now=Date.now}:{fetch?:typeof fetch;signal?:AbortSignal;now?:()=>number}={}):Promise<AIMarketTrial|null>{
+ const start=now(),address=session.address.toLowerCase(),expiry=session.expiresAt;if(!/^0x[0-9a-f]{40}$/.test(address)||!Number.isSafeInteger(start)||start<=0||!Number.isSafeInteger(expiry)||expiry<=start||signal?.aborted)return null;
+ try{const r=await request('/api/me/aimarket-trial?expected_address='+address,{method:'GET',credentials:'same-origin',cache:'no-store',signal});const value=await r.json(),end=now();if(!r.ok||signal?.aborted||session.address.toLowerCase()!==address||session.expiresAt!==expiry||!Number.isSafeInteger(end)||end<start||expiry<=end||value.address!==address||!value.campaign||typeof value.campaign.active!=='boolean'||!Number.isSafeInteger(value.campaign.version)||value.campaign.version<0||(value.campaign.endsMs!==null&&!Number.isSafeInteger(value.campaign.endsMs)))return null;return {active:value.campaign.active,endsMs:value.campaign.endsMs,version:value.campaign.version};}catch{return null;}
+}

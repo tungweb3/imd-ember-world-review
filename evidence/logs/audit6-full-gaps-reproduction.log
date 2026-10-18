@@ -1,0 +1,250 @@
+Workstation paths redacted; original log SHA256: 44d83f9452e199c3fe44097ed077511836ee21b5fdc74bc1fd6dd6a42d2bd973
+
+TAP version 13
+# Subtest: deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text
+not ok 1 - deploy evidence from a real deploy record: commit, id, times, version id, bundle and frontend hashes, migrations, limiters, WAF rule; no log text
+  ---
+  duration_ms: 2586.6444
+  type: 'test'
+  location: '[local-path]'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      [
+        '0001_wallet_login.sql',
+        '0002_sign_in_budgets.sql',
+        '0003_sign_in_layers.sql',
+        '0004_index_candidates.sql',
+    ...
+        '0015_world_gold_audit_hardening.sql',
+    +   '0016_world_gold_cross_path_guards.sql'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: '0001_wallet_login.sql'
+    1: '0002_sign_in_budgets.sql'
+    2: '0003_sign_in_layers.sql'
+    3: '0004_index_candidates.sql'
+    4: '0005_lanes_and_subnets.sql'
+    5: '0006_members.sql'
+    6: '0008_member_hardening.sql'
+    7: '0009_aimarket_bridge.sql'
+    8: '0010_world_economy.sql'
+    9: '0011_world_economy_staging.sql'
+    10: '0012_economy_reward_bindings.sql'
+    11: '0013_economy_reconciliation.sql'
+    12: '0014_world_gold_integration.sql'
+    13: '0015_world_gold_audit_hardening.sql'
+  actual:
+    0: '0001_wallet_login.sql'
+    1: '0002_sign_in_budgets.sql'
+    2: '0003_sign_in_layers.sql'
+    3: '0004_index_candidates.sql'
+    4: '0005_lanes_and_subnets.sql'
+    5: '0006_members.sql'
+    6: '0008_member_hardening.sql'
+    7: '0009_aimarket_bridge.sql'
+    8: '0010_world_economy.sql'
+    9: '0011_world_economy_staging.sql'
+    10: '0012_economy_reward_bindings.sql'
+    11: '0013_economy_reconciliation.sql'
+    12: '0014_world_gold_integration.sql'
+    13: '0015_world_gold_audit_hardening.sql'
+    14: '0016_world_gold_cross_path_guards.sql'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///[local-path])
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts
+ok 2 - outside git the working tree is used and said so; migrations are hashed, comments and trailing commas stripped, only an exact Version ID line counts
+  ---
+  duration_ms: 602.6319
+  type: 'test'
+  ...
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":1,"at":1790596800000,"indexPruned":1,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":0,"skipped":"workers-incomplete","at":1790596800000,"indexPruned":1,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":2,"at":1790597700000,"indexPruned":0,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":2,"at":1790596800000,"indexPruned":0,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":0,"skipped":"workers-incomplete","at":1790597700000,"indexPruned":0,"lanesPruned":0}
+# index_probe_cleanup {"status":"cleaned","deleted":0}
+# member_cleanup {"status":"cleaned","requests":0,"history":0}
+# presence {"written":1,"at":1790596560000,"indexPruned":0,"lanesPruned":0}
+# presence run (parse 2 bodies + derive + 1 upsert): 23.8 / 15.7 / 10.7 / 15.5 / 20.7 ms
+# Subtest: migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes
+not ok 3 - migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes
+  ---
+  duration_ms: 7.5364
+  type: 'test'
+  location: '[local-path]'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      [
+        '0001_wallet_login.sql',
+        '0002_sign_in_budgets.sql',
+        '0003_sign_in_layers.sql',
+        '0004_index_candidates.sql',
+    ...
+        '0015_world_gold_audit_hardening.sql',
+    +   '0016_world_gold_cross_path_guards.sql'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: '0001_wallet_login.sql'
+    1: '0002_sign_in_budgets.sql'
+    2: '0003_sign_in_layers.sql'
+    3: '0004_index_candidates.sql'
+    4: '0005_lanes_and_subnets.sql'
+    5: '0006_members.sql'
+    6: '0008_member_hardening.sql'
+    7: '0009_aimarket_bridge.sql'
+    8: '0010_world_economy.sql'
+    9: '0011_world_economy_staging.sql'
+    10: '0012_economy_reward_bindings.sql'
+    11: '0013_economy_reconciliation.sql'
+    12: '0014_world_gold_integration.sql'
+    13: '0015_world_gold_audit_hardening.sql'
+  actual:
+    0: '0001_wallet_login.sql'
+    1: '0002_sign_in_budgets.sql'
+    2: '0003_sign_in_layers.sql'
+    3: '0004_index_candidates.sql'
+    4: '0005_lanes_and_subnets.sql'
+    5: '0006_members.sql'
+    6: '0008_member_hardening.sql'
+    7: '0009_aimarket_bridge.sql'
+    8: '0010_world_economy.sql'
+    9: '0011_world_economy_staging.sql'
+    10: '0012_economy_reward_bindings.sql'
+    11: '0013_economy_reconciliation.sql'
+    12: '0014_world_gold_integration.sql'
+    13: '0015_world_gold_audit_hardening.sql'
+    14: '0016_world_gold_cross_path_guards.sql'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///[local-path])
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work
+ok 4 - 0002 is additive: on a live 0001 database every row stays as it was, new columns are empty, and the old code’s writes still work
+  ---
+  duration_ms: 6.3697
+  type: 'test'
+  ...
+# Subtest: 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work
+ok 5 - 0003 is additive: on a live 0002 database every row stays as it was, the new columns are empty, and the old code’s writes still work
+  ---
+  duration_ms: 4.9467
+  type: 'test'
+  ...
+# Subtest: 0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty
+ok 6 - 0004 is additive: on a live 0003 database every row of every table stays as it was, and index_candidates starts empty
+  ---
+  duration_ms: 6.2908
+  type: 'test'
+  ...
+# Subtest: 0005 is additive: on a live 0004 database every row of every table stays as it was, the new columns are empty, index_lanes starts empty, and the 0004 statements still run
+ok 7 - 0005 is additive: on a live 0004 database every row of every table stays as it was, the new columns are empty, index_lanes starts empty, and the 0004 statements still run
+  ---
+  duration_ms: 12.4677
+  type: 'test'
+  ...
+# Subtest: 0006 is additive: on a live 0005 database every row of every table stays as it was, the new tables start empty but for the seven system names, and the 0005 statements still run
+ok 8 - 0006 is additive: on a live 0005 database every row of every table stays as it was, the new tables start empty but for the seven system names, and the 0005 statements still run
+  ---
+  duration_ms: 12.6076
+  type: 'test'
+  ...
+# Subtest: A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not
+ok 9 - A-2: the cron deletes index answers read more than 8 days ago and keeps the rest, with a complete roster or not
+  ---
+  duration_ms: 112.0779
+  type: 'test'
+  ...
+# Subtest: N-6: the cron deletes index-lane rows older than a minute and keeps the rest, by a range of index_lanes_at; a database before 0005 is left alone
+ok 10 - N-6: the cron deletes index-lane rows older than a minute and keeps the rest, by a range of index_lanes_at; a database before 0005 is left alone
+  ---
+  duration_ms: 46.9919
+  type: 'test'
+  ...
+# Subtest: a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched
+ok 11 - a complete roster records every listed seat at the roster time, with the swarm owner; nothing else is touched
+  ---
+  duration_ms: 37.9079
+  type: 'test'
+  ...
+# Subtest: a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs
+ok 12 - a partial, failed or stale roster writes nothing (never "offline"), but housekeeping still runs
+  ---
+  duration_ms: 39.792
+  type: 'test'
+  ...
+# Subtest: an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one
+ok 13 - an older (edge-cached) roster never moves a sighting backwards; an unknown owner keeps the last known one
+  ---
+  duration_ms: 118.1828
+  type: 'test'
+  ...
+# Subtest: an edge-cached roster is dated by its Age, not by the time the cron read it
+ok 14 - an edge-cached roster is dated by its Age, not by the time the cron read it
+  ---
+  duration_ms: 36.8956
+  type: 'test'
+  ...
+# Subtest: no database: the cron does nothing and makes no upstream read
+ok 15 - no database: the cron does nothing and makes no upstream read
+  ---
+  duration_ms: 30.9751
+  type: 'test'
+  ...
+# Subtest: recording a production-sized roster costs a few ms, far below the 50 ms CPU cap
+ok 16 - recording a production-sized roster costs a few ms, far below the 50 ms CPU cap
+  ---
+  duration_ms: 306.782
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 14
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3477.6509
