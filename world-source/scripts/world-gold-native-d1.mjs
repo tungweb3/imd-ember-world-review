@@ -1,0 +1,25 @@
+import {createRequire} from 'node:module';
+import {readFileSync,readdirSync,writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY} from '../server/economy-config.ts';
+import {goldAdminCommand,goldQuote,reconcileWorldGold,worldGoldSnapshot,reserveMintGold,settleMintGold} from '../server/world-gold.ts';
+import {ingestEconomyEvents} from '../server/economy-ledger.ts';
+const require=createRequire(new URL('../node_modules/wrangler/package.json',import.meta.url)),{Miniflare,convertV4MiniflareOptions}=require('miniflare');
+const {unstable_splitSqlQuery:splitSqlQuery}=require('wrangler');
+const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("local only")}}',compatibilityDate:'2026-05-15',d1Databases:{DB:'ember-shared-gold-native-fixture'}}));
+const facts=[];
+try{
+ const db=await mf.getD1Database('DB');
+ for(const name of readdirSync(new URL('../migrations/',import.meta.url)).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort())await db.batch(splitSqlQuery(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8')).map(sql=>db.prepare(sql)));
+ facts.push('exact production migrations accepted by local workerd D1');
+ const NOW=Date.UTC(2026,9,18),W='0x'+'a'.repeat(40),H=n=>'0x'+BigInt(n).toString(16).padStart(64,'0'),config=await defineEconomyConfig({chainId:1,token:ECONOMY_TOKEN,tokenDecimals:18,treasury:ECONOMY_TREASURY,stakingContract:'0x'+'1'.repeat(40),paymentContract:'0x'+'2'.repeat(40),deploymentBlock:'100',catalogue:[]});
+ await goldAdminCommand(db,{wallet:ECONOMY_TREASURY,requestId:crypto.randomUUID(),command:{action:'product',product:'native-pack',kind:'topup',title:'Native D1 fixture',gold:'10',embeo:'7000000000000000000',enabled:true,version:1},reason:'isolated native D1 validation',nowMs:NOW});
+ const id=await goldQuote({db,config,nowMs:NOW},{wallet:W,requestId:crypto.randomUUID(),product:'native-pack'});
+ await ingestEconomyEvents(db,config,{fromBlock:'100',toBlock:'100',toBlockHash:H(100),throughTimestamp:NOW,events:[{kind:'payment',transactionHash:H(200),logIndex:0,blockNumber:'100',blockHash:H(100),timestamp:NOW,wallet:W,amount:'7000000000000000000',orderId:id,token:config.token,receiver:config.treasury}]});
+ await Promise.all([reconcileWorldGold(db,NOW),reconcileWorldGold(db,NOW)]);assert.equal((await worldGoldSnapshot(db,W,NOW)).book,'10');facts.push('D1 concurrent projection credits once');
+ const mint={id:H(900),wallet:W,auth:{fixture:'authorized-proof-only'},gold:'8',chainId:1,contract:'0x'+'8'.repeat(40),chainInstance:'native-sql-fixture',deadline:NOW+1000};await reserveMintGold(db,mint,NOW);
+ await assert.rejects(db.prepare("INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) VALUES(?,?,-3,'service-payment',?,?)").bind('bad-native',W,'bad-native',NOW).run());assert.equal((await worldGoldSnapshot(db,W,NOW)).available,'2');facts.push('D1 legacy debit cannot spend held GOLD');
+ await settleMintGold(db,{id:mint.id,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,state:'consumed',evidence:{schema:'ember-mint-proof-v1',mode:'finalized-chain',orderId:mint.id,wallet:W,gold:mint.gold,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,blockHash:H(501),blockNumber:'501',chainTimeMs:NOW,tokenId:'1',revoked:false,transactionHash:H(502)}},NOW);await settleMintGold(db,{id:mint.id,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,state:'consumed',evidence:{schema:'ember-mint-proof-v1',mode:'finalized-chain',orderId:mint.id,wallet:W,gold:mint.gold,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,blockHash:H(501),blockNumber:'501',chainTimeMs:NOW,tokenId:'1',revoked:false,transactionHash:H(502)}},NOW);assert.equal((await worldGoldSnapshot(db,W,NOW)).book,'2');facts.push('D1 hold consumption and debit commit once');
+ const audit=await db.prepare('SELECT before_json,after_json FROM world_gold_admin_actions LIMIT 1').first();assert.ok(audit.before_json&&audit.after_json);facts.push('D1 admin writes retain atomic before/after evidence');
+ const report={status:'PASS_LOCAL_WORKERD_D1_LOGIC',facts,productionCapacityProved:false,publicChainUsed:false,fixtureChainProfile:false};writeFileSync(process.env.EMBER_GOLD_D1_EVIDENCE??new URL('../../evidence/native-d1.private.json',import.meta.url),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+}finally{await mf.dispose();}

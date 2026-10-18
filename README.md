@@ -1,0 +1,7 @@
+# Ember World shared GOLD Audit remediation candidate
+
+Selected projection of World source 7afdd097847d2cd6b5d503734566afc1b78a2c8d, remediating Swarm job c47bc2a0-44e0-413f-a5f1-75b6922c575a (prior public source d0a6f42c1e455f16472ea0c51c310f7f2710a9fd). Read SCOPE.md, REQUIREMENTS.md, LOCAL_TESTS.md and world-source/docs/world-gold-audit5-remediation.md. This selected candidate is prepared for the user-authorized GitHub publication and Swarm review. It has not been submitted to a paid audit or deployed. The sealed local test evidence records its state before publication; current publication metadata is in context/publication-projection.json.
+
+Node24: install exact locked dependencies with npm ci separately in contracts/ and world-source/. Run node tools/verify-source.mjs and node tools/run-review-tests.mjs. Python stdlib: in aimarket/, python -m unittest -v test_world_trial test_world_trial_audit5. Exact production SQL local D1: in world-source/, node scripts/world-gold-native-d1.mjs. Tests require no public RPC, real wallet or production database.
+
+This selected projection includes financial/session/server/client and scoped Worker tests, not the complete World artwork build or every renderer/Worker test. Full-workspace results are distinct from portable reproduction. All plumbing/artifact filename adaptations and byte hashes are enumerated in manifests; financial implementation and SQL are not adapted.

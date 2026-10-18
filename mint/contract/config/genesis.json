@@ -1,0 +1,92 @@
+{
+  "policyVersion": "concurrent-free-paid-gold-r4-20261018",
+  "scope": "LOCAL_CANDIDATE_ONLY",
+  "productionMintEnabled": false,
+  "deploymentAuthorized": false,
+  "chainId": 1,
+  "paymentToken": "0x2b82cdeb8477415d541799abb0cc48044c8ea5f3",
+  "paymentDecimals": 18,
+  "receivingAddress": "0x1C651928150DADDDA9C2C040a9D4901d862f8eC4",
+  "treasuryAddress": "0x1C651928150DADDDA9C2C040a9D4901d862f8eC4",
+  "maxSupply": 2222,
+  "firstTokenId": 1,
+  "lastTokenId": 2222,
+  "displayNamePrefix": "Ember Evo ",
+  "imdNftIdBinding": false,
+  "free": {
+    "unit": "SNAPSHOT_WALLET",
+    "minimumActiveAgents": 1,
+    "perWallet": 1,
+    "snapshotAt": null,
+    "mintStartAt": null,
+    "windowSeconds": null,
+    "eligibleWalletCount": null,
+    "merkleRoot": null,
+    "reservedSlots": 0,
+    "unclaimedAfterDeadline": null,
+    "exclusiveWindow": false
+  },
+  "paid": {
+    "perTransaction": 1,
+    "perWallet": "UNLIMITED_WITHIN_TOTAL_SUPPLY",
+    "proposedPriceEmbeo": null,
+    "proposedPriceAtomic": null,
+    "priceStatus": "UNSET",
+    "priceApproved": false,
+    "perWalletPerTransaction": 1,
+    "opensAt": "COMMON_SALE_START",
+    "goldCost": null,
+    "embeoCost": null
+  },
+  "appearance": {
+    "uniqueAcrossCollection": true,
+    "selection": "USER_COMPOSED",
+    "priority": "FIRST_SUCCESSFUL_MINT",
+    "rarity": false,
+    "canonicalKeyMutable": false,
+    "catalogueSource": null,
+    "approvalSigner": null,
+    "fixedSkin": "green",
+    "skinSelectable": false,
+    "clothingSlots": [
+      "hat",
+      "top",
+      "bottom",
+      "shoes"
+    ],
+    "catalogueStatus": "CONCEPT_ONLY_STYLE_COUNT_TBD",
+    "canonicalSchema": "body-skin-hat-top-bottom-shoes-v1",
+    "signatureModes": [
+      "EOA",
+      "ERC1271"
+    ],
+    "signatureDomainVersion": "4",
+    "signedEpoch": true,
+    "signerRotation": "OWNER_STAGED_PROVEN_ACCEPTANCE_WHILE_PAUSED",
+    "oldUnusedApprovalsAfterRotation": "INVALIDATED",
+    "proposalCancellation": "IMMEDIATE_SIGNED_PROPOSAL_NONCE_REVOCATION"
+  },
+  "admin": {
+    "pauseMint": true,
+    "updateMetadata": true,
+    "changeReceivingAddress": true,
+    "adminAddress": null,
+    "controlMethod": null,
+    "renounceOwnership": false,
+    "ownershipTransfer": "TWO_STEP",
+    "metadataNotifications": "ERC4906"
+  },
+  "remediation": {
+    "status": "TBD_NOT_ENABLED"
+  },
+  "collectionAddress": null,
+  "collectionSymbol": null,
+  "metadataSource": null,
+  "candidateRevision": "r4-concurrent-gold-authorization-local-only",
+  "localTestEvm": "CANCUN",
+  "fixtureOnly": {
+    "embeoAtomic": "300000000000000000000000",
+    "gold": "1",
+    "chainId": 31337
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "status": "AUDIT5_LOCAL_REMEDIATION_SECOND_INSPECTION_COMPLETE_PACKET_READY",
+  "sourceCommit": "7afdd097847d2cd6b5d503734566afc1b78a2c8d",
+  "completedAt": "2026-10-18T09:48:33.389783+00:00",
+  "previousPublicCommit": "d0a6f42c1e455f16472ea0c51c310f7f2710a9fd",
+  "previousAuditJob": "c47bc2a0-44e0-413f-a5f1-75b6922c575a",
+  "initialFailureReproduction": {
+    "tests": 11,
+    "pass": 0,
+    "fail": 11,
+    "skipped": 0,
+    "logSha256": "d60134623e8475c292c942f70f15bd9e09a7565bf317887b922f1a719a8455ff"
+  },
+  "secondInspectionBefore": {
+    "tests": 14,
+    "pass": 11,
+    "fail": 3,
+    "skipped": 0,
+    "logSha256": "5e2635b3a0f8b49ecbf2c552d7d1aae75179c97c2849a5fe6e28c4a54bbebbfa"
+  },
+  "secondInspectionAfter": {
+    "tests": 50,
+    "pass": 50,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "2b7f521610f1e5d413a9b84819335ce8634fd4e63c228fdf03e6285be6484951"
+  },
+  "fullWorkspace": {
+    "tests": 2837,
+    "pass": 2832,
+    "fail": 0,
+    "skipped": 5,
+    "logSha256": "23b7bdb3b34570c7196a056ed130232e6332e879cfbe7f9dad388ccfe092d509"
+  },
+  "selectedPortableFinancial": {
+    "tests": 398,
+    "pass": 398,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "24f5e68393bf0078e554f08ddfbd009e6e16eb192b75c2507a07b081382885c0"
+  },
+  "portableContracts": {
+    "tests": 30,
+    "pass_": 30,
+    "fail": 0,
+    "logSha256": "8a9348cad3c5f794ed246790cb8171bbacacf0dce16f2a045e9ffda22bdc761a"
+  },
+  "pythonTrial": {
+    "tests": 10,
+    "pass_": 10,
+    "fail": 0,
+    "logSha256": "83a130bf6e9bdca506c9722ae24c239852fef4d10d3d08377e7c3365397c1bae"
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "workerDryRun": "PASS_NO_UPLOAD",
+  "nativeLocalD1": {
+    "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+    "facts": [
+      "exact production migrations accepted by local workerd D1",
+      "D1 concurrent projection credits once",
+      "D1 legacy debit cannot spend held GOLD",
+      "D1 hold consumption and debit commit once",
+      "D1 admin writes retain atomic before/after evidence"
+    ],
+    "productionCapacityProved": false,
+    "publicChainUsed": false,
+    "fixtureChainProfile": false
+  },
+  "preserved": {
+    "r3Files": 70,
+    "r4Files": 50,
+    "mismatches": 0,
+    "publicAssetsChanged": 0,
+    "geometryChanged": 0,
+    "priorMigrationsChanged": 0
+  },
+  "sourcePublished": false,
+  "auditSubmitted": false,
+  "deployed": false,
+  "productionReady": false,
+  "limitations": [
+    "Real provider/VPS delivery remains unbound; service admission fails closed.",
+    "Production finalized Mint reader and persistent original namespace registry are separate release gates; included reader is private EDR only.",
+    "SQLite restore cannot restore a lost EDR chain; lost authority remains blocked.",
+    "Real wallets/mainnet runtime/finality, production Workers CPU/D1 capacity, migration/rollback/postflight and new Swarm verdict are not proved."
+  ],
+  "dependencies": "Existing exact-lock dependency runtime reused through local junctions; no fresh npm install claimed.",
+  "suiteSkipReason": "Five pre-existing Windows native symlink checks only; no new finance test skipped.",
+  "packetAssemblyHistory": "First portable run lacked five existing context modules (6 import failures); corrected without financial code changes. Contracts already passed30; the completed selected financial rerun passed398."
+}

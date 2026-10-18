@@ -1,0 +1,42 @@
+{
+  "sourceCommit": "7afdd097847d2cd6b5d503734566afc1b78a2c8d",
+  "repository": "tungweb3/imd-ember-world-review",
+  "branch": "economy-shared-gold-audit5-20261018-7afdd097",
+  "preparedAt": "2026-10-18T17:55:50.985334+08:00",
+  "authorization": "User directly requested GitHub upload and Audit form preparation.",
+  "sourcePacketSha256": "2fe9876e7615f37c48fb989f0da75db281342a91972f49fe310abafb8f28b413",
+  "sealedPacketPreserved": true,
+  "publicationMetadataChanges": [
+    {
+      "path": "README.md",
+      "beforeSha256": "2a971e54f03f3ceeb544af314d8b42653d84639af173643f20b5394022f87d10",
+      "afterSha256": "dc0b65c68b902cda1ec8b25a721424ba513fc197af6d96fe9c6a6b795902e7a0",
+      "reason": "Publication status prose only; financial implementation unchanged."
+    },
+    {
+      "path": "SCOPE.md",
+      "beforeSha256": "56dd5a22f5e69c5fbf64ac5472c883033499f2466d62fee68c7bfd9eafb54a14",
+      "afterSha256": "dc79cb332cab274e277567887d3039bf91b451c6f24a24ed4ab10062a32eba30",
+      "reason": "Current direct user authorization; all release gates retained."
+    },
+    {
+      "path": "context/candidate.json",
+      "beforeSha256": "7cc55e59afe925e1efa4c70d450e7a5ec10f936712e06d828e23083987420774",
+      "afterSha256": "6781ed021daf417508285dddaed954dd8221bfaf47cc969d75479d6a2faf49ad",
+      "reason": "Publication metadata only; actual remote commit is recorded separately after push."
+    }
+  ],
+  "financialCodeChanged": false,
+  "previousAuditJob": "c47bc2a0-44e0-413f-a5f1-75b6922c575a",
+  "localTests": {
+    "workspacePassed": 2832,
+    "workspaceFailed": 0,
+    "workspaceExistingSkipped": 5,
+    "portableFinancialPassed": 398,
+    "portableContractsPassed": 30,
+    "pythonTrialPassed": 10
+  },
+  "evidenceNote": "Sealed evidence describes the pre-publication test state and is preserved byte-for-byte.",
+  "scope": "Shared GOLD / EMBEO topup / R4 reserve / provider delivery-refund / admin / authenticated World trial remediation. Game work excluded.",
+  "limitations": "Local fixtures and selected sources only. No real provider, finalized public-chain reader, real wallet, production capacity, deployment or paid audit submission proved."
+}

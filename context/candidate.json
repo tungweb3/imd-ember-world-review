@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "7afdd097847d2cd6b5d503734566afc1b78a2c8d",
+  "previousPublicCommit": "d0a6f42c1e455f16472ea0c51c310f7f2710a9fd",
+  "previousAuditJob": "c47bc2a0-44e0-413f-a5f1-75b6922c575a",
+  "sourcePublished": false,
+  "auditSubmitted": false,
+  "productionDeployed": false,
+  "wholeWorldIncluded": false,
+  "publicGitHubUrl": "https://github.com/tungweb3/imd-ember-world-review/tree/economy-shared-gold-audit5-20261018-7afdd097",
+  "publicationState": "PREPARED_FOR_USER_AUTHORIZED_GITHUB_PUBLICATION",
+  "intendedBranch": "economy-shared-gold-audit5-20261018-7afdd097"
+}

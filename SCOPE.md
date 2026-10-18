@@ -1,0 +1,15 @@
+# Remediation review scope
+
+Review the complete shared GOLD boundary at World source 7afdd097847d2cd6b5d503734566afc1b78a2c8d, with copied Mint/AIMarket sources sealed separately in manifests/auxiliary-source.json. Prior job c47bc2a0 found 2 medium, 7 low and 3 informational items. Verify closure independently using world-source/docs/world-gold-audit5-remediation.md and context/previous-audit-c47bc2a0.md; do not infer security acceptance from claimed local tests.
+
+Focus on expired authenticated trial versus holder fallback; known old/partial schema recovery; pause and provider capability at quote/challenge/debit; atomic debit/job creation; terminal unusable-result handling; structured nondelivery evidence; per-order overflow isolation; original-price/partial-credit deduplication; complete Mint retry bindings; strict scoped ledger/SQL proof; original-namespace bounded hold recovery; reset refusal; independent cron; transient CAS storage versus permanent before/after evidence. The service runtime capability is never a browser/env flag.
+
+Migration0015 is additive; 0010..0014 and prior staking/payment/R4 Solidity are unchanged. Review TypeScript, SQL, Python, the copied Mint service and private reader, not Solidity alone. The 9007199254740991 per-product/order bound is technical safe-integer handling, not a total GOLD issuance cap. Older valid paid orders are not rewritten or cancelled.
+
+GOLD is wallet-bound, nontransferable and nonredeemable. This is not a trading pair. Free/paid Mint simultaneously share 2222 with one eligible free Mint per wallet and no EMBEO/GOLD fees for free Mint; no three-day window. UTC staking and fixed treasury remain unchanged. Games and production NFT/collection rights are deferred.
+
+Fixture prices (7 EMBEO/10 GOLD, research3, fortune2, paid Mint300000 EMBEO+1 GOLD) are not launch prices. Tests use synthetic sessions and private EDR. Same-chain database restoration preserves chain authority only while that exact chain/reader remains available. A lost EDR/new instance/time elapsed never authorizes release. The included reader is private-only; finalized public-chain readers/persistent deployment namespace registry remain a release gate.
+
+No real AIMarket/fortune provider or VPS consumer is installed. The new bounded delivery runner defines the authenticated provider boundary and fails service admission closed without its trusted runtime binding. The deployed entry binds no consumer and reviewedEconomyConfig still returns null. Public chain/runtime/finality, real-wallet behavior, actual provider results, production CPU/D1 capacity and migration/rollback/postflight remain separate release gates.
+
+The user has authorized publication to tungweb3/imd-ember-world-review on branch economy-shared-gold-audit5-20261018-7afdd097 and Audit form preparation. This does not authorize wallet signatures, payment, deployment or production migration. The form must use the actual public Git commit verified after upload; never substitute the old public audit pin or assume the local World commit exists remotely.
