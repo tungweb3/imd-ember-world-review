@@ -1,0 +1,164 @@
+✖ audit10 L1/L2: quote logout before atomic write is 401 with no write (76.1161ms)
+✖ audit10 L1/L2: admin logout before atomic write is 401 with no write (48.6546ms)
+✖ audit10 L1/L2: campaign logout before atomic write is 401 with no write (52.5543ms)
+✖ audit10 L1/L2: pay logout before atomic write is 401 with no write (61.9705ms)
+✖ audit10 L1/L2: inventory logout before atomic write is 401 with no write (35.5375ms)
+✖ audit10 I3: empty or unsupported provider cannot enable service or advertise delivery (34.0332ms)
+✖ audit10 I4: historical unsupported service stays immutable but is marked unserviceable in state (37.7118ms)
+✖ audit10 I5: HTTP respects the same topup retry boundary as cron and credits exactly once (64.7873ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 0
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1286.9857
+
+✖ failing tests:
+
+test at tests\world-gold-audit10.test.mjs:17:67
+✖ audit10 L1/L2: quote logout before atomic write is 401 with no write (76.1161ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:29:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:17:67
+✖ audit10 L1/L2: admin logout before atomic write is 401 with no write (48.6546ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:29:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:17:67
+✖ audit10 L1/L2: campaign logout before atomic write is 401 with no write (52.5543ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:29:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:17:67
+✖ audit10 L1/L2: pay logout before atomic write is 401 with no write (61.9705ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:29:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:17:67
+✖ audit10 L1/L2: inventory logout before atomic write is 401 with no write (35.5375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:29:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:39:1
+✖ audit10 I3: empty or unsupported provider cannot enable service or advertise delivery (34.0332ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 503
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:43:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:49:1
+✖ audit10 I4: historical unsupported service stays immutable but is marked unserviceable in state (37.7118ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - false
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:52:64)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit10.test.mjs:59:1
+✖ audit10 I5: HTTP respects the same topup retry boundary as cron and credits exactly once (64.7873ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [Object: null prototype] {
+  +   attempts: 2,
+  -   attempts: 1,
+      code: 'GOLD_BALANCE_CAPACITY',
+      order_id: '0x090bfec10737e129e1825f600828ed554321841ead15c3bdb34d1ae1c617e733',
+  +   retry_ms: 1792281900001
+  -   retry_ms: 1792281900000
+    }
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit10.test.mjs:63:244)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { order_id: '0x090bfec10737e129e1825f600828ed554321841ead15c3bdb34d1ae1c617e733', code: 'GOLD_BALANCE_CAPACITY', retry_ms: 1792281900001, attempts: 2 },
+    expected: { order_id: '0x090bfec10737e129e1825f600828ed554321841ead15c3bdb34d1ae1c617e733', code: 'GOLD_BALANCE_CAPACITY', retry_ms: 1792281900000, attempts: 1 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

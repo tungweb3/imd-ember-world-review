@@ -1,0 +1,16 @@
+{
+  "status": "PASS_ISOLATED_REAL_GOLD_PANEL",
+  "products": [
+    {
+      "disabled": false,
+      "title": "Supported research fixture"
+    },
+    {
+      "disabled": true,
+      "title": "Unsupported historical fixture"
+    }
+  ],
+  "logs": [],
+  "realWalletUsed": false,
+  "productionApiUsed": false
+}

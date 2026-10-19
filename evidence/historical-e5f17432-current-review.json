@@ -1,0 +1,98 @@
+{
+  "schema": "ember-world-audit10-release/v1",
+  "verifiedAtUtc": "2026-10-19T16:01:54.300435+00:00",
+  "sourceCommit": "e5f17432152670e5516f09fade16f2720b86dcb4",
+  "previousSourceCommit": "1015b2c5c8663c6c4bfb46f135be84cacea1cae0",
+  "remediatedJob": "a211537e-407d-4494-bfbb-159f2665bc33",
+  "originalFindings": {
+    "medium": 1,
+    "low": 3,
+    "info": 1
+  },
+  "baselineRedReproductions": 6,
+  "newRegressions": 128,
+  "fullWorld": {
+    "tests": 3078,
+    "pass": 3073,
+    "fail": 0,
+    "skipped": 5
+  },
+  "portable": {
+    "contracts": 30,
+    "financial": 622,
+    "python": 26,
+    "fail": 0
+  },
+  "nativeD1": {
+    "status": "PASS_NATIVE_WORKERD_D1_AUDIT9",
+    "facts": [
+      "native D1 unsupported pending provider-transition payment is refused without a debit",
+      "native D1 bound json_each product predicate independently blocks debit when application lookup is bypassed",
+      "native D1 supported payment and replay debit once and create one job",
+      "native D1 private read refuses a clock regression above request start"
+    ],
+    "productionDbUsed": false,
+    "publicChainUsed": false,
+    "realWalletUsed": false
+  },
+  "nativeInventory": {
+    "status": "PASS_NATIVE_WORKERD_INVENTORY_AND_CAMPAIGN",
+    "facts": [
+      "native D1 concurrent arrangement CAS commits one revision and one reference",
+      "production empty catalogue quarantines fixture or unknown holdings",
+      "native D1 campaign writes audit evidence without prices or a chain configuration",
+      "native D1 real empty ledger is readable while financial admission stays closed"
+    ],
+    "productionDbUsed": false,
+    "publicChainUsed": false
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "knownDependencyAdvisories": 0,
+  "production": {
+    "status": "DEPLOYED_AND_POSTFLIGHT_VERIFIED",
+    "versionId": "6bd006c7-5a90-4a7a-9756-c7852de6c1b1",
+    "deploymentId": "1359a527-ac74-4165-bb35-a90e7ce1d854",
+    "frontendFilesFullyHashed": 49,
+    "allStaticFilesByteExact": 322,
+    "distSha256": "8a712c9aad1dd85861a72f20962c55b090542aebb49c00ddb66379f62e877afa",
+    "retailAdmissions": "CLOSED",
+    "nftAllowlist": [],
+    "ledgerMismatches": 0,
+    "indexAdvances": true,
+    "scheduledObserved": [
+      {
+        "cron": "*/15 * * * *",
+        "outcome": "ok"
+      },
+      {
+        "cron": "* * * * *",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "newGithubPublished": false,
+  "paidAuditSubmitted": false,
+  "newExternalAuditVerdict": false,
+  "contractChanges": false,
+  "schemaChanges": false,
+  "priceChanges": false,
+  "frontendChanges": false,
+  "limitations": [
+    "Five existing Windows symlink-privilege skips are not passes.",
+    "Local/native/portable tests do not prove peak production capacity or real-wallet paid acceptance.",
+    "Post-write reconciliation revalidation can refuse HTTP success after an already-entitled idempotent credit committed.",
+    "This local archive is not a published GitHub ref or an accepted Swarm verdict."
+  ],
+  "browserBoot": {
+    "status": "PASS_ANONYMOUS_PRODUCTION_BOOT",
+    "url": "https://imdember.com/?lang=zh",
+    "openingEnded": true,
+    "worldCanvasVisible": true,
+    "buildingLabelsVisible": true,
+    "godViewEnabled": true,
+    "consoleErrorsOrWarnings": [],
+    "authenticatedWalletTest": false,
+    "loadingPerformanceMeasured": false
+  }
+}

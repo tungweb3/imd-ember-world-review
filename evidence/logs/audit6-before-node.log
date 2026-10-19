@@ -1,0 +1,167 @@
+Workstation paths redacted; original log SHA256: 07b63dc1ea1b2c666d4450939f70df88d5a9d17ee86f56f11bc0d40b215a4423
+
+✖ Audit6 M1: a capacity-bound staker preserves owed rewards without starving another wallet (43.3649ms)
+✖ Audit6 L2: legacy GOLD catalogue orders cannot debit outside shared jobs (39.0511ms)
+✖ Audit6 L3: pre-0015 reconciliation returns coded schema refusal (11.404ms)
+✖ Audit6 L3: pre-0015 schema cannot create a new quote (25.0112ms)
+✖ Audit6 L6: null provider result is unusable and refunds exactly once (20.4057ms)
+✖ Audit6 L7: private chain cannot persist a finalized public-chain mode (26.9632ms)
+✖ Audit6 L8: unserializable auth rejects with a stable code and no hold (29.4809ms)
+✖ Audit6 L5: authorization at exact chain deadline is refused before gas or a duplicate hold (3914.7176ms)
+✖ Audit6 I9: GOLD mint pause blocks paid holds but preserves fee-free free approval (810.5152ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 0
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6422.3425
+
+✖ failing tests:
+
+test at tests\world-gold-audit6.test.mjs:9:1
+✖ Audit6 M1: a capacity-bound staker preserves owed rewards without starving another wallet (43.3649ms)
+  Error: CHECK constraint failed: typeof(balance)='integer' AND balance>=0
+      at exec (file:///[local-path])
+      at file:///[local-path]
+      at Array.map (<anonymous>)
+      at Object.batch (file:///[local-path])
+      at settleEconomy (file:///[local-path])
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'ERR_SQLITE_ERROR',
+    errcode: 275,
+    errstr: 'constraint failed'
+  }
+
+test at tests\world-gold-audit6.test.mjs:23:1
+✖ Audit6 L2: legacy GOLD catalogue orders cannot debit outside shared jobs (39.0511ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /LEGACY_GOLD_ORDER_UNSUPPORTED|FEATURE_PAUSED|SERVICE_DELIVERY_UNAVAILABLE/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:36:1
+✖ Audit6 L3: pre-0015 reconciliation returns coded schema refusal (11.404ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /SCHEMA_INCOMPLETE/. Input:
+  
+  'Error: no such table: world_gold_reconcile_errors'
+  
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: no such table: world_gold_reconcile_errors
+        at exec (file:///[local-path])
+        at Object.all (file:///[local-path])
+        at Module.reconcileWorldGold (file:///[local-path])
+        at TestContext.<anonymous> (file:///[local-path])
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+        at Test.postRun (node:internal/test_runner/test:1522:19)
+        at Test.run (node:internal/test_runner/test:1447:12)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:960:7),
+    expected: /SCHEMA_INCOMPLETE/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:42:1
+✖ Audit6 L3: pre-0015 schema cannot create a new quote (25.0112ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /SCHEMA_INCOMPLETE/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:50:1
+✖ Audit6 L6: null provider result is unusable and refunds exactly once (20.4057ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'delivered'
+  - 'refunded'
+  
+      at TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'delivered',
+    expected: 'refunded',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:58:1
+✖ Audit6 L7: private chain cannot persist a finalized public-chain mode (26.9632ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /MINT_EVIDENCE_REQUIRED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:66:1
+✖ Audit6 L8: unserializable auth rejects with a stable code and no hold (29.4809ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^Error: INVALID_MINT_AUTH$/. Input:
+  
+  "TypeError: Cannot read properties of undefined (reading 'length')"
+  
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: TypeError: Cannot read properties of undefined (reading 'length')
+        at Module.reserveMintGold (file:///[local-path])
+        at TestContext.<anonymous> (file:///[local-path])
+        at async Test.run (node:internal/test_runner/test:1389:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:960:7),
+    expected: /^Error: INVALID_MINT_AUTH$/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:75:1
+✖ Audit6 L5: authorization at exact chain deadline is refused before gas or a duplicate hold (3914.7176ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///[local-path])
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /PAID_AUTH_NOT_MINEABLE/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit6.test.mjs:88:1
+✖ Audit6 I9: GOLD mint pause blocks paid holds but preserves fee-free free approval (810.5152ms)
+  Error: FEATURE_PAUSED
+      at fail (file:///[local-path])
+      at goldFeature (file:///[local-path])
+      at async file:///[local-path]

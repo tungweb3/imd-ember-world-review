@@ -1,0 +1,15 @@
+{
+  "status": "PASS_NATIVE_WORKERD_D1_AUDIT10",
+  "facts": [
+    "native D1 unsupported pending provider-transition payment is refused without a debit",
+    "native D1 bound json_each product predicate independently blocks debit when application lookup is bypassed",
+    "native D1 supported payment and replay debit once and create one job",
+    "native D1 private read refuses a clock regression above request start",
+    "native D1 all five pre-write logout races return401 and do not debit, mutate controls/campaigns or create inventory",
+    "native D1 empty-provider control is refused and immutable historical products have correct capability flags",
+    "native D1 bound retry metadata preserves cooldown and credits once at exact deadline"
+  ],
+  "productionDbUsed": false,
+  "publicChainUsed": false,
+  "realWalletUsed": false
+}

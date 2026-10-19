@@ -1,0 +1,193 @@
+{"status":"BUILT_LOCAL_REVIEW_CANDIDATE","compiler":"0.8.37+commit.f401782d.Emscripten.clang","inventory":[{"contractName":"EmbeoStakingVault","artifactSha256":"74274c75b2e3034de90b68ea8159554b0c1a41197b1f709210953c40721a7c43","creationBytes":3436,"runtimeTemplateBytes":2847,"runtimeTemplateKeccak256":"0xaeea4785e0de5985da358682b7e0f55e52e5a920aa83fac3e0d1093364e7c32d"},{"contractName":"EmbeoPayments","artifactSha256":"0036fc322657a31d318a230b1a173435823b25dfc2bbf84ca5ab0c82d44a876e","creationBytes":3332,"runtimeTemplateBytes":2581,"runtimeTemplateKeccak256":"0xd15ca9a0e2e15c984bb09babd7afa03c1450370cedd8568d5b48ba936c4630a9"}]}
+{"status":"EXACT_SOLIDITY_ABI_BYTECODE_METADATA_AND_FIXTURE_MATCH","contracts":["EmbeoStakingVault","EmbeoPayments"],"privatePathsRequired":false}
+{"stage":"PORTABLE_CONTRACT_TESTS","files":["test/audit-order-amount.test.mjs","test/contracts.test.mjs","test/preflight.test.mjs"],"publicChainWrites":false}
+TAP version 13
+# Subtest: a manual wrong amount cannot consume the exact quoted payment slot; exact replay and other-payer isolation remain enforced
+ok 1 - a manual wrong amount cannot consume the exact quoted payment slot; exact replay and other-payer isolation remain enforced
+  ---
+  duration_ms: 1005.0021
+  type: 'test'
+  ...
+# Subtest: Exact preserved EMBEO runtime and immutable nonprivileged configuration
+ok 2 - Exact preserved EMBEO runtime and immutable nonprivileged configuration
+  ---
+  duration_ms: 653.6158
+  type: 'test'
+  ...
+# Subtest: Constructors reject missing code, wrong decimals, zero supply and invalid treasury
+ok 3 - Constructors reject missing code, wrong decimals, zero supply and invalid treasury
+  ---
+  duration_ms: 599.2669
+  type: 'test'
+  ...
+# Subtest: Deployed runtime matches every byte after binding compiler-declared immutable slots
+ok 4 - Deployed runtime matches every byte after binding compiler-declared immutable slots
+  ---
+  duration_ms: 226.2424
+  type: 'test'
+  ...
+# Subtest: Every deposit creates a separate lot with exact shares, event and balance deltas
+ok 5 - Every deposit creates a separate lot with exact shares, event and balance deltas
+  ---
+  duration_ms: 404.2636
+  type: 'test'
+  ...
+# Subtest: Partial and full principal withdrawals are immediate and confined to their position
+ok 6 - Partial and full principal withdrawals are immediate and confined to their position
+  ---
+  duration_ms: 352.7511
+  type: 'test'
+  ...
+# Subtest: Another wallet, issuer and nonexistent position cannot withdraw principal
+ok 7 - Another wallet, issuer and nonexistent position cannot withdraw principal
+  ---
+  duration_ms: 674.6103
+  type: 'test'
+  ...
+# Subtest: Zero, overflow and insufficient position shares revert without effects
+ok 8 - Zero, overflow and insufficient position shares revert without effects
+  ---
+  duration_ms: 624.195
+  type: 'test'
+  ...
+# Subtest: Missing or insufficient approval reverts newly allocated lot and remains retryable
+ok 9 - Missing or insufficient approval reverts newly allocated lot and remains retryable
+  ---
+  duration_ms: 832.6581
+  type: 'test'
+  ...
+# Subtest: Insufficient balance rolls back consumed allowance and lot state
+ok 10 - Insufficient balance rolls back consumed allowance and lot state
+  ---
+  duration_ms: 492.784
+  type: 'test'
+  ...
+# Subtest: Direct donations create no shares and cannot be extracted as other principal
+ok 11 - Direct donations create no shares and cannot be extracted as other principal
+  ---
+  duration_ms: 456.8741
+  type: 'test'
+  ...
+# Subtest: Payment sends exact caller debit to immutable treasury with a complete Paid event
+ok 12 - Payment sends exact caller debit to immutable treasury with a complete Paid event
+  ---
+  duration_ms: 477.8372
+  type: 'test'
+  ...
+# Subtest: Successful payer-order-amount tuple cannot replay, while another amount and payer are distinct tuples
+ok 13 - Successful payer-order-amount tuple cannot replay, while another amount and payer are distinct tuples
+  ---
+  duration_ms: 641.5495
+  type: 'test'
+  ...
+# Subtest: Zero order, zero amount and self-payment cannot mark orders paid
+ok 14 - Zero order, zero amount and self-payment cannot mark orders paid
+  ---
+  duration_ms: 857.6737
+  type: 'test'
+  ...
+# Subtest: Payment allowance or balance failure preserves unspent order for a valid retry
+ok 15 - Payment allowance or balance failure preserves unspent order for a valid retry
+  ---
+  duration_ms: 794.8866
+  type: 'test'
+  ...
+# Subtest: Staking approval grants payments no authority and payments cannot spend vault principal
+ok 16 - Staking approval grants payments no authority and payments cannot spend vault principal
+  ---
+  duration_ms: 653.0248
+  type: 'test'
+  ...
+# Subtest: No owner, treasury setter, rescue, arbitrary-call or upgrade selector is reachable
+ok 17 - No owner, treasury setter, rescue, arbitrary-call or upgrade selector is reachable
+  ---
+  duration_ms: 832.4727
+  type: 'test'
+  ...
+# Subtest: Native currency and value attached to nonpayable entry points reject atomically
+ok 18 - Native currency and value attached to nonpayable entry points reject atomically
+  ---
+  duration_ms: 597.0227
+  type: 'test'
+  ...
+# Subtest: Fee-on-transfer, extra payer debit and in-transfer supply changes fail closed
+ok 19 - Fee-on-transfer, extra payer debit and in-transfer supply changes fail closed
+  ---
+  duration_ms: 1732.3268
+  type: 'test'
+  ...
+# Subtest: Failed taxed withdrawal preserves position, principal and contract accounting
+ok 20 - Failed taxed withdrawal preserves position, principal and contract accounting
+  ---
+  duration_ms: 704.9649
+  type: 'test'
+  ...
+# Subtest: An unexpected preexisting supply change blocks deposit, withdrawal and payment
+ok 21 - An unexpected preexisting supply change blocks deposit, withdrawal and payment
+  ---
+  duration_ms: 632.2985
+  type: 'test'
+  ...
+# Subtest: Changed token bytecode is rejected before any token call or state mutation
+ok 22 - Changed token bytecode is rejected before any token call or state mutation
+  ---
+  duration_ms: 562.0625
+  type: 'test'
+  ...
+# Subtest: SafeERC20 accepts a legacy no-return token only when exact transfers hold
+ok 23 - SafeERC20 accepts a legacy no-return token only when exact transfers hold
+  ---
+  duration_ms: 458.0601
+  type: 'test'
+  ...
+# Subtest: Malicious token callbacks cannot reenter deposit, withdrawal or pay
+ok 24 - Malicious token callbacks cannot reenter deposit, withdrawal or pay
+  ---
+  duration_ms: 610.9799
+  type: 'test'
+  ...
+# Subtest: Deterministic multi-wallet sequence conserves principal against an independent position model
+ok 25 - Deterministic multi-wallet sequence conserves principal against an independent position model
+  ---
+  duration_ms: 7624.904
+  type: 'test'
+  ...
+# Subtest: Production token identity gate accepts only the exact canonical stored runtime and metadata
+ok 26 - Production token identity gate accepts only the exact canonical stored runtime and metadata
+  ---
+  duration_ms: 3.7681
+  type: 'test'
+  ...
+# Subtest: Immutable binding rejects missing, unknown, overlapping or out-of-bounds references
+ok 27 - Immutable binding rejects missing, unknown, overlapping or out-of-bounds references
+  ---
+  duration_ms: 5.1068
+  type: 'test'
+  ...
+# Subtest: Deployment readback binds number, finalized hash, parent, timestamp and available gas limit
+ok 28 - Deployment readback binds number, finalized hash, parent, timestamp and available gas limit
+  ---
+  duration_ms: 0.7483
+  type: 'test'
+  ...
+# Subtest: Equivalent hex casing and omitted optional gas limit retain the same header identity
+ok 29 - Equivalent hex casing and omitted optional gas limit retain the same header identity
+  ---
+  duration_ms: 0.1414
+  type: 'test'
+  ...
+# Subtest: Malformed header identities fail closed before a readback can be accepted
+ok 30 - Malformed header identities fail closed before a readback can be accepted
+  ---
+  duration_ms: 0.3643
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27040.6968

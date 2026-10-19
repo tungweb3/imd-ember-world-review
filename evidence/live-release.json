@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "267fcf01ac78dcd78cb529623acbb1dc96b06019",
+  "versionId": "7d2b2cf8-e9b8-4b14-9abd-b389b2fcc367",
+  "indexAtFinalizedHead": 26223137,
+  "indexThroughMs": 1792370903000,
+  "cleanScheduledObservations": 2,
+  "financialAdmission": [
+    {
+      "feature": "mint",
+      "enabled": 0
+    },
+    {
+      "feature": "service",
+      "enabled": 0
+    },
+    {
+      "feature": "topup",
+      "enabled": 0
+    }
+  ],
+  "nftAllowlist": [],
+  "fullDenseBlockCpuCapacityClaimed": false
+}

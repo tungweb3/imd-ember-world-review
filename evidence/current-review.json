@@ -1,0 +1,150 @@
+{
+  "schema": "ember-world-audit11-release/v1",
+  "verifiedAtUtc": "2026-10-19T17:52:59.015673+00:00",
+  "sourceCommit": "5dedb6f160ba29f123bf1fd719e92b0ad9c5dc32",
+  "previousSourceCommit": "e5f17432152670e5516f09fade16f2720b86dcb4",
+  "remediatedJob": "f5a3b8f9-c3ee-4706-aa61-d1a7e4fb3159",
+  "originalFindings": {
+    "low": 2,
+    "info": 3
+  },
+  "baselineRedReproductions": 8,
+  "newRegressions": 53,
+  "changedRuntimeFiles": [
+    "server/aimarket-campaign.ts",
+    "server/economy.ts",
+    "server/inventory.ts",
+    "server/world-gold-api.ts",
+    "server/world-gold.ts",
+    "src/world/WorldGoldPanel.tsx",
+    "src/world/worldGoldClient.ts"
+  ],
+  "changedFiles": [
+    "docs/audit10-f5a3b8f9-remediation.md",
+    "server/aimarket-campaign.ts",
+    "server/economy.ts",
+    "server/inventory.ts",
+    "server/world-gold-api.ts",
+    "server/world-gold.ts",
+    "src/world/WorldGoldPanel.tsx",
+    "src/world/worldGoldClient.ts",
+    "tests/economy-boundaries-audit10.test.mjs",
+    "tests/economy-payment-timing.test.mjs",
+    "tests/world-gold-api.test.mjs",
+    "tests/world-gold-audit10.test.mjs",
+    "tests/world-gold-audit6-matrix.test.mjs"
+  ],
+  "fullWorld": {
+    "tests": 3131,
+    "pass": 3126,
+    "fail": 0,
+    "skipped": 5
+  },
+  "portable": {
+    "contracts": 30,
+    "financial": 675,
+    "python": 26,
+    "fail": 0
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "nativeD1": {
+    "status": "PASS_NATIVE_WORKERD_D1_AUDIT10",
+    "facts": [
+      "native D1 unsupported pending provider-transition payment is refused without a debit",
+      "native D1 bound json_each product predicate independently blocks debit when application lookup is bypassed",
+      "native D1 supported payment and replay debit once and create one job",
+      "native D1 private read refuses a clock regression above request start",
+      "native D1 all five pre-write logout races return401 and do not debit, mutate controls/campaigns or create inventory",
+      "native D1 empty-provider control is refused and immutable historical products have correct capability flags",
+      "native D1 bound retry metadata preserves cooldown and credits once at exact deadline"
+    ],
+    "productionDbUsed": false,
+    "publicChainUsed": false,
+    "realWalletUsed": false
+  },
+  "nativeInventory": {
+    "status": "PASS_NATIVE_WORKERD_INVENTORY_AND_CAMPAIGN",
+    "facts": [
+      "native D1 concurrent arrangement CAS commits one revision and one reference",
+      "production empty catalogue quarantines fixture or unknown holdings",
+      "native D1 campaign writes audit evidence without prices or a chain configuration",
+      "native D1 real empty ledger is readable while financial admission stays closed"
+    ],
+    "productionDbUsed": false,
+    "publicChainUsed": false
+  },
+  "knownDependencyAdvisories": 0,
+  "production": {
+    "status": "DEPLOYED_AND_POSTFLIGHT_VERIFIED",
+    "versionId": "a2e2778a-24b8-4876-8fef-39112319d117",
+    "deploymentId": "14ab5f4f-bd4c-4d3d-af5f-27a202b120c4",
+    "frontendFilesFullyHashed": 49,
+    "unchangedPublicFiles": 260,
+    "protectedNonJsDistFiles": 286,
+    "distSha256": "2b6d67dad40c262a92cf46ae41928bf962b1bae187f9170c86133f0ead7fbac8",
+    "retailAdmissions": "CLOSED",
+    "nftAllowlist": [],
+    "ledgerMismatches": 0,
+    "indexAdvances": true,
+    "scheduledObserved": [
+      {
+        "cron": "* * * * *",
+        "outcome": "ok"
+      },
+      {
+        "cron": "* * * * *",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "contractChanges": false,
+  "schemaChanges": false,
+  "priceChanges": false,
+  "dependencyChanges": false,
+  "worldAppearanceOrMediaChanges": false,
+  "frontendChangeScope": "Only GOLD service-order capability disable condition and its optional type.",
+  "newGithubPublished": false,
+  "paidAuditSubmitted": false,
+  "newExternalAuditVerdict": false,
+  "limitations": [
+    "Five existing Windows symlink-privilege skips are not passes.",
+    "No peak-load or real-wallet paid acceptance is claimed.",
+    "A legitimate commit before logout is not undone when a response refuses stale success.",
+    "Cooldown is not a distributed lease; audited admin repair retains manual recovery authority.",
+    "No new public ref, paid Audit or external verdict exists for this source."
+  ],
+  "browserBoot": {
+    "status": "PASS_ANONYMOUS_PRODUCTION_BOOT",
+    "url": "https://imdember.com/?lang=zh",
+    "openingEnded": true,
+    "worldCanvasVisible": true,
+    "buildingLabelsVisible": true,
+    "canvas": [
+      {
+        "height": 900,
+        "visible": true,
+        "width": 1600
+      }
+    ],
+    "consoleErrorsOrWarnings": [],
+    "authenticatedWalletTest": false,
+    "loadingPerformanceMeasured": false
+  },
+  "isolatedGoldUi": {
+    "status": "PASS_ISOLATED_REAL_GOLD_PANEL",
+    "products": [
+      {
+        "disabled": false,
+        "title": "Supported research fixture"
+      },
+      {
+        "disabled": true,
+        "title": "Unsupported historical fixture"
+      }
+    ],
+    "logs": [],
+    "realWalletUsed": false,
+    "productionApiUsed": false
+  }
+}

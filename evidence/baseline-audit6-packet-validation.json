@@ -1,0 +1,122 @@
+{
+  "status": "AUDIT6_LOCAL_REMEDIATION_CROSS_PATH_VALIDATION_COMPLETE_PACKET_READY",
+  "sourceCommit": "41ca333db50696a0a2f4c886d6fe7171637908cc",
+  "previousWorldSourceCommit": "7afdd097847d2cd6b5d503734566afc1b78a2c8d",
+  "previousPublicCommit": "450507815fec44e1c496999e07da1b006861c5dd",
+  "previousAuditJob": "188a3018-0379-413a-bccc-79f278452e8f",
+  "completedAt": "2026-10-19T01:18:54.648458+08:00",
+  "failureReproduction": {
+    "tests": 9,
+    "pass": 0,
+    "fail": 9,
+    "skipped": 0,
+    "logSha256": "07b63dc1ea1b2c666d4450939f70df88d5a9d17ee86f56f11bc0d40b215a4423"
+  },
+  "pythonFailureReproduction": {
+    "tests": 2,
+    "errors": 2,
+    "logSha256": "733650330a95857bc04229044de448e0e42362a63de92dbc418e2055f442bdb0"
+  },
+  "expandedInspectionBefore": {
+    "tests": 1,
+    "pass": 0,
+    "fail": 1,
+    "skipped": 0,
+    "logSha256": "b802e8adb392d06c465567bba40131d1b89a5f020906a661870cbe0459127f85"
+  },
+  "expandedInspectionAfter": {
+    "tests": 1,
+    "pass": 1,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "5ac625022eb14e5ab15ec897feaec7da8b4cdefcd4ebf9951508897e07c0c724"
+  },
+  "firstFullRegression": {
+    "tests": 2872,
+    "pass": 2865,
+    "fail": 2,
+    "skipped": 5,
+    "logSha256": "dbaa63dd045985cf29522bf763fd3e6ade1c0cbb2c829a4eed00dfb218b86b4e"
+  },
+  "fullWorkspace": {
+    "tests": 2872,
+    "pass": 2867,
+    "fail": 0,
+    "skipped": 5,
+    "logSha256": "784c40503b3818e86fa81277cf0e7e1cdd79aa9c45a6bdd643d3c438c953610c"
+  },
+  "selectedPortableFinancial": {
+    "tests": 433,
+    "pass": 433,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "1bda6291d1c2f89c5621be6afcb46cd460531016d021d79e37a2ea7585661a49"
+  },
+  "portableContracts": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0,
+    "skipped": 0,
+    "logSha256": "59918600b965bd0b4c077f709d6652eac5185f37b2178dc2b622aaace724dc04"
+  },
+  "pythonTrial": {
+    "tests": 18,
+    "passed": 18,
+    "fail": 0,
+    "logSha256": "1385494180be8bd7889a8e3563ed1bfdf40d4bbd68b6360d48ece9811c02b0bb"
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "workerDryRun": "PASS_NO_UPLOAD",
+  "nativeLocalD1": {
+    "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+    "facts": [
+      "exact production migrations accepted by local workerd D1",
+      "D1 complete tables/columns/indexes/triggers capability query works",
+      "D1 concurrent projection credits once",
+      "D1 legacy debit cannot spend held GOLD",
+      "D1 hold consumption and debit commit once",
+      "D1 admin writes retain atomic before/after evidence",
+      "D1 positive journal capacity rejects before integer promotion",
+      "D1 capacity-bound reward is persisted without blocking another staker",
+      "D1 concurrent pending reward retries credit the original entitlement once"
+    ],
+    "productionCapacityProved": false,
+    "publicChainUsed": false,
+    "fixtureChainProfile": false
+  },
+  "preserved": {
+    "r3Files": 70,
+    "r4Files": 50,
+    "mismatches": 0,
+    "priorMigrationsChanged": 0,
+    "publicAssetsChanged": 0,
+    "geometryChanged": 0
+  },
+  "worldFiles": 139,
+  "auxiliaryFiles": 45,
+  "sourcePublished": false,
+  "auditSubmitted": false,
+  "deployed": false,
+  "productionReady": false,
+  "originalServicesRestarted": false,
+  "originalChainsReset": false,
+  "dependencies": "Existing exact-lock dependencies reused through local-only junctions; no fresh npm ci claim.",
+  "suiteSkipReason": "Five existing Windows native symlink cases; no new financial case skipped.",
+  "verificationHistory": [
+    "Baseline Node9 expected failures and Python2 product errors retained; the earlier Python launcher/temp-dir error is not counted.",
+    "Early financial fixtures needed explicit historic pre0014 profiles; all original financial assertions retained. A Python mock-clock target was corrected transparently.",
+    "Expanded inspection found and reproduced stale payment time after async schema I/O, then fixed it.",
+    "First full run exposed2 hardcoded migration inventories missing0016; only those expectations changed between76d9a634 and final41ca333d.",
+    "First portable contract run passed30 assertions but its after hook failed for a missing generated evidence directory. The runner now creates the directory, then all30 passed.",
+    "Exact-SQL local workerd D1 finance inputs are byte-identical between76d9a634 and41ca333d; the later commit changes2 full-World test inventories only.",
+    "Portable Python18 passed on the first candidate packet; all45 auxiliary hashes are verified byte-identical in the final packet, so the same validated Python source is retained."
+  ],
+  "limitations": [
+    "D01-D09 locally remediated pending new independent review; no zero-findings guarantee.",
+    "D10 real provider/VPS/result-contract integration, public finalized Mint reader and persistent original namespace registry remain unverified and disabled.",
+    "Actual wallets/mainnet runtime/finality, formal prices, target Workers CPU/D1 capacity, production backup/migration/rollback/postflight are separate release gates.",
+    "Historical paid-without-job/delivered-empty/wrong-mode cases are read-only inventory and proposed handling; no blanket production correction executed.",
+    "SQLite restore does not restore lost EVM authority; local same-chain restore is not proof of public-chain or machine-restart persistence."
+  ]
+}

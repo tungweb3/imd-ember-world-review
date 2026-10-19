@@ -1,0 +1,9 @@
+# Dependencies and licensing
+
+Exact direct package pins are solc 0.8.37, OpenZeppelin Contracts 5.4.0, ethers 6.15.0, Hardhat 3.19.0 and Nomic Foundation EDR 0.22.2. `package-lock.json` freezes the complete npm dependency closure, registry URLs and integrity values. EDR's optional platform binary packages are all version 0.22.2; only the current platform is installed. Node 24.x is required. No global package, wallet provider, private path, legacy project or external RPC service is needed to build and test.
+
+The official compiler payload is `https://binaries.soliditylang.org/bin/soljson-v0.8.37+commit.f401782d.js`, vendored without byte changes as a CommonJS file. Its SHA-256 is `d73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f`. The exact corresponding compiler source, build instructions and license are available at `https://github.com/ethereum/solidity/tree/v0.8.37`; official release records are at `https://binaries.soliditylang.org/bin/list.json`. The Solidity compiler is GPL-3.0; its license is included. The solc-js wrapper is MIT and has its separate license.
+
+OpenZeppelin Contracts, ethers, Hardhat and EDR are MIT. Preserve the copyright/license notices supplied with npm packages. The compiled OpenZeppelin Solidity sources and their SPDX/copyright notices are also included verbatim in `artifacts/compiler-input.json`; all imported file hashes appear in the public build manifest. The original EMBEO LaunchToken source is MIT and its inherited OpenZeppelin token implementation is MIT, as recorded in the public fixture provenance. No third-party executable is silently downloaded or run by this package's lifecycle scripts.
+
+The public build manifest deliberately records package versions/hashes and relative compiler inputs instead of workstation paths. Only Windows x64 native execution is measured here. A lockfile that lists Linux/macOS optional packages does not by itself demonstrate those environments have passed tests.

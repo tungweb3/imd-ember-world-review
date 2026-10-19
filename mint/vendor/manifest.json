@@ -1,0 +1,8 @@
+{
+  "name": "ethers",
+  "sha256": "66580dbb32353addbbfd2c1880a29693436c2d41ebdd4bf4a4516b9ad6f5f5ea",
+  "source": "Existing pinned ethers 6.15.0 dist/ethers.min.js",
+  "version": "6.15.0",
+  "license": "MIT",
+  "scope": "LOCAL_MOCK_CRYPTO_ONLY"
+}

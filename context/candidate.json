@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "41ca333db50696a0a2f4c886d6fe7171637908cc",
+  "previousWorldSourceCommit": "7afdd097847d2cd6b5d503734566afc1b78a2c8d",
+  "previousPublicCommit": "450507815fec44e1c496999e07da1b006861c5dd",
+  "previousAuditJob": "188a3018-0379-413a-bccc-79f278452e8f",
+  "sourcePublished": false,
+  "auditSubmitted": false,
+  "productionDeployed": false,
+  "wholeWorldIncluded": false,
+  "publicGitHubUrl": null
+}

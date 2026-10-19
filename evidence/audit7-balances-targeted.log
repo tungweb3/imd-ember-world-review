@@ -1,0 +1,226 @@
+TAP version 13
+# Subtest: one fixed mainnet Multicall reads the complete precise wallet balance and block, with credentials only in the upstream header
+ok 1 - one fixed mainnet Multicall reads the complete precise wallet balance and block, with credentials only in the upstream header
+  ---
+  duration_ms: 38.1699
+  type: 'test'
+  ...
+# Subtest: member summary uses the shared held/available book and totals every stake beyond the positions UI page
+ok 2 - member summary uses the shared held/available book and totals every stake beyond the positions UI page
+  ---
+  duration_ms: 85.2471
+  type: 'test'
+  ...
+# Subtest: unknown index/config and independent RPC failures stay distinct from a confirmed zero
+ok 3 - unknown index/config and independent RPC failures stay distinct from a confirmed zero
+  ---
+  duration_ms: 71.0027
+  type: 'test'
+  ...
+# Subtest: cross-wallet/origin/method/extra-query and missing sessions cannot trigger keyed reads
+ok 4 - cross-wallet/origin/method/extra-query and missing sessions cannot trigger keyed reads
+  ---
+  duration_ms: 30.9152
+  type: 'test'
+  ...
+# Subtest: logout or session expiry during a slow chain read discards all balance results
+ok 5 - logout or session expiry during a slow chain read discards all balance results
+  ---
+  duration_ms: 84.6203
+  type: 'test'
+  ...
+# Subtest: deployed Worker route uses the same authenticated balance handler and release configuration
+ok 6 - deployed Worker route uses the same authenticated balance handler and release configuration
+  ---
+  duration_ms: 43.0021
+  type: 'test'
+  ...
+# Subtest: balance client refuses late responses after account switching, logout, expiry or abort
+ok 7 - balance client refuses late responses after account switching, logout, expiry or abort
+  ---
+  duration_ms: 1.2051
+  type: 'test'
+  ...
+# Subtest: client preserves integers without rounding and refuses inconsistent ledger or foreign-wallet responses
+ok 8 - client preserves integers without rounding and refuses inconsistent ledger or foreign-wallet responses
+  ---
+  duration_ms: 0.8161
+  type: 'test'
+  ...
+# Subtest: Audit7 M1: shared book refuses unlinked catalogue admission in both currencies even with a paused service
+ok 9 - Audit7 M1: shared book refuses unlinked catalogue admission in both currencies even with a paused service
+  ---
+  duration_ms: 88.3254
+  type: 'test'
+  ...
+# Subtest: Audit7 M2: bare upstream error text cannot be a delivered report and refunds the original amount once
+ok 10 - Audit7 M2: bare upstream error text cannot be a delivered report and refunds the original amount once
+  ---
+  duration_ms: 525.7731
+  type: 'test'
+  ...
+# Subtest: Audit7 L1: Mint auth expiring during admission I/O creates neither a mint row nor a GOLD hold
+ok 11 - Audit7 L1: Mint auth expiring during admission I/O creates neither a mint row nor a GOLD hold
+  ---
+  duration_ms: 72.6565
+  type: 'test'
+  ...
+# Subtest: Audit7 I1: retry refuses a pending quote at expiry while preserving an already-paid receipt
+ok 12 - Audit7 I1: retry refuses a pending quote at expiry while preserving an already-paid receipt
+  ---
+  duration_ms: 72.0382
+  type: 'test'
+  ...
+# Subtest: Audit7 M1: upgrading does not reopen an original pending unlinked legacy quote in either currency
+ok 13 - Audit7 M1: upgrading does not reopen an original pending unlinked legacy quote in either currency
+  ---
+  duration_ms: 94.6248
+  type: 'test'
+  ...
+# Subtest: Audit7 L1: omitted clock uses real time, while a SQL deadline refusal rolls back both mint and hold
+ok 14 - Audit7 L1: omitted clock uses real time, while a SQL deadline refusal rolls back both mint and hold
+  ---
+  duration_ms: 61.5513
+  type: 'test'
+  ...
+# Subtest: fresh migrations import no test balances, common balance starts confirmed zero
+ok 15 - fresh migrations import no test balances, common balance starts confirmed zero
+  ---
+  duration_ms: 44.5627
+  type: 'test'
+  ...
+# Subtest: verified topup produces one immutable receipt, auto and admin share dedupe
+ok 16 - verified topup produces one immutable receipt, auto and admin share dedupe
+  ---
+  duration_ms: 85.787
+  type: 'test'
+  ...
+# Subtest: unpaid orders and forged client amounts cannot authorize credit
+ok 17 - unpaid orders and forged client amounts cannot authorize credit
+  ---
+  duration_ms: 48.5441
+  type: 'test'
+  ...
+# Subtest: valid historical partial credit is topped up only by its unpaid difference, with shared auto/manual dedupe
+ok 18 - valid historical partial credit is topped up only by its unpaid difference, with shared auto/manual dedupe
+  ---
+  duration_ms: 72.6799
+  type: 'test'
+  ...
+# Subtest: lost projection after verified payment is reconstructed by later reconciliation while new sales are paused
+ok 19 - lost projection after verified payment is reconstructed by later reconciliation while new sales are paused
+  ---
+  duration_ms: 96.4576
+  type: 'test'
+  ...
+# Subtest: wrong payer and amount persist cases, grant no GOLD
+ok 20 - wrong payer and amount persist cases, grant no GOLD
+  ---
+  duration_ms: 65.7962
+  type: 'test'
+  ...
+# Subtest: old quote preserves package version and original credit after repricing
+ok 21 - old quote preserves package version and original credit after repricing
+  ---
+  duration_ms: 79.2368
+  type: 'test'
+  ...
+# Subtest: concurrent same request creates one quote and one original package binding
+ok 22 - concurrent same request creates one quote and one original package binding
+  ---
+  duration_ms: 46.2734
+  type: 'test'
+  ...
+# Subtest: shared hold prevents legacy service debit of the same last GOLD
+ok 23 - shared hold prevents legacy service debit of the same last GOLD
+  ---
+  duration_ms: 110.6549
+  type: 'test'
+  ...
+# Subtest: two concurrent mints cannot reserve the same available GOLD
+ok 24 - two concurrent mints cannot reserve the same available GOLD
+  ---
+  duration_ms: 63.7878
+  type: 'test'
+  ...
+# Subtest: chain consumption atomically burns hold and debits once; release replay cannot change consumption
+ok 25 - chain consumption atomically burns hold and debits once; release replay cannot change consumption
+  ---
+  duration_ms: 79.6588
+  type: 'test'
+  ...
+# Subtest: verified cancellation releases hold without deleting purchased credit
+ok 26 - verified cancellation releases hold without deleting purchased credit
+  ---
+  duration_ms: 59.3088
+  type: 'test'
+  ...
+# Subtest: different private chain instance and empty outcome cannot release an executable authorization
+ok 27 - different private chain instance and empty outcome cannot release an executable authorization
+  ---
+  duration_ms: 76.515
+  type: 'test'
+  ...
+# Subtest: delivered service reopens the same result; no extra debit or refund
+ok 28 - delivered service reopens the same result; no extra debit or refund
+  ---
+  duration_ms: 128.1853
+  type: 'test'
+  ...
+# Subtest: known terminal service failure refunds once, admin retry shares dedupe
+ok 29 - known terminal service failure refunds once, admin retry shares dedupe
+  ---
+  duration_ms: 152.9373
+  type: 'test'
+  ...
+# Subtest: timeout does not refund; expired worker cannot finalize after retry worker takes over
+ok 30 - timeout does not refund; expired worker cannot finalize after retry worker takes over
+  ---
+  duration_ms: 147.2929
+  type: 'test'
+  ...
+# Subtest: manual controls stop new quotes but preserve already paid reconciliation
+ok 31 - manual controls stop new quotes but preserve already paid reconciliation
+  ---
+  duration_ms: 86.0173
+  type: 'test'
+  ...
+# Subtest: campaign schedule uses start inclusive/end exclusive and supports early stop
+ok 32 - campaign schedule uses start inclusive/end exclusive and supports early stop
+  ---
+  duration_ms: 54.1503
+  type: 'test'
+  ...
+# Subtest: admin unauthorized, stale price/campaign/control versions and altered retry are rejected
+ok 33 - admin unauthorized, stale price/campaign/control versions and altered retry are rejected
+  ---
+  duration_ms: 57.2448
+  type: 'test'
+  ...
+# Subtest: admin repair captures exact before/after balances and does not invent an entitlement
+ok 34 - admin repair captures exact before/after balances and does not invent an entitlement
+  ---
+  duration_ms: 42.2414
+  type: 'test'
+  ...
+# Subtest: calibrated cross-spend evaluator detects SQL guard removal independently of the new readiness refusal
+ok 35 - calibrated cross-spend evaluator detects SQL guard removal independently of the new readiness refusal
+  ---
+  duration_ms: 123.712
+  type: 'test'
+  ...
+# Subtest: historical staking recovery preserves purchased GOLD and holds; new-source concurrent changes invalidate the plan
+ok 36 - historical staking recovery preserves purchased GOLD and holds; new-source concurrent changes invalidate the plan
+  ---
+  duration_ms: 284.9427
+  type: 'test'
+  ...
+1..36
+# tests 36
+# suites 0
+# pass 36
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3344.156

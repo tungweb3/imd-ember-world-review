@@ -1,0 +1,756 @@
+diff --git a/docs/audit9-a211537e-remediation.md b/docs/audit9-a211537e-remediation.md
+new file mode 100644
+index 0000000..34bb14f
+--- /dev/null
++++ b/docs/audit9-a211537e-remediation.md
+@@ -0,0 +1,94 @@
++# Audit a211537e remediation
++
++Reviewed baseline: World `1015b2c5c8663c6c4bfb46f135be84cacea1cae0`, public export `cc7b7b6b58078c5cd3ecba00e8650348fe2cbcb0`.
++Original report: https://explorer.imd.fun/jobs/a211537e-407d-4494-bfbb-159f2665bc33
++
++## Reproductions before changes
++
++`tests/world-gold-audit9.test.mjs` failed six behavioral assertions against the
++unchanged baseline: both unsupported legacy challenge and payment succeeded;
++a new private read accepted a backward clock above request start; reconcile
++returned success after logout; an unverified session read its report; an owner
++published an enabled unsupported service. The original red log is retained
++separately from subsequent green runs. The report case first funds the fixture,
++so an insufficient-balance setup error is not counted as a reproduction.
++
++## M1: product-scoped payment admission
++
++Both legacy GOLD functions receive the trusted provider product list from the
++same Worker dependency object used by the new quote route. An unsupported
++pending service is refused before a challenge/debit. Challenge insertion and
++debit SQL independently bind the immutable linked product against the supplied
++JSON product list. Empty lists refuse all new services; omitted lists retain
++the documented standalone/helper compatibility. Request JSON cannot supply it.
++
++Already-paid receipts are returned idempotently even when the provider changes,
++the quote expires or admissions pause. Existing queued jobs and provider rights
++are preserved; this patch does not delete jobs, manufacture refunds, debit an
++original order again or claim a provider transition has been operationally
++completed. Production remains research-only. A supported delivery adapter must
++be installed before accepting new payments for another product.
++
++## L1/L3: one private session and clock policy
++
++`economy-session.ts` validates positive safe-integer, nondecreasing time at each
++sample, including after each awaited session read. Equal samples are valid; a
++failure stays failed for the request even if a subordinate catch handles it.
++Initial reads require a verified ECDSA/ERC1271 session and safe-integer live
++expiry. Revalidation pins token, wallet, original expiry, wallet type and method.
++It refuses logout, expiry equality, wallet changes and downgraded sessions.
++
++Applied to legacy economy, shared GOLD state/history/admin/trial, member
++balances, full report, campaign management and private inventory. ECDSA and
++ERC1271 reads retain access; money/inventory/admin writes retain EOA/ECDSA
++requirements and their existing atomic live-session SQL. Reports authenticate
++before provider access. Private responses are no-store. Invalid/regressing time
++is 503; lost authority is 401 with no private success body. Async response
++revalidation is awaited inside each handler's error boundary.
++
++New quote/admin and legacy challenge/payment responses also revalidate after
++their persistent operation. A valid committed payment remains valid when the
++response is refused after a late logout; clients retry the original request,
++rather than assume an error means no transaction committed.
++
++## L2: reconciliation authorization boundary
++
++HTTP reconciliation revalidates the original session after completion, on both
++success and failure responses. A concurrent logout/expiry cannot receive a
++successful response. Reconciliation is the same idempotent repair of already
++owed rights used by cron. This intentionally chooses the report's post-write
++revalidation option: an entitled credit may already have committed and is not
++undone on logout. Cron and an authenticated retry retain exactly one credit.
++This is not a claim that HTTP logout rolls back entitled reconciliation.
++
++## I1: unsupported product publication
++
++The admin product branch refuses a new enabled service when its trusted
++product-scoped readiness is false. Disabled definitions and unrelated topups
++remain available for preparation. The isolated local runtime and historical recovery fixture explicitly declare
++their implemented synthetic delivery capability; this is not a production
++provider flag or a relaxation of the new guard. Full portable regression first
++caught these two old call sites and the aborted release is retained.
++Immutable old price versions and admin
++idempotency evidence remain intact; no formal price is inferred from fixtures.
++
++## Wider checks and limitations
++
++The regression matrix covers nine private read views, late logout/expiry/time
++regression/expiry changes/method downgrade/wallet switch, final-session-read
++boundaries, initial invalid sessions, ECDSA/ERC1271 compatibility, six committed
++write responses, supported payment replay, an empty provider list, independent
++SQL admission, and reconciliation replay. Existing tests retain UTC-day rewards,
++holds, price versions, late chain payments, capacity, recovery, schema guards,
++provider leases, delivery failure/refunds, large authenticated report bodies
++and source/asset provenance.
++
++Local native workerd D1 runs the real migrations, supported/unsupported payment,
++independent JSON-list SQL guards, replay and backward-clock refusal. Node SQL
++fixtures are distinct from native D1 and public-chain acceptance. No contract,
++schema migration, frontend, building/road/model/audio/video or price changes are
++part of this patch. NFT allowlist stays empty; retail admissions stay closed.
++
++Final counts, fixed producing commit, deployment, HTTP postflight and packet
++hashes are recorded in the accompanying release evidence only after completion.
++These tests do not prove peak production capacity or an accepted Swarm verdict.
+diff --git a/scripts/world-gold-local-runtime.mjs b/scripts/world-gold-local-runtime.mjs
+index ce7a045..52e6921 100644
+--- a/scripts/world-gold-local-runtime.mjs
++++ b/scripts/world-gold-local-runtime.mjs
+@@ -18,7 +18,8 @@ export async function createGoldLocalRuntime({filename=':memory:'}={}){
+  const payment=await new ethers.ContractFactory(artifact.abi,artifact.bytecode,mint.signers[0]).deploy(mint.tokenAddress,mint.addresses[4]);await payment.waitForDeployment();
+  const block=await mint.provider.getBlock('latest');
+  const config=await defineLocalEconomyConfig({chainId:31337,token:mint.tokenAddress,tokenDecimals:18,stakingContract:'0x'+'9'.repeat(40),paymentContract:await payment.getAddress(),treasury:mint.addresses[4],deploymentBlock:String(block.number),catalogue:[]});
+- const products=await goldProducts(db);if(!products.length){for(const c of [{action:'product',product:'gold-pack',kind:'topup',title:'本機測試購點',gold:'10',embeo:String(7n*10n**18n),enabled:true,version:1},{action:'product',product:'research',kind:'service',title:'AIMarket 本機交付測試',gold:'3',enabled:true,version:1},{action:'product',product:'fortune',kind:'service',title:'算命館本機交付測試',gold:'2',enabled:true,version:1}])await goldAdminCommand(db,{wallet:ECONOMY_TREASURY,requestId:crypto.randomUUID(),command:c,reason:'initialize isolated local fixture',nowMs:Date.now()});}
++ // The isolated fixture below implements both research/fortune through deliver().
++ const products=await goldProducts(db);if(!products.length){for(const c of [{action:'product',product:'gold-pack',kind:'topup',title:'本機測試購點',gold:'10',embeo:String(7n*10n**18n),enabled:true,version:1},{action:'product',product:'research',kind:'service',title:'AIMarket 本機交付測試',gold:'3',enabled:true,version:1},{action:'product',product:'fortune',kind:'service',title:'算命館本機交付測試',gold:'2',enabled:true,version:1}])await goldAdminCommand(db,{wallet:ECONOMY_TREASURY,requestId:crypto.randomUUID(),command:c,reason:'initialize isolated local fixture',nowMs:Date.now(),serviceReady:true});}
+  const mintReader=await createPrivateMintReader(mint);
+  mint.beforeApproval=route=>route==='paid'?goldFeature(db,'mint'):undefined;
+  mint.gold={
+diff --git a/server/aimarket-campaign.ts b/server/aimarket-campaign.ts
+index 60f9482..8a1b442 100644
+--- a/server/aimarket-campaign.ts
++++ b/server/aimarket-campaign.ts
+@@ -1,4 +1,4 @@
+-import {readSession} from './auth.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
+ import {AIMARKET_ACTIVITY_ADMIN_WALLETS} from './aimarket-admin.ts';
+ import {goldCampaign,goldAdminCommand} from './world-gold.ts';
+ import {requireWorldGoldSchema} from './world-gold-schema.ts';
+@@ -17,7 +17,7 @@ export async function handleAIMarketCampaign(request:Request,deps:Deps):Promise<
+   if(request.method!=='GET'&&!write)return reply(405,{error:'METHOD_NOT_ALLOWED'});
+   if(!deps.db)return reply(503,{error:'CAMPAIGN_UNAVAILABLE'});
+   try{
+-    const db=deps.db,started=deps.now();if(!Number.isSafeInteger(started)||started<=0)throw Error('INVALID_CLOCK');
++    const db=deps.db,clock=economySessionClock(deps.now);clock();
+     if(!await deps.allow())return reply(429,{error:'RATE_LIMITED'});
+     let b:Record<string,unknown>|null=null;
+     if(write){
+@@ -28,7 +28,7 @@ export async function handleAIMarketCampaign(request:Request,deps:Deps):Promise<
+     }
+     const expected=b?.expectedAddress??u.searchParams.get('expected_address');
+     if(typeof expected!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(expected)||!write&&(u.searchParams.size!==1||u.search.length>128))return reply(400,{error:'BAD_REQUEST'});
+-    const at=deps.now(),session=await readSession(request,db,at);if(!Number.isSafeInteger(at)||at<started)throw Error('INVALID_CLOCK');
++    const session=await readEconomySession(request,db,clock),at=clock();
+     if(typeof session==='string')return reply(401,{error:'AUTH_REQUIRED'});
+     const wallet=session.address.toLowerCase();if(wallet!==expected.toLowerCase())return reply(409,{error:'ACCOUNT_CONTEXT_CHANGED'});
+     if(!AIMARKET_ACTIVITY_ADMIN_WALLETS.includes(wallet))return reply(403,{error:'ADMIN_REQUIRED'});
+@@ -36,11 +36,10 @@ export async function handleAIMarketCampaign(request:Request,deps:Deps):Promise<
+     if(write){
+       if(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA')return reply(403,{error:'EOA_REQUIRED'});
+       if(typeof b!.requestId!=='string'||typeof b!.reason!=='string'||!Number.isSafeInteger(b!.version)||!Number.isSafeInteger(b!.startsMs)||!Number.isSafeInteger(b!.endsMs)||typeof b!.stopped!=='boolean')return reply(400,{error:'BAD_REQUEST'});
+-      await goldAdminCommand(db,{wallet,requestId:b!.requestId,reason:b!.reason,nowMs:at,now:deps.now,authorization:{tokenHash:session.tokenHash},command:{action:'campaign',version:b!.version as number,startsMs:b!.startsMs as number,endsMs:b!.endsMs as number,stopped:b!.stopped}});
++      await goldAdminCommand(db,{wallet,requestId:b!.requestId,reason:b!.reason,nowMs:at,now:clock,authorization:{tokenHash:session.tokenHash},command:{action:'campaign',version:b!.version as number,startsMs:b!.startsMs as number,endsMs:b!.endsMs as number,stopped:b!.stopped}});
+     }
+-    const campaign=await goldCampaign(db,deps.now()),freshAt=deps.now(),fresh=await readSession(request,db,freshAt);
+-    if(!Number.isSafeInteger(freshAt)||freshAt<at)throw Error('INVALID_CLOCK');
+-    if(typeof fresh==='string'||fresh.tokenHash!==session.tokenHash||fresh.address.toLowerCase()!==wallet||fresh.expiresAt<=deps.now())return reply(401,{error:'AUTH_REQUIRED'});
++    const campaign=await goldCampaign(db,clock());
++    if(!await revalidateEconomySession(request,db,session,clock))return reply(401,{error:'AUTH_REQUIRED'});
+     return reply(200,{address:wallet,campaign});
+   }catch(e){const code=e instanceof Error?e.message:'';return reply(code==='BAD_REQUEST'?400:['INVALID_CAMPAIGN','INVALID_REQUEST_ID','REASON_REQUIRED','IDEMPOTENCY_CONFLICT','ATOMIC_GUARD_FAILED'].includes(code)?409:503,{error:/^[A-Z][A-Z0-9_]{1,60}$/.test(code)?code:'CAMPAIGN_UNAVAILABLE'});}
+ }
+diff --git a/server/economy-ledger.ts b/server/economy-ledger.ts
+index b53aee7..c4b2a33 100644
+--- a/server/economy-ledger.ts
++++ b/server/economy-ledger.ts
+@@ -209,20 +209,23 @@ function randomEconomyHash():string{let value:string;do{value='0x'+[...crypto.ge
+ export type EconomyGoldChallenge={orderId:string;requestId:string;wallet:string;nonce:string;origin:string;message:string;issuedMs:number;expiresMs:number;amount:string;serviceId:string};
+ /** Runtime capability comes from trusted server wiring, never a request body.
+  * Older standalone economy databases have no shared-service links. */
+-async function sharedServiceAdmission(db:D1Database,id:string,serviceReady?:boolean){
++async function sharedServiceAdmission(db:D1Database,id:string,serviceReady?:boolean,serviceProducts?:readonly string[]){
+   if(!await sharedGoldSchemaPresent(db))return false;
+   await requireWorldGoldSchema(db);
+   const linked=await bind(db,"SELECT l.order_id,p.product FROM world_gold_links l JOIN world_gold_products p ON p.id=l.product_id WHERE l.order_id=? AND l.kind='service'",id).first<{order_id:string;product:string}>();
+   if(!linked)throw new EconomyConflict('LEGACY_GOLD_ORDER_UNSUPPORTED');
+-  if(serviceReady!==true)throw new EconomyConflict('SERVICE_DELIVERY_UNAVAILABLE');
++  if(serviceReady!==true||(serviceProducts!==undefined&&!serviceProducts.includes(linked.product)))throw new EconomyConflict('SERVICE_DELIVERY_UNAVAILABLE');
+   if(!hasGoldResultContract(linked.product))throw new EconomyConflict('SERVICE_RESULT_SCHEMA_UNBOUND');
+   if(!(await db.prepare("SELECT enabled FROM world_gold_controls WHERE feature='service'").first<{enabled:number}>())?.enabled)throw new EconomyConflict('FEATURE_PAUSED');
+   return true;
+ }
++function serviceProductAdmissionSql(products:readonly string[]|undefined){
++  return products===undefined?{sql:'1'}:{sql:`EXISTS(SELECT 1 FROM world_gold_links l JOIN world_gold_products p ON p.id=l.product_id WHERE l.order_id=? AND l.kind='service' AND p.product IN (SELECT value FROM json_each(?)))`};
++}
+ export function economyGoldMessage(c:Omit<EconomyGoldChallenge,'message'>):string{
+   return `IMD Ember World GOLD payment\n\nAuthorize one World service payment using nontransferable GOLD.\nThis signature does not authorize EMBEO, token allowances, or blockchain transfers.\n\nOrigin: ${c.origin}\nWallet: ${c.wallet}\nOrder: ${c.orderId}\nService: ${c.serviceId}\nAmount: ${c.amount} GOLD\nRequest: ${c.requestId}\nNonce: ${c.nonce}\nIssued at: ${new Date(c.issuedMs).toISOString()}\nExpires at: ${new Date(c.expiresMs).toISOString()}`;
+ }
+-export async function createEconomyGoldChallenge(db:D1Database,config:EconomyConfig,args:{wallet:string;orderId:string;requestId:string;origin:string;nowMs:number;now?:()=>number;authorization?:EconomyAuthorization;serviceReady?:boolean}):Promise<EconomyGoldChallenge>{
++export async function createEconomyGoldChallenge(db:D1Database,config:EconomyConfig,args:{wallet:string;orderId:string;requestId:string;origin:string;nowMs:number;now?:()=>number;authorization?:EconomyAuthorization;serviceReady?:boolean;serviceProducts?:readonly string[]}):Promise<EconomyGoldChallenge>{
+   await requireRunning(db,config);
+   const wallet=economyAddress(args.wallet),id=hash(args.orderId);
+   if(!validMs(args.nowMs)||! /^[A-Za-z0-9_-]{16,80}$/.test(args.requestId))throw new EconomyConflict('BAD_REQUEST');
+@@ -230,7 +233,7 @@ export async function createEconomyGoldChallenge(db:D1Database,config:EconomyCon
+   const order=await bind(db,orderSelect+` WHERE id=? AND ${economyOrderScope} AND wallet=?`,id,config.id,config.id,wallet).first<EconomyOrder>();
+   if(!order||order.currency!=='GOLD')throw new EconomyConflict('ORDER_NOT_FOUND');
+   if(order.status==='paid')throw new EconomyConflict('ORDER_ALREADY_PAID');
+-  const shared=await sharedServiceAdmission(db,id,args.serviceReady);
++  const shared=await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);
+   const previous=await bind(db,`SELECT nonce,origin,message,issued_ms issuedMs,expires_ms expiresMs,consumed_ms consumedMs FROM economy_gold_challenges WHERE order_id=? AND request_id=?`,id,args.requestId).first<{nonce:string;origin:string;message:string;issuedMs:number;expiresMs:number;consumedMs:number|null}>();
+   const now=freshEconomyClock(args);
+   // A different request/worker can observe a clock earlier than the quote.
+@@ -239,10 +242,10 @@ export async function createEconomyGoldChallenge(db:D1Database,config:EconomyCon
+   if(order.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');
+   if(previous){if(previous.origin!==args.origin)throw new EconomyConflict('IDEMPOTENCY_CONFLICT');if(previous.expiresMs<=now||previous.consumedMs!==null)throw new EconomyConflict('CHALLENGE_EXPIRED');const {consumedMs:_,...saved}=previous;return {...saved,orderId:id,requestId:args.requestId,wallet,amount:order.amount,serviceId:order.serviceId};}
+   const nonce=randomEconomyHash(),issuedMs=now,expiresMs=Math.min(now+300_000,order.expiresMs);
+-  const fields={orderId:id,requestId:args.requestId,wallet,nonce,origin:args.origin,issuedMs,expiresMs,amount:order.amount,serviceId:order.serviceId},message=economyGoldMessage(fields),auth=authorizationSql(args.authorization,wallet,now,config);
+-  await bind(db,`INSERT INTO economy_gold_challenges(order_id,request_id,wallet,nonce,origin,message,issued_ms,expires_ms) SELECT ?,?,?,?,?,?,?,? WHERE ${auth.sql} AND ${shared?"EXISTS(SELECT 1 FROM world_gold_controls WHERE feature='service' AND enabled=1)":'1'} AND EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND ${economyOrderScope} AND wallet=? AND currency='GOLD' AND status='pending' AND expires_ms>?) AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL) ON CONFLICT(order_id,request_id) DO NOTHING`,id,args.requestId,wallet,nonce,args.origin,message,issuedMs,expiresMs,...auth.values,id,config.id,config.id,wallet,now,config.id).run();
++  const fields={orderId:id,requestId:args.requestId,wallet,nonce,origin:args.origin,issuedMs,expiresMs,amount:order.amount,serviceId:order.serviceId},message=economyGoldMessage(fields),auth=authorizationSql(args.authorization,wallet,now,config),support=serviceProductAdmissionSql(shared?args.serviceProducts:undefined);
++  await bind(db,`INSERT INTO economy_gold_challenges(order_id,request_id,wallet,nonce,origin,message,issued_ms,expires_ms) SELECT ?,?,?,?,?,?,?,? WHERE ${auth.sql} AND ${support.sql} AND ${shared?"EXISTS(SELECT 1 FROM world_gold_controls WHERE feature='service' AND enabled=1)":'1'} AND EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND ${economyOrderScope} AND wallet=? AND currency='GOLD' AND status='pending' AND expires_ms>?) AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL) ON CONFLICT(order_id,request_id) DO NOTHING`,id,args.requestId,wallet,nonce,args.origin,message,issuedMs,expiresMs,...auth.values,...(shared&&args.serviceProducts!==undefined?[id,JSON.stringify(args.serviceProducts)]:[]),id,config.id,config.id,wallet,now,config.id).run();
+   const saved=await bind(db,`SELECT nonce,origin,message,issued_ms issuedMs,expires_ms expiresMs FROM economy_gold_challenges WHERE order_id=? AND request_id=?`,id,args.requestId).first<{nonce:string;origin:string;message:string;issuedMs:number;expiresMs:number}>();
+-  if(!saved){await sharedServiceAdmission(db,id,args.serviceReady);throw new EconomyConflict('AUTH_REQUIRED');}if(saved.origin!==args.origin)throw new EconomyConflict('IDEMPOTENCY_CONFLICT');
++  if(!saved){await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);throw new EconomyConflict('AUTH_REQUIRED');}if(saved.origin!==args.origin)throw new EconomyConflict('IDEMPOTENCY_CONFLICT');
+   return {...fields,...saved};
+ }
+ export async function createEconomyOrder(db:D1Database,config:EconomyConfig,args:{wallet:string;requestId:string;serviceId:string;currency:'GOLD'|'EMBEO';nowMs:number;now?:()=>number;authorization?:EconomyAuthorization}):Promise<EconomyOrder>{
+@@ -276,7 +279,7 @@ export async function createEconomyOrder(db:D1Database,config:EconomyConfig,args
+ }
+ /** Debit, immutable journal, order and fulfillment are one D1 transaction.
+  * Replayed completion never adds a second journal/entitlement. */
+-export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,args:{wallet:string;orderId:string;requestId:string;signature:string;origin:string;nowMs:number;now?:()=>number;authorization?:EconomyAuthorization;serviceReady?:boolean}):Promise<EconomyOrder>{
++export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,args:{wallet:string;orderId:string;requestId:string;signature:string;origin:string;nowMs:number;now?:()=>number;authorization?:EconomyAuthorization;serviceReady?:boolean;serviceProducts?:readonly string[]}):Promise<EconomyOrder>{
+   await requireRunning(db,config);
+   const wallet=economyAddress(args.wallet),id=hash(args.orderId);
+   if(!validMs(args.nowMs)||! /^[A-Za-z0-9_-]{16,80}$/.test(args.requestId))throw new EconomyConflict('BAD_REQUEST');
+@@ -296,16 +299,16 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+   if(challenge.expiresMs<=now)throw new EconomyConflict('CHALLENGE_EXPIRED');
+   if(challenge.consumedMs!==null)throw new EconomyConflict('CHALLENGE_EXPIRED');
+   if(existing.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');
+-  const shared=await sharedServiceAdmission(db,id,args.serviceReady);
++  const shared=await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);
+   const admissionNow=freshEconomyClock(args);
+   if(admissionNow<now)throw Error('INVALID_SETTLEMENT_CLOCK');now=admissionNow;
+   if(challenge.expiresMs<=now)throw new EconomyConflict('CHALLENGE_EXPIRED');
+   if(existing.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');
+   const reference='order:'+id;
+-  const auth=authorizationSql(args.authorization,wallet,now,config);
++  const auth=authorizationSql(args.authorization,wallet,now,config),support=serviceProductAdmissionSql(shared?args.serviceProducts:undefined);
+   try{
+     await db.batch([
+-      bind(db,`INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) SELECT ?,?,-CAST(? AS INTEGER),'service-payment',?,? WHERE EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND wallet=? AND status='pending' AND expires_ms>?) AND EXISTS(SELECT 1 FROM economy_gold_challenges WHERE order_id=? AND request_id=? AND nonce=? AND consumed_ms IS NULL AND expires_ms>?) AND ${auth.sql} AND ${shared?"EXISTS(SELECT 1 FROM world_gold_controls WHERE feature='service' AND enabled=1)":'1'} AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL)`,reference,wallet,existing.amount,reference,now,id,wallet,now,id,args.requestId,challenge.nonce,now,...auth.values,config.id),
++      bind(db,`INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) SELECT ?,?,-CAST(? AS INTEGER),'service-payment',?,? WHERE EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND wallet=? AND status='pending' AND expires_ms>?) AND EXISTS(SELECT 1 FROM economy_gold_challenges WHERE order_id=? AND request_id=? AND nonce=? AND consumed_ms IS NULL AND expires_ms>?) AND ${auth.sql} AND ${support.sql} AND ${shared?"EXISTS(SELECT 1 FROM world_gold_controls WHERE feature='service' AND enabled=1)":'1'} AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL)`,reference,wallet,existing.amount,reference,now,id,wallet,now,id,args.requestId,challenge.nonce,now,...auth.values,...(shared&&args.serviceProducts!==undefined?[id,JSON.stringify(args.serviceProducts)]:[]),config.id),
+       bind(db,`UPDATE economy_orders SET status='paid',paid_ms=?,gold_request_id=? WHERE id=? AND wallet=? AND status='pending' AND EXISTS(SELECT 1 FROM economy_gold_journal WHERE reference=?)`,now,args.requestId,id,wallet,reference),
+       bind(db,`UPDATE economy_gold_challenges SET consumed_ms=? WHERE order_id=? AND request_id=? AND nonce=? AND consumed_ms IS NULL AND EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND status='paid' AND gold_request_id=?)`,now,id,args.requestId,challenge.nonce,id,args.requestId),
+       ...shared?[bind(db,`INSERT INTO world_gold_jobs(order_id,wallet,state,updated_ms) SELECT id,wallet,'queued',? FROM economy_orders WHERE id=? AND status='paid' AND EXISTS(SELECT 1 FROM world_gold_links WHERE order_id=? AND kind='service') ON CONFLICT(order_id) DO NOTHING`,now,id,id)]:[]
+@@ -313,7 +316,7 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+   }catch(error){
+     const completed=await read();
+     if(completed?.status!=='paid'){
+-      await sharedServiceAdmission(db,id,args.serviceReady);
++      await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);
+       const balance=await bind(db,'SELECT CAST(balance AS TEXT) balance FROM economy_gold_accounts WHERE wallet=?',wallet).first<{balance:string}>();
+       const shared=!!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='world_gold_holds'").first();
+       const held=shared?await bind(db,"SELECT CAST(COALESCE(SUM(amount),0) AS TEXT) total FROM world_gold_holds WHERE wallet=? AND state='held'",wallet).first<{total:string}>():null;
+@@ -322,7 +325,7 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+     }
+   }
+   const completed=await read();
+-  if(completed?.status!=='paid'){await sharedServiceAdmission(db,id,args.serviceReady);throw new EconomyConflict('PAYMENT_UNAVAILABLE');}
++  if(completed?.status!=='paid'){await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);throw new EconomyConflict('PAYMENT_UNAVAILABLE');}
+   if(completed.goldRequestId!==args.requestId)throw new EconomyConflict('IDEMPOTENCY_CONFLICT');
+   const {payload:_,goldRequestId:__,...order}=completed;return order;
+ }
+diff --git a/server/economy-session.ts b/server/economy-session.ts
+new file mode 100644
+index 0000000..2fd967e
+--- /dev/null
++++ b/server/economy-session.ts
+@@ -0,0 +1,23 @@
++import {readSession,type Session} from './auth.ts';
++import type {D1Database} from './d1.ts';
++
++/** One request's clock, shared with every downstream money operation. Equal
++ * samples are allowed; an invalid or regressing sample fails closed. */
++export function economySessionClock(source:()=>number){
++ let last=0,invalid=false;
++ return ()=>{const now=source();if(invalid||!Number.isSafeInteger(now)||now<=0||now<last){invalid=true;throw Error('INVALID_CLOCK');}last=now;return now;};
++}
++export function verifiedEconomySession(session:Session|string,now:number):session is Session{
++ return typeof session!=='string'&&/^0x[0-9a-fA-F]{40}$/.test(session.address)&&Number.isSafeInteger(session.expiresAt)&&session.expiresAt>now&&['ECDSA','ERC1271'].includes(session.verificationMethod??'');
++}
++/** The read itself awaits hashing and D1. Validate at its completion, too. */
++export async function readEconomySession(request:Request,db:D1Database,clock:()=>number){
++ const session=await readSession(request,db,clock()),now=clock();
++ return verifiedEconomySession(session,now)?session:typeof session==='string'?session:'AUTH_REQUIRED';
++}
++/** Revalidation pins the exact authentication context, including expiry and
++ * method. It never upgrades a changed session or returns a stale private body. */
++export async function revalidateEconomySession(request:Request,db:D1Database,original:Session,clock:()=>number){
++ const fresh=await readEconomySession(request,db,clock);
++ return typeof fresh!=='string'&&fresh.tokenHash===original.tokenHash&&fresh.address.toLowerCase()===original.address.toLowerCase()&&fresh.expiresAt===original.expiresAt&&fresh.walletType===original.walletType&&fresh.verificationMethod===original.verificationMethod;
++}
+diff --git a/server/economy.ts b/server/economy.ts
+index 53ebf1d..5698488 100644
+--- a/server/economy.ts
++++ b/server/economy.ts
+@@ -1,10 +1,10 @@
+-import {readSession} from './auth.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
+ import type {D1Database} from './d1.ts';
+ import {API_HEADERS} from './world-api.ts';
+ import {ECONOMY_ADDRESS,ECONOMY_HASH,publicEconomyConfig,type EconomyConfig} from './economy-config.ts';
+ import {EconomyConflict,createEconomyOrder,createEconomyGoldChallenge,economyWalletSnapshot,payEconomyOrderGold} from './economy-ledger.ts';
+ 
+-export type EconomyDeps={db?:D1Database;config?:EconomyConfig|null;now?:()=>number;client?:string;allow?:(key:string)=>boolean|Promise<boolean>;serviceReady?:boolean};
++export type EconomyDeps={db?:D1Database;config?:EconomyConfig|null;now?:()=>number;client?:string;allow?:(key:string)=>boolean|Promise<boolean>;serviceReady?:boolean;serviceProducts?:readonly string[]};
+ const LOOPBACK=new Set(['localhost','127.0.0.1','[::1]']);
+ const reply=(status:number,value:unknown,extra:Record<string,string>={})=>new Response(JSON.stringify(value),{status,headers:{...API_HEADERS,...extra}});
+ const error=(status:number,code:string,extra?:Record<string,string>)=>reply(status,{error:code},extra);
+@@ -36,9 +36,9 @@ export async function handleEconomyApi(request:Request,deps:EconomyDeps={}):Prom
+   if(configRoute){if(url.search)return error(400,'BAD_REQUEST');return reply(200,publicEconomyConfig(deps.config));}
+   if(!deps.db||!deps.allow||!deps.config)return error(503,'ECONOMY_UNAVAILABLE');
+   try{
+-    const clock=deps.now??Date.now,started=clock();if(!validClock(started))return error(503,'ECONOMY_UNAVAILABLE');
++    const clock=economySessionClock(deps.now??Date.now),started=clock();if(!validClock(started))return error(503,'ECONOMY_UNAVAILABLE');
+     if(!await deps.allow('economy:'+(deps.client??'unknown')))return error(429,'RATE_LIMITED',{'Retry-After':'60'});
+-    const session=await readSession(request,deps.db,clock());
++    const session=await readEconomySession(request,deps.db,clock);
+     if(typeof session==='string')return error(401,session==='SESSION_EXPIRED'?'SESSION_EXPIRED':'AUTH_REQUIRED');
+     let now=clock();
+     if(!validClock(now)||now<started)return error(503,'ECONOMY_UNAVAILABLE');
+@@ -54,34 +54,33 @@ export async function handleEconomyApi(request:Request,deps:EconomyDeps={}):Prom
+     }
+     if(typeof expected!=='string'||!ECONOMY_ADDRESS.test(expected))return error(400,'BAD_REQUEST');
+     if(expected.toLowerCase()!==wallet)return error(409,'ACCOUNT_MISMATCH');
++    const authReply=async(value:unknown)=>await revalidateEconomySession(request,deps.db!,session,clock)?reply(200,value):error(401,'AUTH_REQUIRED');
+     if(meRoute){
+       const snapshot=await economyWalletSnapshot(deps.db,deps.config,wallet),finished=clock();
+       if(!validClock(finished)||finished<now)return error(503,'ECONOMY_UNAVAILABLE');
+-      const fresh=await readSession(request,deps.db,finished),returned=clock();
+-      if(!validClock(returned)||returned<finished)return error(503,'ECONOMY_UNAVAILABLE');
+       // The legacy private view needs the same late-logout boundary as balances
+       // and the shared GOLD view; never return a completed stale wallet read.
+-      if(typeof fresh==='string'||fresh.tokenHash!==session.tokenHash||fresh.address.toLowerCase()!==wallet||fresh.expiresAt!==session.expiresAt||fresh.expiresAt<=returned)return error(401,'AUTH_REQUIRED');
++      if(!await revalidateEconomySession(request,deps.db,session,clock))return error(401,'AUTH_REQUIRED');
+       return reply(200,snapshot);
+     }
+     // Retain the existing persistent-write boundary. ERC-1271 identity can read,
+     // but does not silently gain this new order/debit authority.
+     if(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA')return error(403,'EOA_REQUIRED');
+     now=clock();if(!validClock(now)||now<started)return error(503,'ECONOMY_UNAVAILABLE');
+-    const fresh=await readSession(request,deps.db,now);
+-    if(typeof fresh==='string'||fresh.address.toLowerCase()!==wallet||fresh.walletType!=='EOA'||fresh.verificationMethod!=='ECDSA'||fresh.expiresAt<=now)return error(401,'AUTH_REQUIRED');
++    if(!await revalidateEconomySession(request,deps.db,session,clock))return error(401,'AUTH_REQUIRED');
++    const fresh=session;
+     if(typeof value!.requestId!=='string'||! /^[A-Za-z0-9_-]{16,80}$/.test(value!.requestId))return error(400,'BAD_REQUEST');
+     if(ordersRoute){
+       if(typeof value!.serviceId!=='string'||! /^[a-z][a-z0-9-]{0,63}$/.test(value!.serviceId)||typeof value!.currency!=='string'||!['GOLD','EMBEO'].includes(value!.currency))return error(400,'BAD_REQUEST');
+       const order=await createEconomyOrder(deps.db,deps.config,{wallet,requestId:value!.requestId,serviceId:value!.serviceId,currency:value!.currency as 'GOLD'|'EMBEO',nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash}});
+-      return reply(200,{order,...order.currency==='EMBEO'?{payment:{chainId:deps.config.chainId,contract:deps.config.paymentContract,token:deps.config.token,receiver:deps.config.treasury,orderId:order.id,amount:order.amount}}:{}});
++      return await authReply({order,...order.currency==='EMBEO'?{payment:{chainId:deps.config.chainId,contract:deps.config.paymentContract,token:deps.config.token,receiver:deps.config.treasury,orderId:order.id,amount:order.amount}}:{}});
+     }
+     if(!ECONOMY_HASH.test(goldMatch![1]))return error(400,'BAD_REQUEST');
+-    if(challengeRoute)return reply(200,{challenge:await createEconomyGoldChallenge(deps.db,deps.config,{wallet,orderId:goldMatch![1],requestId:value!.requestId,origin:url.origin,nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash},serviceReady:deps.serviceReady})});
++    if(challengeRoute)return await authReply({challenge:await createEconomyGoldChallenge(deps.db,deps.config,{wallet,orderId:goldMatch![1],requestId:value!.requestId,origin:url.origin,nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash},serviceReady:deps.serviceReady,serviceProducts:deps.serviceProducts})});
+     if(typeof value!.signature!=='string'||! /^0x[0-9a-fA-F]{130}$/.test(value!.signature))return error(400,'BAD_REQUEST');
+-    return reply(200,{order:await payEconomyOrderGold(deps.db,deps.config,{wallet,orderId:goldMatch![1],requestId:value!.requestId,signature:value!.signature,origin:url.origin,nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash},serviceReady:deps.serviceReady})});
++    return await authReply({order:await payEconomyOrderGold(deps.db,deps.config,{wallet,orderId:goldMatch![1],requestId:value!.requestId,signature:value!.signature,origin:url.origin,nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash},serviceReady:deps.serviceReady,serviceProducts:deps.serviceProducts})});
+   }catch(cause){
+-    if(cause instanceof EconomyConflict){const code=cause.code;return error(code==='BAD_REQUEST'||code==='GOLD_SIGNATURE_REQUIRED'?400:code==='AUTH_REQUIRED'?401:code==='INVALID_GOLD_SIGNATURE'?403:code==='ORDER_NOT_FOUND'?404:409,code);}
++    if(cause instanceof EconomyConflict){const code=cause.code;return error(code==='SERVICE_DELIVERY_UNAVAILABLE'?503:code==='BAD_REQUEST'||code==='GOLD_SIGNATURE_REQUIRED'?400:code==='AUTH_REQUIRED'?401:code==='INVALID_GOLD_SIGNATURE'?403:code==='ORDER_NOT_FOUND'?404:409,code);}
+     return error(503,'ECONOMY_UNAVAILABLE');
+   }
+ }
+diff --git a/server/inventory.ts b/server/inventory.ts
+index 8511a88..0b624fe 100644
+--- a/server/inventory.ts
++++ b/server/inventory.ts
+@@ -1,4 +1,4 @@
+-import {readSession} from './auth.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
+ import {API_HEADERS} from './world-api.ts';
+ import type {D1Database} from './d1.ts';
+ import type {HomeView} from './ownership.ts';
+@@ -57,7 +57,8 @@ export async function handleInventoryApi(request:Request,deps:Deps):Promise<Resp
+   if(write&&(origin!==url.origin||url.search))return json(403,{error:'FORBIDDEN_ORIGIN'});
+   if(!deps.db)return json(503,{error:'INVENTORY_UNAVAILABLE'});
+   try{
+-    const db=deps.db,clock=deps.now??Date.now,start=clockSample(clock,0);
++    const db=deps.db,clock=economySessionClock(deps.now??Date.now),start=clockSample(clock,0);
++    deps={...deps,now:clock};
+     if(!await deps.allow())return json(429,{error:'RATE_LIMITED'});
+     await ready(db);
+     if(publicMatch){
+@@ -76,7 +77,7 @@ export async function handleInventoryApi(request:Request,deps:Deps):Promise<Resp
+     const b=write?await body(request):null,expected=write?b?.expectedAddress:url.searchParams.get('expected_address');
+     if(typeof expected!=='string'||!ADDRESS.test(expected)||!write&&(url.searchParams.size!==1||url.search.length>128))return json(400,{error:'BAD_REQUEST'});
+     if(write&&Object.keys(b!).sort().join()!=='command,expectedAddress,revision')return json(400,{error:'BAD_REQUEST'});
+-    const session=await readSession(request,db,clockSample(clock,start));if(typeof session==='string')return json(401,{error:'AUTH_REQUIRED'});
++    const session=await readEconomySession(request,db,clock);if(typeof session==='string')return json(401,{error:'AUTH_REQUIRED'});
+     const wallet=session.address.toLowerCase();if(wallet!==expected.toLowerCase())return json(409,{error:'ACCOUNT_CONTEXT_CHANGED'});
+     if(write&&(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA'))return json(403,{error:'EOA_REQUIRED'});
+     const home=await homeState(deps,wallet,write,start),state=await read(db,wallet,deps.catalogue??INVENTORY_CATALOGUE);
+@@ -102,8 +103,7 @@ export async function handleInventoryApi(request:Request,deps:Deps):Promise<Resp
+       if(result[1].meta.changes!==1)return json(409,{error:'REVISION_CONFLICT'});
+       Object.assign(state,next,{revision:state.revision+1});
+     }
+-    const at=clockSample(clock,start),fresh=await readSession(request,db,at);
+-    if(typeof fresh==='string'||fresh.tokenHash!==session.tokenHash||fresh.address.toLowerCase()!==wallet||fresh.expiresAt<=clockSample(clock,at))return json(401,{error:'AUTH_REQUIRED'});
++    if(!await revalidateEconomySession(request,db,session,clock))return json(401,{error:'AUTH_REQUIRED'});
+     const snapshot:InventorySnapshot={...state,wallet,home:{state:home.state,size:home.size},nftCollections:GAME_NFT_COLLECTIONS};
+     return json(200,snapshot);
+   }catch(e){const code=e instanceof Error?e.message:'';return json(['BAD_REQUEST','INVALID_COMMAND'].includes(code)?400:503,{error:['BAD_REQUEST','INVALID_COMMAND','INVENTORY_CAPACITY'].includes(code)?code:'INVENTORY_UNAVAILABLE'});}
+diff --git a/server/member-balances.ts b/server/member-balances.ts
+index 37156ee..36e3322 100644
+--- a/server/member-balances.ts
++++ b/server/member-balances.ts
+@@ -1,5 +1,5 @@
+ import {encodeFunctionData,decodeFunctionResult,multicall3Abi} from 'viem';
+-import {readSession} from './auth.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
+ import {rpc,MULTICALL3,type ChainAccess} from './ownership.ts';
+ import {ECONOMY_ADDRESS,ECONOMY_TOKEN,ECONOMY_SHARE_WEI,type EconomyConfig} from './economy-config.ts';
+ import {economyChainState} from './economy-ledger.ts';
+@@ -45,10 +45,10 @@ export async function handleMemberBalances(request:Request,deps:Deps):Promise<Re
+  if(keys.length!==1||keys[0]!=='expected_address'||!expected||!ECONOMY_ADDRESS.test(expected))return bad(400,'BAD_REQUEST');
+  if(!deps.db)return bad(503,'BALANCE_UNAVAILABLE');
+  try{
+-  const clock=deps.now??Date.now,started=clock();
++  const clock=economySessionClock(deps.now??Date.now),started=clock();
+   if(!Number.isSafeInteger(started)||started<=0)return bad(503,'BALANCE_UNAVAILABLE');
+   if(!await deps.allow('home',deps.client))return bad(429,'RATE_LIMITED');
+-  const session=await readSession(request,deps.db,clock());if(typeof session==='string')return bad(401,session==='SESSION_EXPIRED'?'SESSION_EXPIRED':'AUTH_REQUIRED');
++  const session=await readEconomySession(request,deps.db,clock);if(typeof session==='string')return bad(401,session==='SESSION_EXPIRED'?'SESSION_EXPIRED':'AUTH_REQUIRED');
+   const wallet=session.address.toLowerCase();if(wallet!==expected.toLowerCase())return bad(409,'ACCOUNT_CONTEXT_CHANGED');
+   let config:EconomyConfig|null=null;try{config=await deps.config();}catch{/* release gate stays closed */}
+   // One readiness query shared by both private DB reads. The summary reads no
+@@ -66,9 +66,8 @@ export async function handleMemberBalances(request:Request,deps:Deps):Promise<Re
+    }catch{return {status:'unavailable' as const};}})(),
+    (async()=>{try{if(!await ready)throw Error();const s=goldBalanceView(await goldBalanceStatement(deps.db!,wallet).first<{book:string;reserved:string}>());return {status:'ok' as const,...s};}catch{return {status:'unavailable' as const};}})(),
+   ]);
+-  const freshAt=clock(),fresh=await readSession(request,deps.db,freshAt);
+-  if(!Number.isSafeInteger(freshAt)||freshAt<started)return bad(503,'BALANCE_UNAVAILABLE');
+-  if(typeof fresh==='string'||fresh.address.toLowerCase()!==wallet||fresh.tokenHash!==session.tokenHash||fresh.expiresAt!==session.expiresAt||fresh.expiresAt<=clock())return bad(401,'AUTH_REQUIRED');
++  if(!await revalidateEconomySession(request,deps.db,session,clock))return bad(401,'AUTH_REQUIRED');
++  const freshAt=clock();if(session.expiresAt<=freshAt)return bad(401,'AUTH_REQUIRED');
+   return reply(200,{wallet,asOf:freshAt,embeo,staked,gold});
+  }catch{return bad(503,'BALANCE_UNAVAILABLE');}
+ }
+diff --git a/server/world-gold-api.ts b/server/world-gold-api.ts
+index 1fa4b79..c67261a 100644
+--- a/server/world-gold-api.ts
++++ b/server/world-gold-api.ts
+@@ -1,4 +1,4 @@
+-import {readSession} from './auth.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
+ import {API_HEADERS} from './world-api.ts';
+ import type {D1Database} from './d1.ts';
+ import type {EconomyConfig} from './economy-config.ts';
+@@ -34,39 +34,41 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+  if(write&&(origin!==u.origin||u.search))return bad(403,'FORBIDDEN_ORIGIN');
+  if(!deps.db||!deps.allow)return bad(503,'GOLD_NOT_CONFIGURED');
+  try{
+-  const clock=deps.now??Date.now,started=clock();if(!Number.isSafeInteger(started)||started<=0)throw Error('INVALID_CLOCK');
++  const clock=economySessionClock(deps.now??Date.now),started=clock();
+   if(!await deps.allow('world-gold:'+(deps.client??'unknown')))return bad(429,'RATE_LIMITED');
+   const b=write?await body(request):null,expected=b?.expectedAddress??u.searchParams.get('expected_address');
+   const lookup=admin?u.searchParams.get('order_id'):null;
+   if(typeof expected!=='string'||!address.test(expected)||(!write&&(u.searchParams.size!==(lookup?2:1)||u.search.length>256))||(lookup!==null&&!/^0x[0-9a-f]{64}$/.test(lookup)))return bad(400,'BAD_REQUEST');
+-  const session=await readSession(request,deps.db,clock());
++  const session=await readEconomySession(request,deps.db,clock);
+   if(typeof session==='string')return bad(401,'AUTH_REQUIRED');const now=clock();
+   if(!Number.isSafeInteger(now)||now<started||session.expiresAt<=now||!['ECDSA','ERC1271'].includes(session.verificationMethod??''))return bad(401,'AUTH_REQUIRED');
+   const wallet=session.address.toLowerCase();if(wallet!==expected.toLowerCase())return bad(409,'ACCOUNT_MISMATCH');
+   const isAdmin=AIMARKET_ACTIVITY_ADMIN_WALLETS.includes(wallet);
+-  const authReply=async(value:unknown)=>{const at=clock(),fresh=await readSession(request,deps.db!,at);if(!Number.isSafeInteger(at)||at<started||typeof fresh==='string'||fresh.tokenHash!==session.tokenHash||fresh.address.toLowerCase()!==wallet||fresh.expiresAt<=clock())return bad(401,'AUTH_REQUIRED');return reply(200,value);};
++  const authReply=async(value:unknown,status=200)=>{if(!await revalidateEconomySession(request,deps.db!,session,clock))return bad(401,'AUTH_REQUIRED');return reply(status,value);};
+   if(admin&&!isAdmin)return bad(403,'ADMIN_REQUIRED');
+   if(write&&(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA'))return bad(403,'EOA_REQUIRED');
+   await requireWorldGoldSchema(deps.db);
+   if(!write){
+-   if(trial)return authReply({address:wallet,campaign:await goldCampaign(deps.db,now)});
+-   if(admin&&lookup){const order=await deps.db.prepare(`SELECT o.*,l.kind,l.product_id,CAST(l.gold AS TEXT) gold,j.state delivery,j.failure,j.delivery_evidence_json FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_jobs j ON j.order_id=o.id WHERE o.id=?`).bind(lookup).first();if(!order)return bad(404,'ORDER_NOT_FOUND');return authReply({order});}
++   if(trial)return await authReply({address:wallet,campaign:await goldCampaign(deps.db,now)});
++   if(admin&&lookup){const order=await deps.db.prepare(`SELECT o.*,l.kind,l.product_id,CAST(l.gold AS TEXT) gold,j.state delivery,j.failure,j.delivery_evidence_json FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_jobs j ON j.order_id=o.id WHERE o.id=?`).bind(lookup).first();if(!order)return bad(404,'ORDER_NOT_FOUND');return await authReply({order});}
+    const snapshot=await worldGoldSnapshot(deps.db,wallet,now);
+-   if(me)return authReply(snapshot);
++   if(me)return await authReply(snapshot);
+    const [products,campaign,controls]=await Promise.all([goldProducts(deps.db),goldCampaign(deps.db,now),deps.db.prepare('SELECT feature,enabled,version FROM world_gold_controls ORDER BY feature').all()]);
+    const actions=admin?await deps.db.prepare('SELECT wallet,action,payload,created_ms,before_json,after_json FROM world_gold_admin_actions ORDER BY created_ms DESC,id DESC LIMIT 100').all():null;
+-   return authReply({...snapshot,products,campaign,controls:controls.results,isAdmin,...actions?{actions:actions.results}:{},payment:deps.config?{chainId:deps.config.chainId,token:deps.config.token,contract:deps.config.paymentContract,treasury:deps.config.treasury}:null,paymentsReady:!!deps.config,formalPricesSet:false,deliveryReady:deps.serviceReady===true});
++   return await authReply({...snapshot,products,campaign,controls:controls.results,isAdmin,...actions?{actions:actions.results}:{},payment:deps.config?{chainId:deps.config.chainId,token:deps.config.token,contract:deps.config.paymentContract,treasury:deps.config.treasury}:null,paymentsReady:!!deps.config,formalPricesSet:false,deliveryReady:deps.serviceReady===true});
+   }
+-  const fresh=await readSession(request,deps.db,clock());if(typeof fresh==='string'||fresh.address.toLowerCase()!==wallet||fresh.expiresAt<=clock()||fresh.verificationMethod!=='ECDSA'||fresh.walletType!=='EOA')return bad(401,'AUTH_REQUIRED');
+-  const auth={tokenHash:fresh.tokenHash};
++  if(!await revalidateEconomySession(request,deps.db,session,clock))return bad(401,'AUTH_REQUIRED');
++  const auth={tokenHash:session.tokenHash};
+   if(quote){if(!deps.config)return bad(503,'GOLD_NOT_CONFIGURED');if(!exact(b!,['expectedAddress','requestId','product'])||typeof b!.product!=='string'||typeof b!.requestId!=='string')return bad(400,'BAD_REQUEST');
+-   const id=await goldQuote({db:deps.db,config:deps.config!,nowMs:clock(),now:clock,serviceReady:deps.serviceReady&&(!deps.serviceProducts||deps.serviceProducts.includes(b!.product))},{wallet,requestId:b!.requestId,product:b!.product,authorization:auth});return reply(200,{orderId:id});}
++   const id=await goldQuote({db:deps.db,config:deps.config!,nowMs:clock(),now:clock,serviceReady:deps.serviceReady&&(!deps.serviceProducts||deps.serviceProducts.includes(b!.product))},{wallet,requestId:b!.requestId,product:b!.product,authorization:auth});return await authReply({orderId:id});}
+   if(admin){if(!exact(b!,['expectedAddress','requestId','command','reason'])||typeof b!.reason!=='string'||typeof b!.requestId!=='string')return bad(400,'BAD_REQUEST');
+    const cmd=command(b!.command),ready=deps.serviceReady&&(!deps.serviceProducts||cmd.action!=='product'||cmd.kind!=='service'||deps.serviceProducts.includes(cmd.product));
+    if(!deps.config&&cmd.action!=='repair-topup'&&cmd.action!=='refund-service')return bad(503,'GOLD_NOT_CONFIGURED');
+-   const result=await goldAdminCommand(deps.db,{wallet,requestId:b!.requestId,command:cmd,reason:b!.reason,nowMs:clock(),now:clock,authorization:auth,serviceReady:ready});return reply(200,{ok:true,result});}
++   const result=await goldAdminCommand(deps.db,{wallet,requestId:b!.requestId,command:cmd,reason:b!.reason,nowMs:clock(),now:clock,authorization:auth,serviceReady:ready});return await authReply({ok:true,result});}
+   if(!exact(b!,['expectedAddress']))return bad(400,'BAD_REQUEST');
+   if(!await deps.db.prepare('SELECT id FROM economy_orders WHERE id=? AND wallet=?').bind(retry![1],wallet).first())return bad(404,'ORDER_NOT_FOUND');
+-  const result=await reconcileWorldGold(deps.db,clock(),retry![1]);return result.failures.length?reply(409,{ok:false,error:result.failures[0].code}):reply(200,{ok:true});
+- }catch(e){const code=e instanceof Error?e.message:'GOLD_UNAVAILABLE';return bad(code==='BAD_REQUEST'||code==='INVALID_PRODUCT'||code==='INVALID_REQUEST_ID'?400:code==='ADMIN_REQUIRED'?403:code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='ORDER_EXPIRED'||code==='IDEMPOTENCY_CONFLICT'||code==='FEATURE_PAUSED'||code==='PRODUCT_UNAVAILABLE'?409:503,/^[A-Z][A-Z0-9_]{1,80}$/.test(code)?code:'GOLD_UNAVAILABLE');}
++  // Reconciliation repairs already-owed rights, also run by cron. A concurrent
++  // logout cannot undo an owed credit; it must refuse success to this request.
++  const result=await reconcileWorldGold(deps.db,clock(),retry![1]);return result.failures.length?await authReply({ok:false,error:result.failures[0].code},409):await authReply({ok:true});
++ }catch(e){const code=e instanceof Error?e.message:'GOLD_UNAVAILABLE';return bad(code==='INVALID_CLOCK'?503:code==='BAD_REQUEST'||code==='INVALID_PRODUCT'||code==='INVALID_REQUEST_ID'?400:code==='ADMIN_REQUIRED'?403:code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='ORDER_EXPIRED'||code==='IDEMPOTENCY_CONFLICT'||code==='FEATURE_PAUSED'||code==='PRODUCT_UNAVAILABLE'?409:503,/^[A-Z][A-Z0-9_]{1,80}$/.test(code)?code:'GOLD_UNAVAILABLE');}
+ }
+diff --git a/server/world-gold-report.ts b/server/world-gold-report.ts
+index c2e553e..669c405 100644
+--- a/server/world-gold-report.ts
++++ b/server/world-gold-report.ts
+@@ -1,4 +1,4 @@
+-import {readSession} from './auth.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
+ import {API_HEADERS} from './world-api.ts';
+ import type {D1Database} from './d1.ts';
+ import type {ResearchDeliveryProvider} from './aimarket-delivery.ts';
+@@ -11,14 +11,14 @@ export async function handleWorldGoldReport(request:Request,deps:{db?:D1Database
+   const expected=u.searchParams.get('expected_address');if(u.searchParams.size!==1||!expected||!/^0x[0-9a-fA-F]{40}$/.test(expected))return reply(400,{error:'BAD_REQUEST'});
+   if(!deps.db||!deps.provider)return reply(503,{error:'REPORT_UNAVAILABLE'});
+   try{
+-    const start=deps.now();if(!Number.isSafeInteger(start)||start<=0)throw Error();if(!await deps.allow())return reply(429,{error:'RATE_LIMITED'});
+-    const s=await readSession(request,deps.db,start);if(typeof s==='string')return reply(401,{error:'AUTH_REQUIRED'});
++    const clock=economySessionClock(deps.now);clock();if(!await deps.allow())return reply(429,{error:'RATE_LIMITED'});
++    const s=await readEconomySession(request,deps.db,clock);if(typeof s==='string')return reply(401,{error:'AUTH_REQUIRED'});
+     const wallet=s.address.toLowerCase();if(wallet!==expected.toLowerCase())return reply(409,{error:'ACCOUNT_CONTEXT_CHANGED'});
+     const row=await deps.db.prepare("SELECT j.result_json FROM world_gold_jobs j JOIN economy_orders o ON o.id=j.order_id JOIN world_gold_links l ON l.order_id=o.id JOIN world_gold_products p ON p.id=l.product_id WHERE o.id=? AND o.wallet=? AND o.status='paid' AND j.state='delivered' AND p.product='research'").bind(m[1],wallet).first<{result_json:string}>();
+     if(!row)return reply(404,{error:'REPORT_NOT_FOUND'});
+     const result=JSON.parse(row.result_json);if(result?.provider!=='aimarket-vps-v1'||typeof result.reportId!=='string'||result.reportId!==result.documentHash)throw Error();
+-    const document=await deps.provider.readReport({orderId:m[1],wallet,product:'research',reference:result.reportId}),at=deps.now(),fresh=await readSession(request,deps.db,at);
+-    if(!Number.isSafeInteger(at)||at<start||typeof fresh==='string'||fresh.tokenHash!==s.tokenHash||fresh.address.toLowerCase()!==wallet||fresh.expiresAt<=deps.now())return reply(401,{error:'AUTH_REQUIRED'});
++    const document=await deps.provider.readReport({orderId:m[1],wallet,product:'research',reference:result.reportId});
++    if(!await revalidateEconomySession(request,deps.db,s,clock))return reply(401,{error:'AUTH_REQUIRED'});
+     return reply(200,{orderId:m[1],document});
+   }catch{return reply(503,{error:'REPORT_UNAVAILABLE'});}
+ }
+diff --git a/server/world-gold.ts b/server/world-gold.ts
+index f049a89..2259463 100644
+--- a/server/world-gold.ts
++++ b/server/world-gold.ts
+@@ -196,6 +196,7 @@ export async function goldAdminCommand(db:D1Database,args:{wallet:string;request
+  const list:D1PreparedStatement[]=[authCheck(db,wallet,now,args.authorization),st(db,`INSERT INTO world_gold_write_checks(id,accepted,before_json) SELECT ?,1,${auditState}`,beforeId,...auditArgs)];
+  if(cmd.action==='product'){
+   ident(cmd.product);if(!['topup','service'].includes(cmd.kind)||typeof cmd.enabled!=='boolean'||typeof cmd.title!=='string'||!cmd.title.trim()||cmd.title.length>120||!Number.isSafeInteger(cmd.version)||cmd.version<1)fail('INVALID_PRODUCT');
++  if(cmd.kind==='service'&&cmd.enabled&&args.serviceReady!==true)fail('SERVICE_DELIVERY_UNAVAILABLE');
+   const gold=economyUint(cmd.gold,WORLD_GOLD_MAX_PRODUCT),embeo=cmd.kind==='topup'?economyUint(cmd.embeo):null;
+   const pid=cmd.product+':'+cmd.version;
+   list.push(check(db,'?=COALESCE((SELECT MAX(version) FROM world_gold_products WHERE product=?),0)+1',cmd.version,cmd.product),st(db,`INSERT INTO world_gold_products(id,product,version,kind,title,gold,embeo,enabled,created_ms) VALUES(?,?,?,?,?,?,?,?,?)`,pid,cmd.product,cmd.version,cmd.kind,cmd.title,gold,embeo,Number(cmd.enabled),now));
+diff --git a/tests/economy-boundaries-audit9.test.mjs b/tests/economy-boundaries-audit9.test.mjs
+new file mode 100644
+index 0000000..0dfb4f6
+--- /dev/null
++++ b/tests/economy-boundaries-audit9.test.mjs
+@@ -0,0 +1,132 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,NOW,W,OWNER,B,rid} from './world-gold-audit5-fixture.mjs';
++import {sha256,SESSION_COOKIE} from '../server/auth.ts';
++import {handleEconomyApi} from '../server/economy.ts';
++import {handleWorldGoldApi} from '../server/world-gold-api.ts';
++import {handleWorldGoldReport} from '../server/world-gold-report.ts';
++import {handleMemberBalances} from '../server/member-balances.ts';
++import {handleAIMarketCampaign} from '../server/aimarket-campaign.ts';
++import {handleInventoryApi} from '../server/inventory.ts';
++import {economySessionClock} from '../server/economy-session.ts';
++import {createEconomyGoldChallenge,payEconomyOrderGold} from '../server/economy-ledger.ts';
++import {reconcileWorldGold,claimGoldJob,finishGoldJob} from '../server/world-gold.ts';
++
++const TOKEN='y'.repeat(43),ROOT='https://imdember.com';
++const req=(path,wallet,value)=>new Request(ROOT+path+(value?'':'?expected_address='+wallet),{method:value?'POST':'GET',headers:{cookie:SESSION_COOKIE+'='+TOKEN,origin:ROOT,...value?{'content-type':'application/json'}:{}},...value?{body:JSON.stringify({expectedAddress:wallet,...value})}:{}});
++const readRoutes=['legacy','gold','state','trial','balances','report','campaign','inventory','admin'];
++async function setup(route){
++ const f=await fixture();await f.topup();const wallet=route==='campaign'||route==='admin'?OWNER:W;let id;
++ if(route==='report'){
++  id=await f.service();const attempt=await claimGoldJob(f.db,id,NOW+1);
++  await finishGoldJob(f.db,{orderId:id,attempt,nowMs:NOW+2,outcome:{result:{provider:'aimarket-vps-v1',report:'Published research: 2026-10-19',reportId:'a'.repeat(64),documentHash:'a'.repeat(64),reportDate:'2026-10-19'}}});
++ }
++ const hash=await sha256(TOKEN);f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,?,?,?,?,?,?)').run(hash,wallet,1,NOW-1,NOW+60000,'boundary','EOA','ECDSA');
++ let at=NOW,io=0;const clock=()=>at;
++ const trigger=()=>{io++;};let onIO=trigger,onRevalidation=()=>{},sessionReads=0;
++ const prepare=f.db.prepare,batch=f.db.batch;
++ const matches=sql=>route==='legacy'?sql.includes('SELECT position_id id'):['trial','campaign'].includes(route)?sql.includes('SELECT version,starts_ms'):route==='inventory'?sql.includes('SELECT revision,arrangement_json'):route==='balances'?sql.includes('SELECT CAST(COALESCE((SELECT balance'):route==='admin'?sql.includes('SELECT feature,enabled,version'):false;
++ const wrap=(s,sql)=>({...s,bind:(...v)=>wrap(s.bind(...v),sql),first:async()=>{const r=await s.first();if(sql.startsWith('SELECT address,expires_at')&&++sessionReads===2)onRevalidation();if(matches(sql))onIO();return r;},all:async()=>{const r=await s.all();if(matches(sql))onIO();return r;}});
++ f.db.prepare=sql=>wrap(prepare(sql),sql);
++ f.db.batch=async list=>{const out=await batch(list);if(['gold','state'].includes(route)&&list.some(s=>s.sql.includes('FROM world_gold_history')))onIO();return out;};
++ const d={db:f.db,config:f.config,now:clock,allow:async()=>true,serviceReady:true,serviceProducts:['research']};
++ const invoke=()=>{
++  if(route==='legacy')return handleEconomyApi(req('/api/me/economy',wallet),d);
++  if(route==='balances')return handleMemberBalances(req('/api/me/balances',wallet),{...d,config:async()=>f.config,chain:{},client:'fixture'});
++  if(route==='campaign')return handleAIMarketCampaign(req('/api/me/aimarket-campaign',wallet),d);
++  if(route==='inventory')return handleInventoryApi(req('/api/me/inventory',wallet),{...d,home:async()=>({address:wallet,eligible:0,block:100,checkedAt:at})});
++  if(route==='report')return handleWorldGoldReport(req('/api/gold/orders/'+id+'/report',wallet),{...d,provider:{readReport:async()=>{onIO();return {content:'private-fixture'};}}});
++  return handleWorldGoldApi(req(route==='gold'?'/api/me/gold':route==='state'?'/api/gold/state':route==='trial'?'/api/me/aimarket-trial':'/api/gold/admin',wallet),d);
++ };
++ return {...f,wallet,hash,invoke,time:n=>at=n,onIO:fn=>onIO=()=>{io++;fn();},io:()=>io,onRevalidation:fn=>onRevalidation=fn};
++}
++
++for(const route of readRoutes)for(const mutation of ['logout','expiry-equality','clock-regression','expiry-changed','verification-downgrade','wallet-changed'])test(`audit9 private matrix ${route}: ${mutation} during I/O discards the whole body`,async()=>{
++ const f=await setup(route);try{
++  f.time(NOW+10);let once=false;
++  f.onIO(()=>{if(once)return;once=true;
++   if(mutation==='logout')f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(NOW+10);
++   if(mutation==='expiry-equality')f.time(NOW+60000);
++   if(mutation==='clock-regression')f.time(NOW+5);
++   if(mutation==='expiry-changed')f.db.raw.prepare('UPDATE sessions SET expires_at=expires_at+1').run();
++   if(mutation==='verification-downgrade')f.db.raw.prepare('UPDATE sessions SET verification_method=NULL').run();
++   if(mutation==='wallet-changed')f.db.raw.prepare('UPDATE sessions SET address=?').run(B);
++  });
++  const r=await f.invoke();assert.equal(once,true);assert.equal(r.status,mutation==='clock-regression'?503:401);assert.deepEqual(Object.keys(await r.json()),['error']);assert.match(r.headers.get('cache-control'),/no-store/);
++ }finally{f.close();}
++});
++
++for(const route of readRoutes)for(const invalid of ['unverified','unsafe-expiry'])test(`audit9 private matrix ${route}: refuses initial ${invalid} before snapshot/provider`,async()=>{
++ const f=await setup(route);try{
++  if(invalid==='unverified')f.db.raw.prepare('UPDATE sessions SET wallet_type=NULL,verification_method=NULL').run();
++  else f.db.raw.prepare('UPDATE sessions SET expires_at=?').run(NOW+60000.5);
++  const r=await f.invoke();assert.equal(r.status,401);assert.equal(f.io(),0);assert.deepEqual(Object.keys(await r.json()),['error']);
++ }finally{f.close();}
++});
++
++for(const route of readRoutes)test(`audit9 private matrix ${route}: unchanged ECDSA and ERC1271 sessions retain read access`,async()=>{
++ const f=await setup(route);try{assert.equal((await f.invoke()).status,200);f.db.raw.prepare("UPDATE sessions SET wallet_type='CONTRACT',verification_method='ERC1271'").run();assert.equal((await f.invoke()).status,200);}finally{f.close();}
++});
++
++test('audit9 clocks allow equal timestamps, reject invalid/final samples and remain failed after recovery',()=>{
++ for(const invalid of [NOW-1,NaN,Infinity,0,NOW+0.5,Number.MAX_SAFE_INTEGER+1]){let at=NOW;const clock=economySessionClock(()=>at);assert.equal(clock(),NOW);assert.equal(clock(),NOW);at=invalid;assert.throws(clock,/INVALID_CLOCK/);at=NOW+1;assert.throws(clock,/INVALID_CLOCK/);}
++});
++
++for(const route of readRoutes)for(const mutation of ['backward-final-sample','expiry-at-final-sample'])test(`audit9 private matrix ${route}: ${mutation} while the final session read awaits`,async()=>{
++ const f=await setup(route);try{f.time(NOW+10);let fired=false;f.onRevalidation(()=>{fired=true;f.time(mutation==='backward-final-sample'?NOW+5:NOW+60000);});
++ const r=await f.invoke();assert.equal(fired,true);assert.equal(r.status,mutation==='backward-final-sample'?503:401);assert.deepEqual(Object.keys(await r.json()),['error']);
++ }finally{f.close();}
++});
++
++for(const route of ['quote','challenge','pay','admin','campaign','inventory'])for(const mutation of ['logout','expiry-equality','clock-regression'])test(`audit9 committed ${route}: late ${mutation} cannot return a stale success body`,async()=>{
++ const f=await fixture();try{
++  await f.topup();const wallet=['admin','campaign'].includes(route)?OWNER:W,hash=await sha256(TOKEN);
++  f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,?,?,?,?,?,?)').run(hash,wallet,1,NOW-1,NOW+60000,'post-write','EOA','ECDSA');
++  let at=NOW+10,id,signed;if(['challenge','pay'].includes(route)){id=await f.quote('research');if(route==='pay')signed=await f.challenge(id);}
++  const mutate=()=>{if(mutation==='logout')f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(at);if(mutation==='expiry-equality')at=NOW+60000;if(mutation==='clock-regression')at=NOW+5;};
++  let fired=false;const once=()=>{if(!fired){fired=true;mutate();}};
++  const batch=f.db.batch,prepare=f.db.prepare;
++  f.db.batch=async list=>{const r=await batch(list);if(list.some(s=>/INSERT INTO economy_orders|INSERT INTO economy_gold_journal|INSERT INTO world_gold_admin_actions|INSERT OR IGNORE INTO world_inventory_arrangements/.test(s.sql)))once();return r;};
++  f.db.prepare=sql=>{const s=prepare(sql);if(!sql.startsWith('INSERT INTO economy_gold_challenges'))return s;const wrap=p=>({...p,bind:(...v)=>wrap(p.bind(...v)),run:async()=>{const r=await p.run();once();return r;}});return wrap(s);};
++  const d={db:f.db,config:f.config,now:()=>at,allow:async()=>true,serviceReady:true,serviceProducts:['research']};let r;
++  if(route==='quote')r=await handleWorldGoldApi(req('/api/gold/quote',wallet,{product:'pack',requestId:rid()}),d);
++  if(route==='challenge')r=await handleEconomyApi(req('/api/economy/orders/'+id+'/gold/challenge',wallet,{requestId:rid()}),d);
++  if(route==='pay')r=await handleEconomyApi(req('/api/economy/orders/'+id+'/gold',wallet,{requestId:signed.requestId,signature:signed.signature}),d);
++  if(route==='admin')r=await handleWorldGoldApi(req('/api/gold/admin',wallet,{requestId:rid(),reason:'Post-write boundary',command:{action:'control',feature:'topup',version:0,enabled:false}}),d);
++  if(route==='campaign')r=await handleAIMarketCampaign(req('/api/me/aimarket-campaign',wallet,{requestId:rid(),reason:'Post-write campaign boundary',version:1,startsMs:NOW,endsMs:NOW+1000,stopped:false}),d);
++  if(route==='inventory')r=await handleInventoryApi(req('/api/me/inventory',wallet,{revision:0,command:{type:'publish',enabled:false}}),{...d,home:async()=>({address:wallet,eligible:0,checkedAt:at,block:100})});
++  assert.equal(fired,true);assert.equal(r.status,mutation==='clock-regression'?503:401);assert.deepEqual(Object.keys(await r.json()),['error']);
++  if(route==='pay')assert.equal((await f.snapshot()).book,'7'); // A valid committed payment is never silently undone.
++ }finally{f.close();}
++});
++
++test('audit9 supported research payment remains exactly once, even after its provider is removed and admissions paused',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.quote('research'),args=await f.challenge(id);args.serviceProducts=['research'];await payEconomyOrderGold(f.db,f.config,args);await f.admin({action:'control',feature:'service',enabled:false,version:0});
++ const paid=await payEconomyOrderGold(f.db,f.config,{...args,serviceReady:false,serviceProducts:[],nowMs:NOW+900001});assert.equal(paid.status,'paid');assert.equal((await f.snapshot()).book,'7');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_jobs').get().n,1);
++ }finally{f.close();}
++});
++
++test('audit9 SQL independently refuses unsupported challenge and debit when the application product lookup lies',async()=>{
++ for(const step of ['challenge','pay']){const f=await fixture();try{await f.topup();await f.admin({action:'product',product:'fortune',kind:'service',title:'Fortune',gold:'1',enabled:true,version:1});const id=await f.quote('fortune'),args=step==='pay'?await f.challenge(id):{wallet:W,orderId:id,requestId:rid(),origin:ROOT,nowMs:NOW,serviceReady:true};
++  const prepare=f.db.prepare;f.db.prepare=sql=>{const s=prepare(sql);if(!sql.startsWith('SELECT l.order_id,p.product'))return s;const wrap=p=>({...p,bind:(...v)=>wrap(p.bind(...v)),first:async()=>({...await p.first(),product:'research'})});return wrap(s);};
++  await assert.rejects((step==='challenge'?createEconomyGoldChallenge:payEconomyOrderGold)(f.db,f.config,{...args,serviceProducts:['research']}));assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_jobs').get().n,0);
++ }finally{f.close();}}
++});
++
++test('audit9 supported HTTP payment, wrong-origin/account and empty-provider admission use one rule',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.quote('research'),hash=await sha256(TOKEN);f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,?,?,?,?,?,?)').run(hash,W,1,NOW-1,NOW+60000,'http-pay','EOA','ECDSA');
++ const d={db:f.db,config:f.config,now:()=>NOW+1,allow:async()=>true,serviceReady:true,serviceProducts:['research']},path='/api/economy/orders/'+id+'/gold';
++ let r=await handleEconomyApi(req(path+'/challenge',W,{requestId:rid()}),{...d,serviceProducts:[]});assert.equal(r.status,503);
++ const requestId=rid();r=await handleEconomyApi(req(path+'/challenge',W,{requestId}),d);assert.equal(r.status,200);const ch=(await r.json()).challenge;
++ const {account}=await import('./world-gold-audit5-fixture.mjs');const signature=await account.signMessage({message:ch.message});r=await handleEconomyApi(req(path,W,{requestId,signature}),d);assert.equal(r.status,200);assert.equal((await f.snapshot()).book,'7');
++ r=await handleEconomyApi(req(path,B,{requestId,signature}),d);assert.equal(r.status,409);assert.equal((await f.snapshot()).book,'7');
++ }finally{f.close();}
++});
++
++test('audit9 reconciliation completion after logout returns 401; cron and an authenticated retry preserve one owed credit',async()=>{
++ const f=await setup('gold');try{const id=await f.quote();await f.paid(id);const prepare=f.db.prepare;
++ f.db.prepare=sql=>{if(sql.startsWith('SELECT id FROM economy_orders WHERE id='))f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(NOW+1);return prepare(sql);};
++ const d={db:f.db,config:null,now:()=>NOW+2,allow:async()=>true};const r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',W,{}),d);assert.equal(r.status,401);
++ f.db.prepare=prepare;await reconcileWorldGold(f.db,NOW+3);assert.equal((await f.snapshot()).book,'20');f.db.raw.prepare('UPDATE sessions SET revoked_at=NULL').run();assert.equal((await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',W,{}),d)).status,200);assert.equal((await f.snapshot()).book,'20');
++ }finally{f.close();}
++});
+diff --git a/tests/world-gold-audit6-integration.test.mjs b/tests/world-gold-audit6-integration.test.mjs
+index 12ac5e9..633877a 100644
+--- a/tests/world-gold-audit6-integration.test.mjs
++++ b/tests/world-gold-audit6-integration.test.mjs
+@@ -51,7 +51,7 @@ test('T02/T22: recovery and SQLite backup preserve owed share-days without compe
+   await applyEconomyRecovery(restored,shadow,c,next,{nowMs:NOW+1,expectedPlanHash:plan.hash});assert.equal((await gold.worldGoldSnapshot(restored,W,NOW)).pendingRewards.length,2);
+   // A real authenticated GOLD service spend supplies room for the original
+   // deferred rows. The old namespace stays in their immutable references.
+-  await gold.goldAdminCommand(restored,{wallet:OWNER,requestId:rid(),command:{action:'product',product:'research',kind:'service',title:'Fixture research',gold:'3',enabled:true,version:1},reason:'isolated historical recovery exercise',nowMs:NOW+2});
++  await gold.goldAdminCommand(restored,{wallet:OWNER,requestId:rid(),command:{action:'product',product:'research',kind:'service',title:'Fixture research',gold:'3',enabled:true,version:1},reason:'isolated historical recovery exercise',nowMs:NOW+2,serviceReady:true});
+   const service=await gold.goldQuote({db:restored,config:next,nowMs:NOW+3,serviceReady:true},{wallet:W,requestId:rid(),product:'research'});
+   const {createEconomyGoldChallenge,payEconomyOrderGold}=await import('../server/economy-ledger.ts'),{account}=await import('./world-gold-audit5-fixture.mjs'),requestId=rid();
+   const ch=await createEconomyGoldChallenge(restored,next,{wallet:W,orderId:service,requestId,origin:'https://imdember.com',nowMs:NOW+4,serviceReady:true});
+diff --git a/tests/world-gold-audit9.test.mjs b/tests/world-gold-audit9.test.mjs
+new file mode 100644
+index 0000000..ab8ead0
+--- /dev/null
++++ b/tests/world-gold-audit9.test.mjs
+@@ -0,0 +1,59 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,NOW,W,OWNER,rid} from './world-gold-audit5-fixture.mjs';
++import {sha256,SESSION_COOKIE} from '../server/auth.ts';
++import {handleEconomyApi} from '../server/economy.ts';
++import {handleWorldGoldApi} from '../server/world-gold-api.ts';
++import {handleWorldGoldReport} from '../server/world-gold-report.ts';
++import {handleMemberBalances} from '../server/member-balances.ts';
++import {handleAIMarketCampaign} from '../server/aimarket-campaign.ts';
++import {runGoldServiceJobs} from '../server/world-gold-delivery.ts';
++
++const TOKEN='x'.repeat(43),ROOT='https://imdember.com';
++async function session(f,wallet=W){
++ const hash=await sha256(TOKEN);
++ f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,?,?,?,?,?,?)').run(hash,wallet,1,NOW-1,NOW+60000,'audit9','EOA','ECDSA');
++ return hash;
++}
++function request(path,value,wallet=W){return new Request(ROOT+path+(value?'':'?expected_address='+wallet),{method:value?'POST':'GET',headers:{cookie:SESSION_COOKIE+'='+TOKEN,origin:ROOT,...value?{'content-type':'application/json'}:{}},...value?{body:JSON.stringify({expectedAddress:wallet,...value})}:{}});}
++const deps=f=>({db:f.db,config:f.config,now:()=>NOW+1,allow:async()=>true,serviceReady:true,serviceProducts:['research']});
++async function report(f){await f.topup();const id=await f.service();await runGoldServiceJobs(f.db,{id:'fixture',products:['research'],deliver:async()=>({kind:'delivered',result:{provider:'aimarket-vps-v1',report:'Published research: 2026-10-19',reportId:'a'.repeat(64),reportDate:'2026-10-19',documentHash:'a'.repeat(64)}})},()=>NOW+1);return id;}
++
++for(const step of ['challenge','pay'])test(`audit9 M1: provider removal refuses pending legacy service ${step} without debit`,async()=>{
++ const f=await fixture();try{
++  await f.topup();await f.admin({action:'product',product:'fortune',kind:'service',title:'Fortune',gold:'1',enabled:true,version:1});const id=await f.quote('fortune');
++  const signed=step==='pay'?await f.challenge(id):null;await session(f);
++  const r=await handleEconomyApi(request('/api/economy/orders/'+id+'/gold'+(step==='challenge'?'/challenge':''),step==='challenge'?{requestId:rid()}:{requestId:signed.requestId,signature:signed.signature}),deps(f));
++  assert.equal(r.status,503);assert.equal((await r.json()).error,'SERVICE_DELIVERY_UNAVAILABLE');
++  assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_jobs').get().n,0);
++ }finally{f.close();}
++});
++
++test('audit9 L1: new private reads reject a clock regression above route start',async()=>{
++ for(const path of ['/api/me/gold','/api/gold/state','/api/me/aimarket-trial','/api/me/balances']){
++  const f=await fixture();try{await session(f);let calls=0;const now=()=>++calls<=2?NOW:calls===3?NOW+10:NOW+5;
++   const d={...deps(f),now};const r=path.endsWith('balances')?await handleMemberBalances(request(path),{...d,config:async()=>f.config,chain:{},client:'audit9'}):await handleWorldGoldApi(request(path),d);
++   assert.equal(r.status,503,path);assert.deepEqual(Object.keys(await r.json()),['error']);
++  }finally{f.close();}
++ }
++});
++
++test('audit9 L2: logout after fresh session read cannot return reconcile success',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.quote();await f.paid(id);const hash=await session(f);const prepare=f.db.prepare;let reads=0;
++ f.db.prepare=sql=>{const s=prepare(sql);if(!sql.startsWith('SELECT address,expires_at'))return s;const wrap=p=>({...p,bind:(...v)=>wrap(p.bind(...v)),first:async()=>{const row=await p.first();if(++reads===2)f.db.raw.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=?').run(NOW+1,hash);return row;}});return wrap(s);};
++ const r=await handleWorldGoldApi(request('/api/gold/orders/'+id+'/reconcile',{}),deps(f));assert.equal(r.status,401);assert.deepEqual(await r.json(),{error:'AUTH_REQUIRED'});
++ }finally{f.close();}
++});
++
++test('audit9 L3: an unverified legacy session cannot read its paid research document',async()=>{
++ const f=await fixture();try{const id=await report(f);await session(f);f.db.raw.prepare('UPDATE sessions SET wallet_type=NULL,verification_method=NULL').run();let calls=0;
++ const r=await handleWorldGoldReport(request('/api/gold/orders/'+id+'/report'),{...deps(f),provider:{readReport:async()=>{calls++;return {content:'private'};}}});assert.equal(r.status,401);assert.equal(calls,0);assert.deepEqual(await r.json(),{error:'AUTH_REQUIRED'});
++ }finally{f.close();}
++});
++
++test('audit9 I1: owner cannot publish an enabled service outside the provider products',async()=>{
++ const f=await fixture();try{await session(f,OWNER);const count=f.db.raw.prepare('SELECT count(*) n FROM world_gold_products').get().n;
++ const r=await handleWorldGoldApi(request('/api/gold/admin',{requestId:rid(),reason:'Reject unserviceable product',command:{action:'product',product:'fortune',kind:'service',title:'Fortune',gold:'1',enabled:true,version:1}},OWNER),deps(f));
++ assert.equal(r.status,503);assert.equal((await r.json()).error,'SERVICE_DELIVERY_UNAVAILABLE');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_products').get().n,count);
++ }finally{f.close();}
++});

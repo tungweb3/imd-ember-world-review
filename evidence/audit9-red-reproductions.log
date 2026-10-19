@@ -1,0 +1,118 @@
+✖ audit9 M1: provider removal refuses pending legacy service challenge without debit (139.7802ms)
+✖ audit9 M1: provider removal refuses pending legacy service pay without debit (102.633ms)
+✖ audit9 L1: new private reads reject a clock regression above route start (57.6843ms)
+✖ audit9 L2: logout after fresh session read cannot return reconcile success (87.7463ms)
+✖ audit9 L3: an unverified legacy session cannot read its paid research document (128.3923ms)
+✖ audit9 I1: owner cannot publish an enabled service outside the provider products (54.3043ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 0
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1971.9694
+
+✖ failing tests:
+
+test at tests\world-gold-audit9.test.mjs:22:39
+✖ audit9 M1: provider removal refuses pending legacy service challenge without debit (139.7802ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 503
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit9.test.mjs:27:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit9.test.mjs:22:39
+✖ audit9 M1: provider removal refuses pending legacy service pay without debit (102.633ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 503
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit9.test.mjs:27:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit9.test.mjs:32:1
+✖ audit9 L1: new private reads reject a clock regression above route start (57.6843ms)
+  AssertionError [ERR_ASSERTION]: /api/me/gold
+  
+  200 !== 503
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit9.test.mjs:36:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit9.test.mjs:41:1
+✖ audit9 L2: logout after fresh session read cannot return reconcile success (87.7463ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit9.test.mjs:44:99)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit9.test.mjs:48:1
+✖ audit9 L3: an unverified legacy session cannot read its paid research document (128.3923ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 401
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit9.test.mjs:50:170)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit9.test.mjs:54:1
+✖ audit9 I1: owner cannot publish an enabled service outside the provider products (54.3043ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 503
+  
+      at TestContext.<anonymous> (world-source/tests/world-gold-audit9.test.mjs:57:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

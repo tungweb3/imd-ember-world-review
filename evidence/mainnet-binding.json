@@ -1,0 +1,38 @@
+{
+  "schema": "ember-world-public-mainnet-binding/v1",
+  "worldSourceCommit": "267fcf01ac78dcd78cb529623acbb1dc96b06019",
+  "config": {
+    "id": "b0f06147d45779d010fd607fcad4627fcba0df3da875e2bbe8444e65c14bf252",
+    "chainId": 1,
+    "token": "0x2b82cdeb8477415d541799abb0cc48044c8ea5f3",
+    "tokenDecimals": 18,
+    "stakingContract": "0xf110043728e6338e19d41f1d02f02a575070eda9",
+    "paymentContract": "0x0b9653941b0dbf967f2ef27b7563a0fed303bac6",
+    "treasury": "0x1c651928150daddda9c2c040a9d4901d862f8ec4",
+    "deploymentBlock": "26222887",
+    "catalogue": []
+  },
+  "finalizedBlock": "0x1902141",
+  "deployments": [
+    {
+      "contract": "EmbeoStakingVault",
+      "address": "0xf110043728e6338e19d41f1d02f02a575070eda9",
+      "transactionHash": "0xcd9bff5e364d62db055136d661185d1059e3f69cb0049e3470dc05fb4d0ca99f",
+      "sender": "0x30e3e579e7eae086e6d53999f95fac5933e4d0aa",
+      "blockNumber": "0x1902127",
+      "value": "0x0",
+      "runtimeKeccak256": "0xc90b58a2143a383cebf13fd2ea2b76eb5d3236055d13e42a1915bebff8be378d"
+    },
+    {
+      "contract": "EmbeoPayments",
+      "address": "0x0b9653941b0dbf967f2ef27b7563a0fed303bac6",
+      "transactionHash": "0x6790b3a8959089f59ce9c40f83f36806e8804caa8d019be34e2e03fdc7a49b8b",
+      "sender": "0x30e3e579e7eae086e6d53999f95fac5933e4d0aa",
+      "blockNumber": "0x190212b",
+      "value": "0x0",
+      "runtimeKeccak256": "0x583dae0e6bfc6374d1558110282fb0bed47eee0432eeea6dc9b047cd7f9282b7"
+    }
+  ],
+  "independentReadOnlyVerification": true,
+  "agentSignedTransactions": false
+}

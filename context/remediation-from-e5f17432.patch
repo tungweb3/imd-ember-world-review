@@ -1,0 +1,452 @@
+diff --git a/docs/audit10-f5a3b8f9-remediation.md b/docs/audit10-f5a3b8f9-remediation.md
+new file mode 100644
+index 0000000..60e73b6
+--- /dev/null
++++ b/docs/audit10-f5a3b8f9-remediation.md
+@@ -0,0 +1,83 @@
++# Audit f5a3b8f9: two Low and three Info findings
++
++Baseline producing source: `e5f17432152670e5516f09fade16f2720b86dcb4`.
++Reviewed public export: `87b64e20b644d67a943f9d397a265986f038bb78`.
++Original report: https://explorer.imd.fun/jobs/f5a3b8f9-c3ee-4706-aa61-d1a7e4fb3159?hired=audit
++
++This is a bounded patch. Seven runtime files change: five directly affected API/
++reconciliation files, the GOLD client type and its service-order button. No
++contract, migration, catalogue data, deployment configuration, dependency,
++World rendering, building, road, model, media or upstream provider is changed.
++New tests and this document are separate from those runtime changes.
++
++## L1/L2: failed writes distinguish authentication loss from other failures
++
++Quote/admin/campaign write failures and the legacy order/challenge/pay family
++revalidate the original session before classifying an error. The inventory
++zero-change path revalidates before returning a revision conflict. A revoked,
++expired, downgraded or replaced session returns401 with only AUTH_REQUIRED;
++invalid/regressing clocks remain503. A database fault with a valid session
++remains503, and a real inventory revision conflict remains409. Existing
++same-origin, EOA/ECDSA, ownership and rate limits remain in effect.
++
++The live-session SQL predicates and transactional checks are preserved. A lost
++session cannot authorize the failing batch. A legitimate write committed before
++logout is not reversed: the reply refuses stale success, and an authenticated
++retry must continue to use the original idempotency key/signature/order.
++
++## I3/I4: capability is consistent in control, quote and state
++
++One API predicate checks installed delivery readiness, the declared product
++list and the existing result contract. An empty or entirely unsupported list
++cannot enable the service feature or report global deliveryReady. Omitted
++lists retain the existing trusted-adapter compatibility: supported result
++contracts are available when the adapter is ready. A disabled preparatory
++definition or a disable/pause command remains allowed.
++
++State adds a boolean serviceable on each product. Historical immutable rows
++remain visible, including to the price-version editor; their prices, enabled
++flags, orders and rights are not rewritten or deleted. The GOLD service-order
++button additionally refuses serviceable:false. Missing fields remain compatible
++with the prior server/local fixture during rollout; server-side quote/challenge/
++pay admission remains authoritative. This flag describes delivery capability,
++not feature enablement or the presence of formal prices.
++
++## I5: an owned HTTP reconcile observes cron's cooldown
++
++Both topup/job creation and failed-service refund retry paths inspect retry_ms
++before attempting the repair. Before that instant, an owned HTTP request
++returns409 with the stored failure code, without incrementing attempts or moving
++the deadline. At equality or later the original entitlement can retry. Successful
++credit/refund stays idempotent and clears the error. Pausing new transactions
++does not cancel owed rights. Cron keeps its existing due-row filtering.
++
++Explicit audited administrator repair-topup/refund-service commands retain their
++existing manual recovery authority; this change concerns the member reconcile
++endpoint. This is a cooldown check, not a new distributed retry lease: concurrent
++requests already in flight can still meet the existing idempotent SQL, which
++protects balances. No capacity/load guarantee is asserted.
++
++## Reproductions and validation
++
++`tests/world-gold-audit10.test.mjs` contains eight cases reproducing all five
++findings against the baseline (five distinct logout routes plus capability,
++historical products and retry cooldown). `tests/economy-boundaries-audit10.test.mjs`
++adds45 checks: six write routes, expiry equality, method/wallet changes, invalid
++clock, live-session DB faults, a real CAS conflict, capability combinations,
++topup/refund before/at/after cooldown, paused admission and ownership/origin/auth.
++The existing logout test now expects the corrected401 and checks its error body.
++Two older timing/refund fixtures now explicitly separate order-only expiry from
++simultaneous auth loss, and verify no early refund retry before its exact cooldown
++deadline; they retain the original no-write/original-price/once-only assertions.
++The previous128 read/write/provider/time regressions remain unchanged.
++
++Release evidence must separately record full World tests, TypeScript/build,
++portable financial/contracts/Python checks, native workerd D1 and actual deployed
++version/HTTP readback. The five existing Windows symlink skips are not passes.
++Historical reports, local tests, deployment, publication and a new external
++Audit verdict are distinct. This document does not claim that Swarm has already
++accepted these fixes.
++
++GOLD remains wallet-bound, nontransferable and nonredeemable. Undecided formal
++prices keep retail purchase/service/Mint admission closed; the approved game
++NFT whitelist stays empty. No public-chain transaction is needed for this patch.
+diff --git a/server/aimarket-campaign.ts b/server/aimarket-campaign.ts
+index 8a1b442..dda56b1 100644
+--- a/server/aimarket-campaign.ts
++++ b/server/aimarket-campaign.ts
+@@ -36,10 +36,11 @@ export async function handleAIMarketCampaign(request:Request,deps:Deps):Promise<
+     if(write){
+       if(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA')return reply(403,{error:'EOA_REQUIRED'});
+       if(typeof b!.requestId!=='string'||typeof b!.reason!=='string'||!Number.isSafeInteger(b!.version)||!Number.isSafeInteger(b!.startsMs)||!Number.isSafeInteger(b!.endsMs)||typeof b!.stopped!=='boolean')return reply(400,{error:'BAD_REQUEST'});
+-      await goldAdminCommand(db,{wallet,requestId:b!.requestId,reason:b!.reason,nowMs:at,now:clock,authorization:{tokenHash:session.tokenHash},command:{action:'campaign',version:b!.version as number,startsMs:b!.startsMs as number,endsMs:b!.endsMs as number,stopped:b!.stopped}});
++      try{await goldAdminCommand(db,{wallet,requestId:b!.requestId,reason:b!.reason,nowMs:at,now:clock,authorization:{tokenHash:session.tokenHash},command:{action:'campaign',version:b!.version as number,startsMs:b!.startsMs as number,endsMs:b!.endsMs as number,stopped:b!.stopped}});}
++      catch(e){if(e instanceof Error&&e.message==='INVALID_CLOCK')throw e;if(!await revalidateEconomySession(request,db,session,clock))return reply(401,{error:'AUTH_REQUIRED'});throw e;}
+     }
+     const campaign=await goldCampaign(db,clock());
+     if(!await revalidateEconomySession(request,db,session,clock))return reply(401,{error:'AUTH_REQUIRED'});
+     return reply(200,{address:wallet,campaign});
+-  }catch(e){const code=e instanceof Error?e.message:'';return reply(code==='BAD_REQUEST'?400:['INVALID_CAMPAIGN','INVALID_REQUEST_ID','REASON_REQUIRED','IDEMPOTENCY_CONFLICT','ATOMIC_GUARD_FAILED'].includes(code)?409:503,{error:/^[A-Z][A-Z0-9_]{1,60}$/.test(code)?code:'CAMPAIGN_UNAVAILABLE'});}
++  }catch(e){const code=e instanceof Error?e.message:'';return reply(code==='AUTH_REQUIRED'?401:code==='BAD_REQUEST'?400:['INVALID_CAMPAIGN','INVALID_REQUEST_ID','REASON_REQUIRED','IDEMPOTENCY_CONFLICT','ATOMIC_GUARD_FAILED'].includes(code)?409:503,{error:/^[A-Z][A-Z0-9_]{1,60}$/.test(code)?code:'CAMPAIGN_UNAVAILABLE'});}
+ }
+diff --git a/server/economy.ts b/server/economy.ts
+index 5698488..66202c1 100644
+--- a/server/economy.ts
++++ b/server/economy.ts
+@@ -70,6 +70,7 @@ export async function handleEconomyApi(request:Request,deps:EconomyDeps={}):Prom
+     if(!await revalidateEconomySession(request,deps.db,session,clock))return error(401,'AUTH_REQUIRED');
+     const fresh=session;
+     if(typeof value!.requestId!=='string'||! /^[A-Za-z0-9_-]{16,80}$/.test(value!.requestId))return error(400,'BAD_REQUEST');
++    try{
+     if(ordersRoute){
+       if(typeof value!.serviceId!=='string'||! /^[a-z][a-z0-9-]{0,63}$/.test(value!.serviceId)||typeof value!.currency!=='string'||!['GOLD','EMBEO'].includes(value!.currency))return error(400,'BAD_REQUEST');
+       const order=await createEconomyOrder(deps.db,deps.config,{wallet,requestId:value!.requestId,serviceId:value!.serviceId,currency:value!.currency as 'GOLD'|'EMBEO',nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash}});
+@@ -79,6 +80,7 @@ export async function handleEconomyApi(request:Request,deps:EconomyDeps={}):Prom
+     if(challengeRoute)return await authReply({challenge:await createEconomyGoldChallenge(deps.db,deps.config,{wallet,orderId:goldMatch![1],requestId:value!.requestId,origin:url.origin,nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash},serviceReady:deps.serviceReady,serviceProducts:deps.serviceProducts})});
+     if(typeof value!.signature!=='string'||! /^0x[0-9a-fA-F]{130}$/.test(value!.signature))return error(400,'BAD_REQUEST');
+     return await authReply({order:await payEconomyOrderGold(deps.db,deps.config,{wallet,orderId:goldMatch![1],requestId:value!.requestId,signature:value!.signature,origin:url.origin,nowMs:now,now:clock,authorization:{tokenHash:fresh.tokenHash},serviceReady:deps.serviceReady,serviceProducts:deps.serviceProducts})});
++    }catch(cause){if(cause instanceof Error&&cause.message==='INVALID_CLOCK')throw cause;if(!await revalidateEconomySession(request,deps.db,session,clock))return error(401,'AUTH_REQUIRED');throw cause;}
+   }catch(cause){
+     if(cause instanceof EconomyConflict){const code=cause.code;return error(code==='SERVICE_DELIVERY_UNAVAILABLE'?503:code==='BAD_REQUEST'||code==='GOLD_SIGNATURE_REQUIRED'?400:code==='AUTH_REQUIRED'?401:code==='INVALID_GOLD_SIGNATURE'?403:code==='ORDER_NOT_FOUND'?404:409,code);}
+     return error(503,'ECONOMY_UNAVAILABLE');
+diff --git a/server/inventory.ts b/server/inventory.ts
+index 0b624fe..c316768 100644
+--- a/server/inventory.ts
++++ b/server/inventory.ts
+@@ -100,7 +100,10 @@ export async function handleInventoryApi(request:Request,deps:Deps):Promise<Resp
+         db.prepare(`INSERT OR IGNORE INTO world_inventory_arrangements(wallet,revision,arrangement_json,updated_ms) SELECT ?,0,?,? WHERE EXISTS (${liveSql})`).bind(wallet,JSON.stringify(emptyArrangement()),at,...auth),
+         db.prepare(`UPDATE world_inventory_arrangements SET revision=revision+1,arrangement_json=?,updated_ms=? WHERE wallet=? AND revision=? AND EXISTS (${liveSql}) AND (?=0 OR ? > ?-30000) AND NOT EXISTS (SELECT 1 FROM world_inventory_items WHERE wallet=? AND item_id IN (SELECT value FROM json_each(?) UNION SELECT value FROM json_each(?)) AND revoked_ms IS NOT NULL)`).bind(JSON.stringify(next),at,wallet,state.revision,...auth,needsHome?1:0,home.checkedAt,at,wallet,JSON.stringify(next.equipment),JSON.stringify(next.displays)),
+       ]);
+-      if(result[1].meta.changes!==1)return json(409,{error:'REVISION_CONFLICT'});
++      if(result[1].meta.changes!==1){
++        if(!await revalidateEconomySession(request,db,session,clock))return json(401,{error:'AUTH_REQUIRED'});
++        return json(409,{error:'REVISION_CONFLICT'});
++      }
+       Object.assign(state,next,{revision:state.revision+1});
+     }
+     if(!await revalidateEconomySession(request,db,session,clock))return json(401,{error:'AUTH_REQUIRED'});
+diff --git a/server/world-gold-api.ts b/server/world-gold-api.ts
+index c67261a..0ef5c37 100644
+--- a/server/world-gold-api.ts
++++ b/server/world-gold-api.ts
+@@ -1,4 +1,5 @@
+ import {economySessionClock,readEconomySession,revalidateEconomySession} from './economy-session.ts';
++import {hasGoldResultContract} from './world-gold-result.ts';
+ import {API_HEADERS} from './world-api.ts';
+ import type {D1Database} from './d1.ts';
+ import type {EconomyConfig} from './economy-config.ts';
+@@ -44,6 +45,7 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+   if(!Number.isSafeInteger(now)||now<started||session.expiresAt<=now||!['ECDSA','ERC1271'].includes(session.verificationMethod??''))return bad(401,'AUTH_REQUIRED');
+   const wallet=session.address.toLowerCase();if(wallet!==expected.toLowerCase())return bad(409,'ACCOUNT_MISMATCH');
+   const isAdmin=AIMARKET_ACTIVITY_ADMIN_WALLETS.includes(wallet);
++  const serviceable=(product?:string)=>deps.serviceReady===true&&(product===undefined?deps.serviceProducts===undefined||deps.serviceProducts.some(hasGoldResultContract):hasGoldResultContract(product)&&(deps.serviceProducts===undefined||deps.serviceProducts.includes(product)));
+   const authReply=async(value:unknown,status=200)=>{if(!await revalidateEconomySession(request,deps.db!,session,clock))return bad(401,'AUTH_REQUIRED');return reply(status,value);};
+   if(admin&&!isAdmin)return bad(403,'ADMIN_REQUIRED');
+   if(write&&(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA'))return bad(403,'EOA_REQUIRED');
+@@ -55,14 +57,17 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+    if(me)return await authReply(snapshot);
+    const [products,campaign,controls]=await Promise.all([goldProducts(deps.db),goldCampaign(deps.db,now),deps.db.prepare('SELECT feature,enabled,version FROM world_gold_controls ORDER BY feature').all()]);
+    const actions=admin?await deps.db.prepare('SELECT wallet,action,payload,created_ms,before_json,after_json FROM world_gold_admin_actions ORDER BY created_ms DESC,id DESC LIMIT 100').all():null;
+-   return await authReply({...snapshot,products,campaign,controls:controls.results,isAdmin,...actions?{actions:actions.results}:{},payment:deps.config?{chainId:deps.config.chainId,token:deps.config.token,contract:deps.config.paymentContract,treasury:deps.config.treasury}:null,paymentsReady:!!deps.config,formalPricesSet:false,deliveryReady:deps.serviceReady===true});
++   return await authReply({...snapshot,products:products.map(p=>({...p,serviceable:p.kind==='topup'||serviceable(p.product)})),campaign,controls:controls.results,isAdmin,...actions?{actions:actions.results}:{},payment:deps.config?{chainId:deps.config.chainId,token:deps.config.token,contract:deps.config.paymentContract,treasury:deps.config.treasury}:null,paymentsReady:!!deps.config,formalPricesSet:false,deliveryReady:serviceable()});
+   }
+   if(!await revalidateEconomySession(request,deps.db,session,clock))return bad(401,'AUTH_REQUIRED');
+   const auth={tokenHash:session.tokenHash};
++  // SQL still decides the write. On failure distinguish lost authority from
++  // a genuine database/CAS error; never turn a failed clock into an auth error.
++  try{
+   if(quote){if(!deps.config)return bad(503,'GOLD_NOT_CONFIGURED');if(!exact(b!,['expectedAddress','requestId','product'])||typeof b!.product!=='string'||typeof b!.requestId!=='string')return bad(400,'BAD_REQUEST');
+-   const id=await goldQuote({db:deps.db,config:deps.config!,nowMs:clock(),now:clock,serviceReady:deps.serviceReady&&(!deps.serviceProducts||deps.serviceProducts.includes(b!.product))},{wallet,requestId:b!.requestId,product:b!.product,authorization:auth});return await authReply({orderId:id});}
++   const id=await goldQuote({db:deps.db,config:deps.config!,nowMs:clock(),now:clock,serviceReady:serviceable(b!.product)},{wallet,requestId:b!.requestId,product:b!.product,authorization:auth});return await authReply({orderId:id});}
+   if(admin){if(!exact(b!,['expectedAddress','requestId','command','reason'])||typeof b!.reason!=='string'||typeof b!.requestId!=='string')return bad(400,'BAD_REQUEST');
+-   const cmd=command(b!.command),ready=deps.serviceReady&&(!deps.serviceProducts||cmd.action!=='product'||cmd.kind!=='service'||deps.serviceProducts.includes(cmd.product));
++   const cmd=command(b!.command),ready=serviceable(cmd.action==='product'&&cmd.kind==='service'?cmd.product:undefined);
+    if(!deps.config&&cmd.action!=='repair-topup'&&cmd.action!=='refund-service')return bad(503,'GOLD_NOT_CONFIGURED');
+    const result=await goldAdminCommand(deps.db,{wallet,requestId:b!.requestId,command:cmd,reason:b!.reason,nowMs:clock(),now:clock,authorization:auth,serviceReady:ready});return await authReply({ok:true,result});}
+   if(!exact(b!,['expectedAddress']))return bad(400,'BAD_REQUEST');
+@@ -70,5 +75,6 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+   // Reconciliation repairs already-owed rights, also run by cron. A concurrent
+   // logout cannot undo an owed credit; it must refuse success to this request.
+   const result=await reconcileWorldGold(deps.db,clock(),retry![1]);return result.failures.length?await authReply({ok:false,error:result.failures[0].code},409):await authReply({ok:true});
+- }catch(e){const code=e instanceof Error?e.message:'GOLD_UNAVAILABLE';return bad(code==='INVALID_CLOCK'?503:code==='BAD_REQUEST'||code==='INVALID_PRODUCT'||code==='INVALID_REQUEST_ID'?400:code==='ADMIN_REQUIRED'?403:code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='ORDER_EXPIRED'||code==='IDEMPOTENCY_CONFLICT'||code==='FEATURE_PAUSED'||code==='PRODUCT_UNAVAILABLE'?409:503,/^[A-Z][A-Z0-9_]{1,80}$/.test(code)?code:'GOLD_UNAVAILABLE');}
++  }catch(e){if(e instanceof Error&&e.message==='INVALID_CLOCK')throw e;if(!await revalidateEconomySession(request,deps.db,session,clock))return bad(401,'AUTH_REQUIRED');throw e;}
++ }catch(e){const code=e instanceof Error?e.message:'GOLD_UNAVAILABLE';return bad(code==='AUTH_REQUIRED'?401:code==='INVALID_CLOCK'?503:code==='BAD_REQUEST'||code==='INVALID_PRODUCT'||code==='INVALID_REQUEST_ID'?400:code==='ADMIN_REQUIRED'?403:code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='ORDER_EXPIRED'||code==='IDEMPOTENCY_CONFLICT'||code==='FEATURE_PAUSED'||code==='PRODUCT_UNAVAILABLE'?409:503,/^[A-Z][A-Z0-9_]{1,80}$/.test(code)?code:'GOLD_UNAVAILABLE');}
+ }
+diff --git a/server/world-gold.ts b/server/world-gold.ts
+index 2259463..12ce5e9 100644
+--- a/server/world-gold.ts
++++ b/server/world-gold.ts
+@@ -73,20 +73,24 @@ const credit=(db:D1Database,orderId:string,kind:'topup'|'service-refund',nowMs:n
+ /** Shared by automatic retry and admin repair. No caller-supplied credit amount. */
+ export async function reconcileWorldGold(db:D1Database,nowMs:number,orderId?:string){
+  at(nowMs);await requireWorldGoldSchema(db);
+- const pending=await db.prepare(`SELECT o.id,l.kind FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_reconcile_errors e ON e.order_id=o.id WHERE o.status='paid' AND ((l.kind='topup' AND l.gold>COALESCE((SELECT SUM(delta) FROM world_gold_entries WHERE order_id=o.id AND kind='topup'),0)) OR (l.kind='service' AND NOT EXISTS(SELECT 1 FROM world_gold_jobs WHERE order_id=o.id))) ${orderId?'AND o.id=?':'AND (e.order_id IS NULL OR e.retry_ms<=?)'} ORDER BY o.created_ms,o.id LIMIT 128`).bind(orderId??nowMs).all<{id:string;kind:string}>();
+- const failures:{orderId:string;code:string}[]=[];
++ const pending=await db.prepare(`SELECT o.id,l.kind,e.code,e.retry_ms FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_reconcile_errors e ON e.order_id=o.id WHERE o.status='paid' AND ((l.kind='topup' AND l.gold>COALESCE((SELECT SUM(delta) FROM world_gold_entries WHERE order_id=o.id AND kind='topup'),0)) OR (l.kind='service' AND NOT EXISTS(SELECT 1 FROM world_gold_jobs WHERE order_id=o.id))) ${orderId?'AND o.id=?':'AND (e.order_id IS NULL OR e.retry_ms<=?)'} ORDER BY o.created_ms,o.id LIMIT 128`).bind(orderId??nowMs).all<{id:string;kind:string;code:string|null;retry_ms:number|null}>();
++ const failures:{orderId:string;code:string}[]=[];let processed=0;
++ // An owned HTTP retry observes the same cooldown as cron. Keep the original
++ // failure and retry deadline; a refresh must not postpone an owed credit.
++ const deferred=(id:string,e:{code:string|null;retry_ms:number|null})=>{if(e.retry_ms!==null&&e.retry_ms>nowMs){failures.push({orderId:id,code:e.code??'GOLD_RECONCILE_RETRY'});return true;}return false;};
+  const recordFailure=async(id:string,error:unknown)=>{const message=error instanceof Error?error.message:'';const code=message.includes('GOLD_BALANCE_CAPACITY')?'GOLD_BALANCE_CAPACITY':'GOLD_RECONCILE_RETRY';failures.push({orderId:id,code});await st(db,`INSERT INTO world_gold_reconcile_errors(order_id,code,retry_ms,attempts) VALUES(?,?,?,1) ON CONFLICT(order_id) DO UPDATE SET code=excluded.code,retry_ms=excluded.retry_ms,attempts=attempts+1`,id,code,nowMs+300000).run();};
+  for(const o of pending.results){
++  if(deferred(o.id,o))continue;processed++;
+   try{await db.batch([
+    o.kind==='topup'?credit(db,o.id,'topup',nowMs):st(db,`INSERT INTO world_gold_jobs(order_id,wallet,state,updated_ms) SELECT id,wallet,'queued',? FROM economy_orders WHERE id=? ON CONFLICT(order_id) DO NOTHING`,nowMs,o.id),
+    st(db,'DELETE FROM world_gold_reconcile_errors WHERE order_id=?',o.id)
+   ]);}catch(error){await recordFailure(o.id,error);}
+  }
+- const failed=await db.prepare(`SELECT j.order_id FROM world_gold_jobs j LEFT JOIN world_gold_reconcile_errors e ON e.order_id=j.order_id WHERE j.state='failed' ${orderId?'AND j.order_id=?':'AND (e.order_id IS NULL OR e.retry_ms<=?)'} ORDER BY j.order_id LIMIT 128`).bind(orderId??nowMs).all<{order_id:string}>();
+- for(const j of failed.results)try{await refundGold(db,j.order_id,nowMs);await st(db,'DELETE FROM world_gold_reconcile_errors WHERE order_id=?',j.order_id).run();}catch(error){await recordFailure(j.order_id,error);}
++ const failed=await db.prepare(`SELECT j.order_id,e.code,e.retry_ms FROM world_gold_jobs j LEFT JOIN world_gold_reconcile_errors e ON e.order_id=j.order_id WHERE j.state='failed' ${orderId?'AND j.order_id=?':'AND (e.order_id IS NULL OR e.retry_ms<=?)'} ORDER BY j.order_id LIMIT 128`).bind(orderId??nowMs).all<{order_id:string;code:string|null;retry_ms:number|null}>();
++ for(const j of failed.results){if(deferred(j.order_id,j))continue;try{await refundGold(db,j.order_id,nowMs);await st(db,'DELETE FROM world_gold_reconcile_errors WHERE order_id=?',j.order_id).run();}catch(error){await recordFailure(j.order_id,error);}}
+  await st(db,'DELETE FROM world_gold_write_checks').run();
+  const rewards=orderId?[]:await reconcileRewardEntitlements(db,nowMs);
+- return {processed:pending.results.length,failures,rewards};
++ return {processed,failures,rewards};
+ }
+ export async function refundGold(db:D1Database,orderId:string,nowMs:number){
+  at(nowMs);await requireWorldGoldSchema(db);await db.batch([credit(db,orderId,'service-refund',nowMs),st(db,`UPDATE world_gold_jobs SET state='refunded',updated_ms=? WHERE order_id=? AND state='failed' AND EXISTS(SELECT 1 FROM world_gold_entries e JOIN world_gold_links l ON l.order_id=e.order_id WHERE e.order_id=world_gold_jobs.order_id AND e.reference='service-refund:'||l.order_id||':'||CAST(l.gold AS TEXT))`,nowMs,orderId)]);
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index c2e5faf..ae0d2f7 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -63,7 +63,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  {!identity?<button onClick={onSignIn}>{zh?'沿用 World 錢包登入':'Sign in with World wallet'}</button>:<>
+  {data?<><div className="gold-balance"><strong>{data.available} GOLD</strong><span>{zh?'帳面':'Book'} {data.book}</span><span>{zh?'保留':'Reserved'} {data.reserved}</span><small>{new Date(data.asOf).toISOString()}</small></div>
+  <p>{zh?'GOLD 綁定錢包，跨館共用，不可轉讓或兌回 EMBEO。':'Wallet-bound GOLD is shared across World and cannot be transferred or redeemed for EMBEO.'}</p>
+- {data.deliveryReady!==true&&<p role="status">{zh?'服務尚未接通，目前不接受新的服務扣點。':'Services are unavailable; new service payments are disabled.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled).map(p=><article key={p.id}><h2>{p.title}</h2><p>{p.kind==='topup'?`${p.embeo?economyTokenAmount(p.embeo):'—'} EMBEO → ${p.gold} GOLD`:`${p.gold} GOLD`}</p><small>v{p.version}</small><button disabled={busy||wallet.busy||data.paymentsReady===false||!data.controls.find(c=>c.feature===p.kind)?.enabled||(p.kind==='service'&&data.deliveryReady!==true)} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button></article>)}</div>
++ {data.deliveryReady!==true&&<p role="status">{zh?'服務尚未接通，目前不接受新的服務扣點。':'Services are unavailable; new service payments are disabled.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled).map(p=><article key={p.id}><h2>{p.title}</h2><p>{p.kind==='topup'?`${p.embeo?economyTokenAmount(p.embeo):'—'} EMBEO → ${p.gold} GOLD`:`${p.gold} GOLD`}</p><small>v{p.version}</small><button disabled={busy||wallet.busy||data.paymentsReady===false||!data.controls.find(c=>c.feature===p.kind)?.enabled||(p.kind==='service'&&(data.deliveryReady!==true||p.serviceable===false))} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button></article>)}</div>
+  {selected&&selected.status==='pending'&&<section className="gold-confirm"><h2>{zh?'核對原始訂單':'Review original order'}</h2><code>{selected.id}</code><p>{selected.currency==='EMBEO'?economyTokenAmount(selected.amount):selected.amount} {selected.currency} · {selected.kind==='topup'?`${zh?'獲得':'Receive'} ${selected.gold} GOLD`:zh?'此筆服務費用':'Service payment'}</p><button disabled={busy||wallet.busy} onClick={()=>void run(()=>pay(selected))}>{(data as (GoldState&{localFixture?:boolean})|null)?.localFixture?(zh?'執行本機測試付款':'Execute local fixture payment'):selected.currency==='GOLD'?(zh?'簽名確認扣點':'Sign GOLD payment'):zh?'核對錢包付款':'Review wallet payment'}</button></section>}
+  <div className="gold-actions">{['approve-required','reset-required'].includes(wallet.phase)&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.approve())}>{zh?'確認指定額度授權':'Approve exact amount'}</button>}{wallet.phase==='confirm'&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.confirm())}>{zh?'確認 EMBEO 付款':'Confirm EMBEO payment'}</button>}{wallet.hash&&<code>{wallet.hash}</code>}{['unknown','pending'].includes(wallet.phase)&&<button onClick={()=>void run(()=>controller!.checkReceipt())}>{zh?'查詢原交易':'Check original transaction'}</button>}</div>
+  <h2>{zh?'訂單與交付':'Orders & delivery'}</h2><ul className="gold-orders">{data.orders.map(o=><li key={o.id}><b>{o.product}</b> · {o.status} {o.delivery==='failed'?(zh?'待退點（尚未入帳）':'Refund pending (not credited)'):o.delivery==='refunded'?(zh?'已退點':'Refunded'):o.delivery??''}<code>{o.id}</code><button disabled={busy} onClick={()=>void run(async()=>{await client.reconcile(o.id);setSelected(o);})}>{zh?'核對原單':'Check original order'}</button>{o.result&&o.delivery==='delivered'&&<details><summary>{zh?'開啟原結果（不再扣點）':'Open saved result (no charge)'}</summary><pre>{o.result}</pre>{o.product==='research'&&<SavedResearchReport client={client} orderId={o.id} zh={zh}/>}</details>}</li>)}</ul>
+diff --git a/src/world/worldGoldClient.ts b/src/world/worldGoldClient.ts
+index 2eb343b..a50b570 100644
+--- a/src/world/worldGoldClient.ts
++++ b/src/world/worldGoldClient.ts
+@@ -6,7 +6,7 @@ export function goldPriceInputAtomic(value:string):string|null{
+  return amount>0n&&amount<2n**256n?String(amount):null;
+ }
+ export type GoldOrder={id:string;product:string;currency:'GOLD'|'EMBEO';amount:string;status:'pending'|'paid';created_ms:number;expires_ms:number;kind:'topup'|'service';gold:string;delivery:string|null;result:string|null;failure?:string|null};
+-export type GoldState={paymentsReady?:boolean;pendingRewards?:{id:string;configId:string;dayStartMs:number;gold:string;retryMs:number;attempts:number}[];deliveryReady?:boolean;wallet:string;book:string;reserved:string;available:string;asOf:number;isAdmin:boolean;products:{id:string;product:string;version:number;kind:'topup'|'service';title:string;gold:string;embeo:string|null;enabled:number}[];orders:GoldOrder[];history:{id:string;delta:string;kind:string;created_ms:number}[];campaign:{version:number;startsMs:number|null;endsMs:number|null;stopped:number;active:boolean;asOf:number};controls:{feature:string;enabled:number;version:number}[]};
++export type GoldState={paymentsReady?:boolean;pendingRewards?:{id:string;configId:string;dayStartMs:number;gold:string;retryMs:number;attempts:number}[];deliveryReady?:boolean;wallet:string;book:string;reserved:string;available:string;asOf:number;isAdmin:boolean;products:{id:string;product:string;version:number;kind:'topup'|'service';title:string;gold:string;embeo:string|null;enabled:number;serviceable?:boolean}[];orders:GoldOrder[];history:{id:string;delta:string;kind:string;created_ms:number}[];campaign:{version:number;startsMs:number|null;endsMs:number|null;stopped:number;active:boolean;asOf:number};controls:{feature:string;enabled:number;version:number}[]};
+ export function parseWorldGold(value:unknown,address:string):GoldState{
+  const v=value as GoldState;const uint=(s:unknown)=>typeof s==='string'&&/^(0|[1-9][0-9]{0,18})$/.test(s);
+  if(!v||v.wallet!==address.toLowerCase()||!uint(v.book)||!uint(v.available)||!uint(v.reserved)||BigInt(v.book)!==BigInt(v.available)+BigInt(v.reserved)||!Number.isSafeInteger(v.asOf)||v.asOf<=0||!Array.isArray(v.products)||!Array.isArray(v.orders)||!Array.isArray(v.history)||typeof v.isAdmin!=='boolean'||!v.campaign||!Array.isArray(v.controls))throw new EconomyClientError('INVALID_RESPONSE');
+diff --git a/tests/economy-boundaries-audit10.test.mjs b/tests/economy-boundaries-audit10.test.mjs
+new file mode 100644
+index 0000000..3c99036
+--- /dev/null
++++ b/tests/economy-boundaries-audit10.test.mjs
+@@ -0,0 +1,74 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,NOW,W,OWNER,B,rid} from './world-gold-audit5-fixture.mjs';
++import {sha256,SESSION_COOKIE} from '../server/auth.ts';
++import {handleWorldGoldApi} from '../server/world-gold-api.ts';
++import {handleEconomyApi} from '../server/economy.ts';
++import {handleAIMarketCampaign} from '../server/aimarket-campaign.ts';
++import {handleInventoryApi} from '../server/inventory.ts';
++import {emptyArrangement} from '../src/world/inventory.ts';
++import {reconcileWorldGold,claimGoldJob,finishGoldJob} from '../server/world-gold.ts';
++
++const ROOT='https://imdember.com',TOKEN='v'.repeat(43);
++const req=(path,wallet,value)=>new Request(ROOT+path+(value?'':'?expected_address='+wallet),{method:value?'POST':'GET',headers:{origin:ROOT,cookie:SESSION_COOKIE+'='+TOKEN,...value?{'content-type':'application/json'}:{}},...value?{body:JSON.stringify({expectedAddress:wallet,...value})}:{}});
++async function setup(route){
++ const f=await fixture();await f.topup();const wallet=['admin','campaign'].includes(route)?OWNER:W,hash=await sha256(TOKEN);
++ f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,1,?,?,?,?,?)').run(hash,wallet,NOW-1,NOW+3600000,'audit10-matrix','EOA','ECDSA');
++ let at=NOW+10,id,signed;
++ if(['challenge','pay'].includes(route)){id=await f.quote('research');if(route==='pay')signed=await f.challenge(id);}
++ const d={db:f.db,config:f.config,now:()=>at,allow:async()=>true,serviceReady:true,serviceProducts:['research']};
++ const invoke=()=>route==='quote'?handleWorldGoldApi(req('/api/gold/quote',wallet,{product:'pack',requestId:rid()}),d):route==='admin'?handleWorldGoldApi(req('/api/gold/admin',wallet,{requestId:rid(),reason:'Audit10 error boundary',command:{action:'control',feature:'topup',version:0,enabled:false}}),d):route==='campaign'?handleAIMarketCampaign(req('/api/me/aimarket-campaign',wallet,{requestId:rid(),reason:'Audit10 campaign boundary',version:1,startsMs:NOW,endsMs:NOW+1000,stopped:false}),d):route==='inventory'?handleInventoryApi(req('/api/me/inventory',wallet,{revision:0,command:{type:'publish',enabled:false}}),{...d,home:async()=>({address:wallet,eligible:0,block:100,checkedAt:at})}):handleEconomyApi(req('/api/economy/orders/'+id+'/gold'+(route==='challenge'?'/challenge':''),wallet,route==='challenge'?{requestId:rid()}:{requestId:signed.requestId,signature:signed.signature}),d);
++ const beforeRead=fn=>{const prepare=f.db.prepare;let reads=0;f.db.prepare=sql=>{const s=prepare(sql);if(!sql.startsWith('SELECT address,expires_at'))return s;const wrap=p=>({...p,bind:(...v)=>wrap(p.bind(...v)),first:async()=>{const row=await p.first();if(++reads===(['campaign','inventory'].includes(route)?1:2))fn();return row;}});return wrap(s);};};
++ return {...f,wallet,id,signed,d,invoke,beforeRead,time:n=>at=n};
++}
++
++for(const route of ['quote','admin','campaign','challenge','pay','inventory'])for(const change of ['expiry-equality','method-lost','wallet-switched','invalid-clock'])test(`audit10 before-write ${route}: ${change} keeps ledger and session boundaries`,async()=>{
++ const f=await setup(route);try{
++  f.beforeRead(()=>{if(change==='expiry-equality')f.db.raw.prepare('UPDATE sessions SET expires_at=?').run(NOW+10);if(change==='method-lost')f.db.raw.prepare('UPDATE sessions SET verification_method=NULL').run();if(change==='wallet-switched')f.db.raw.prepare('UPDATE sessions SET address=?').run(B);if(change==='invalid-clock')f.time(NOW+5);});
++  const r=await f.invoke();assert.equal(r.status,change==='invalid-clock'?503:401);assert.deepEqual(Object.keys(await r.json()),['error']);assert.match(r.headers.get('cache-control'),/no-store/);
++  assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_jobs').get().n,0);assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_inventory_arrangements').get().n,0);
++ }finally{f.close();}
++});
++
++for(const route of ['quote','admin','campaign','pay','inventory'])test(`audit10 ${route}: real batch failure with a live session stays 503`,async()=>{
++ const f=await setup(route);try{
++  f.db.batch=async()=>{throw Error('isolated database fault');};const r=await f.invoke();assert.equal(r.status,503);assert.deepEqual(Object.keys(await r.json()),['error']);
++  assert.equal(f.db.raw.prepare('SELECT CAST(balance AS TEXT) balance FROM economy_gold_accounts WHERE wallet=?').get(W).balance,'10');
++ }finally{f.close();}
++});
++
++test('audit10 inventory: actual concurrent revision conflict remains 409 without overwriting the winner',async()=>{
++ const f=await setup('inventory');try{const batch=f.db.batch;f.db.batch=async list=>{f.db.raw.prepare('INSERT INTO world_inventory_arrangements(wallet,revision,arrangement_json,updated_ms) VALUES(?,1,?,?)').run(W,JSON.stringify(emptyArrangement()),NOW);return batch(list);};const r=await f.invoke();assert.equal(r.status,409);assert.deepEqual(await r.json(),{error:'REVISION_CONFLICT'});assert.equal(f.db.raw.prepare('SELECT revision FROM world_inventory_arrangements WHERE wallet=?').get(W).revision,1);}finally{f.close();}
++});
++
++for(const products of [undefined,[],['unknown'],['research'],['unknown','research'],['fortune']])for(const ready of [false,true])test(`audit10 capabilities: ready=${ready} products=${JSON.stringify(products)}`,async()=>{
++ const f=await setup('admin');try{
++  const d={...f.d,serviceReady:ready,serviceProducts:products},r=await handleWorldGoldApi(req('/api/gold/state',OWNER),d),state=await r.json(),supported=ready&&(products===undefined||products.some(p=>['research','fortune'].includes(p)));
++  assert.equal(r.status,200);assert.equal(state.deliveryReady,supported);assert.equal(state.products.find(p=>p.product==='pack').serviceable,true);assert.equal(state.products.find(p=>p.product==='research').serviceable,ready&&(products===undefined||products.includes('research')));
++  await f.admin({action:'control',feature:'service',version:0,enabled:false});
++  const enable=await handleWorldGoldApi(req('/api/gold/admin',OWNER,{requestId:rid(),reason:'Capability control matrix',command:{action:'control',feature:'service',version:1,enabled:true}}),d);assert.equal(enable.status,supported?200:503);
++  const disable=await handleWorldGoldApi(req('/api/gold/admin',OWNER,{requestId:rid(),reason:'Capability disable always allowed',command:{action:'control',feature:'service',version:supported?2:1,enabled:false}}),d);assert.equal(disable.status,200);
++  const preparatory=await handleWorldGoldApi(req('/api/gold/admin',OWNER,{requestId:rid(),reason:'Disabled definitions remain preparatory',command:{action:'product',product:'future',title:'Future service',kind:'service',version:1,gold:'1',enabled:false}}),d);assert.equal(preparatory.status,200);
++ }finally{f.close();}
++});
++
++for(const kind of ['topup','refund'])test(`audit10 ${kind}: early retries keep backoff; exact deadline retries; cron completes once while paused`,async()=>{
++ const f=await setup('quote');try{
++  let id;if(kind==='topup'){id=await f.quote();await f.paid(id);}else{id=await f.service();const attempt=await claimGoldJob(f.db,id,NOW);await finishGoldJob(f.db,{orderId:id,attempt,nowMs:NOW,outcome:{result:{report:'fixture result'}}});f.db.raw.prepare("UPDATE world_gold_jobs SET state='failed',result_json=NULL,failure='fixture-confirmed',delivery_evidence_json=? WHERE order_id=?").run(JSON.stringify({kind:'provider-confirmed-nondelivery',provider:'fixture',reference:'confirmed'}),id);}
++  f.db.raw.prepare("UPDATE economy_gold_accounts SET balance='9223372036854775807' WHERE wallet=?").run(W);
++  await reconcileWorldGold(f.db,NOW,id);const original=f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id);assert.equal(original.attempts,1);
++  await f.admin({action:'control',feature:kind==='topup'?'topup':'service',version:0,enabled:false});
++  for(const at of [NOW+1,NOW+299999]){const r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',W,{}),{...f.d,now:()=>at});assert.equal(r.status,409);assert.deepEqual(f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id),original);}
++  const stillFull=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',W,{}),{...f.d,now:()=>NOW+300000});assert.equal(stillFull.status,409);const next=f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id);assert.equal(next.attempts,2);assert.equal(next.retry_ms,NOW+600000);
++  f.db.raw.prepare('UPDATE economy_gold_accounts SET balance=0 WHERE wallet=?').run(W);await reconcileWorldGold(f.db,NOW+599999);assert.equal((await f.snapshot()).book,'0');await reconcileWorldGold(f.db,NOW+600000);assert.equal((await f.snapshot()).book,kind==='topup'?'10':'3');await reconcileWorldGold(f.db,NOW+600001,id);assert.equal((await f.snapshot()).book,kind==='topup'?'10':'3');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_reconcile_errors WHERE order_id=?').get(id).n,0);
++ }finally{f.close();}
++});
++
++test('audit10 reconciliation ownership/origin/auth checks cannot reveal or reset another order cooldown',async()=>{
++ const f=await setup('quote');try{const id=await f.quote();await f.paid(id);f.db.raw.prepare("UPDATE economy_gold_accounts SET balance='9223372036854775807' WHERE wallet=?").run(W);await reconcileWorldGold(f.db,NOW,id);const original=f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id);
++  let r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',B,{}),f.d);assert.equal(r.status,409);
++  f.db.raw.prepare('UPDATE sessions SET address=?').run(B);r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',B,{}),f.d);assert.equal(r.status,404);
++  const hostile=req('/api/gold/orders/'+id+'/reconcile',B,{});hostile.headers.set('origin','https://evil.test');r=await handleWorldGoldApi(hostile,f.d);assert.equal(r.status,403);
++  f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(NOW);r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',B,{}),f.d);assert.equal(r.status,401);assert.deepEqual(f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id),original);
++ }finally{f.close();}
++});
+diff --git a/tests/economy-payment-timing.test.mjs b/tests/economy-payment-timing.test.mjs
+index bd8c8d8..4f75ddb 100644
+--- a/tests/economy-payment-timing.test.mjs
++++ b/tests/economy-payment-timing.test.mjs
+@@ -95,10 +95,12 @@ test('actual API creates fresh quote timestamps after ledger awaits rather than
+  const f=await apiFixture();try{const raced=afterRead(f.db,orderLookup,()=>{f.clock.at=NOW+5000;});const result=await post(f,'/api/economy/orders',orderBody,raced);assert.equal(result.status,200);assert.equal(result.body.order.createdMs,NOW+5000);assert.equal(result.body.order.expiresMs,NOW+5000+900000);}finally{f.db.raw.close();}
+ });
+ test('actual API rejects order/session expiry during challenge ledger awaits and writes no stale nonce',async()=>{
+- for(const mode of ['order','session']){
++ for(const mode of ['order','session','both']){
+   const f=await apiFixture();try{
+    const order=await createEconomyOrder(f.db,f.config,{wallet:W,...orderBody,nowMs:NOW});
+-   const raced=afterRead(f.db,challengeLookup,()=>{f.clock.at=mode==='order'?order.expiresMs:NOW+60000;});
++   // Isolate an expired order from lost authority; when both expire,401 wins.
++   if(mode==='order')f.db.raw.prepare('UPDATE sessions SET expires_at=? WHERE token_hash=?').run(order.expiresMs+60000,f.tokenHash);
++   const raced=afterRead(f.db,challengeLookup,()=>{f.clock.at=mode==='session'?NOW+60000:order.expiresMs;});
+    const result=await post(f,`/api/economy/orders/${order.id}/gold/challenge`,{requestId:'timing-api-challenge-0001'},raced);
+    assert.equal(result.status,mode==='order'?409:401,mode);assert.equal(count(f.db,'economy_gold_challenges'),0,mode);
+   }finally{f.db.raw.close();}
+diff --git a/tests/world-gold-api.test.mjs b/tests/world-gold-api.test.mjs
+index 4394ef1..742c2d3 100644
+--- a/tests/world-gold-api.test.mjs
++++ b/tests/world-gold-api.test.mjs
+@@ -32,7 +32,7 @@ test('source session, account match and origin guard all private reads and write
+ test('contract sessions may read but cannot acquire new quote/admin write authority',async()=>{const f=await fixture(W,{walletType:'CONTRACT',method:'ERC1271'});try{assert.equal((await handleWorldGoldApi(req('/api/me/gold'),f.deps)).status,200);assert.equal((await handleWorldGoldApi(req('/api/gold/quote',{value:{product:'pack',requestId:'fixture-request-00001'}}),f.deps)).status,403);}finally{f.close();}});
+ test('browser amount, payer, balance, owner and transaction claims are rejected',async()=>{const f=await fixture();try{for(const patch of [{amount:'1'},{gold:'999'},{owner:true},{transactionHash:'0x'+'1'.repeat(64)},{wallet:OWNER}])assert.equal((await handleWorldGoldApi(req('/api/gold/quote',{value:{product:'pack',requestId:'fixture-request-00001',...patch}}),f.deps)).status,400);assert.equal(f.db.raw.prepare('SELECT COUNT(*) n FROM economy_orders').get().n,0);}finally{f.close();}});
+ test('three known admins use existing session; ordinary wallets cannot read private admin cases',async()=>{const f=await fixture();try{assert.equal((await handleWorldGoldApi(req('/api/gold/admin'),f.deps)).status,403);}finally{f.close();}const a=await fixture(OWNER);try{const r=await handleWorldGoldApi(req('/api/gold/admin',{wallet:OWNER}),a.deps);assert.equal(r.status,200);assert.equal((await r.json()).isAdmin,true);}finally{a.close();}});
+-test('logout between authentication and D1 batch rolls back admin and quote writes',async()=>{const f=await fixture(OWNER);try{const original=f.db.batch;f.db.batch=async list=>{f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(NOW);return original(list);};const r=await handleWorldGoldApi(req('/api/gold/admin',{wallet:OWNER,value:{requestId:'fixture-admin-000001',reason:'check revoke race',command:{action:'control',feature:'topup',enabled:false,version:0}}}),f.deps);assert.equal(r.status,503);assert.equal(f.db.raw.prepare("SELECT enabled FROM world_gold_controls WHERE feature='topup'").get().enabled,1);}finally{f.close();}});
++test('logout between authentication and D1 batch rolls back admin and quote writes',async()=>{const f=await fixture(OWNER);try{const original=f.db.batch;f.db.batch=async list=>{f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(NOW);return original(list);};const r=await handleWorldGoldApi(req('/api/gold/admin',{wallet:OWNER,value:{requestId:'fixture-admin-000001',reason:'check revoke race',command:{action:'control',feature:'topup',enabled:false,version:0}}}),f.deps);assert.equal(r.status,401);assert.deepEqual(await r.json(),{error:'AUTH_REQUIRED'});assert.equal(f.db.raw.prepare("SELECT enabled FROM world_gold_controls WHERE feature='topup'").get().enabled,1);}finally{f.close();}});
+ test('client rejects malformed arithmetic and unknown data instead of displaying a trusted zero',()=>{assert.throws(()=>parseWorldGold({wallet:W,book:'10',reserved:'8',available:'10',asOf:NOW,products:[],orders:[],history:[],controls:[],isAdmin:false,campaign:{}},W));assert.throws(()=>parseWorldGold(null,W));});
+ test('client ignores a late response after wallet switch or expiry',async()=>{let state={...INITIAL,account:W,session:{address:W,expiresAt:NOW+100},sessionKnown:true,restored:true},resolve;const client=new WorldGoldClient({auth:()=>state,now:()=>NOW,fetch:()=>new Promise(r=>resolve=r)});const pending=client.state();state={...state,account:OWNER,session:{address:OWNER,expiresAt:NOW+100}};resolve(new Response(JSON.stringify({wallet:W,book:'100000'})));await assert.rejects(pending,/CONTEXT_CHANGED/);});
+ test('client idempotency key and admin case query are preserved without URL query confusion',async()=>{const paths=[],state={...INITIAL,account:OWNER,session:{address:OWNER,expiresAt:NOW+100},sessionKnown:true,restored:true};const client=new WorldGoldClient({auth:()=>state,now:()=>NOW,fetch:async(path,init)=>{paths.push([path,init]);return new Response('{}');}});await client.request('/api/gold/admin?order_id=0x123');assert.equal(paths[0][0],'/api/gold/admin?order_id=0x123&expected_address='+OWNER);});
+diff --git a/tests/world-gold-audit10.test.mjs b/tests/world-gold-audit10.test.mjs
+new file mode 100644
+index 0000000..361b66f
+--- /dev/null
++++ b/tests/world-gold-audit10.test.mjs
+@@ -0,0 +1,69 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,NOW,W,OWNER,rid} from './world-gold-audit5-fixture.mjs';
++import {sha256,SESSION_COOKIE} from '../server/auth.ts';
++import {handleWorldGoldApi} from '../server/world-gold-api.ts';
++import {handleEconomyApi} from '../server/economy.ts';
++import {handleAIMarketCampaign} from '../server/aimarket-campaign.ts';
++import {handleInventoryApi} from '../server/inventory.ts';
++import {reconcileWorldGold,claimGoldJob,finishGoldJob} from '../server/world-gold.ts';
++
++const ROOT='https://imdember.com',TOKEN='z'.repeat(43);
++const req=(path,wallet,value)=>new Request(ROOT+path+(value?'':'?expected_address='+wallet),{method:value?'POST':'GET',headers:{origin:ROOT,cookie:SESSION_COOKIE+'='+TOKEN,...value?{'content-type':'application/json'}:{}},...value?{body:JSON.stringify({expectedAddress:wallet,...value})}:{}});
++async function session(f,wallet=W){const hash=await sha256(TOKEN);f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,1,?,?,?,?,?)').run(hash,wallet,NOW-1,NOW+3600000,'audit10','EOA','ECDSA');return hash;}
++const deps=f=>({db:f.db,config:f.config,now:()=>NOW+2,allow:async()=>true,serviceReady:true,serviceProducts:['research']});
++function afterRead(f,n,fn){const prepare=f.db.prepare;let reads=0;f.db.prepare=sql=>{const s=prepare(sql);if(!sql.startsWith('SELECT address,expires_at'))return s;const wrap=p=>({...p,bind:(...v)=>wrap(p.bind(...v)),first:async()=>{const row=await p.first();if(++reads===n)fn();return row;}});return wrap(s);};}
++
++for(const route of ['quote','admin','campaign','pay','inventory'])test(`audit10 L1/L2: ${route} logout before atomic write is 401 with no write`,async()=>{
++ const f=await fixture();try{
++  await f.topup();const wallet=['admin','campaign'].includes(route)?OWNER:W,hash=await session(f,wallet);let id,signed;
++  if(route==='pay'){id=await f.quote('research');signed=await f.challenge(id);}
++  const before=f.db.raw.prepare('SELECT count(*) n FROM economy_orders').get().n;
++  afterRead(f,['inventory','campaign'].includes(route)?1:2,()=>f.db.raw.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=?').run(NOW+1,hash));
++  const d=deps(f);let r;
++  if(route==='quote')r=await handleWorldGoldApi(req('/api/gold/quote',wallet,{product:'pack',requestId:rid()}),d);
++  if(route==='admin')r=await handleWorldGoldApi(req('/api/gold/admin',wallet,{requestId:rid(),reason:'Late logout boundary',command:{action:'control',feature:'topup',version:0,enabled:false}}),d);
++  if(route==='campaign')r=await handleAIMarketCampaign(req('/api/me/aimarket-campaign',wallet,{requestId:rid(),reason:'Late campaign logout',version:1,startsMs:NOW,endsMs:NOW+1000,stopped:false}),d);
++  if(route==='pay')r=await handleEconomyApi(req('/api/economy/orders/'+id+'/gold',wallet,{requestId:signed.requestId,signature:signed.signature}),d);
++  if(route==='inventory')r=await handleInventoryApi(req('/api/me/inventory',wallet,{revision:0,command:{type:'publish',enabled:false}}),{...d,home:async()=>({address:wallet,eligible:0,checkedAt:NOW+2,block:100})});
++  assert.equal(r.status,401);assert.deepEqual(await r.json(),{error:'AUTH_REQUIRED'});
++  assert.equal(f.db.raw.prepare('SELECT count(*) n FROM economy_orders').get().n,before);
++  assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_jobs').get().n,0);
++  assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_inventory_arrangements').get().n,0);
++  assert.equal(f.db.raw.prepare('SELECT count(*) n FROM world_gold_campaigns').get().n,0);
++  assert.equal(f.db.raw.prepare("SELECT enabled FROM world_gold_controls WHERE feature='topup'").get().enabled,1);
++  if(signed)assert.equal(f.db.raw.prepare('SELECT consumed_ms FROM economy_gold_challenges WHERE order_id=?').get(id).consumed_ms,null);
++ }finally{f.close();}
++});
++
++test('audit10 I3: empty or unsupported provider cannot enable service or advertise delivery',async()=>{
++ for(const products of [[],['unknown']]){const f=await fixture();try{
++  await session(f,OWNER);await f.admin({action:'control',feature:'service',version:0,enabled:false});
++  const d={...deps(f),serviceProducts:products},r=await handleWorldGoldApi(req('/api/gold/admin',OWNER,{requestId:rid(),reason:'Reject empty capability',command:{action:'control',feature:'service',version:1,enabled:true}}),d);
++  assert.equal(r.status,503);assert.deepEqual(await r.json(),{error:'SERVICE_DELIVERY_UNAVAILABLE'});
++  assert.equal(f.db.raw.prepare("SELECT enabled FROM world_gold_controls WHERE feature='service'").get().enabled,0);
++  const state=await handleWorldGoldApi(req('/api/gold/state',OWNER),d);assert.equal((await state.json()).deliveryReady,false);
++ }finally{f.close();}}
++});
++
++test('audit10 I4: historical unsupported service stays immutable but is marked unserviceable in state',async()=>{
++ const f=await fixture();try{await f.admin({action:'product',product:'fortune',kind:'service',title:'Fortune',gold:'1',enabled:true,version:1});await session(f);
++  const r=await handleWorldGoldApi(req('/api/gold/state',W),deps(f)),state=await r.json();assert.equal(r.status,200);
++  const p=state.products.find(p=>p.product==='fortune');assert.equal(p?.serviceable,false);assert.equal(p.enabled,1);
++  assert.equal(state.products.find(p=>p.product==='research').serviceable,true);assert.equal(state.deliveryReady,true);
++  assert.equal(f.db.raw.prepare("SELECT enabled FROM world_gold_products WHERE id='fortune:1'").get().enabled,1);
++  const q=await handleWorldGoldApi(req('/api/gold/quote',W,{product:'fortune',requestId:rid()}),deps(f));assert.equal(q.status,503);
++ }finally{f.close();}
++});
++
++test('audit10 I5: HTTP respects the same topup retry boundary as cron and credits exactly once',async()=>{
++ const f=await fixture();try{await f.topup();f.db.raw.prepare("UPDATE economy_gold_accounts SET balance='9223372036854775800' WHERE wallet=?").run(W);
++  const id=await f.quote();await f.paid(id);await reconcileWorldGold(f.db,NOW);await session(f);
++  const original=f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id);assert.equal(original.attempts,1);
++  for(const at of [NOW+1,NOW+2,NOW+299999]){const r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',W,{}),{...deps(f),now:()=>at});assert.equal(r.status,409);assert.equal((await r.json()).error,'GOLD_BALANCE_CAPACITY');assert.deepEqual(f.db.raw.prepare('SELECT * FROM world_gold_reconcile_errors WHERE order_id=?').get(id),original);}
++  assert.equal((await reconcileWorldGold(f.db,NOW+299999)).processed,0);
++  f.db.raw.prepare("UPDATE economy_gold_accounts SET balance='0' WHERE wallet=?").run(W);
++  const r=await handleWorldGoldApi(req('/api/gold/orders/'+id+'/reconcile',W,{}),{...deps(f),now:()=>NOW+300000});assert.equal(r.status,200);assert.equal((await f.snapshot()).book,'10');
++  await reconcileWorldGold(f.db,NOW+300001,id);assert.equal((await f.snapshot()).book,'10');
++ }finally{f.close();}
++});
+diff --git a/tests/world-gold-audit6-matrix.test.mjs b/tests/world-gold-audit6-matrix.test.mjs
+index cf22f1c..d4aa85e 100644
+--- a/tests/world-gold-audit6-matrix.test.mjs
++++ b/tests/world-gold-audit6-matrix.test.mjs
+@@ -49,7 +49,9 @@ test('T03/T21: refilled capacity defers the original-price refund; later room cr
+   const r=await gold.reconcileWorldGold(f.db,NOW+2);assert.ok(r.failures.some(x=>x.code==='GOLD_BALANCE_CAPACITY'));
+   await f.admin({action:'product',product:'research',kind:'service',title:'Another price',gold:'3',enabled:true,version:3});
+   await f.service();assert.equal((await f.snapshot()).book,String(MAX-3n));
+-  await gold.reconcileWorldGold(f.db,NOW+3,service);await gold.reconcileWorldGold(f.db,NOW+4,service);
++  await gold.reconcileWorldGold(f.db,NOW+3,service);assert.equal((await f.snapshot()).book,String(MAX-3n));
++  assert.equal(f.db.raw.prepare('SELECT attempts FROM world_gold_reconcile_errors WHERE order_id=?').get(service).attempts,1);
++  await gold.reconcileWorldGold(f.db,NOW+300002,service);await gold.reconcileWorldGold(f.db,NOW+300003,service);
+   assert.equal((await f.snapshot()).book,String(MAX));assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(service).state,'refunded');
+   assert.equal(f.db.raw.prepare("SELECT CAST(SUM(delta) AS TEXT) n FROM world_gold_entries WHERE order_id=? AND kind='service-refund'").get(service).n,'3');
+  }finally{f.close();}

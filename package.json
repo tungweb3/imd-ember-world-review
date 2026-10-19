@@ -1,0 +1,15 @@
+{
+  "name": "ember-world-economy-selected-review",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=24 <25"},
+  "scripts": {
+    "verify:source": "node tools/verify-source.mjs",
+    "verify:privacy": "node tools/scan-public-tree.mjs",
+    "test:financial": "node tools/run-selected-financial-tests.mjs",
+    "test:contracts": "node tools/run-contract-tests.mjs",
+    "test": "node tools/run-review-tests.mjs"
+  },
+  "description": "Selected Solidity and TypeScript financial review source; no production deploy or wallet command. Install dependencies using the exact world-source and contracts locks."
+}
