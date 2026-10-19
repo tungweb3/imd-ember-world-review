@@ -1,0 +1,2618 @@
+Workstation paths redacted; original log SHA256: 1bda6291d1c2f89c5621be6afcb46cd460531016d021d79e37a2ea7585661a49
+
+{"stage":"SELECTED_FINANCIAL_TESTS","files":["tests/aimarket-admin-client.test.mjs","tests/aimarket-admin.test.mjs","tests/aimarket-auth.test.mjs","tests/economy-adversarial.test.mjs","tests/economy-api.test.mjs","tests/economy-audit-regressions.test.mjs","tests/economy-audit2-medium.test.mjs","tests/economy-audit3-recovery.test.mjs","tests/economy-audit4-recovery.test.mjs","tests/economy-client.test.mjs","tests/economy-forwarder.test.mjs","tests/economy-journey.test.mjs","tests/economy-ledger.test.mjs","tests/economy-migration.test.mjs","tests/economy-pane.test.mjs","tests/economy-payload-roundtrip.test.mjs","tests/economy-payment-timing.test.mjs","tests/economy-reconciliation.test.mjs","tests/economy-rpc.test.mjs","tests/economy-settlement.test.mjs","tests/economy-staging.test.mjs","tests/economy-wallet-recovery.test.mjs","tests/economy-worker.test.mjs","tests/world-gold-api.test.mjs","tests/world-gold-audit5-adversarial.test.mjs","tests/world-gold-audit5.test.mjs","tests/world-gold-audit6-integration.test.mjs","tests/world-gold-audit6-matrix.test.mjs","tests/world-gold-audit6.test.mjs","tests/world-gold-native-journey.test.mjs","tests/world-gold.test.mjs"],"sourceCommit":"41ca333db50696a0a2f4c886d6fe7171637908cc","fullWorkerTestExcluded":true}
+TAP version 13
+# Subtest: admin client sends only a fixed same-origin credentialed GET bound to the current wallet session
+ok 1 - admin client sends only a fixed same-origin credentialed GET bound to the current wallet session
+  ---
+  duration_ms: 8.3321
+  type: 'test'
+  ...
+# Subtest: admin client rejects unsuccessful responses, malformed JSON, and transport failures
+ok 2 - admin client rejects unsuccessful responses, malformed JSON, and transport failures
+  ---
+  duration_ms: 5.3601
+  type: 'test'
+  ...
+# Subtest: admin client accepts only the complete four-field owner response for the exact session
+ok 3 - admin client accepts only the complete four-field owner response for the exact session
+  ---
+  duration_ms: 4.8539
+  type: 'test'
+  ...
+# Subtest: admin client never grants an expired or invalid session, including expiry while awaiting the server
+ok 4 - admin client never grants an expired or invalid session, including expiry while awaiting the server
+  ---
+  duration_ms: 0.9816
+  type: 'test'
+  ...
+# Subtest: admin client rejects clock errors and cancellation even when a transport still resolves successfully
+ok 5 - admin client rejects clock errors and cancellation even when a transport still resolves successfully
+  ---
+  duration_ms: 1.8411
+  type: 'test'
+  ...
+# Subtest: admin client snapshots the requested session against caller mutation while awaiting a response
+ok 6 - admin client snapshots the requested session against caller mutation while awaiting a response
+  ---
+  duration_ms: 0.7921
+  type: 'test'
+  ...
+# Subtest: actual pane shows the trial-admin entry only after the current server response
+ok 7 - actual pane shows the trial-admin entry only after the current server response
+  ---
+  duration_ms: 33.41
+  type: 'test'
+  ...
+# Subtest: actual pane immediately hides an accepted old owner when the wallet changes and ignores its late response
+ok 8 - actual pane immediately hides an accepted old owner when the wallet changes and ignores its late response
+  ---
+  duration_ms: 13.2194
+  type: 'test'
+  ...
+# Subtest: actual pane cancels owner lookup on logout and cannot restore the badge from a late owner response
+ok 9 - actual pane cancels owner lookup on logout and cannot restore the badge from a late owner response
+  ---
+  duration_ms: 6.0229
+  type: 'test'
+  ...
+# Subtest: actual pane hides owner status immediately when the connected wallet no longer matches the World session
+ok 10 - actual pane hides owner status immediately when the connected wallet no longer matches the World session
+  ---
+  duration_ms: 5.8041
+  type: 'test'
+  ...
+# Subtest: actual pane removes an owner at expiry and rejects a pending lookup that resolves after expiry
+ok 11 - actual pane removes an owner at expiry and rejects a pending lookup that resolves after expiry
+  ---
+  duration_ms: 21.7102
+  type: 'test'
+  ...
+# Subtest: actual pane cleanup prevents a resolved owner lookup from writing state after unmount
+ok 12 - actual pane cleanup prevents a resolved owner lookup from writing state after unmount
+  ---
+  duration_ms: 6.2204
+  type: 'test'
+  ...
+# Subtest: only the three explicitly authorized wallets are frozen into the narrow activity-management role
+ok 13 - only the three explicitly authorized wallets are frozen into the narrow activity-management role
+  ---
+  duration_ms: 7.1128
+  type: 'test'
+  ...
+# Subtest: all three live World sessions resolve the role case-insensitively without writes, chain reads or renewed login
+ok 14 - all three live World sessions resolve the role case-insensitively without writes, chain reads or renewed login
+  ---
+  duration_ms: 192.2661
+  type: 'test'
+  ...
+# Subtest: a real ordinary SIWE sign-in has no admin role even if browser headers claim an owner or huge holdings
+ok 15 - a real ordinary SIWE sign-in has no admin role even if browser headers claim an owner or huge holdings
+  ---
+  duration_ms: 117.5816
+  type: 'test'
+  ...
+# Subtest: missing, malformed and forged World cookies and unrelated research/bearer credentials cannot grant the role
+ok 16 - missing, malformed and forged World cookies and unrelated research/bearer credentials cannot grant the role
+  ---
+  duration_ms: 41.8894
+  type: 'test'
+  ...
+# Subtest: revocation, expiry at the exact deadline and absent or unknown verification methods deny owner sessions
+ok 17 - revocation, expiry at the exact deadline and absent or unknown verification methods deny owner sessions
+  ---
+  duration_ms: 249.5854
+  type: 'test'
+  ...
+# Subtest: both existing ECDSA and ERC1271 proven sessions can read the scoped role without another chain check
+ok 18 - both existing ECDSA and ERC1271 proven sessions can read the scoped role without another chain check
+  ---
+  duration_ms: 73.5232
+  type: 'test'
+  ...
+# Subtest: mismatched expected wallet returns conflict and never discloses another owner identity or token
+ok 19 - mismatched expected wallet returns conflict and never discloses another owner identity or token
+  ---
+  duration_ms: 29.9788
+  type: 'test'
+  ...
+# Subtest: the one required expected-address query is closed against duplicate, omitted, malformed and privilege fields
+ok 20 - the one required expected-address query is closed against duplicate, omitted, malformed and privilege fields
+  ---
+  duration_ms: 31.6565
+  type: 'test'
+  ...
+# Subtest: only GET is available; no role write or new activity-setting endpoint is exposed
+ok 21 - only GET is available; no role write or new activity-setting endpoint is exposed
+  ---
+  duration_ms: 34.1543
+  type: 'test'
+  ...
+# Subtest: the World host and exact same origin are required even when an owner cookie is supplied
+ok 22 - the World host and exact same origin are required even when an owner cookie is supplied
+  ---
+  duration_ms: 44.5892
+  type: 'test'
+  ...
+# Subtest: explicit loopback HTTP development uses its own exact origin and cannot authorize another local origin
+ok 23 - explicit loopback HTTP development uses its own exact origin and cannot authorize another local origin
+  ---
+  duration_ms: 40.4279
+  type: 'test'
+  ...
+# Subtest: missing database, database errors, absent or broken rate limits and invalid clocks fail closed
+ok 24 - missing database, database errors, absent or broken rate limits and invalid clocks fail closed
+  ---
+  duration_ms: 44.8438
+  type: 'test'
+  ...
+# Subtest: a denied rate limit returns 429; expiry while the limiter is pending is evaluated at the current time
+ok 25 - a denied rate limit returns 429; expiry while the limiter is pending is evaluated at the current time
+  ---
+  duration_ms: 38.8086
+  type: 'test'
+  ...
+# Subtest: recognizing a known owner does not expand the existing research SSO or proxy capabilities
+ok 26 - recognizing a known owner does not expand the existing research SSO or proxy capabilities
+  ---
+  duration_ms: 56.7587
+  type: 'test'
+  ...
+# Subtest: fixed research profile binds code to its callback, rejects cross-profile exchange, and reuses one World session
+ok 27 - fixed research profile binds code to its callback, rejects cross-profile exchange, and reuses one World session
+  ---
+  duration_ms: 239.9187
+  type: 'test'
+  ...
+# Subtest: one existing World sign-in issues only a fixed-callback research identity, hashes codes/bridges, and keeps cookies untouched
+ok 28 - one existing World sign-in issues only a fixed-callback research identity, hashes codes/bridges, and keeps cookies untouched
+  ---
+  duration_ms: 122.6404
+  type: 'test'
+  ...
+# Subtest: PKCE, wrong code, replay and concurrent exchange: exactly one bridge can be materialized
+ok 29 - PKCE, wrong code, replay and concurrent exchange: exactly one bridge can be materialized
+  ---
+  duration_ms: 98.6909
+  type: 'test'
+  ...
+# Subtest: exchange transaction rolls back consumption if bridge insertion fails, allowing the same safe retry
+ok 30 - exchange transaction rolls back consumption if bridge insertion fails, allowing the same safe retry
+  ---
+  duration_ms: 79.4782
+  type: 'test'
+  ...
+# Subtest: anonymous, forged, revoked and expired World cookies do not issue codes; front-end addresses have no authority
+ok 31 - anonymous, forged, revoked and expired World cookies do not issue codes; front-end addresses have no authority
+  ---
+  duration_ms: 87.8323
+  type: 'test'
+  ...
+# Subtest: unauthenticated browser navigation returns to World login without issuing codes; API denials stay JSON
+ok 32 - unauthenticated browser navigation returns to World login without issuing codes; API denials stay JSON
+  ---
+  duration_ms: 72.0552
+  type: 'test'
+  ...
+# Subtest: source revocation before issuance insert or exchange closes authority across async boundaries
+ok 33 - source revocation before issuance insert or exchange closes authority across async boundaries
+  ---
+  duration_ms: 68.1186
+  type: 'test'
+  ...
+# Subtest: World logout, logout-all, source expiry and bridge expiry invalidate introspection immediately
+ok 34 - World logout, logout-all, source expiry and bridge expiry invalidate introspection immediately
+  ---
+  duration_ms: 315.579
+  type: 'test'
+  ...
+# Subtest: code and bridge deadlines are absolute, capped by original source expiry, and never renewed by reads
+ok 35 - code and bridge deadlines are absolute, capped by original source expiry, and never renewed by reads
+  ---
+  duration_ms: 112.2242
+  type: 'test'
+  ...
+# Subtest: authorize is bounded and rejects unknown/duplicate query fields, client/callback/PKCE/state/language tampering
+ok 36 - authorize is bounded and rejects unknown/duplicate query fields, client/callback/PKCE/state/language tampering
+  ---
+  duration_ms: 67.0511
+  type: 'test'
+  ...
+# Subtest: backend secret, fixed request origins, closed JSON and HTTP methods protect both backend routes
+ok 37 - backend secret, fixed request origins, closed JSON and HTTP methods protect both backend routes
+  ---
+  duration_ms: 99.8093
+  type: 'test'
+  ...
+# Subtest: missing/weak secret, absent DB, schema or limiter, thrown limits and clock errors fail closed without codes
+ok 38 - missing/weak secret, absent DB, schema or limiter, thrown limits and clock errors fail closed without codes
+  ---
+  duration_ms: 89.7695
+  type: 'test'
+  ...
+# Subtest: loopback is permitted only by explicit dependency config; cleanup is bounded and source profiles remain
+ok 39 - loopback is permitted only by explicit dependency config; cleanup is bounded and source profiles remain
+  ---
+  duration_ms: 125.1651
+  type: 'test'
+  ...
+# Subtest: regression: a disconnected middle header cannot advance an empty finalized range and later manufacture a trusted horizon
+ok 40 - regression: a disconnected middle header cannot advance an empty finalized range and later manufacture a trusted horizon
+  ---
+  duration_ms: 57.5492
+  type: 'test'
+  ...
+# Subtest: regression: a substituted event player that disagrees with the actual receipt log cannot establish principal or GOLD
+ok 41 - regression: a substituted event player that disagrees with the actual receipt log cannot establish principal or GOLD
+  ---
+  duration_ms: 42.8496
+  type: 'test'
+  ...
+# Subtest: regression: closed historical lots never hide a later live position behind the snapshot bound
+ok 42 - regression: closed historical lots never hide a later live position behind the snapshot bound
+  ---
+  duration_ms: 284.358
+  type: 'test'
+  ...
+# Subtest: regression: revocation at the final GOLD batch boundary leaves debit, nonce, order and fulfillment untouched
+ok 43 - regression: revocation at the final GOLD batch boundary leaves debit, nonce, order and fulfillment untouched
+  ---
+  duration_ms: 181.3711
+  type: 'test'
+  ...
+# Subtest: regression: a broadcast with no returned hash stays unresolved after closing and reopening the controller
+ok 44 - regression: a broadcast with no returned hash stays unresolved after closing and reopening the controller
+  ---
+  duration_ms: 16.2808
+  type: 'test'
+  ...
+# Subtest: public configuration defaults disabled without DB, authority, catalogue or state changes
+ok 45 - public configuration defaults disabled without DB, authority, catalogue or state changes
+  ---
+  duration_ms: 75.2601
+  type: 'test'
+  ...
+# Subtest: wallet sessions cannot invoke internal recovery, reconcile or disposition tools through invented HTTP routes
+ok 46 - wallet sessions cannot invoke internal recovery, reconcile or disposition tools through invented HTTP routes
+  ---
+  duration_ms: 38.4353
+  type: 'test'
+  ...
+# Subtest: read snapshot is wallet bound, no initial demo credit, strings throughout and no cookies or private credentials returned
+ok 47 - read snapshot is wallet bound, no initial demo credit, strings throughout and no cookies or private credentials returned
+  ---
+  duration_ms: 25.7766
+  type: 'test'
+  ...
+# Subtest: write uses server catalogue and creates a pending order only; no browser amount, earned GOLD or fake transaction can authorize money
+ok 48 - write uses server catalogue and creates a pending order only; no browser amount, earned GOLD or fake transaction can authorize money
+  ---
+  duration_ms: 38.5545
+  type: 'test'
+  ...
+# Subtest: all missing, forged, revoked, expired and unknown proof sessions deny reads and writes without DB mutation
+ok 49 - all missing, forged, revoked, expired and unknown proof sessions deny reads and writes without DB mutation
+  ---
+  duration_ms: 141.4565
+  type: 'test'
+  ...
+# Subtest: ERC1271/contract sessions retain read access and cannot gain new persistent order/debit authority
+ok 50 - ERC1271/contract sessions retain read access and cannot gain new persistent order/debit authority
+  ---
+  duration_ms: 86.6133
+  type: 'test'
+  ...
+# Subtest: expected wallet cannot be swapped by query/body/header, and selectors reject duplicates or privilege fields
+ok 51 - expected wallet cannot be swapped by query/body/header, and selectors reject duplicates or privilege fields
+  ---
+  duration_ms: 37.7203
+  type: 'test'
+  ...
+# Subtest: strict origin, fetch site, verb and query policy protects both public configuration and money routes
+ok 52 - strict origin, fetch site, verb and query policy protects both public configuration and money routes
+  ---
+  duration_ms: 85.4682
+  type: 'test'
+  ...
+# Subtest: missing config, missing migration, limiter failure and invalid clock fail closed without writes
+ok 53 - missing config, missing migration, limiter failure and invalid clock fail closed without writes
+  ---
+  duration_ms: 44.3594
+  type: 'test'
+  ...
+# Subtest: body is bounded, valid UTF-8 JSON with a closed schema; arbitrary currencies/IDs cannot become services
+ok 54 - body is bounded, valid UTF-8 JSON with a closed schema; arbitrary currencies/IDs cannot become services
+  ---
+  duration_ms: 64.2763
+  type: 'test'
+  ...
+# Subtest: expiry or revocation while rate limit/body is awaited cannot create an order or debit GOLD
+ok 55 - expiry or revocation while rate limit/body is awaited cannot create an order or debit GOLD
+  ---
+  duration_ms: 54.1127
+  type: 'test'
+  ...
+# Subtest: non-string JSON currencies are client errors and never become service orders
+ok 56 - non-string JSON currencies are client errors and never become service orders
+  ---
+  duration_ms: 48.4766
+  type: 'test'
+  ...
+# Subtest: session revocation immediately before SQL insert is guarded in the same statement
+ok 57 - session revocation immediately before SQL insert is guarded in the same statement
+  ---
+  duration_ms: 26.0605
+  type: 'test'
+  ...
+# Subtest: GOLD route never accepts another wallet order, EMBEO order or fabricated earned balance
+ok 58 - GOLD route never accepts another wallet order, EMBEO order or fabricated earned balance
+  ---
+  duration_ms: 34.0857
+  type: 'test'
+  ...
+# Subtest: complete authenticated GOLD challenge/sign/pay flow consumes exactly one nonce and rejects a login signature
+ok 59 - complete authenticated GOLD challenge/sign/pay flow consumes exactly one nonce and rejects a login signature
+  ---
+  duration_ms: 128.2411
+  type: 'test'
+  ...
+# Subtest: same deployed staking contract cannot re-credit one UTC share-day through a deployment-block or payment-contract re-pin
+ok 60 - same deployed staking contract cannot re-credit one UTC share-day through a deployment-block or payment-contract re-pin
+  ---
+  duration_ms: 123.3028
+  type: 'test'
+  ...
+# Subtest: a correctly signed completed GOLD payment stays idempotent after its challenge and quote expire; expired NEW debits and wrong signatures remain rejected
+ok 61 - a correctly signed completed GOLD payment stays idempotent after its challenge and quote expire; expired NEW debits and wrong signatures remain rejected
+  ---
+  duration_ms: 145.8733
+  type: 'test'
+  ...
+# Subtest: catalogue edits preserve the reward binding; separate deployed vaults can independently earn into the same wallet
+ok 62 - catalogue edits preserve the reward binding; separate deployed vaults can independently earn into the same wallet
+  ---
+  duration_ms: 39.1701
+  type: 'test'
+  ...
+# Subtest: concurrent first settlements of two config aliases atomically choose one reward stream, never two credits
+ok 63 - concurrent first settlements of two config aliases atomically choose one reward stream, never two credits
+  ---
+  duration_ms: 30.673
+  type: 'test'
+  ...
+# Subtest: additive reward migration preserves a legacy partial day; a new alias cannot adopt it and the original config finishes without re-credit
+ok 64 - additive reward migration preserves a legacy partial day; a new alias cannot adopt it and the original config finishes without re-credit
+  ---
+  duration_ms: 107.1748
+  type: 'test'
+  ...
+# Subtest: an expired pending quote replay is ORDER_EXPIRED; a new explicit request obtains a fresh quote and the old quote remains immutable
+ok 65 - an expired pending quote replay is ORDER_EXPIRED; a new explicit request obtains a fresh quote and the old quote remains immutable
+  ---
+  duration_ms: 43.0293
+  type: 'test'
+  ...
+# Subtest: ambiguous legacy config histories never auto-bind or rewrite prior GOLD during migration
+ok 66 - ambiguous legacy config histories never auto-bind or rewrite prior GOLD during migration
+  ---
+  duration_ms: 39.9608
+  type: 'test'
+  ...
+# Subtest: Audit2 M1 direct: unknown early position durably halts without advancing facts, cursor, payment or GOLD
+ok 67 - Audit2 M1 direct: unknown early position durably halts without advancing facts, cursor, payment or GOLD
+  ---
+  duration_ms: 74.8627
+  type: 'test'
+  ...
+# Subtest: Audit2 M1 direct: reviewed earlier-start recovery retains halt/staged evidence and resumes exact payment plus future GOLD once
+ok 68 - Audit2 M1 direct: reviewed earlier-start recovery retains halt/staged evidence and resumes exact payment plus future GOLD once
+  ---
+  duration_ms: 165.8149
+  type: 'test'
+  ...
+# Subtest: Audit2 M1 staged: unknown early position durably halts without advancing facts, cursor, payment or GOLD
+ok 69 - Audit2 M1 staged: unknown early position durably halts without advancing facts, cursor, payment or GOLD
+  ---
+  duration_ms: 47.19
+  type: 'test'
+  ...
+# Subtest: Audit2 M1 staged: reviewed earlier-start recovery retains halt/staged evidence and resumes exact payment plus future GOLD once
+ok 70 - Audit2 M1 staged: reviewed earlier-start recovery retains halt/staged evidence and resumes exact payment plus future GOLD once
+  ---
+  duration_ms: 132.1788
+  type: 'test'
+  ...
+# Subtest: Audit2 M1: unrelated D1 failure rolls back but never invents a withdrawal halt
+ok 71 - Audit2 M1: unrelated D1 failure rolls back but never invents a withdrawal halt
+  ---
+  duration_ms: 31.8933
+  type: 'test'
+  ...
+# Subtest: Audit2 M1: finalized-reorg halt remains refused by historical recovery
+ok 72 - Audit2 M1: finalized-reorg halt remains refused by historical recovery
+  ---
+  duration_ms: 81.8934
+  type: 'test'
+  ...
+# Subtest: Audit2 M2 direct, owner first: shared payment-contract evidence matches the physical payment, independent of scanner
+ok 73 - Audit2 M2 direct, owner first: shared payment-contract evidence matches the physical payment, independent of scanner
+  ---
+  duration_ms: 38.605
+  type: 'test'
+  ...
+# Subtest: Audit2 M2 direct, other first: shared payment-contract evidence matches the physical payment, independent of scanner
+ok 74 - Audit2 M2 direct, other first: shared payment-contract evidence matches the physical payment, independent of scanner
+  ---
+  duration_ms: 42.1581
+  type: 'test'
+  ...
+# Subtest: Audit2 M2 staged, owner first: shared payment-contract evidence matches the physical payment, independent of scanner
+ok 75 - Audit2 M2 staged, owner first: shared payment-contract evidence matches the physical payment, independent of scanner
+  ---
+  duration_ms: 37.5043
+  type: 'test'
+  ...
+# Subtest: Audit2 M2 staged, other first: shared payment-contract evidence matches the physical payment, independent of scanner
+ok 76 - Audit2 M2 staged, other first: shared payment-contract evidence matches the physical payment, independent of scanner
+  ---
+  duration_ms: 42.8051
+  type: 'test'
+  ...
+# Subtest: Audit2 M2: wrong payment contract, payer, amount and GOLD currency remain exceptions without extra entitlement
+ok 77 - Audit2 M2: wrong payment contract, payer, amount and GOLD currency remain exceptions without extra entitlement
+  ---
+  duration_ms: 143.2644
+  type: 'test'
+  ...
+# Subtest: Audit2 M2: legacy backfill through a different scanner does not relabel the owning fulfilled physical event as extra
+ok 78 - Audit2 M2: legacy backfill through a different scanner does not relabel the owning fulfilled physical event as extra
+  ---
+  duration_ms: 35.4854
+  type: 'test'
+  ...
+# Subtest: Audit2 M1: multi-page retained proof ordinals survive recovery and a second earlier recovery
+ok 79 - Audit2 M1: multi-page retained proof ordinals survive recovery and a second earlier recovery
+  ---
+  duration_ms: 269.5546
+  type: 'test'
+  ...
+# Subtest: Audit2 M1: a halted namespace does not admit missing or altered pending proof pages into recovery
+ok 80 - Audit2 M1: a halted namespace does not admit missing or altered pending proof pages into recovery
+  ---
+  duration_ms: 153.8999
+  type: 'test'
+  ...
+# Subtest: Audit2 M1: wrapped D1 trigger errors halt, and a failed halt write is not reported as a durable halt
+ok 81 - Audit2 M1: wrapped D1 trigger errors halt, and a failed halt write is not reported as a durable halt
+  ---
+  duration_ms: 36.9507
+  type: 'test'
+  ...
+# Subtest: Audit2 M2: missing legacy order registry defers classification explicitly, then a reviewed registry backfill completes once
+ok 82 - Audit2 M2: missing legacy order registry defers classification explicitly, then a reviewed registry backfill completes once
+  ---
+  duration_ms: 48.6863
+  type: 'test'
+  ...
+# Subtest: GOLD stays wallet-bound: separate service currencies expose no exchange or player-transfer endpoint
+ok 83 - GOLD stays wallet-bound: separate service currencies expose no exchange or player-transfer endpoint
+  ---
+  duration_ms: 88.2573
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 direct/none: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 84 - Audit3 B01 direct/none: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 201.7157
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 direct/wallet32: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 85 - Audit3 B01 direct/wallet32: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 210.2958
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 direct/wallet33: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 86 - Audit3 B01 direct/wallet33: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 230.4767
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 direct/position64: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 87 - Audit3 B01 direct/position64: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 237.4061
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 direct/position65: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 88 - Audit3 B01 direct/position65: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 249.0848
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 direct/settled: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 89 - Audit3 B01 direct/settled: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 132.6011
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 staged/none: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 90 - Audit3 B01 staged/none: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 146.9465
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 staged/wallet32: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 91 - Audit3 B01 staged/wallet32: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 229.4563
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 staged/wallet33: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 92 - Audit3 B01 staged/wallet33: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 234.3571
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 staged/position64: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 93 - Audit3 B01 staged/position64: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 215.0871
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 staged/position65: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 94 - Audit3 B01 staged/position65: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 229.388
+  type: 'test'
+  ...
+# Subtest: Audit3 B01 staged/settled: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+ok 95 - Audit3 B01 staged/settled: halted incomplete UTC journals recover actual shortfall once, then late payment and future days resume
+  ---
+  duration_ms: 101.0751
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 direct/owner/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 96 - Audit3 B02 direct/owner/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 37.3624
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 direct/owner/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 97 - Audit3 B02 direct/owner/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 27.993
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 direct/other/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 98 - Audit3 B02 direct/other/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 34.901
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 direct/other/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 99 - Audit3 B02 direct/other/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 40.8769
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 staged/owner/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 100 - Audit3 B02 staged/owner/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 34.4424
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 staged/owner/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 101 - Audit3 B02 staged/owner/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 33.382
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 staged/other/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 102 - Audit3 B02 staged/other/1 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 37.9033
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 staged/other/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+ok 103 - Audit3 B02 staged/other/2 physical payment(s): pending is visible/deferred; classification follows actual fulfillment
+  ---
+  duration_ms: 59.9851
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 direct: a halted owner and real single payment stay pending until controlled lineage recovery
+ok 104 - Audit3 B02 direct: a halted owner and real single payment stay pending until controlled lineage recovery
+  ---
+  duration_ms: 130.3868
+  type: 'test'
+  ...
+# Subtest: Audit3 B02 staged: a halted owner and real single payment stay pending until controlled lineage recovery
+ok 105 - Audit3 B02 staged: a halted owner and real single payment stay pending until controlled lineage recovery
+  ---
+  duration_ms: 151.0007
+  type: 'test'
+  ...
+# Subtest: Audit3 B03 direct: empty sentinel recovery uses verified predecessor and carries original pending quote
+ok 106 - Audit3 B03 direct: empty sentinel recovery uses verified predecessor and carries original pending quote
+  ---
+  duration_ms: 162.1136
+  type: 'test'
+  ...
+# Subtest: Audit3 B03 staged: empty sentinel recovery uses verified predecessor and carries original pending quote
+ok 107 - Audit3 B03 staged: empty sentinel recovery uses verified predecessor and carries original pending quote
+  ---
+  duration_ms: 100.5185
+  type: 'test'
+  ...
+# Subtest: Audit3 B03 prefix: empty sentinel recovery uses verified predecessor and carries original pending quote
+ok 108 - Audit3 B03 prefix: empty sentinel recovery uses verified predecessor and carries original pending quote
+  ---
+  duration_ms: 92.4295
+  type: 'test'
+  ...
+# Subtest: Audit3 B03: a sentinel is not permission to accept a different height, malformed shadow, prior economic state or another halt
+ok 109 - Audit3 B03: a sentinel is not permission to accept a different height, malformed shadow, prior economic state or another halt
+  ---
+  duration_ms: 564.3933
+  type: 'test'
+  ...
+# Subtest: Audit3 B01: partial-day plan still refuses stale snapshots, rolls back batch faults and never repeats a correction
+ok 110 - Audit3 B01: partial-day plan still refuses stale snapshots, rolls back batch faults and never repeats a correction
+  ---
+  duration_ms: 436.8196
+  type: 'test'
+  ...
+# Subtest: Audit3 B01: an incomplete NORMAL config or unsupported halt cannot use halted credited-so-far recovery
+ok 111 - Audit3 B01: an incomplete NORMAL config or unsupported halt cannot use halted credited-so-far recovery
+  ---
+  duration_ms: 170.2494
+  type: 'test'
+  ...
+# Subtest: Audit3 B04: halt is per config; another legitimate vault retains its independently authorized GOLD scope
+ok 112 - Audit3 B04: halt is per config; another legitimate vault retains its independently authorized GOLD scope
+  ---
+  duration_ms: 42.3527
+  type: 'test'
+  ...
+# Subtest: Audit3 B01: a second earlier recovery after a partial-day correction counts ancestor journals and corrections once
+ok 113 - Audit3 B01: a second earlier recovery after a partial-day correction counts ancestor journals and corrections once
+  ---
+  duration_ms: 289.2989
+  type: 'test'
+  ...
+# {"status":"PASS","command":"reconcile-copy","originalModified":false,"remoteDatabaseUsed":false,"publicChainWrites":false}
+# Subtest: Audit3 B02 CLI: unresolved owner fulfillment fails explicitly without changing either input; after real indexing, metadata reconciliation completes
+ok 114 - Audit3 B02 CLI: unresolved owner fulfillment fails explicitly without changing either input; after real indexing, metadata reconciliation completes
+  ---
+  duration_ms: 139.9568
+  type: 'test'
+  ...
+# Subtest: Audit4 C01 C04 compatibility: reviewed source without a legacy registry row still retains its bootstrap prefix
+ok 115 - Audit4 C01 C04 compatibility: reviewed source without a legacy registry row still retains its bootstrap prefix
+  ---
+  duration_ms: 183.626
+  type: 'test'
+  ...
+# Subtest: Audit4 C01: retained bootstrap prefix survives a second recovery, replay and future settlement
+ok 116 - Audit4 C01: retained bootstrap prefix survives a second recovery, replay and future settlement
+  ---
+  duration_ms: 325.9847
+  type: 'test'
+  ...
+# Subtest: Audit4 C01 negative: reject corrupted ancestor receipt hash without writes
+ok 117 - Audit4 C01 negative: reject corrupted ancestor receipt hash without writes
+  ---
+  duration_ms: 302.9944
+  type: 'test'
+  ...
+# Subtest: Audit4 C01 negative: reject corrupted ancestor receipt domain without writes
+ok 118 - Audit4 C01 negative: reject corrupted ancestor receipt domain without writes
+  ---
+  duration_ms: 198.4192
+  type: 'test'
+  ...
+# Subtest: Audit4 C01 negative: reject corrupted ancestor receipt from without writes
+ok 119 - Audit4 C01 negative: reject corrupted ancestor receipt from without writes
+  ---
+  duration_ms: 191.8792
+  type: 'test'
+  ...
+# Subtest: Audit4 C01 negative: reject corrupted ancestor receipt missing without writes
+ok 120 - Audit4 C01 negative: reject corrupted ancestor receipt missing without writes
+  ---
+  duration_ms: 239.8988
+  type: 'test'
+  ...
+# Subtest: Audit4 C02: 600 finalized events use paged snapshots and bounded imports, then apply atomically
+ok 121 - Audit4 C02: 600 finalized events use paged snapshots and bounded imports, then apply atomically
+  ---
+  duration_ms: 2739.6739
+  type: 'test'
+  ...
+# Subtest: Audit4 C03 C04: unrelated vault retired does not block or change during recovery
+ok 122 - Audit4 C03 C04: unrelated vault retired does not block or change during recovery
+  ---
+  duration_ms: 325.4125
+  type: 'test'
+  ...
+# Subtest: Audit4 C03 C04: unrelated vault healthy-prefix does not block or change during recovery
+ok 123 - Audit4 C03 C04: unrelated vault healthy-prefix does not block or change during recovery
+  ---
+  duration_ms: 200.1454
+  type: 'test'
+  ...
+# Subtest: Audit4 C03 C04: unrelated vault halted-prefix does not block or change during recovery
+ok 124 - Audit4 C03 C04: unrelated vault halted-prefix does not block or change during recovery
+  ---
+  duration_ms: 138.3793
+  type: 'test'
+  ...
+# Subtest: Audit4 C04: foreign staging change at final batch invalidates the plan and rolls back all recovery writes
+ok 125 - Audit4 C04: foreign staging change at final batch invalidates the plan and rolls back all recovery writes
+  ---
+  duration_ms: 150.6353
+  type: 'test'
+  ...
+# Subtest: Audit4 C03 negative: foreign retired progress requires coherent receipt lineage, not merely a retired label
+ok 126 - Audit4 C03 negative: foreign retired progress requires coherent receipt lineage, not merely a retired label
+  ---
+  duration_ms: 277.2938
+  type: 'test'
+  ...
+# Subtest: Audit4 C05: accepted empty same-vault sync remains preserved and no longer blocks recovery
+ok 127 - Audit4 C05: accepted empty same-vault sync remains preserved and no longer blocks recovery
+  ---
+  duration_ms: 157.0957
+  type: 'test'
+  ...
+# Subtest: Audit4 C05 negative: same-vault event is not treated as an empty sync
+ok 128 - Audit4 C05 negative: same-vault event is not treated as an empty sync
+  ---
+  duration_ms: 106.6817
+  type: 'test'
+  ...
+# Subtest: Audit4 C05 negative: same-vault order is not treated as an empty sync
+ok 129 - Audit4 C05 negative: same-vault order is not treated as an empty sync
+  ---
+  duration_ms: 139.407
+  type: 'test'
+  ...
+# Subtest: Audit4 C05 negative: same-vault progress is not treated as an empty sync
+ok 130 - Audit4 C05 negative: same-vault progress is not treated as an empty sync
+  ---
+  duration_ms: 130.3858
+  type: 'test'
+  ...
+# Subtest: Audit4 C05 negative: same-vault pending is not treated as an empty sync
+ok 131 - Audit4 C05 negative: same-vault pending is not treated as an empty sync
+  ---
+  duration_ms: 114.5621
+  type: 'test'
+  ...
+# Subtest: Audit4 C02: capacity preflight explains oversize values without changing either input
+ok 132 - Audit4 C02: capacity preflight explains oversize values without changing either input
+  ---
+  duration_ms: 112.1424
+  type: 'test'
+  ...
+# Subtest: Audit4 C02: exact UTF8 snapshot bound is accepted
+ok 133 - Audit4 C02: exact UTF8 snapshot bound is accepted
+  ---
+  duration_ms: 146.5566
+  type: 'test'
+  ...
+# Subtest: Audit4 C02: exact UTF8 snapshot bound plus one is refused
+ok 134 - Audit4 C02: exact UTF8 snapshot bound plus one is refused
+  ---
+  duration_ms: 97.1548
+  type: 'test'
+  ...
+# Subtest: Audit4 C02: global metadata growth exceeding total byte budget is diagnosed before writes
+ok 135 - Audit4 C02: global metadata growth exceeding total byte budget is diagnosed before writes
+  ---
+  duration_ms: 1525.7181
+  type: 'test'
+  ...
+# Subtest: Audit4 C02: appended rows after a full snapshot page invalidate its transaction guard
+ok 136 - Audit4 C02: appended rows after a full snapshot page invalidate its transaction guard
+  ---
+  duration_ms: 137.1948
+  type: 'test'
+  ...
+# {"status":"PASS","command":"preflight","planHash":"3f187c13c8122e8587195dc4258ff98f3aaaa4726494e468e3bd25777d36b53f","totalDelta":"2","originalModified":false,"remoteDatabaseUsed":false,"publicChainWrites":false}
+# {"status":"BLOCKED","command":"preflight","capacityFailure":{"metric":"boundValueBytes","actual":524304,"limit":524288,"table":"economy_stage_batches","side":"original"},"originalModified":false,"remoteDatabaseUsed":false,"publicChainWrites":false}
+# Subtest: Audit4 C02 CLI: read-only preflight reports ready and blocked, preserves both file hashes, never stages a DB
+ok 137 - Audit4 C02 CLI: read-only preflight reports ready and blocked, preserves both file hashes, never stages a DB
+  ---
+  duration_ms: 309.3197
+  type: 'test'
+  ...
+# Subtest: payment-case snapshots validate exact integer/type domains and never accept arbitrary refund claims
+ok 138 - payment-case snapshots validate exact integer/type domains and never accept arbitrary refund claims
+  ---
+  duration_ms: 6.4782
+  type: 'test'
+  ...
+# Subtest: fixed entry and UTC calendar use exact complete days, including midnight
+ok 139 - fixed entry and UTC calendar use exact complete days, including midnight
+  ---
+  duration_ms: 0.7133
+  type: 'test'
+  ...
+# Subtest: config pins Ethereum EMBEO, treasury, nontransferable GOLD and separated contracts
+ok 140 - config pins Ethereum EMBEO, treasury, nontransferable GOLD and separated contracts
+  ---
+  duration_ms: 3.9893
+  type: 'test'
+  ...
+# Subtest: server amounts remain decimal integer strings, not floats or browser-calculated rewards
+ok 141 - server amounts remain decimal integer strings, not floats or browser-calculated rewards
+  ---
+  duration_ms: 1.3762
+  type: 'test'
+  ...
+# Subtest: wallet session requires known identity, unexpired clock and matching connected account
+ok 142 - wallet session requires known identity, unexpired clock and matching connected account
+  ---
+  duration_ms: 0.5962
+  type: 'test'
+  ...
+# Subtest: config and ledger GETs are fixed, same-origin credentialed and abortable
+ok 143 - config and ledger GETs are fixed, same-origin credentialed and abortable
+  ---
+  duration_ms: 1.1101
+  type: 'test'
+  ...
+# Subtest: late ledger fetch/json responses cannot restore another or expired session balance
+ok 144 - late ledger fetch/json responses cannot restore another or expired session balance
+  ---
+  duration_ms: 14.1741
+  type: 'test'
+  ...
+# Subtest: order creation accepts the server price only when every payment destination and order field matches
+ok 145 - order creation accepts the server price only when every payment destination and order field matches
+  ---
+  duration_ms: 4.8549
+  type: 'test'
+  ...
+# Subtest: GOLD challenge uses a bounded same-origin POST and independently validates the immutable order
+ok 146 - GOLD challenge uses a bounded same-origin POST and independently validates the immutable order
+  ---
+  duration_ms: 3.2356
+  type: 'test'
+  ...
+# Subtest: canonical GOLD message is identical to the server contract and not a SIWE/Permit message
+ok 147 - canonical GOLD message is identical to the server contract and not a SIWE/Permit message
+  ---
+  duration_ms: 2.4993
+  type: 'test'
+  ...
+# Subtest: closed GOLD validation rejects changed price, order, service, wallet, domain, lifetime and added payloads
+ok 148 - closed GOLD validation rejects changed price, order, service, wallet, domain, lifetime and added payloads
+  ---
+  duration_ms: 1.2454
+  type: 'test'
+  ...
+# Subtest: fixed ABI selectors/words match audited interface and viem for every callable method
+ok 149 - fixed ABI selectors/words match audited interface and viem for every callable method
+  ---
+  duration_ms: 8.0887
+  type: 'test'
+  ...
+# Subtest: constructing and restoring the controller never calls a wallet or signs a message
+ok 150 - constructing and restoring the controller never calls a wallet or signs a message
+  ---
+  duration_ms: 2.6646
+  type: 'test'
+  ...
+# Subtest: stake preparation cannot send, and exact approval still requires a separate execution click
+ok 151 - stake preparation cannot send, and exact approval still requires a separate execution click
+  ---
+  duration_ms: 27.782
+  type: 'test'
+  ...
+# Subtest: an insufficient nonzero allowance is explicitly reset before exact approval
+ok 152 - an insufficient nonzero allowance is explicitly reset before exact approval
+  ---
+  duration_ms: 11.7297
+  type: 'test'
+  ...
+# Subtest: existing sufficient allowance never skips the explicit stake confirmation
+ok 153 - existing sufficient allowance never skips the explicit stake confirmation
+  ---
+  duration_ms: 1.9539
+  type: 'test'
+  ...
+# Subtest: each deposit uses an immutable shares copy and rejects zero/fractional/overflow units
+ok 154 - each deposit uses an immutable shares copy and rejects zero/fractional/overflow units
+  ---
+  duration_ms: 7.3452
+  type: 'test'
+  ...
+# Subtest: withdrawal reads actual chain position and never asks for a token allowance
+ok 155 - withdrawal reads actual chain position and never asks for a token allowance
+  ---
+  duration_ms: 7.0225
+  type: 'test'
+  ...
+# Subtest: manual position-ID withdrawal rejects another owner or excessive shares from actual chain data
+ok 156 - manual position-ID withdrawal rejects another owner or excessive shares from actual chain data
+  ---
+  duration_ms: 3.3211
+  type: 'test'
+  ...
+# Subtest: halt stops new stakes and payments without blocking principal withdrawal
+ok 157 - halt stops new stakes and payments without blocking principal withdrawal
+  ---
+  duration_ms: 6.0116
+  type: 'test'
+  ...
+# Subtest: insufficient token balance stops before approval or execution
+ok 158 - insufficient token balance stops before approval or execution
+  ---
+  duration_ms: 2.3711
+  type: 'test'
+  ...
+# Subtest: wallet rejection is shown once and is never automatically resent
+ok 159 - wallet rejection is shown once and is never automatically resent
+  ---
+  duration_ms: 13.4029
+  type: 'test'
+  ...
+# Subtest: provider accountsChanged while awaiting a read cancels all later sends
+ok 160 - provider accountsChanged while awaiting a read cancels all later sends
+  ---
+  duration_ms: 3.0041
+  type: 'test'
+  ...
+# Subtest: provider chainChanged while awaiting a read cancels all later sends
+ok 161 - provider chainChanged while awaiting a read cancels all later sends
+  ---
+  duration_ms: 2.1457
+  type: 'test'
+  ...
+# Subtest: provider disconnect while awaiting a read cancels all later sends
+ok 162 - provider disconnect while awaiting a read cancels all later sends
+  ---
+  duration_ms: 2.9871
+  type: 'test'
+  ...
+# Subtest: provider replacement during preparation cancels even when its address is the same
+ok 163 - provider replacement during preparation cancels even when its address is the same
+  ---
+  duration_ms: 1.6742
+  type: 'test'
+  ...
+# Subtest: session replacement and clock expiry during awaited reads stop transaction authority
+ok 164 - session replacement and clock expiry during awaited reads stop transaction authority
+  ---
+  duration_ms: 2.3926
+  type: 'test'
+  ...
+# Subtest: two simultaneous clicks produce one wallet send and retain the same transaction
+ok 165 - two simultaneous clicks produce one wallet send and retain the same transaction
+  ---
+  duration_ms: 4.3537
+  type: 'test'
+  ...
+# Subtest: pending receipt has bounded polling and explicit read-only reconciliation, never a repeated send
+ok 166 - pending receipt has bounded polling and explicit read-only reconciliation, never a repeated send
+  ---
+  duration_ms: 5.1036
+  type: 'test'
+  ...
+# Subtest: a lost send response remains ambiguous and cannot be retried by another preparation
+ok 167 - a lost send response remains ambiguous and cannot be retried by another preparation
+  ---
+  duration_ms: 4.6535
+  type: 'test'
+  ...
+# Subtest: unknown sends persist before the wallet prompt and survive controller reopen without a duplicate
+ok 168 - unknown sends persist before the wallet prompt and survive controller reopen without a duplicate
+  ---
+  duration_ms: 15.0404
+  type: 'test'
+  ...
+# Subtest: a storage quota failure or silent failed persistence blocks the wallet send
+ok 169 - a storage quota failure or silent failed persistence blocks the wallet send
+  ---
+  duration_ms: 8.3394
+  type: 'test'
+  ...
+# Subtest: explicit no-broadcast acknowledgement clears only its own intent and never sends by itself
+ok 170 - explicit no-broadcast acknowledgement clears only its own intent and never sends by itself
+  ---
+  duration_ms: 5.7695
+  type: 'test'
+  ...
+# Subtest: a disposed controller retains its cross-tab prompt lock and a late hash invalidates an earlier acknowledgement
+ok 171 - a disposed controller retains its cross-tab prompt lock and a late hash invalidates an earlier acknowledgement
+  ---
+  duration_ms: 11.6576
+  type: 'test'
+  ...
+# Subtest: receipt RPC timeout is bounded and leaves a broadcast hash for reconciliation
+ok 172 - receipt RPC timeout is bounded and leaves a broadcast hash for reconciliation
+  ---
+  duration_ms: 10.2208
+  type: 'test'
+  ...
+# Subtest: receipt status and transaction call data must match before a success can be shown
+ok 173 - receipt status and transaction call data must match before a success can be shown
+  ---
+  duration_ms: 5.8462
+  type: 'test'
+  ...
+# Subtest: unmount cancels UI authority but preserves a hash returned after broadcast without a financial undo
+ok 174 - unmount cancels UI authority but preserves a hash returned after broadcast without a financial undo
+  ---
+  duration_ms: 4.8114
+  type: 'test'
+  ...
+# Subtest: GOLD requires a separate canonical signature and never approves or sends token transactions
+ok 175 - GOLD requires a separate canonical signature and never approves or sends token transactions
+  ---
+  duration_ms: 3.5991
+  type: 'test'
+  ...
+# Subtest: malicious GOLD messages never reach the wallet, even with a matching World session
+ok 176 - malicious GOLD messages never reach the wallet, even with a matching World session
+  ---
+  duration_ms: 0.6126
+  type: 'test'
+  ...
+# Subtest: an account switch, expiry or unmount while GOLD signature is open never posts a debit
+ok 177 - an account switch, expiry or unmount while GOLD signature is open never posts a debit
+  ---
+  duration_ms: 4.0367
+  type: 'test'
+  ...
+# Subtest: wrong network or revoked World session rejects GOLD before personal_sign
+ok 178 - wrong network or revoked World session rejects GOLD before personal_sign
+  ---
+  duration_ms: 2.4123
+  type: 'test'
+  ...
+# Subtest: a server feature disable or changed reviewed contract stops stale open-pane actions before wallet calls
+ok 179 - a server feature disable or changed reviewed contract stops stale open-pane actions before wallet calls
+  ---
+  duration_ms: 1.5391
+  type: 'test'
+  ...
+# Subtest: negative control shows the canonical validator stops a substituted Permit message
+ok 180 - negative control shows the canonical validator stops a substituted Permit message
+  ---
+  duration_ms: 0.6139
+  type: 'test'
+  ...
+# Subtest: GOLD halting during final post-signature session verification stops before POST
+ok 181 - GOLD halting during final post-signature session verification stops before POST
+  ---
+  duration_ms: 2.5182
+  type: 'test'
+  ...
+# Subtest: GOLD halting after POST starts still accepts its authoritative completed payment response
+ok 182 - GOLD halting after POST starts still accepts its authoritative completed payment response
+  ---
+  duration_ms: 1.3927
+  type: 'test'
+  ...
+# Subtest: EMBEO preparation checks the exact amount replay slot; another paid amount cannot block the quote
+ok 183 - EMBEO preparation checks the exact amount replay slot; another paid amount cannot block the quote
+  ---
+  duration_ms: 5.1285
+  type: 'test'
+  ...
+# Subtest: real forwarder, constructor and batched/LOG0 receipts cannot block EOA indexing or spoof event-bound wallet payments
+ok 184 - real forwarder, constructor and batched/LOG0 receipts cannot block EOA indexing or spoof event-bound wallet payments
+  ---
+  duration_ms: 3534.9455
+  type: 'test'
+  ...
+# Subtest: isolated EVM receipts → finalized RPC index → UTC GOLD → explicit signed service payment → independent principal withdrawal
+ok 185 - isolated EVM receipts → finalized RPC index → UTC GOLD → explicit signed service payment → independent principal withdrawal
+  ---
+  duration_ms: 2598.0886
+  type: 'test'
+  ...
+# Subtest: new migration is independent, adds no old demo GOLD and requires signed-64-bit integer balances
+ok 186 - new migration is independent, adds no old demo GOLD and requires signed-64-bit integer balances
+  ---
+  duration_ms: 24.2947
+  type: 'test'
+  ...
+# Subtest: canonical chain, token, treasury and separated immutable contracts fail closed; catalogue price never resets scope
+ok 187 - canonical chain, token, treasury and separated immutable contracts fail closed; catalogue price never resets scope
+  ---
+  duration_ms: 16.8312
+  type: 'test'
+  ...
+# Subtest: calendar lot accounting: noon deposit waits; partial withdrawal only cancels its portion; exact midnight preserves previous day
+ok 188 - calendar lot accounting: noon deposit waits; partial withdrawal only cancels its portion; exact midnight preserves previous day
+  ---
+  duration_ms: 35.0245
+  type: 'test'
+  ...
+# Subtest: UTC midnight deposit qualifies immediately; pre-boundary withdrawal invalidates day and never claws back previous GOLD
+ok 189 - UTC midnight deposit qualifies immediately; pre-boundary withdrawal invalidates day and never claws back previous GOLD
+  ---
+  duration_ms: 32.3371
+  type: 'test'
+  ...
+# Subtest: reward waits for complete finalized indexing and wall clock, never rolling 24h or client timestamp
+ok 190 - reward waits for complete finalized indexing and wall clock, never rolling 24h or client timestamp
+  ---
+  duration_ms: 25.5001
+  type: 'test'
+  ...
+# Subtest: invalid ranges/assets/clocks write no facts; invalid finalized withdrawals roll back facts and persist only the integrity halt
+ok 191 - invalid ranges/assets/clocks write no facts; invalid finalized withdrawals roll back facts and persist only the integrity halt
+  ---
+  duration_ms: 196.9715
+  type: 'test'
+  ...
+# Subtest: identical retry and concurrent identical ingestion settle once; gaps, altered old log and cursor rewind denied
+ok 192 - identical retry and concurrent identical ingestion settle once; gaps, altered old log and cursor rewind denied
+  ---
+  duration_ms: 30.2448
+  type: 'test'
+  ...
+# Subtest: integer values above JS safe range retain exact decimal strings and arithmetic, and balance overflow aborts settlement atomically
+ok 193 - integer values above JS safe range retain exact decimal strings and arithmetic, and balance overflow aborts settlement atomically
+  ---
+  duration_ms: 32.813
+  type: 'test'
+  ...
+# Subtest: order price is server catalogue snapshot; requests are wallet scoped, name independent and mismatch rejected
+ok 194 - order price is server catalogue snapshot; requests are wallet scoped, name independent and mismatch rejected
+  ---
+  duration_ms: 29.1327
+  type: 'test'
+  ...
+# Subtest: persisted quotes, chain events and GOLD journals are append-only financial evidence
+ok 195 - persisted quotes, chain events and GOLD journals are append-only financial evidence
+  ---
+  duration_ms: 29.003
+  type: 'test'
+  ...
+# Subtest: GOLD payment is atomic and idempotent: concurrent spend cannot go negative or grant without debit
+ok 196 - GOLD payment is atomic and idempotent: concurrent spend cannot go negative or grant without debit
+  ---
+  duration_ms: 84.4072
+  type: 'test'
+  ...
+# Subtest: insufficient balance, expired order and fulfillment failure leave all balances/journals/order status unchanged
+ok 197 - insufficient balance, expired order and fulfillment failure leave all balances/journals/order status unchanged
+  ---
+  duration_ms: 45.4028
+  type: 'test'
+  ...
+# Subtest: EMBEO requires exact order-bound verified event and amount; wrong payer/unmatched logs never grant an entitlement
+ok 198 - EMBEO requires exact order-bound verified event and amount; wrong payer/unmatched logs never grant an entitlement
+  ---
+  duration_ms: 83.1104
+  type: 'test'
+  ...
+# Subtest: GOLD money signature binds wallet, order, amount, origin and nonce; old SIWE, wrong signer and cross-order signatures cannot spend
+ok 199 - GOLD money signature binds wallet, order, amount, origin and nonce; old SIWE, wrong signer and cross-order signatures cannot spend
+  ---
+  duration_ms: 86.8886
+  type: 'test'
+  ...
+# Subtest: finalized cursor anomaly durably halts issuance and new payments, retaining prior balances and positions for independent principal withdrawal
+ok 200 - finalized cursor anomaly durably halts issuance and new payments, retaining prior balances and positions for independent principal withdrawal
+  ---
+  duration_ms: 27.9079
+  type: 'test'
+  ...
+# Subtest: new schema preserves verified login and old data; pre-migration SQLite backup really restores independently
+ok 201 - new schema preserves verified login and old data; pre-migration SQLite backup really restores independently
+  ---
+  duration_ms: 108.0585
+  type: 'test'
+  ...
+# Subtest: actual disabled pane shows truthful rules and never loads a wallet or asset balance
+ok 202 - actual disabled pane shows truthful rules and never loads a wallet or asset balance
+  ---
+  duration_ms: 29.6688
+  type: 'test'
+  ...
+# Subtest: actual English disabled state and return action preserve the original World shell
+ok 203 - actual English disabled state and return action preserve the original World shell
+  ---
+  duration_ms: 3.8268
+  type: 'test'
+  ...
+# Subtest: enabled panel reads only the current server account and displays finalized balance and sync
+ok 204 - enabled panel reads only the current server account and displays finalized balance and sync
+  ---
+  duration_ms: 7.683
+  type: 'test'
+  ...
+# Subtest: capacity-pending rewards are labelled separately from spendable GOLD in the actual staking pane
+ok 205 - capacity-pending rewards are labelled separately from spendable GOLD in the actual staking pane
+  ---
+  duration_ms: 6.8426
+  type: 'test'
+  ...
+# Subtest: actual pane labels historical corrections and retained wrong-amount evidence without promising refunds or resending
+ok 206 - actual pane labels historical corrections and retained wrong-amount evidence without promising refunds or resending
+  ---
+  duration_ms: 4.5835
+  type: 'test'
+  ...
+# Subtest: actual pane displays a finalized payment awaiting owner fulfillment without calling it delivered or suggesting resend
+ok 207 - actual pane displays a finalized payment awaiting owner fulfillment without calling it delivered or suggesting resend
+  ---
+  duration_ms: 5.326
+  type: 'test'
+  ...
+# Subtest: account switch hides old GOLD immediately and aborts its late ledger reply
+ok 208 - account switch hides old GOLD immediately and aborts its late ledger reply
+  ---
+  duration_ms: 4.8115
+  type: 'test'
+  ...
+# Subtest: expired login hides all displayed balances and preserves explicit sign-in
+ok 209 - expired login hides all displayed balances and preserves explicit sign-in
+  ---
+  duration_ms: 3.3232
+  type: 'test'
+  ...
+# Subtest: halt retains balance and withdrawal while blocking new stakes and listing payments
+ok 210 - halt retains balance and withdrawal while blocking new stakes and listing payments
+  ---
+  duration_ms: 4.6718
+  type: 'test'
+  ...
+# Subtest: unsynced chain is not described as an authoritative zero position and cannot accept new money
+ok 211 - unsynced chain is not described as an authoritative zero position and cannot accept new money
+  ---
+  duration_ms: 3.8834
+  type: 'test'
+  ...
+# Subtest: the pane prepares whole shares only after the player clicks and does not sign on mount
+ok 212 - the pane prepares whole shares only after the player clicks and does not sign on mount
+  ---
+  duration_ms: 8.6776
+  type: 'test'
+  ...
+# Subtest: the actual server GOLD canonical builder and shipped client produce byte-identical text
+ok 213 - the actual server GOLD canonical builder and shipped client produce byte-identical text
+  ---
+  duration_ms: 152.6707
+  type: 'test'
+  ...
+# Subtest: unmount aborts requests and removes timers, keyboard handlers and future state writes
+ok 214 - unmount aborts requests and removes timers, keyboard handlers and future state writes
+  ---
+  duration_ms: 3.7874
+  type: 'test'
+  ...
+# Subtest: position-ID exit remains available through a truncated or unsynced halted ledger
+ok 215 - position-ID exit remains available through a truncated or unsynced halted ledger
+  ---
+  duration_ms: 4.7696
+  type: 'test'
+  ...
+# Subtest: Audit4 C06 zh/pending: payment status distinguishes pending delivery from exceptions without another payment request
+ok 216 - Audit4 C06 zh/pending: payment status distinguishes pending delivery from exceptions without another payment request
+  ---
+  duration_ms: 3.6353
+  type: 'test'
+  ...
+# Subtest: Audit4 C06 zh/exception: payment status distinguishes pending delivery from exceptions without another payment request
+ok 217 - Audit4 C06 zh/exception: payment status distinguishes pending delivery from exceptions without another payment request
+  ---
+  duration_ms: 3.6824
+  type: 'test'
+  ...
+# Subtest: Audit4 C06 zh/mixed: payment status distinguishes pending delivery from exceptions without another payment request
+ok 218 - Audit4 C06 zh/mixed: payment status distinguishes pending delivery from exceptions without another payment request
+  ---
+  duration_ms: 3.0896
+  type: 'test'
+  ...
+# Subtest: Audit4 C06 en/pending: payment status distinguishes pending delivery from exceptions without another payment request
+ok 219 - Audit4 C06 en/pending: payment status distinguishes pending delivery from exceptions without another payment request
+  ---
+  duration_ms: 3.1797
+  type: 'test'
+  ...
+# Subtest: Audit4 C06 en/exception: payment status distinguishes pending delivery from exceptions without another payment request
+ok 220 - Audit4 C06 en/exception: payment status distinguishes pending delivery from exceptions without another payment request
+  ---
+  duration_ms: 3.8765
+  type: 'test'
+  ...
+# Subtest: Audit4 C06 en/mixed: payment status distinguishes pending delivery from exceptions without another payment request
+ok 221 - Audit4 C06 en/mixed: payment status distinguishes pending delivery from exceptions without another payment request
+  ---
+  duration_ms: 4.531
+  type: 'test'
+  ...
+# Subtest: a confirmed GOLD purchase creates a fresh order for the next explicit purchase
+ok 222 - a confirmed GOLD purchase creates a fresh order for the next explicit purchase
+  ---
+  duration_ms: 9.1424
+  type: 'test'
+  ...
+# Subtest: a network retry retains the original order request ID instead of duplicating a charge
+ok 223 - a network retry retains the original order request ID instead of duplicating a charge
+  ---
+  duration_ms: 6.1596
+  type: 'test'
+  ...
+# Subtest: an ORDER_EXPIRED response releases only the quote attempt so the next explicit service click can request a fresh quote
+ok 224 - an ORDER_EXPIRED response releases only the quote attempt so the next explicit service click can request a fresh quote
+  ---
+  duration_ms: 5.646
+  type: 'test'
+  ...
+# Subtest: an expired unpaid order needs a fresh server ledger check before clearing for a new quote
+ok 225 - an expired unpaid order needs a fresh server ledger check before clearing for a new quote
+  ---
+  duration_ms: 9.9932
+  type: 'test'
+  ...
+# Subtest: an unknown EMBEO broadcast cannot be cleared or replaced with a blind new order
+ok 226 - an unknown EMBEO broadcast cannot be cleared or replaced with a blind new order
+  ---
+  duration_ms: 5.5035
+  type: 'test'
+  ...
+# Subtest: focus wraps within dialog and handled Escape is respected, then restores connected noninert controls
+ok 227 - focus wraps within dialog and handled Escape is respected, then restores connected noninert controls
+  ---
+  duration_ms: 5.6868
+  type: 'test'
+  ...
+# Subtest: confirmed stake hides its changing estimate and retains the ledger position first day after a UTC rollover
+ok 228 - confirmed stake hides its changing estimate and retains the ledger position first day after a UTC rollover
+  ---
+  duration_ms: 11.3997
+  type: 'test'
+  ...
+# Subtest: hashed unknown transactions retain an editable replacement candidate and never offer a blind clear
+ok 229 - hashed unknown transactions retain an editable replacement candidate and never offer a blind clear
+  ---
+  duration_ms: 5.3835
+  type: 'test'
+  ...
+# Subtest: legacy hashed unknown transactions clearly label their manual acknowledgement without an automatic success claim
+ok 230 - legacy hashed unknown transactions clearly label their manual acknowledgement without an automatic success claim
+  ---
+  duration_ms: 3.178
+  type: 'test'
+  ...
+# Subtest: a proven replacement reopens principal withdrawal and expired-order review without claiming the original payment succeeded
+ok 231 - a proven replacement reopens principal withdrawal and expired-order review without claiming the original payment succeeded
+  ---
+  duration_ms: 5.5179
+  type: 'test'
+  ...
+# Subtest: ordinary fulfilled EMBEO snapshot after quote creation parses
+ok 232 - ordinary fulfilled EMBEO snapshot after quote creation parses
+  ---
+  duration_ms: 37.4713
+  type: 'test'
+  ...
+# Subtest: same-slot fulfilled EMBEO snapshot remains readable when validated block time precedes quote milliseconds
+ok 233 - same-slot fulfilled EMBEO snapshot remains readable when validated block time precedes quote milliseconds
+  ---
+  duration_ms: 18.1725
+  type: 'test'
+  ...
+# Subtest: GOLD paid before quote creation remains an invalid server response
+ok 234 - GOLD paid before quote creation remains an invalid server response
+  ---
+  duration_ms: 23.1634
+  type: 'test'
+  ...
+# Subtest: snapshot order currency rejects a coercible JSON array ["GOLD"]
+ok 235 - snapshot order currency rejects a coercible JSON array ["GOLD"]
+  ---
+  duration_ms: 26.9301
+  type: 'test'
+  ...
+# Subtest: snapshot order currency rejects a coercible JSON array ["EMBEO"]
+ok 236 - snapshot order currency rejects a coercible JSON array ["EMBEO"]
+  ---
+  duration_ms: 31.2053
+  type: 'test'
+  ...
+# Subtest: snapshot order status rejects a coercible JSON array ["pending"]
+ok 237 - snapshot order status rejects a coercible JSON array ["pending"]
+  ---
+  duration_ms: 21.8208
+  type: 'test'
+  ...
+# Subtest: snapshot order status rejects a coercible JSON array ["paid"]
+ok 238 - snapshot order status rejects a coercible JSON array ["paid"]
+  ---
+  duration_ms: 19.1447
+  type: 'test'
+  ...
+# Subtest: a later request clock before the persisted GOLD quote cannot create a challenge
+ok 239 - a later request clock before the persisted GOLD quote cannot create a challenge
+  ---
+  duration_ms: 21.1522
+  type: 'test'
+  ...
+# Subtest: a later request clock before quote creation cannot debit GOLD or consume the signed challenge
+ok 240 - a later request clock before quote creation cannot debit GOLD or consume the signed challenge
+  ---
+  duration_ms: 130.1638
+  type: 'test'
+  ...
+# Subtest: a later request clock after quote but before challenge issuance cannot debit GOLD or consume the signed challenge
+ok 241 - a later request clock after quote but before challenge issuance cannot debit GOLD or consume the signed challenge
+  ---
+  duration_ms: 45.1652
+  type: 'test'
+  ...
+# Subtest: a nondecreasing request clock completes signed GOLD payment and the account snapshot remains readable
+ok 242 - a nondecreasing request clock completes signed GOLD payment and the account snapshot remains readable
+  ---
+  duration_ms: 40.209
+  type: 'test'
+  ...
+# Subtest: real local EDR Paid before server milliseconds fulfills exactly once via ordinary ingestion
+ok 243 - real local EDR Paid before server milliseconds fulfills exactly once via ordinary ingestion
+  ---
+  duration_ms: 2794.7497
+  type: 'test'
+  ...
+# Subtest: real local EDR Paid before server milliseconds fulfills exactly once via staged block folding
+ok 244 - real local EDR Paid before server milliseconds fulfills exactly once via staged block folding
+  ---
+  duration_ms: 810.5366
+  type: 'test'
+  ...
+# Subtest: new order IDs are unpredictable and concurrent identical requests retain one exact quoted order
+ok 245 - new order IDs are unpredictable and concurrent identical requests retain one exact quoted order
+  ---
+  duration_ms: 27.9066
+  type: 'test'
+  ...
+# Subtest: actual API rejects session expiry during ledger order awaits without creating a quote
+ok 246 - actual API rejects session expiry during ledger order awaits without creating a quote
+  ---
+  duration_ms: 32.7037
+  type: 'test'
+  ...
+# Subtest: actual API creates fresh quote timestamps after ledger awaits rather than consuming quote lifetime
+ok 247 - actual API creates fresh quote timestamps after ledger awaits rather than consuming quote lifetime
+  ---
+  duration_ms: 22.2478
+  type: 'test'
+  ...
+# Subtest: actual API rejects order/session expiry during challenge ledger awaits and writes no stale nonce
+ok 248 - actual API rejects order/session expiry during challenge ledger awaits and writes no stale nonce
+  ---
+  duration_ms: 52.9548
+  type: 'test'
+  ...
+# Subtest: actual API challenge issued/expiry timestamps use fresh time after ledger awaits
+ok 249 - actual API challenge issued/expiry timestamps use fresh time after ledger awaits
+  ---
+  duration_ms: 21.1842
+  type: 'test'
+  ...
+# Subtest: actual API rejects backward clock and retains final-SQL session revocation guards for quote and challenge creation
+ok 250 - actual API rejects backward clock and retains final-SQL session revocation guards for quote and challenge creation
+  ---
+  duration_ms: 88.7659
+  type: 'test'
+  ...
+# Subtest: historical recovery compares EARNED GOLD, preserves spent balances and old rows, applies once then continues future settlement
+ok 251 - historical recovery compares EARNED GOLD, preserves spent balances and old rows, applies once then continues future settlement
+  ---
+  duration_ms: 268.1224
+  type: 'test'
+  ...
+# {"status":"PASS","command":"plan","planHash":"cba2e32ca9b0238d33bee6ee1f44d1ef5d103dddad1d114613a575b9ba2ec38c","totalDelta":"1","originalModified":false,"remoteDatabaseUsed":false,"publicChainWrites":false}
+# {"status":"PASS","command":"stage","planHash":"cba2e32ca9b0238d33bee6ee1f44d1ef5d103dddad1d114613a575b9ba2ec38c","totalDelta":"1","originalModified":false,"remoteDatabaseUsed":false,"publicChainWrites":false}
+# Subtest: local plan/stage CLI creates an independently checked copy and exact private batch; both input SQLite exports stay byte-identical
+ok 252 - local plan/stage CLI creates an independently checked copy and exact private batch; both input SQLite exports stay byte-identical
+  ---
+  duration_ms: 386.2818
+  type: 'test'
+  ...
+# Subtest: a second earlier rebuild includes ancestor rewards and prior adjustments, never re-credits an already corrected share-day
+ok 253 - a second earlier rebuild includes ancestor rewards and prior adjustments, never re-credits an already corrected share-day
+  ---
+  duration_ms: 164.1867
+  type: 'test'
+  ...
+# Subtest: recovery refuses stale plans and wrong reviewed hashes without economic writes
+ok 254 - recovery refuses stale plans and wrong reviewed hashes without economic writes
+  ---
+  duration_ms: 122.8873
+  type: 'test'
+  ...
+# Subtest: independent recovery includes partial withdrawals, midnight closure and separate midday deposits without inheriting eligibility
+ok 255 - independent recovery includes partial withdrawals, midnight closure and separate midday deposits without inheriting eligibility
+  ---
+  duration_ms: 324.9235
+  type: 'test'
+  ...
+# {"status":"PASS","command":"migrate-copy","originalModified":false,"remoteDatabaseUsed":false,"publicChainWrites":false}
+# Subtest: migration-copy upgrades a real pre0013 historical SQLite export without modifying the original or its reward journal
+ok 256 - migration-copy upgrades a real pre0013 historical SQLite export without modifying the original or its reward journal
+  ---
+  duration_ms: 266.9206
+  type: 'test'
+  ...
+# Subtest: fault during recovery batch rolls back binding, journals, imported positions and receipt together; retry is safe
+ok 257 - fault during recovery batch rolls back binding, journals, imported positions and receipt together; retry is safe
+  ---
+  duration_ms: 421.4283
+  type: 'test'
+  ...
+# Subtest: recovery final SQL snapshot guard catches a spend arriving AFTER planning reads and before batch
+ok 258 - recovery final SQL snapshot guard catches a spend arriving AFTER planning reads and before batch
+  ---
+  duration_ms: 443.6611
+  type: 'test'
+  ...
+# Subtest: operator prerequisites reject different vault/payment, incomplete or conflicting proofs and overissuance; no automatic clawback
+ok 259 - operator prerequisites reject different vault/payment, incomplete or conflicting proofs and overissuance; no automatic clawback
+  ---
+  duration_ms: 1116.9896
+  type: 'test'
+  ...
+# Subtest: same-payment-contract lineage preserves GOLD request identity and a pending old EMBEO quote fulfilled after recovery
+ok 260 - same-payment-contract lineage preserves GOLD request identity and a pending old EMBEO quote fulfilled after recovery
+  ---
+  duration_ms: 420.1844
+  type: 'test'
+  ...
+# Subtest: wrong/unknown/wrong-payer payments retain facts, never grant entitlement, and correct later payment stays linked once
+ok 261 - wrong/unknown/wrong-payer payments retain facts, never grant entitlement, and correct later payment stays linked once
+  ---
+  duration_ms: 74.9625
+  type: 'test'
+  ...
+# Subtest: staged payments have no visible case/entitlement before fold and all cases/cursor roll back on final failure
+ok 262 - staged payments have no visible case/entitlement before fold and all cases/cursor roll back on final failure
+  ---
+  duration_ms: 163.2662
+  type: 'test'
+  ...
+# Subtest: finalized bounded range uses exact filter, receipt and canonical timestamp, then posts a completed UTC day
+ok 263 - finalized bounded range uses exact filter, receipt and canonical timestamp, then posts a completed UTC day
+  ---
+  duration_ms: 81.7838
+  type: 'test'
+  ...
+# Subtest: finalized tag identity must match a fetched numeric header before any event or GOLD is committed
+ok 264 - finalized tag identity must match a fetched numeric header before any event or GOLD is committed
+  ---
+  duration_ms: 180.6751
+  type: 'test'
+  ...
+# Subtest: caught-up finalized identity contradiction cannot settle an already indexed unpaid day
+ok 265 - caught-up finalized identity contradiction cannot settle an already indexed unpaid day
+  ---
+  duration_ms: 66.804
+  type: 'test'
+  ...
+# Subtest: busy-block staging cannot publish a page whose numeric head contradicts the finalized tag
+ok 266 - busy-block staging cannot publish a page whose numeric head contradicts the finalized tag
+  ---
+  duration_ms: 41.1809
+  type: 'test'
+  ...
+# Subtest: primary and witness finalized identities bind numeric common-height headers, including parent and time
+ok 267 - primary and witness finalized identities bind numeric common-height headers, including parent and time
+  ---
+  duration_ms: 179.5396
+  type: 'test'
+  ...
+# Subtest: optional gasLimit omission does not contradict otherwise identical finalized identities
+ok 268 - optional gasLimit omission does not contradict otherwise identical finalized identities
+  ---
+  duration_ms: 64.5007
+  type: 'test'
+  ...
+# Subtest: a consistent future finalized timestamp does not settle past the current UTC wall-clock boundary
+ok 269 - a consistent future finalized timestamp does not settle past the current UTC wall-clock boundary
+  ---
+  duration_ms: 74.282
+  type: 'test'
+  ...
+# Subtest: wrong chain and malformed quantity abort before any persistent mutation
+ok 270 - wrong chain and malformed quantity abort before any persistent mutation
+  ---
+  duration_ms: 140.9991
+  type: 'test'
+  ...
+# Subtest: unreviewed config or oversized bounds are rejected without reading RPC
+ok 271 - unreviewed config or oversized bounds are rejected without reading RPC
+  ---
+  duration_ms: 28.1197
+  type: 'test'
+  ...
+# Subtest: status zero, wrong receipt tx/block and missing receipts never establish credit
+ok 272 - status zero, wrong receipt tx/block and missing receipts never establish credit
+  ---
+  duration_ms: 191.3993
+  type: 'test'
+  ...
+# Subtest: outer receipt addresses are well formed but do not override the emitting contract player
+ok 273 - outer receipt addresses are well formed but do not override the emitting contract player
+  ---
+  duration_ms: 274.3434
+  type: 'test'
+  ...
+# Subtest: receipt log must match the exact canonical address, topics, data and index
+ok 274 - receipt log must match the exact canonical address, topics, data and index
+  ---
+  duration_ms: 192.178
+  type: 'test'
+  ...
+# Subtest: removed logs, unconfirmed source and mismatched canonical event block are rejected
+ok 275 - removed logs, unconfirmed source and mismatched canonical event block are rejected
+  ---
+  duration_ms: 117.598
+  type: 'test'
+  ...
+# Subtest: ABI words, topic count, share units, position id and expected contract remain exact
+ok 276 - ABI words, topic count, share units, position id and expected contract remain exact
+  ---
+  duration_ms: 225.0455
+  type: 'test'
+  ...
+# Subtest: payment token/treasury and nonzero order are checked before any order fulfillment
+ok 277 - payment token/treasury and nonzero order are checked before any order fulfillment
+  ---
+  duration_ms: 114.8575
+  type: 'test'
+  ...
+# Subtest: explicit staging capacity ceiling and duplicate indexes fail without dropping any event
+ok 278 - explicit staging capacity ceiling and duplicate indexes fail without dropping any event
+  ---
+  duration_ms: 319.7002
+  type: 'test'
+  ...
+# Subtest: a busy finalized block stages bounded pages, exposes no partial balance and eventually credits once
+ok 279 - a busy finalized block stages bounded pages, exposes no partial balance and eventually credits once
+  ---
+  duration_ms: 352.8275
+  type: 'test'
+  ...
+# Subtest: pending finalized block digest cannot change between pages and its hash or parent reorg durably halts
+ok 280 - pending finalized block digest cannot change between pages and its hash or parent reorg durably halts
+  ---
+  duration_ms: 220.4828
+  type: 'test'
+  ...
+# Subtest: a bad receipt on the final staged page cannot publish previous pages and can retry safely
+ok 281 - a bad receipt on the final staged page cannot publish previous pages and can retry safely
+  ---
+  duration_ms: 128.798
+  type: 'test'
+  ...
+# Subtest: provider result-limit replies shrink the range, while ordinary quota errors never masquerade as logs
+ok 282 - provider result-limit replies shrink the range, while ordinary quota errors never masquerade as logs
+  ---
+  duration_ms: 44.0487
+  type: 'test'
+  ...
+# Subtest: an oversized multi-block range halves before header work and never drops events
+ok 283 - an oversized multi-block range halves before header work and never drops events
+  ---
+  duration_ms: 70.7979
+  type: 'test'
+  ...
+# Subtest: the entire RPC round has a 25-second deadline without a permanent chain halt
+ok 284 - the entire RPC round has a 25-second deadline without a permanent chain halt
+  ---
+  duration_ms: 35.4237
+  type: 'test'
+  ...
+# Subtest: empty finalized ranges still advance the contiguous horizon with no invented GOLD
+ok 285 - empty finalized ranges still advance the contiguous horizon with no invented GOLD
+  ---
+  duration_ms: 51.1592
+  type: 'test'
+  ...
+# Subtest: 128 block bound preserves backlog and subsequent calls continue from the exact cursor
+ok 286 - 128 block bound preserves backlog and subsequent calls continue from the exact cursor
+  ---
+  duration_ms: 72.778
+  type: 'test'
+  ...
+# Subtest: same-isolate concurrent schedules and later retries settle each wallet-day once
+ok 287 - same-isolate concurrent schedules and later retries settle each wallet-day once
+  ---
+  duration_ms: 72.0134
+  type: 'test'
+  ...
+# Subtest: stored finalized hash mismatch durably halts, preserves prior credit and stops future RPC reads
+ok 288 - stored finalized hash mismatch durably halts, preserves prior credit and stops future RPC reads
+  ---
+  duration_ms: 56.2559
+  type: 'test'
+  ...
+# Subtest: a stored-cursor race found on final reread also durably halts before new ingestion
+ok 289 - a stored-cursor race found on final reread also durably halts before new ingestion
+  ---
+  duration_ms: 48.7664
+  type: 'test'
+  ...
+# Subtest: an uncommitted range hash race fails transiently without a durable halt or credit
+ok 290 - an uncommitted range hash race fails transiently without a durable halt or credit
+  ---
+  duration_ms: 35.5398
+  type: 'test'
+  ...
+# Subtest: RPC timeout/quota is transient and a later valid retry processes the full range once
+ok 291 - RPC timeout/quota is transient and a later valid retry processes the full range once
+  ---
+  duration_ms: 53.2876
+  type: 'test'
+  ...
+# Subtest: a noncontiguous parent, wrong block number or decreasing canonical time cannot advance cursor
+ok 292 - a noncontiguous parent, wrong block number or decreasing canonical time cannot advance cursor
+  ---
+  duration_ms: 134.8119
+  type: 'test'
+  ...
+# Subtest: optional witness uses the common finalized height and rejects a hash disagreement
+ok 293 - optional witness uses the common finalized height and rejects a hash disagreement
+  ---
+  duration_ms: 85.1524
+  type: 'test'
+  ...
+# Subtest: verified exact Paid log fulfills only a matching server order and retry cannot fulfill twice
+ok 294 - verified exact Paid log fulfills only a matching server order and retry cannot fulfill twice
+  ---
+  duration_ms: 84.8461
+  type: 'test'
+  ...
+# Subtest: fixed Alchemy factory preserves header-only key flow, allows read methods and suppresses raw failures
+ok 295 - fixed Alchemy factory preserves header-only key flow, allows read methods and suppresses raw failures
+  ---
+  duration_ms: 55.3075
+  type: 'test'
+  ...
+# Subtest: 34 wallets settle in bounded 32+2 pages; incomplete day never claims all wallets were paid
+ok 296 - 34 wallets settle in bounded 32+2 pages; incomplete day never claims all wallets were paid
+  ---
+  duration_ms: 191.3874
+  type: 'test'
+  ...
+# Subtest: a single wallet with 65 lots spans position pages and receives one combined exact daily journal only after its last lot
+ok 297 - a single wallet with 65 lots spans position pages and receives one combined exact daily journal only after its last lot
+  ---
+  duration_ms: 100.9687
+  type: 'test'
+  ...
+# Subtest: concurrent isolates cannot duplicate a page, daily wallet credit or completion marker
+ok 298 - concurrent isolates cannot duplicate a page, daily wallet credit or completion marker
+  ---
+  duration_ms: 126.5409
+  type: 'test'
+  ...
+# Subtest: a failed wallet credit rolls back the entire page and cursor, allowing an exact later retry
+ok 299 - a failed wallet credit rolls back the entire page and cursor, allowing an exact later retry
+  ---
+  duration_ms: 146.7039
+  type: 'test'
+  ...
+# Subtest: maxDays cannot multiply per-invocation position/wallet work; old days resume in order until caught up
+ok 300 - maxDays cannot multiply per-invocation position/wallet work; old days resume in order until caught up
+  ---
+  duration_ms: 163.0485
+  type: 'test'
+  ...
+# Subtest: halt while a page is prepared denies all credits and progress advancement atomically
+ok 301 - halt while a page is prepared denies all credits and progress advancement atomically
+  ---
+  duration_ms: 55.1213
+  type: 'test'
+  ...
+# Subtest: closed lots retain their earlier completed-day reward and retire from later pages using the closed-time range index
+ok 302 - closed lots retain their earlier completed-day reward and retire from later pages using the closed-time range index
+  ---
+  duration_ms: 122.7104
+  type: 'test'
+  ...
+# Subtest: full withdrawal exactly at the UTC boundary keeps the previous complete day and excludes the following day
+ok 303 - full withdrawal exactly at the UTC boundary keeps the previous complete day and excludes the following day
+  ---
+  duration_ms: 57.9738
+  type: 'test'
+  ...
+# Subtest: 130-event block stages in bounded pages without partial positions, fulfillment or confirmed horizon
+ok 304 - 130-event block stages in bounded pages without partial positions, fulfillment or confirmed horizon
+  ---
+  duration_ms: 72.9044
+  type: 'test'
+  ...
+# Subtest: same page concurrent isolates and exact retry advance once; conflicting payload and offset cannot replace it
+ok 305 - same page concurrent isolates and exact retry advance once; conflicting payload and offset cannot replace it
+  ---
+  duration_ms: 40.6288
+  type: 'test'
+  ...
+# Subtest: final fold applies same-block stake then partial withdrawal in exact log order
+ok 306 - final fold applies same-block stake then partial withdrawal in exact log order
+  ---
+  duration_ms: 33.4084
+  type: 'test'
+  ...
+# Subtest: invalid last-page withdrawal rolls back final fold, page and cursor while preserving earlier verified proof rows
+ok 307 - invalid last-page withdrawal rolls back final fold, page and cursor while preserving earlier verified proof rows
+  ---
+  duration_ms: 41.0381
+  type: 'test'
+  ...
+# Subtest: canonical late EMBEO payment and fulfillment commit only at whole-block completion; failure rolls back everything
+ok 308 - canonical late EMBEO payment and fulfillment commit only at whole-block completion; failure rolls back everything
+  ---
+  duration_ms: 56.8053
+  type: 'test'
+  ...
+# Subtest: bad block identity, page size, event source, time, order and halt fail before visible changes
+ok 309 - bad block identity, page size, event source, time, order and halt fail before visible changes
+  ---
+  duration_ms: 28.5783
+  type: 'test'
+  ...
+# Subtest: new sends bind and persist a pending nonce plus chain ID before the wallet prompt
+ok 310 - new sends bind and persist a pending nonce plus chain ID before the wallet prompt
+  ---
+  duration_ms: 25.6123
+  type: 'test'
+  ...
+# Subtest: a finalized same-nonce cancellation resolves the old intent without claiming the stake succeeded and restores withdrawal
+ok 311 - a finalized same-nonce cancellation resolves the old intent without claiming the stake succeeded and restores withdrawal
+  ---
+  duration_ms: 6.974
+  type: 'test'
+  ...
+# Subtest: an unconfirmed or wrong candidate never changes a hashless intent or destroys its acknowledgement path
+ok 312 - an unconfirmed or wrong candidate never changes a hashless intent or destroys its acknowledgement path
+  ---
+  duration_ms: 3.4914
+  type: 'test'
+  ...
+# Subtest: an old identical-payload receipt with another nonce cannot clear a newer ambiguous deposit
+ok 313 - an old identical-payload receipt with another nonce cannot clear a newer ambiguous deposit
+  ---
+  duration_ms: 2.8955
+  type: 'test'
+  ...
+# Subtest: matching speed-up payload is confirmed only after canonical finalized inclusion
+ok 314 - matching speed-up payload is confirmed only after canonical finalized inclusion
+  ---
+  duration_ms: 2.4135
+  type: 'test'
+  ...
+# Subtest: the wallet-returned original hash keeps mined confirmation without waiting for finality
+ok 315 - the wallet-returned original hash keeps mined confirmation without waiting for finality
+  ---
+  duration_ms: 1.5262
+  type: 'test'
+  ...
+# Subtest: reconciliation rejects transaction/receipt hash, chain, sender and nonce substitutions without persisting them
+ok 316 - reconciliation rejects transaction/receipt hash, chain, sender and nonce substitutions without persisting them
+  ---
+  duration_ms: 14.1
+  type: 'test'
+  ...
+# Subtest: legacy hashless intents reject automatic old-receipt proof and keep an explicit manual-review exit
+ok 317 - legacy hashless intents reject automatic old-receipt proof and keep an explicit manual-review exit
+  ---
+  duration_ms: 1.2636
+  type: 'test'
+  ...
+# Subtest: legacy hashed intents have an explicit manual-review exit rather than an unrecoverable UI lock
+ok 318 - legacy hashed intents have an explicit manual-review exit rather than an unrecoverable UI lock
+  ---
+  duration_ms: 0.8446
+  type: 'test'
+  ...
+# Subtest: missing production lock support fails closed before sending or persisting an intent
+ok 319 - missing production lock support fails closed before sending or persisting an intent
+  ---
+  duration_ms: 1.3807
+  type: 'test'
+  ...
+# Subtest: the shared lock remains held across the wallet prompt and the second tab cannot overwrite its intent
+ok 320 - the shared lock remains held across the wallet prompt and the second tab cannot overwrite its intent
+  ---
+  duration_ms: 15.5142
+  type: 'test'
+  ...
+# Subtest: a second tab can reconcile the same proved nonce after the first tab has already cleared its stored intent
+ok 321 - a second tab can reconcile the same proved nonce after the first tab has already cleared its stored intent
+  ---
+  duration_ms: 1.8253
+  type: 'test'
+  ...
+# Subtest: production locks reject a busy tab instead of queueing an old confirmation for a later send
+ok 322 - production locks reject a busy tab instead of queueing an old confirmation for a later send
+  ---
+  duration_ms: 7.5822
+  type: 'test'
+  ...
+# Subtest: adopting another tab withdrawal clears the unrelated local stake plan before showing its receipt result
+ok 323 - adopting another tab withdrawal clears the unrelated local stake plan before showing its receipt result
+  ---
+  duration_ms: 3.9442
+  type: 'test'
+  ...
+# Subtest: stake stops before wallet prompt if indexing halts while pending nonce read is awaited
+ok 324 - stake stops before wallet prompt if indexing halts while pending nonce read is awaited
+  ---
+  duration_ms: 3.0298
+  type: 'test'
+  ...
+# Subtest: EMBEO quote expiry during nonce await stops before wallet prompt and persistence
+ok 325 - EMBEO quote expiry during nonce await stops before wallet prompt and persistence
+  ---
+  duration_ms: 3.3706
+  type: 'test'
+  ...
+# Subtest: nonce await retains identity guard for expired-session
+ok 326 - nonce await retains identity guard for expired-session
+  ---
+  duration_ms: 5.2821
+  type: 'test'
+  ...
+# Subtest: nonce await retains identity guard for account
+ok 327 - nonce await retains identity guard for account
+  ---
+  duration_ms: 2.8478
+  type: 'test'
+  ...
+# Subtest: nonce await retains identity guard for provider
+ok 328 - nonce await retains identity guard for provider
+  ---
+  duration_ms: 1.8255
+  type: 'test'
+  ...
+# Subtest: nonce await retains identity guard for unmount
+ok 329 - nonce await retains identity guard for unmount
+  ---
+  duration_ms: 1.6504
+  type: 'test'
+  ...
+# Subtest: withdrawal remains possible when indexing halts during pending nonce await
+ok 330 - withdrawal remains possible when indexing halts during pending nonce await
+  ---
+  duration_ms: 2.6165
+  type: 'test'
+  ...
+# Subtest: deployed entry defaults closed; environment/query/old wallet review cannot activate financial features
+ok 331 - deployed entry defaults closed; environment/query/old wallet review cannot activate financial features
+  ---
+  duration_ms: 71.7998
+  type: 'test'
+  ...
+# Subtest: economy HTTP route uses only its own required budget and never identity/NFT buckets
+ok 332 - economy HTTP route uses only its own required budget and never identity/NFT buckets
+  ---
+  duration_ms: 42.4016
+  type: 'test'
+  ...
+# Subtest: failed release configuration remains disabled without exposing private error details
+ok 333 - failed release configuration remains disabled without exposing private error details
+  ---
+  duration_ms: 2.3934
+  type: 'test'
+  ...
+# Subtest: minute economy cron has an independent RPC budget and leaves presence and original housekeeping untouched
+ok 334 - minute economy cron has an independent RPC budget and leaves presence and original housekeeping untouched
+  ---
+  duration_ms: 123.2871
+  type: 'test'
+  ...
+# Subtest: default deployed release gate denies reads and writes; no query flag enables GOLD
+ok 335 - default deployed release gate denies reads and writes; no query flag enables GOLD
+  ---
+  duration_ms: 55.4809
+  type: 'test'
+  ...
+# Subtest: source session, account match and origin guard all private reads and writes
+ok 336 - source session, account match and origin guard all private reads and writes
+  ---
+  duration_ms: 91.1119
+  type: 'test'
+  ...
+# Subtest: contract sessions may read but cannot acquire new quote/admin write authority
+ok 337 - contract sessions may read but cannot acquire new quote/admin write authority
+  ---
+  duration_ms: 72.6202
+  type: 'test'
+  ...
+# Subtest: browser amount, payer, balance, owner and transaction claims are rejected
+ok 338 - browser amount, payer, balance, owner and transaction claims are rejected
+  ---
+  duration_ms: 115.4171
+  type: 'test'
+  ...
+# Subtest: three known admins use existing session; ordinary wallets cannot read private admin cases
+ok 339 - three known admins use existing session; ordinary wallets cannot read private admin cases
+  ---
+  duration_ms: 105.0049
+  type: 'test'
+  ...
+# Subtest: logout between authentication and D1 batch rolls back admin and quote writes
+ok 340 - logout between authentication and D1 batch rolls back admin and quote writes
+  ---
+  duration_ms: 66.6728
+  type: 'test'
+  ...
+# Subtest: client rejects malformed arithmetic and unknown data instead of displaying a trusted zero
+ok 341 - client rejects malformed arithmetic and unknown data instead of displaying a trusted zero
+  ---
+  duration_ms: 1.3268
+  type: 'test'
+  ...
+# Subtest: client ignores a late response after wallet switch or expiry
+ok 342 - client ignores a late response after wallet switch or expiry
+  ---
+  duration_ms: 2.1199
+  type: 'test'
+  ...
+# Subtest: client idempotency key and admin case query are preserved without URL query confusion
+ok 343 - client idempotency key and admin case query are preserved without URL query confusion
+  ---
+  duration_ms: 0.8549
+  type: 'test'
+  ...
+# Subtest: quote authority expires during catalogue await: final SQL creates no stale order
+ok 344 - quote authority expires during catalogue await: final SQL creates no stale order
+  ---
+  duration_ms: 60.2309
+  type: 'test'
+  ...
+# Subtest: admin authority expires during digest/read await: no stale persistent command is accepted
+ok 345 - admin authority expires during digest/read await: no stale persistent command is accepted
+  ---
+  duration_ms: 59.9666
+  type: 'test'
+  ...
+# Subtest: trial status read uses authenticated same-wallet session and exact half-open UTC interval
+ok 346 - trial status read uses authenticated same-wallet session and exact half-open UTC interval
+  ---
+  duration_ms: 72.253
+  type: 'test'
+  ...
+# Subtest: trial client rejects wrong identity, expiry, malformed response and backward clock
+ok 347 - trial client rejects wrong identity, expiry, malformed response and backward clock
+  ---
+  duration_ms: 4.5067
+  type: 'test'
+  ...
+# Subtest: admin EMBEO prices round-trip all 18 decimals without truncation, floats or excess-precision rounding
+ok 348 - admin EMBEO prices round-trip all 18 decimals without truncation, floats or excess-precision rounding
+  ---
+  duration_ms: 1.6584
+  type: 'test'
+  ...
+# Subtest: second inspection: reservation retry cannot change wallet, amount, scope or deadline under identical auth
+ok 349 - second inspection: reservation retry cannot change wallet, amount, scope or deadline under identical auth
+  ---
+  duration_ms: 237.2852
+  type: 'test'
+  ...
+# Subtest: second inspection: bare timeout/failure assertions never authorize a service refund
+ok 350 - second inspection: bare timeout/failure assertions never authorize a service refund
+  ---
+  duration_ms: 248.5221
+  type: 'test'
+  ...
+# Subtest: second inspection: pausing after signature verification but before commit cannot debit
+ok 351 - second inspection: pausing after signature verification but before commit cannot debit
+  ---
+  duration_ms: 157.1555
+  type: 'test'
+  ...
+# Subtest: second inspection: pausing between challenge precheck and INSERT creates no challenge
+ok 352 - second inspection: pausing between challenge precheck and INSERT creates no challenge
+  ---
+  duration_ms: 151.452
+  type: 'test'
+  ...
+# Subtest: second inspection: delivery-job insertion failure rolls back debit, paid status and challenge together
+ok 353 - second inspection: delivery-job insertion failure rolls back debit, paid status and challenge together
+  ---
+  duration_ms: 202.2363
+  type: 'test'
+  ...
+# Subtest: second inspection: pending provider retries reuse one key; proven nondelivery records proof and refunds once
+ok 354 - second inspection: pending provider retries reuse one key; proven nondelivery records proof and refunds once
+  ---
+  duration_ms: 218.2359
+  type: 'test'
+  ...
+# Subtest: second inspection: provider exceptions and malformed terminal proof leave the original entitlement pending
+ok 355 - second inspection: provider exceptions and malformed terminal proof leave the original entitlement pending
+  ---
+  duration_ms: 232.7212
+  type: 'test'
+  ...
+# Subtest: second inspection: UTF8 oversize, undefined and cyclic results terminate without a repeated charge
+ok 356 - second inspection: UTF8 oversize, undefined and cyclic results terminate without a repeated charge
+  ---
+  duration_ms: 700.3525
+  type: 'test'
+  ...
+# Subtest: second inspection: scope, proof type, finalized mode and chain deadline are independently enforced
+ok 357 - second inspection: scope, proof type, finalized mode and chain deadline are independently enforced
+  ---
+  duration_ms: 255.5174
+  type: 'test'
+  ...
+# Subtest: second inspection: wall time cannot expire a still-executable chain authorization
+ok 358 - second inspection: wall time cannot expire a still-executable chain authorization
+  ---
+  duration_ms: 197.1498
+  type: 'test'
+  ...
+# Subtest: second inspection: lost/wrong chain namespace remains held without even consulting the wrong reader
+ok 359 - second inspection: lost/wrong chain namespace remains held without even consulting the wrong reader
+  ---
+  duration_ms: 149.712
+  type: 'test'
+  ...
+# Subtest: second inspection: stored-order recovery is bounded and writes immutable before/after evidence
+ok 360 - second inspection: stored-order recovery is bounded and writes immutable before/after evidence
+  ---
+  duration_ms: 361.6918
+  type: 'test'
+  ...
+# Subtest: second inspection: simultaneous settlement retries create exactly one debit and one settlement receipt
+ok 361 - second inspection: simultaneous settlement retries create exactly one debit and one settlement receipt
+  ---
+  duration_ms: 204.3946
+  type: 'test'
+  ...
+# Subtest: second inspection: known pre-0015 schema remains recoverable and missing required tables return a coded error
+ok 362 - second inspection: known pre-0015 schema remains recoverable and missing required tables return a coded error
+  ---
+  duration_ms: 127.2682
+  type: 'test'
+  ...
+# Subtest: second inspection: HTTP/env cannot manufacture a delivery capability; trusted runtime binding can admit service
+ok 363 - second inspection: HTTP/env cannot manufacture a delivery capability; trusted runtime binding can admit service
+  ---
+  duration_ms: 213.2871
+  type: 'test'
+  ...
+# Subtest: second inspection: malformed-proof rejection evaluator detects removal of the SQL proof guards
+ok 364 - second inspection: malformed-proof rejection evaluator detects removal of the SQL proof guards
+  ---
+  duration_ms: 201.8702
+  type: 'test'
+  ...
+# Subtest: Audit M2: pre-0014 historical planner and preflight remain usable
+ok 365 - Audit M2: pre-0014 historical planner and preflight remain usable
+  ---
+  duration_ms: 128.2873
+  type: 'test'
+  ...
+# Subtest: Audit L3: pause rejects both fresh challenge and pre-signed service debit; resume pays once
+ok 366 - Audit L3: pause rejects both fresh challenge and pre-signed service debit; resume pays once
+  ---
+  duration_ms: 239.2378
+  type: 'test'
+  ...
+# Subtest: Audit L4: oversized result is terminal and refunds once; stale completion cannot alter it
+ok 367 - Audit L4: oversized result is terminal and refunds once; stale completion cannot alter it
+  ---
+  duration_ms: 281.4784
+  type: 'test'
+  ...
+# Subtest: Audit L5: one pre-existing overflowing credit cannot stop other wallets or future reconciliation
+ok 368 - Audit L5: one pre-existing overflowing credit cannot stop other wallets or future reconciliation
+  ---
+  duration_ms: 200.5404
+  type: 'test'
+  ...
+# Subtest: Audit L6: timeout-shaped evidence cannot release an executable Mint through API or raw SQL
+ok 369 - Audit L6: timeout-shaped evidence cannot release an executable Mint through API or raw SQL
+  ---
+  duration_ms: 142.495
+  type: 'test'
+  ...
+# Subtest: Audit L7: persisted-scope recovery settles an original held order without a memory order map
+ok 370 - Audit L7: persisted-scope recovery settles an original held order without a memory order map
+  ---
+  duration_ms: 121.6532
+  type: 'test'
+  ...
+# Subtest: Audit L8: shared Mint service refuses a chain reset before any chain or ledger identity changes
+ok 371 - Audit L8: shared Mint service refuses a chain reset before any chain or ledger identity changes
+  ---
+  duration_ms: 3442.9033
+  type: 'test'
+  ...
+# Subtest: Audit L9a: successful service payment returns with a durable queued job
+ok 372 - Audit L9a: successful service payment returns with a durable queued job
+  ---
+  duration_ms: 141.6174
+  type: 'test'
+  ...
+# economy_sync {"status":"unavailable"}
+# Subtest: Audit L9b: chain RPC failure does not prevent already-entitled service refunds
+ok 373 - Audit L9b: chain RPC failure does not prevent already-entitled service refunds
+  ---
+  duration_ms: 234.3474
+  type: 'test'
+  ...
+# Subtest: Audit I10: quote predicates do not accumulate scratch rows; administrator evidence remains durable
+ok 374 - Audit I10: quote predicates do not accumulate scratch rows; administrator evidence remains durable
+  ---
+  duration_ms: 385.2264
+  type: 'test'
+  ...
+# Subtest: Audit I11: missing runtime delivery capability refuses service quote and pending service payment
+ok 375 - Audit I11: missing runtime delivery capability refuses service quote and pending service payment
+  ---
+  duration_ms: 240.1768
+  type: 'test'
+  ...
+# Subtest: Audit original M1 reproduction: 1025 lawful current-price orders reach capacity without starving staking
+ok 376 - Audit original M1 reproduction: 1025 lawful current-price orders reach capacity without starving staking
+  ---
+  duration_ms: 18836.4168
+  type: 'test'
+  ...
+# Subtest: T02/T22: recovery and SQLite backup preserve owed share-days without compensating them twice
+ok 377 - T02/T22: recovery and SQLite backup preserve owed share-days without compensating them twice
+  ---
+  duration_ms: 925.6728
+  type: 'test'
+  ...
+# Subtest: T10/T11: private latest time does not authorize release when the required proof is still pending
+ok 378 - T10/T11: private latest time does not authorize release when the required proof is still pending
+  ---
+  duration_ms: 4659.3253
+  type: 'test'
+  ...
+# Subtest: T17: private paid pause preserves a free onchain Mint and settlement of an existing paid hold
+ok 379 - T17: private paid pause preserves a free onchain Mint and settlement of an existing paid hold
+  ---
+  duration_ms: 2613.534
+  type: 'test'
+  ...
+# Subtest: T06: deployed World entry never falls back to standalone catalogue finance on a pre-0014 DB
+ok 380 - T06: deployed World entry never falls back to standalone catalogue finance on a pre-0014 DB
+  ---
+  duration_ms: 86.1649
+  type: 'test'
+  ...
+# Subtest: T10: private authorization just before deadline remains reusable and executes at the contract boundary
+ok 381 - T10: private authorization just before deadline remains reusable and executes at the contract boundary
+  ---
+  duration_ms: 1532.0848
+  type: 'test'
+  ...
+# Subtest: T01/T02: owed UTC rewards survive capacity, cooldown, duplicate workers, spending and replay
+ok 382 - T01/T02: owed UTC rewards survive capacity, cooldown, duplicate workers, spending and replay
+  ---
+  duration_ms: 370.7142
+  type: 'test'
+  ...
+# Subtest: T03/T21: refilled capacity defers the original-price refund; later room credits it only once
+ok 383 - T03/T21: refilled capacity defers the original-price refund; later room credits it only once
+  ---
+  duration_ms: 500.9086
+  type: 'test'
+  ...
+# Subtest: T01: all positive journal writers have an exact int64 boundary guard
+ok 384 - T01: all positive journal writers have an exact int64 boundary guard
+  ---
+  duration_ms: 149.4899
+  type: 'test'
+  ...
+# Subtest: T01: a target journal storage fault is isolated with durable reward retry metadata
+ok 385 - T01: a target journal storage fault is isolated with durable reward retry metadata
+  ---
+  duration_ms: 189.466
+  type: 'test'
+  ...
+# Subtest: T06/T07: pre-0014/0015/0016 refuse new shared operations, then migrations reopen the same DB
+ok 386 - T06/T07: pre-0014/0015/0016 refuse new shared operations, then migrations reopen the same DB
+  ---
+  duration_ms: 287.4754
+  type: 'test'
+  ...
+# Subtest: T06: readiness checks columns, indexes and every required financial trigger without caching
+ok 387 - T06: readiness checks columns, indexes and every required financial trigger without caching
+  ---
+  duration_ms: 1491.3388
+  type: 'test'
+  ...
+# Subtest: T07: a paid pre-0015 topup is preserved through refusal and credits once after forward migration
+ok 388 - T07: a paid pre-0015 topup is preserved through refusal and credits once after forward migration
+  ---
+  duration_ms: 167.9623
+  type: 'test'
+  ...
+# Subtest: T12/T13: result contracts reject empty/corrupt documents but accept explained zero and no-signal results
+ok 389 - T12/T13: result contracts reject empty/corrupt documents but accept explained zero and no-signal results
+  ---
+  duration_ms: 2853.0526
+  type: 'test'
+  ...
+# Subtest: T14/T19: provider empty output refunds once; unknown timeout retains the original idempotency key
+ok 390 - T14/T19: provider empty output refunds once; unknown timeout retains the original idempotency key
+  ---
+  duration_ms: 265.6432
+  type: 'test'
+  ...
+# Subtest: T15: removal calibration proves the SQL mode guard independently rejects both namespace directions
+ok 391 - T15: removal calibration proves the SQL mode guard independently rejects both namespace directions
+  ---
+  duration_ms: 208.7994
+  type: 'test'
+  ...
+# Subtest: T16: lossless auth input is byte-bounded, coded and has no financial side effects
+ok 392 - T16: lossless auth input is byte-bounded, coded and has no financial side effects
+  ---
+  duration_ms: 310.126
+  type: 'test'
+  ...
+# Subtest: T06: a missing required table refuses both inspection and new quotes with a coded diagnostic
+ok 393 - T06: a missing required table refuses both inspection and new quotes with a coded diagnostic
+  ---
+  duration_ms: 63.8976
+  type: 'test'
+  ...
+# Subtest: T12: deep valid JSON cannot crash result validation or strand a paid service
+ok 394 - T12: deep valid JSON cannot crash result validation or strand a paid service
+  ---
+  duration_ms: 193.5212
+  type: 'test'
+  ...
+# Subtest: T06/T12: unbound service result contracts refuse new charges
+ok 395 - T06/T12: unbound service result contracts refuse new charges
+  ---
+  duration_ms: 141.5419
+  type: 'test'
+  ...
+# Subtest: T04/T22: old pending signatures cannot bypass the new gate; old paid catalogue rights stay inventoried
+ok 396 - T04/T22: old pending signatures cannot bypass the new gate; old paid catalogue rights stay inventoried
+  ---
+  duration_ms: 177.4694
+  type: 'test'
+  ...
+# Subtest: T14: a lease expiring during result validation cannot finalize through a stale timestamp
+ok 397 - T14: a lease expiring during result validation cannot finalize through a stale timestamp
+  ---
+  duration_ms: 204.2892
+  type: 'test'
+  ...
+# Subtest: T18: partial schema emits a stable maintenance diagnostic instead of raw SQLite errors
+ok 398 - T18: partial schema emits a stable maintenance diagnostic instead of raw SQLite errors
+  ---
+  duration_ms: 23.2611
+  type: 'test'
+  ...
+# Subtest: T22: exception inventory is read-only, bounded and distinguishes unpaid refunds and held authority
+ok 399 - T22: exception inventory is read-only, bounded and distinguishes unpaid refunds and held authority
+  ---
+  duration_ms: 193.4987
+  type: 'test'
+  ...
+# Subtest: expanded inspection: signature-time success cannot debit after a shared readiness await crosses expiry
+ok 400 - expanded inspection: signature-time success cannot debit after a shared readiness await crosses expiry
+  ---
+  duration_ms: 149.6234
+  type: 'test'
+  ...
+# Subtest: Audit6 M1: a capacity-bound staker preserves owed rewards without starving another wallet
+ok 401 - Audit6 M1: a capacity-bound staker preserves owed rewards without starving another wallet
+  ---
+  duration_ms: 160.5628
+  type: 'test'
+  ...
+# Subtest: Audit6 L2: legacy GOLD catalogue orders cannot debit outside shared jobs
+ok 402 - Audit6 L2: legacy GOLD catalogue orders cannot debit outside shared jobs
+  ---
+  duration_ms: 134.7118
+  type: 'test'
+  ...
+# Subtest: Audit6 L3: pre-0015 reconciliation returns coded schema refusal
+ok 403 - Audit6 L3: pre-0015 reconciliation returns coded schema refusal
+  ---
+  duration_ms: 21.9566
+  type: 'test'
+  ...
+# Subtest: Audit6 L3: pre-0015 schema cannot create a new quote
+ok 404 - Audit6 L3: pre-0015 schema cannot create a new quote
+  ---
+  duration_ms: 58.0445
+  type: 'test'
+  ...
+# Subtest: Audit6 L6: null provider result is unusable and refunds exactly once
+ok 405 - Audit6 L6: null provider result is unusable and refunds exactly once
+  ---
+  duration_ms: 251.8399
+  type: 'test'
+  ...
+# Subtest: Audit6 L7: private chain cannot persist a finalized public-chain mode
+ok 406 - Audit6 L7: private chain cannot persist a finalized public-chain mode
+  ---
+  duration_ms: 121.82
+  type: 'test'
+  ...
+# Subtest: Audit6 L8: unserializable auth rejects with a stable code and no hold
+ok 407 - Audit6 L8: unserializable auth rejects with a stable code and no hold
+  ---
+  duration_ms: 156.8443
+  type: 'test'
+  ...
+# Subtest: Audit6 L5: authorization at exact chain deadline is refused before gas or a duplicate hold
+ok 408 - Audit6 L5: authorization at exact chain deadline is refused before gas or a duplicate hold
+  ---
+  duration_ms: 4186.3549
+  type: 'test'
+  ...
+# Subtest: Audit6 I9: GOLD mint pause blocks paid holds but preserves fee-free free approval
+ok 409 - Audit6 I9: GOLD mint pause blocks paid holds but preserves fee-free free approval
+  ---
+  duration_ms: 1046.541
+  type: 'test'
+  ...
+# Subtest: actual private EVM payment → shared persistent GOLD → paid/free Mint → service/result/refund → DB reopen and backup restore
+ok 410 - actual private EVM payment → shared persistent GOLD → paid/free Mint → service/result/refund → DB reopen and backup restore
+  ---
+  duration_ms: 5884.6309
+  type: 'test'
+  ...
+# Subtest: private EVM persisted holds recover after memory map loss and same-chain backup restore, while reset is refused
+ok 411 - private EVM persisted holds recover after memory map loss and same-chain backup restore, while reset is refused
+  ---
+  duration_ms: 2700.0121
+  type: 'test'
+  ...
+# Subtest: fresh migrations import no test balances, common balance starts confirmed zero
+ok 412 - fresh migrations import no test balances, common balance starts confirmed zero
+  ---
+  duration_ms: 96.3259
+  type: 'test'
+  ...
+# Subtest: verified topup produces one immutable receipt, auto and admin share dedupe
+ok 413 - verified topup produces one immutable receipt, auto and admin share dedupe
+  ---
+  duration_ms: 169.5173
+  type: 'test'
+  ...
+# Subtest: unpaid orders and forged client amounts cannot authorize credit
+ok 414 - unpaid orders and forged client amounts cannot authorize credit
+  ---
+  duration_ms: 98.1236
+  type: 'test'
+  ...
+# Subtest: valid historical partial credit is topped up only by its unpaid difference, with shared auto/manual dedupe
+ok 415 - valid historical partial credit is topped up only by its unpaid difference, with shared auto/manual dedupe
+  ---
+  duration_ms: 136.0994
+  type: 'test'
+  ...
+# Subtest: lost projection after verified payment is reconstructed by later reconciliation while new sales are paused
+ok 416 - lost projection after verified payment is reconstructed by later reconciliation while new sales are paused
+  ---
+  duration_ms: 157.1925
+  type: 'test'
+  ...
+# Subtest: wrong payer and amount persist cases, grant no GOLD
+ok 417 - wrong payer and amount persist cases, grant no GOLD
+  ---
+  duration_ms: 97.7555
+  type: 'test'
+  ...
+# Subtest: old quote preserves package version and original credit after repricing
+ok 418 - old quote preserves package version and original credit after repricing
+  ---
+  duration_ms: 153.4165
+  type: 'test'
+  ...
+# Subtest: concurrent same request creates one quote and one original package binding
+ok 419 - concurrent same request creates one quote and one original package binding
+  ---
+  duration_ms: 94.7317
+  type: 'test'
+  ...
+# Subtest: shared hold prevents legacy service debit of the same last GOLD
+ok 420 - shared hold prevents legacy service debit of the same last GOLD
+  ---
+  duration_ms: 236.2243
+  type: 'test'
+  ...
+# Subtest: two concurrent mints cannot reserve the same available GOLD
+ok 421 - two concurrent mints cannot reserve the same available GOLD
+  ---
+  duration_ms: 185.9894
+  type: 'test'
+  ...
+# Subtest: chain consumption atomically burns hold and debits once; release replay cannot change consumption
+ok 422 - chain consumption atomically burns hold and debits once; release replay cannot change consumption
+  ---
+  duration_ms: 183.9338
+  type: 'test'
+  ...
+# Subtest: verified cancellation releases hold without deleting purchased credit
+ok 423 - verified cancellation releases hold without deleting purchased credit
+  ---
+  duration_ms: 194.7551
+  type: 'test'
+  ...
+# Subtest: different private chain instance and empty outcome cannot release an executable authorization
+ok 424 - different private chain instance and empty outcome cannot release an executable authorization
+  ---
+  duration_ms: 197.7811
+  type: 'test'
+  ...
+# Subtest: delivered service reopens the same result; no extra debit or refund
+ok 425 - delivered service reopens the same result; no extra debit or refund
+  ---
+  duration_ms: 327.5639
+  type: 'test'
+  ...
+# Subtest: known terminal service failure refunds once, admin retry shares dedupe
+ok 426 - known terminal service failure refunds once, admin retry shares dedupe
+  ---
+  duration_ms: 318.2224
+  type: 'test'
+  ...
+# Subtest: timeout does not refund; expired worker cannot finalize after retry worker takes over
+ok 427 - timeout does not refund; expired worker cannot finalize after retry worker takes over
+  ---
+  duration_ms: 341.9441
+  type: 'test'
+  ...
+# Subtest: manual controls stop new quotes but preserve already paid reconciliation
+ok 428 - manual controls stop new quotes but preserve already paid reconciliation
+  ---
+  duration_ms: 154.7865
+  type: 'test'
+  ...
+# Subtest: campaign schedule uses start inclusive/end exclusive and supports early stop
+ok 429 - campaign schedule uses start inclusive/end exclusive and supports early stop
+  ---
+  duration_ms: 88.7134
+  type: 'test'
+  ...
+# Subtest: admin unauthorized, stale price/campaign/control versions and altered retry are rejected
+ok 430 - admin unauthorized, stale price/campaign/control versions and altered retry are rejected
+  ---
+  duration_ms: 133.494
+  type: 'test'
+  ...
+# Subtest: admin repair captures exact before/after balances and does not invent an entitlement
+ok 431 - admin repair captures exact before/after balances and does not invent an entitlement
+  ---
+  duration_ms: 106.716
+  type: 'test'
+  ...
+# Subtest: calibrated cross-spend evaluator detects SQL guard removal independently of the new readiness refusal
+ok 432 - calibrated cross-spend evaluator detects SQL guard removal independently of the new readiness refusal
+  ---
+  duration_ms: 252.8383
+  type: 'test'
+  ...
+# Subtest: historical staking recovery preserves purchased GOLD and holds; new-source concurrent changes invalidate the plan
+ok 433 - historical staking recovery preserves purchased GOLD and holds; new-source concurrent changes invalidate the plan
+  ---
+  duration_ms: 496.3604
+  type: 'test'
+  ...
+1..433
+# tests 433
+# suites 0
+# pass 433
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 84021.2109

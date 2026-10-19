@@ -1,0 +1,4 @@
+.wallet-balances dl{display:grid;gap:12px;margin:12px 0}
+.wallet-balances dl>div{padding:12px;background:#1c3429;border-radius:8px;min-width:0}
+.wallet-balances dt{font-size:14px}.wallet-balances dd{margin:5px 0;color:#ead087;font-size:20px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.wallet-balances small{display:block;overflow-wrap:anywhere}

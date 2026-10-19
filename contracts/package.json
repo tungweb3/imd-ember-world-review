@@ -1,0 +1,21 @@
+{
+  "name": "ember-world-economy-contract-review",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=24 <25"},
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/build.mjs && node tools/check-projection.mjs && node --test --test-concurrency=1 test/*.test.mjs",
+    "check:projection": "node tools/check-projection.mjs",
+    "preflight:readonly": "node tools/preflight.mjs"
+  },
+  "dependencies": {
+    "@nomicfoundation/edr": "0.22.2",
+    "@openzeppelin/contracts": "5.4.0",
+    "ethers": "6.15.0",
+    "hardhat": "3.19.0",
+    "solc": "0.8.37"
+  },
+  "description": "Portable local review candidate. No private keys, deployment or production configuration. Exact compiler payload is vendored separately from the npm wrapper."
+}

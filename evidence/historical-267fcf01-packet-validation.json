@@ -1,0 +1,31 @@
+{
+  "status": "EXACT_PORTABLE_REVIEW_TESTS_AND_LIVE_POSTFLIGHT_PASS",
+  "sourceCommit": "267fcf01ac78dcd78cb529623acbb1dc96b06019",
+  "financial": {
+    "total": 485,
+    "passed": 485,
+    "fail": 0
+  },
+  "contracts": {
+    "total": 30,
+    "passed": 30,
+    "fail": 0
+  },
+  "python": {
+    "total": 26,
+    "passed": 26,
+    "fail": 0
+  },
+  "testLogSha256": "c7067fbc66c7ed953fda685e0a19dd08b1e909774143562e011cb1213e0e1473",
+  "worldProductionDeployed": true,
+  "worldProductionVersion": "7d2b2cf8-e9b8-4b14-9abd-b389b2fcc367",
+  "githubPublished": false,
+  "auditPaid": false,
+  "acceptedAuditVerdict": false,
+  "nftWhitelist": [],
+  "retailAdmissionClosed": true,
+  "limits": [
+    "No signed user staking transaction was performed by the agent.",
+    "Empty production pages and native capacity fixtures do not prove high-density production CPU capacity."
+  ]
+}

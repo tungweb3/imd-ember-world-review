@@ -1,0 +1,1447 @@
+{
+  "schema": "imd.world.shared-gold.selected-source/v1",
+  "sourceCommit": "1015b2c5c8663c6c4bfb46f135be84cacea1cae0",
+  "worldBaseCommit": "f76507635d85b95419a2a35cf8bf11814df1b801",
+  "economyBaseCommit": "fe920ae748155d7d7ed9aaa98ebb6f9fb2c3a81f",
+  "wholeWorldIncluded": false,
+  "fullWorkerTestsIncluded": false,
+  "selectedTests": [
+    "world-source/tests/aimarket-admin-client.test.mjs",
+    "world-source/tests/aimarket-admin.test.mjs",
+    "world-source/tests/aimarket-auth.test.mjs",
+    "world-source/tests/aimarket-campaign.test.mjs",
+    "world-source/tests/aimarket-delivery.test.mjs",
+    "world-source/tests/aimarket-resilience.test.mjs",
+    "world-source/tests/economy-adversarial.test.mjs",
+    "world-source/tests/economy-api.test.mjs",
+    "world-source/tests/economy-audit-regressions.test.mjs",
+    "world-source/tests/economy-audit2-medium.test.mjs",
+    "world-source/tests/economy-audit3-recovery.test.mjs",
+    "world-source/tests/economy-audit4-recovery.test.mjs",
+    "world-source/tests/economy-client.test.mjs",
+    "world-source/tests/economy-forwarder.test.mjs",
+    "world-source/tests/economy-journey.test.mjs",
+    "world-source/tests/economy-ledger.test.mjs",
+    "world-source/tests/economy-migration.test.mjs",
+    "world-source/tests/economy-pane.test.mjs",
+    "world-source/tests/economy-payload-roundtrip.test.mjs",
+    "world-source/tests/economy-payment-timing.test.mjs",
+    "world-source/tests/economy-provider-range.test.mjs",
+    "world-source/tests/economy-read-session.test.mjs",
+    "world-source/tests/economy-reconciliation.test.mjs",
+    "world-source/tests/economy-rpc.test.mjs",
+    "world-source/tests/economy-settlement.test.mjs",
+    "world-source/tests/economy-staging.test.mjs",
+    "world-source/tests/economy-wallet-recovery.test.mjs",
+    "world-source/tests/economy-worker.test.mjs",
+    "world-source/tests/inventory-live.test.mjs",
+    "world-source/tests/member-balances.test.mjs",
+    "world-source/tests/world-gold-api.test.mjs",
+    "world-source/tests/world-gold-audit5-adversarial.test.mjs",
+    "world-source/tests/world-gold-audit5.test.mjs",
+    "world-source/tests/world-gold-audit6-integration.test.mjs",
+    "world-source/tests/world-gold-audit6-matrix.test.mjs",
+    "world-source/tests/world-gold-audit6.test.mjs",
+    "world-source/tests/world-gold-audit7.test.mjs",
+    "world-source/tests/world-gold-native-journey.test.mjs",
+    "world-source/tests/world-gold.test.mjs",
+    "world-source/tests/world-library-cover.test.mjs"
+  ],
+  "omittedNonexistentOldContextPaths": [
+    "src/world/aimarketAdminClient.ts"
+  ],
+  "sourceFiles": [
+    {
+      "path": "world-source/docs/combined-release-20261019.md",
+      "sourcePath": "docs/combined-release-20261019.md",
+      "bytes": 6451,
+      "sha256": "140cdf6e73b6bc6068d05f246dc94722aed9fe2b553864be73ea6b117f14e2dc",
+      "originalSha256": "140cdf6e73b6bc6068d05f246dc94722aed9fe2b553864be73ea6b117f14e2dc",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/economy/AUDIT4_REMEDIATION.md",
+      "sourcePath": "docs/economy/AUDIT4_REMEDIATION.md",
+      "bytes": 3686,
+      "sha256": "31efa9408bce8954dbfc3ecfd0c9a56ed43eb9aada1181660e274947e1c24414",
+      "originalSha256": "31efa9408bce8954dbfc3ecfd0c9a56ed43eb9aada1181660e274947e1c24414",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/economy/README.md",
+      "sourcePath": "docs/economy/README.md",
+      "bytes": 12883,
+      "sha256": "3b034519ec0cd2de14cfa8dde6cc47a53ca02ee10d1079dcb91e779dd31b983f",
+      "originalSha256": "3b034519ec0cd2de14cfa8dde6cc47a53ca02ee10d1079dcb91e779dd31b983f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/economy/RECONCILIATION.md",
+      "sourcePath": "docs/economy/RECONCILIATION.md",
+      "bytes": 18288,
+      "sha256": "27019d1d48610fa40a02c9909cec964858b45420015ef53af4eb2f22f3ad3736",
+      "originalSha256": "27019d1d48610fa40a02c9909cec964858b45420015ef53af4eb2f22f3ad3736",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/formal-connection-20261019.md",
+      "sourcePath": "docs/formal-connection-20261019.md",
+      "bytes": 6054,
+      "sha256": "02e92641e84677dea1fb131613b5c3f4197fb83038103bfd0dca29b867abe55a",
+      "originalSha256": "02e92641e84677dea1fb131613b5c3f4197fb83038103bfd0dca29b867abe55a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/mainnet-binding-20261019.md",
+      "sourcePath": "docs/mainnet-binding-20261019.md",
+      "bytes": 1425,
+      "sha256": "dbdaa6a7384f3310b70ab770fd21befbd8c7f8f92b5c4411d9e01fb4b414d075",
+      "originalSha256": "dbdaa6a7384f3310b70ab770fd21befbd8c7f8f92b5c4411d9e01fb4b414d075",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/mainnet-provider-compatibility-20261019.md",
+      "sourcePath": "docs/mainnet-provider-compatibility-20261019.md",
+      "bytes": 2302,
+      "sha256": "7c48923a2b3d759f557c318c57811e400b60fccea2365814baf81569b78e0ea9",
+      "originalSha256": "7c48923a2b3d759f557c318c57811e400b60fccea2365814baf81569b78e0ea9",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/release-review-fixes-20261019.md",
+      "sourcePath": "docs/release-review-fixes-20261019.md",
+      "bytes": 2616,
+      "sha256": "632b5c2aa7e7f71614704ac25611dc01b0f136529ec00cd6c15abd9849026425",
+      "originalSha256": "632b5c2aa7e7f71614704ac25611dc01b0f136529ec00cd6c15abd9849026425",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/world-gold-audit5-remediation.md",
+      "sourcePath": "docs/world-gold-audit5-remediation.md",
+      "bytes": 8442,
+      "sha256": "0b1fe4263ee041b354bdbd8d146fc485157638f188497ec7abad7738350a990b",
+      "originalSha256": "0b1fe4263ee041b354bdbd8d146fc485157638f188497ec7abad7738350a990b",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/world-gold-audit6-release-gates.md",
+      "sourcePath": "docs/world-gold-audit6-release-gates.md",
+      "bytes": 4476,
+      "sha256": "a32a22d495bfcfc8d677675899743715c56461860c1da09a673eba6cc7563419",
+      "originalSha256": "a32a22d495bfcfc8d677675899743715c56461860c1da09a673eba6cc7563419",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/world-gold-audit6-remediation.md",
+      "sourcePath": "docs/world-gold-audit6-remediation.md",
+      "bytes": 12958,
+      "sha256": "a0dabee0a55fbc368e9bc3b373f261fbb2efbe7162e42a7110502a4ad882aca0",
+      "originalSha256": "a0dabee0a55fbc368e9bc3b373f261fbb2efbe7162e42a7110502a4ad882aca0",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/docs/world-gold-audit6-runbook.md",
+      "sourcePath": "docs/world-gold-audit6-runbook.md",
+      "bytes": 8665,
+      "sha256": "90640d2ab8c9068d8681db26ebb9f179efe2efd6a858c8a3ae5e1d7c520a8ab0",
+      "originalSha256": "90640d2ab8c9068d8681db26ebb9f179efe2efd6a858c8a3ae5e1d7c520a8ab0",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/gold-local-preview.html",
+      "sourcePath": "gold-local-preview.html",
+      "bytes": 338,
+      "sha256": "84c4675ecdfe97cefc2515b0d297efa0cd621896d36e4da50d68183c6f626d6e",
+      "originalSha256": "84c4675ecdfe97cefc2515b0d297efa0cd621896d36e4da50d68183c6f626d6e",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0001_wallet_login.sql",
+      "sourcePath": "migrations/0001_wallet_login.sql",
+      "bytes": 1694,
+      "sha256": "696eeccbebd66ce944d86ec248540a0afa10a0283e255c0bf9df85c2cfc22a71",
+      "originalSha256": "696eeccbebd66ce944d86ec248540a0afa10a0283e255c0bf9df85c2cfc22a71",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0002_sign_in_budgets.sql",
+      "sourcePath": "migrations/0002_sign_in_budgets.sql",
+      "bytes": 1354,
+      "sha256": "685531c5e7a0a1f7160a4e80312c58794556a9d8e57419b69a6a51e68f6cde55",
+      "originalSha256": "685531c5e7a0a1f7160a4e80312c58794556a9d8e57419b69a6a51e68f6cde55",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0003_sign_in_layers.sql",
+      "sourcePath": "migrations/0003_sign_in_layers.sql",
+      "bytes": 2258,
+      "sha256": "d58c12bd78a4453fef098a19181eb7361612a2c931cd61f7e70acb7127200953",
+      "originalSha256": "d58c12bd78a4453fef098a19181eb7361612a2c931cd61f7e70acb7127200953",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0004_index_candidates.sql",
+      "sourcePath": "migrations/0004_index_candidates.sql",
+      "bytes": 1341,
+      "sha256": "fb186abcc36f4f1eecc4a0cd1de55f04832457fe5816ed6bac0034dc9dc0f787",
+      "originalSha256": "fb186abcc36f4f1eecc4a0cd1de55f04832457fe5816ed6bac0034dc9dc0f787",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0005_lanes_and_subnets.sql",
+      "sourcePath": "migrations/0005_lanes_and_subnets.sql",
+      "bytes": 1872,
+      "sha256": "dfa3c6462072204d3607a2ea90aac4cf7f292812024ccefd5f3d439bc0aca876",
+      "originalSha256": "dfa3c6462072204d3607a2ea90aac4cf7f292812024ccefd5f3d439bc0aca876",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0006_members.sql",
+      "sourcePath": "migrations/0006_members.sql",
+      "bytes": 8328,
+      "sha256": "8c158d2be281331728e357fec06a252354a38cc698e208306c86a981841e3298",
+      "originalSha256": "8c158d2be281331728e357fec06a252354a38cc698e208306c86a981841e3298",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0008_member_hardening.sql",
+      "sourcePath": "migrations/0008_member_hardening.sql",
+      "bytes": 1822,
+      "sha256": "4cb40da03cebd49a7f0bf3d0d787b56e31aff4b1cba9a90a66c4c322de5c288c",
+      "originalSha256": "4cb40da03cebd49a7f0bf3d0d787b56e31aff4b1cba9a90a66c4c322de5c288c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0009_aimarket_bridge.sql",
+      "sourcePath": "migrations/0009_aimarket_bridge.sql",
+      "bytes": 867,
+      "sha256": "a2f5bd0398296b341427ae4c39a148b5c89638f758db397abce40b29d82e7b3e",
+      "originalSha256": "a2f5bd0398296b341427ae4c39a148b5c89638f758db397abce40b29d82e7b3e",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0010_world_economy.sql",
+      "sourcePath": "migrations/0010_world_economy.sql",
+      "bytes": 9544,
+      "sha256": "88d4e9f502def890213b55a0d0c72e4acd7215a144bb48d61ba3fee887dadd71",
+      "originalSha256": "88d4e9f502def890213b55a0d0c72e4acd7215a144bb48d61ba3fee887dadd71",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0011_world_economy_staging.sql",
+      "sourcePath": "migrations/0011_world_economy_staging.sql",
+      "bytes": 1145,
+      "sha256": "bc65b8ac2b163bb91a29c865c60c64aff4df228af54d50e419719c6c7c9fef3d",
+      "originalSha256": "bc65b8ac2b163bb91a29c865c60c64aff4df228af54d50e419719c6c7c9fef3d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0012_economy_reward_bindings.sql",
+      "sourcePath": "migrations/0012_economy_reward_bindings.sql",
+      "bytes": 1114,
+      "sha256": "8fc2902b444ae7a0ef3a4e697d64e3ec3060f306aa2b955746a4f3ca8347cbae",
+      "originalSha256": "8fc2902b444ae7a0ef3a4e697d64e3ec3060f306aa2b955746a4f3ca8347cbae",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0013_economy_reconciliation.sql",
+      "sourcePath": "migrations/0013_economy_reconciliation.sql",
+      "bytes": 4974,
+      "sha256": "d4ecba4488e59e8c77bd4756efe1c33cfc9407eee489d67beac33b2e1a7b8dc4",
+      "originalSha256": "d4ecba4488e59e8c77bd4756efe1c33cfc9407eee489d67beac33b2e1a7b8dc4",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0014_world_gold_integration.sql",
+      "sourcePath": "migrations/0014_world_gold_integration.sql",
+      "bytes": 8653,
+      "sha256": "d53d121ed6a919a2e5399f8d42a3d7121bdf5530701abd92d53f83801f7c6a7b",
+      "originalSha256": "d53d121ed6a919a2e5399f8d42a3d7121bdf5530701abd92d53f83801f7c6a7b",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0015_world_gold_audit_hardening.sql",
+      "sourcePath": "migrations/0015_world_gold_audit_hardening.sql",
+      "bytes": 5034,
+      "sha256": "e801cb9cdb212b0567d8514ddecb79b3c9c6cd6c2c2755fac4447352d03038e5",
+      "originalSha256": "e801cb9cdb212b0567d8514ddecb79b3c9c6cd6c2c2755fac4447352d03038e5",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0016_world_gold_cross_path_guards.sql",
+      "sourcePath": "migrations/0016_world_gold_cross_path_guards.sql",
+      "bytes": 4251,
+      "sha256": "d94ce9d78b7cb13f4288967cb09987ac02a36acfa35016cc91906ed28032ee21",
+      "originalSha256": "d94ce9d78b7cb13f4288967cb09987ac02a36acfa35016cc91906ed28032ee21",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/migrations/0017_world_inventory.sql",
+      "sourcePath": "migrations/0017_world_inventory.sql",
+      "bytes": 1007,
+      "sha256": "6a1c5db9876c2eeb9cf1ea5e2c7e1fcb9704834fea0dc87af4c6dcc4c0269701",
+      "originalSha256": "6a1c5db9876c2eeb9cf1ea5e2c7e1fcb9704834fea0dc87af4c6dcc4c0269701",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/package-lock.json",
+      "sourcePath": "package-lock.json",
+      "bytes": 87792,
+      "sha256": "efb34f7b2120d24b9869ddc6aa30a40e96400e0bcee62359c4c6739bc3ad8837",
+      "originalSha256": "efb34f7b2120d24b9869ddc6aa30a40e96400e0bcee62359c4c6739bc3ad8837",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/package.json",
+      "sourcePath": "package.json",
+      "bytes": 1210,
+      "sha256": "9b8ac3d76d821ad3c5e0b1ed2e6af6f633324e6c1a7725cecd3d2d65f305616d",
+      "originalSha256": "9b8ac3d76d821ad3c5e0b1ed2e6af6f633324e6c1a7725cecd3d2d65f305616d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/scripts/economy-recovery.mjs",
+      "sourcePath": "scripts/economy-recovery.mjs",
+      "bytes": 8740,
+      "sha256": "1ddeed1c6f34c7d3fab9d48840be085b837dbc480cb4ec17ab152921e877276d",
+      "originalSha256": "1ddeed1c6f34c7d3fab9d48840be085b837dbc480cb4ec17ab152921e877276d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/scripts/world-gold-local-db.mjs",
+      "sourcePath": "scripts/world-gold-local-db.mjs",
+      "bytes": 1975,
+      "sha256": "e335d1238a17f5641acafaf0d271be23c890a237f4bf9d47298f6a95046a6e07",
+      "originalSha256": "e335d1238a17f5641acafaf0d271be23c890a237f4bf9d47298f6a95046a6e07",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/scripts/world-gold-local-runtime.mjs",
+      "sourcePath": "scripts/world-gold-local-runtime.mjs",
+      "bytes": 6265,
+      "sha256": "22588410ec0987e936872c5d08c050fe2880356c0c063e7c7477aa5fe87669f5",
+      "originalSha256": "ab374bdef1a199ec05a7c58b0b056210fae88d08aac806312323cadf3f66608e",
+      "byteExact": false
+    },
+    {
+      "path": "world-source/scripts/world-gold-mint-reader.mjs",
+      "sourcePath": "scripts/world-gold-mint-reader.mjs",
+      "bytes": 3097,
+      "sha256": "93358f1a193e014b582d836ce173e073f1bdf7c48240c9ebf3252c44d281db5e",
+      "originalSha256": "93358f1a193e014b582d836ce173e073f1bdf7c48240c9ebf3252c44d281db5e",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/scripts/world-gold-native-d1.mjs",
+      "sourcePath": "scripts/world-gold-native-d1.mjs",
+      "bytes": 6268,
+      "sha256": "f6974288dd08d8c1dfbce44c75a328396cbf42d6e172c66ea721373d141af814",
+      "originalSha256": "f6974288dd08d8c1dfbce44c75a328396cbf42d6e172c66ea721373d141af814",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/scripts/world-gold-preview.mjs",
+      "sourcePath": "scripts/world-gold-preview.mjs",
+      "bytes": 9284,
+      "sha256": "6d53bfae8f4998d1a59d23e41903f02a6c67a7e08bd21ad4e9116a24e56717a2",
+      "originalSha256": "6d53bfae8f4998d1a59d23e41903f02a6c67a7e08bd21ad4e9116a24e56717a2",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/aimarket-admin.ts",
+      "sourcePath": "server/aimarket-admin.ts",
+      "bytes": 3388,
+      "sha256": "1282e4042ad32c36e173820f705ebb65f45847c3ed6b1e39741836fe893099e1",
+      "originalSha256": "1282e4042ad32c36e173820f705ebb65f45847c3ed6b1e39741836fe893099e1",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/aimarket-auth.ts",
+      "sourcePath": "server/aimarket-auth.ts",
+      "bytes": 14716,
+      "sha256": "1e4f5ffcab879222087ce8149c68f11a2546c1f08895cd3f5310ddf6700b841f",
+      "originalSha256": "1e4f5ffcab879222087ce8149c68f11a2546c1f08895cd3f5310ddf6700b841f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/aimarket-campaign.ts",
+      "sourcePath": "server/aimarket-campaign.ts",
+      "bytes": 4586,
+      "sha256": "80dacb937df5afaefc882ed17819aad180b078dbd95b0bf26b1f0b875de9f167",
+      "originalSha256": "80dacb937df5afaefc882ed17819aad180b078dbd95b0bf26b1f0b875de9f167",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/aimarket-delivery.ts",
+      "sourcePath": "server/aimarket-delivery.ts",
+      "bytes": 5718,
+      "sha256": "010f5c9df030c52d70e909fe2c2b6407a96c08a5f8dec2aa6ec796c5a109f57c",
+      "originalSha256": "010f5c9df030c52d70e909fe2c2b6407a96c08a5f8dec2aa6ec796c5a109f57c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/aimarket-proxy.ts",
+      "sourcePath": "server/aimarket-proxy.ts",
+      "bytes": 9355,
+      "sha256": "26fdeef9166dcf658f11e23f1cc91839e14dc47de0289ce9e0461dfee0bf995d",
+      "originalSha256": "26fdeef9166dcf658f11e23f1cc91839e14dc47de0289ce9e0461dfee0bf995d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/auth.ts",
+      "sourcePath": "server/auth.ts",
+      "bytes": 75133,
+      "sha256": "d674e6248b9d81faa9b5e455a97e0d7a69fdcd812696f6bf4a416899c717a4dd",
+      "originalSha256": "d674e6248b9d81faa9b5e455a97e0d7a69fdcd812696f6bf4a416899c717a4dd",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/chain-mock.ts",
+      "sourcePath": "server/chain-mock.ts",
+      "bytes": 2923,
+      "sha256": "ded51ea8c3b02e3cb090180eed187094e7c8fd1401ca35c12086cd31afd34bec",
+      "originalSha256": "ded51ea8c3b02e3cb090180eed187094e7c8fd1401ca35c12086cd31afd34bec",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/d1.ts",
+      "sourcePath": "server/d1.ts",
+      "bytes": 708,
+      "sha256": "67b345fe451e42a97f37ac9d44df27997914faea59275a3d3821b50a8f34f65e",
+      "originalSha256": "67b345fe451e42a97f37ac9d44df27997914faea59275a3d3821b50a8f34f65e",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-config.ts",
+      "sourcePath": "server/economy-config.ts",
+      "bytes": 4674,
+      "sha256": "5e70737b0ffd0f24b36124262842863d189c81a2d353ef82aed5c8d36ad7abf3",
+      "originalSha256": "5e70737b0ffd0f24b36124262842863d189c81a2d353ef82aed5c8d36ad7abf3",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-deployment.ts",
+      "sourcePath": "server/economy-deployment.ts",
+      "bytes": 681,
+      "sha256": "0e8ce2a8aede07461f02a0847cf84c8d38f87fc15ee4518b53008ca7614d66f3",
+      "originalSha256": "0e8ce2a8aede07461f02a0847cf84c8d38f87fc15ee4518b53008ca7614d66f3",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-ledger.ts",
+      "sourcePath": "server/economy-ledger.ts",
+      "bytes": 36917,
+      "sha256": "e545d92f0874d6615f0467cbbe9bed350e1fb69d725c717c7253160340363331",
+      "originalSha256": "e545d92f0874d6615f0467cbbe9bed350e1fb69d725c717c7253160340363331",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-reconciliation.ts",
+      "sourcePath": "server/economy-reconciliation.ts",
+      "bytes": 8506,
+      "sha256": "3cec7a01681f1161a66660d0cdffa4a1398a691b62221ff11623cdc1f57452e2",
+      "originalSha256": "3cec7a01681f1161a66660d0cdffa4a1398a691b62221ff11623cdc1f57452e2",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-recovery.ts",
+      "sourcePath": "server/economy-recovery.ts",
+      "bytes": 32634,
+      "sha256": "e6cbf31a98a47557b7a973e5101ce56b93fe2eff95def22d7284e5809506ff1a",
+      "originalSha256": "e6cbf31a98a47557b7a973e5101ce56b93fe2eff95def22d7284e5809506ff1a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-rewards.ts",
+      "sourcePath": "server/economy-rewards.ts",
+      "bytes": 3229,
+      "sha256": "72e74102192ea26812121706240e19fc3f970e12e4ad69b762d4f14f84b29c6d",
+      "originalSha256": "72e74102192ea26812121706240e19fc3f970e12e4ad69b762d4f14f84b29c6d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-rpc.ts",
+      "sourcePath": "server/economy-rpc.ts",
+      "bytes": 19237,
+      "sha256": "3726191a0dee52f48fa0e397f374e97e2ddfbe1c935986914aebfe0103574c88",
+      "originalSha256": "3726191a0dee52f48fa0e397f374e97e2ddfbe1c935986914aebfe0103574c88",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy-staging.ts",
+      "sourcePath": "server/economy-staging.ts",
+      "bytes": 9240,
+      "sha256": "97053d0145716a0d99d8b381f67dd6c79448b77f77f33e7d8b1d44ff48d13946",
+      "originalSha256": "97053d0145716a0d99d8b381f67dd6c79448b77f77f33e7d8b1d44ff48d13946",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/economy.ts",
+      "sourcePath": "server/economy.ts",
+      "bytes": 8401,
+      "sha256": "8232d6f50fa944b162fd081efdac33943c90719ec1695f78fcc136e5a76ce4ea",
+      "originalSha256": "8232d6f50fa944b162fd081efdac33943c90719ec1695f78fcc136e5a76ce4ea",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/gateway.ts",
+      "sourcePath": "server/gateway.ts",
+      "bytes": 26405,
+      "sha256": "f48adf7bd91aeb30fdfd2f9e76f2b967022dd998d80c851581e31512b7cd98d9",
+      "originalSha256": "f48adf7bd91aeb30fdfd2f9e76f2b967022dd998d80c851581e31512b7cd98d9",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/inventory-catalogue.ts",
+      "sourcePath": "server/inventory-catalogue.ts",
+      "bytes": 561,
+      "sha256": "a8074ba026b27400c5f8491b49fa88bcac0699b085dfb81704eaddd0ec448c43",
+      "originalSha256": "a8074ba026b27400c5f8491b49fa88bcac0699b085dfb81704eaddd0ec448c43",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/inventory.ts",
+      "sourcePath": "server/inventory.ts",
+      "bytes": 11235,
+      "sha256": "7675ae8ce78fadf8927626e0bec90556c662d3eb9d4e5cc27f0dbf88e42a8e69",
+      "originalSha256": "7675ae8ce78fadf8927626e0bec90556c662d3eb9d4e5cc27f0dbf88e42a8e69",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/member-balances.ts",
+      "sourcePath": "server/member-balances.ts",
+      "bytes": 6313,
+      "sha256": "f20603a56ccfef35e1f78d8e2a9fc5ef62cc7e3ac8ae52c54969c8ddc5f4ca7f",
+      "originalSha256": "f20603a56ccfef35e1f78d8e2a9fc5ef62cc7e3ac8ae52c54969c8ddc5f4ca7f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/member.ts",
+      "sourcePath": "server/member.ts",
+      "bytes": 23791,
+      "sha256": "1f0eb92f66a30aac6485c00dd79f13bb2b6b27735d2aac4034d5e94cb49071a2",
+      "originalSha256": "1f0eb92f66a30aac6485c00dd79f13bb2b6b27735d2aac4034d5e94cb49071a2",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/ownership.ts",
+      "sourcePath": "server/ownership.ts",
+      "bytes": 34295,
+      "sha256": "30b8447d4599f4a1db8e8e149a284a253b67d62094befcd10e0df3b095644c72",
+      "originalSha256": "30b8447d4599f4a1db8e8e149a284a253b67d62094befcd10e0df3b095644c72",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/presence.ts",
+      "sourcePath": "server/presence.ts",
+      "bytes": 6249,
+      "sha256": "61ea5ae25d38dd4572cc0d987fdc2746161dc77c7f8b23758c0f5745de0efe81",
+      "originalSha256": "61ea5ae25d38dd4572cc0d987fdc2746161dc77c7f8b23758c0f5745de0efe81",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/vite-plugin.ts",
+      "sourcePath": "server/vite-plugin.ts",
+      "bytes": 1983,
+      "sha256": "12a6356dbf2158d0677712cbd7283de1a003242389d023fd0cf3d004c894c50f",
+      "originalSha256": "12a6356dbf2158d0677712cbd7283de1a003242389d023fd0cf3d004c894c50f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-api.ts",
+      "sourcePath": "server/world-api.ts",
+      "bytes": 5818,
+      "sha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669",
+      "originalSha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold-api.ts",
+      "sourcePath": "server/world-gold-api.ts",
+      "bytes": 8831,
+      "sha256": "86580b26f492a4d616a369ee29c658f149a498ac0c7c84f7a758c968c78bb08c",
+      "originalSha256": "86580b26f492a4d616a369ee29c658f149a498ac0c7c84f7a758c968c78bb08c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold-delivery.ts",
+      "sourcePath": "server/world-gold-delivery.ts",
+      "bytes": 3139,
+      "sha256": "237ed9125ce90f2bb8d809ce2b564d17d67f3d7468615ef157c7c4dc796321d4",
+      "originalSha256": "237ed9125ce90f2bb8d809ce2b564d17d67f3d7468615ef157c7c4dc796321d4",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold-inspection.ts",
+      "sourcePath": "server/world-gold-inspection.ts",
+      "bytes": 3752,
+      "sha256": "854555c90a112ee1bbe91dcbb5fc5f5233de10c988eb18e95fea84cd438a728b",
+      "originalSha256": "854555c90a112ee1bbe91dcbb5fc5f5233de10c988eb18e95fea84cd438a728b",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold-report.ts",
+      "sourcePath": "server/world-gold-report.ts",
+      "bytes": 2772,
+      "sha256": "327fa3ea53471ace13ee22c1431efa39a3e3fc8569006ae4f0012a2cbff2da58",
+      "originalSha256": "327fa3ea53471ace13ee22c1431efa39a3e3fc8569006ae4f0012a2cbff2da58",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold-result.ts",
+      "sourcePath": "server/world-gold-result.ts",
+      "bytes": 5469,
+      "sha256": "4d160ed7c4f6d62a79d5c48cd06cf4ee0062cdeaa1fbdcace2bb9d438eec247d",
+      "originalSha256": "4d160ed7c4f6d62a79d5c48cd06cf4ee0062cdeaa1fbdcace2bb9d438eec247d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold-schema.ts",
+      "sourcePath": "server/world-gold-schema.ts",
+      "bytes": 10928,
+      "sha256": "fb22864a7e7f23885f33a336d63084e7c939b1694498dc356f8d9933f6ddfebb",
+      "originalSha256": "fb22864a7e7f23885f33a336d63084e7c939b1694498dc356f8d9933f6ddfebb",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/server/world-gold.ts",
+      "sourcePath": "server/world-gold.ts",
+      "bytes": 29229,
+      "sha256": "bbb3b60a49a04600e9798f695058296f16d89bd59ddcd6ea75e5f83e46324436",
+      "originalSha256": "bbb3b60a49a04600e9798f695058296f16d89bd59ddcd6ea75e5f83e46324436",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/shared/freshness.ts",
+      "sourcePath": "src/shared/freshness.ts",
+      "bytes": 1303,
+      "sha256": "1929d582520028ca543e7eaa8998979055a28fd642d1df404ad778275c815986",
+      "originalSha256": "1929d582520028ca543e7eaa8998979055a28fd642d1df404ad778275c815986",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/AIMarketCampaignBlock.tsx",
+      "sourcePath": "src/world/AIMarketCampaignBlock.tsx",
+      "bytes": 4804,
+      "sha256": "aac02931df0f2536b96cc151bcae250f51cff332a4dfa1b5694d7e3a877d7c92",
+      "originalSha256": "aac02931df0f2536b96cc151bcae250f51cff332a4dfa1b5694d7e3a877d7c92",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/AIMarketPane.tsx",
+      "sourcePath": "src/world/AIMarketPane.tsx",
+      "bytes": 9507,
+      "sha256": "0380cc575872ad2ea981ca43849dc0caa87bd00f0877eaae65423ee5247a4c23",
+      "originalSha256": "0380cc575872ad2ea981ca43849dc0caa87bd00f0877eaae65423ee5247a4c23",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/EconomyPane.tsx",
+      "sourcePath": "src/world/EconomyPane.tsx",
+      "bytes": 32603,
+      "sha256": "985ef937ced5fae662b3387965e97aba2a63aefb5ee246df5dcdc2b09c6b53f2",
+      "originalSha256": "985ef937ced5fae662b3387965e97aba2a63aefb5ee246df5dcdc2b09c6b53f2",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/HomePanels.tsx",
+      "sourcePath": "src/world/HomePanels.tsx",
+      "bytes": 3978,
+      "sha256": "0965f3902877ed55e482e187dd7d1c2187b67b23f276d1baf96deb8df2296705",
+      "originalSha256": "0965f3902877ed55e482e187dd7d1c2187b67b23f276d1baf96deb8df2296705",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/InventoryPane.tsx",
+      "sourcePath": "src/world/InventoryPane.tsx",
+      "bytes": 8442,
+      "sha256": "34fa52b12feb5589567bebd2e1b2075fd0fc01c01bea68b916329375ff861578",
+      "originalSha256": "34fa52b12feb5589567bebd2e1b2075fd0fc01c01bea68b916329375ff861578",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/PublicCabinetBlock.tsx",
+      "sourcePath": "src/world/PublicCabinetBlock.tsx",
+      "bytes": 2155,
+      "sha256": "f564733493cd44d427f7efbf6923eed38b58ce1cc52de1b395e393a6e378cc3a",
+      "originalSha256": "f564733493cd44d427f7efbf6923eed38b58ce1cc52de1b395e393a6e378cc3a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/WalletBalancesBlock.tsx",
+      "sourcePath": "src/world/WalletBalancesBlock.tsx",
+      "bytes": 3704,
+      "sha256": "9b5b79d6cfd1f700661d6464c346a296b96624c8653bd2e0187bb73bedc9b318",
+      "originalSha256": "9b5b79d6cfd1f700661d6464c346a296b96624c8653bd2e0187bb73bedc9b318",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/WalletPanel.tsx",
+      "sourcePath": "src/world/WalletPanel.tsx",
+      "bytes": 18609,
+      "sha256": "ee41c0a74c13490e790a615f47a21446b65b7c976286e70ae6dba6edaab3195a",
+      "originalSha256": "ee41c0a74c13490e790a615f47a21446b65b7c976286e70ae6dba6edaab3195a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/WorldApp.tsx",
+      "sourcePath": "src/world/WorldApp.tsx",
+      "bytes": 85774,
+      "sha256": "70a5fe3f299d151911534937dcb2b6676da140dfe6be3e3d8cee9abf0ebc0223",
+      "originalSha256": "70a5fe3f299d151911534937dcb2b6676da140dfe6be3e3d8cee9abf0ebc0223",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/WorldGoldPanel.tsx",
+      "sourcePath": "src/world/WorldGoldPanel.tsx",
+      "bytes": 18588,
+      "sha256": "49a3cf370cf4d534d055f82b4ae9e3f7ce4b091e747d04fc8ed1d0c7c9e60e92",
+      "originalSha256": "49a3cf370cf4d534d055f82b4ae9e3f7ce4b091e747d04fc8ed1d0c7c9e60e92",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/aimarketAdmin.ts",
+      "sourcePath": "src/world/aimarketAdmin.ts",
+      "bytes": 1838,
+      "sha256": "2a952ed80cb2b396e21a7759192a5c79c70d0258e395807fda76b7e5fba8fd8d",
+      "originalSha256": "2a952ed80cb2b396e21a7759192a5c79c70d0258e395807fda76b7e5fba8fd8d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/aimarketEntry.ts",
+      "sourcePath": "src/world/aimarketEntry.ts",
+      "bytes": 2500,
+      "sha256": "9a9c01b39c86f909033482677cb928475553624d20a53089cac3caeea1d31ebd",
+      "originalSha256": "9a9c01b39c86f909033482677cb928475553624d20a53089cac3caeea1d31ebd",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/aimarketMessages.ts",
+      "sourcePath": "src/world/aimarketMessages.ts",
+      "bytes": 1154,
+      "sha256": "8898c4a63f0bb8954543899229ee4514057f7baf8126271c57980c71c1dce1ec",
+      "originalSha256": "8898c4a63f0bb8954543899229ee4514057f7baf8126271c57980c71c1dce1ec",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/aimarketTrial.ts",
+      "sourcePath": "src/world/aimarketTrial.ts",
+      "bytes": 1245,
+      "sha256": "f51532d9f1c3cb0c92343a2e71295be9bb06e00a2db574166965dbb86bb9bb11",
+      "originalSha256": "f51532d9f1c3cb0c92343a2e71295be9bb06e00a2db574166965dbb86bb9bb11",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/auth.ts",
+      "sourcePath": "src/world/auth.ts",
+      "bytes": 63914,
+      "sha256": "f2e7be50da1b2473aab3a9f97e00f73b482e6a8fe77cb2e45d9cce4416e96647",
+      "originalSha256": "f2e7be50da1b2473aab3a9f97e00f73b482e6a8fe77cb2e45d9cce4416e96647",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/authCleanup.ts",
+      "sourcePath": "src/world/authCleanup.ts",
+      "bytes": 1793,
+      "sha256": "de5e50fe3a7d68d4dd3ffd5b489cdaa2e2a2e789c21ee590ef9cfd716b418c90",
+      "originalSha256": "de5e50fe3a7d68d4dd3ffd5b489cdaa2e2a2e789c21ee590ef9cfd716b418c90",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/authLifecycle.ts",
+      "sourcePath": "src/world/authLifecycle.ts",
+      "bytes": 9767,
+      "sha256": "9e19a45950ced3f4ce9f04c13169da1597b2e061420927cdaa852f8e0c4e5dce",
+      "originalSha256": "9e19a45950ced3f4ce9f04c13169da1597b2e061420927cdaa852f8e0c4e5dce",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/cadence.ts",
+      "sourcePath": "src/world/cadence.ts",
+      "bytes": 8827,
+      "sha256": "864cfb696ef9234299eaabf795e2112f2735f4e66c3ec37c3d61f0076ea23518",
+      "originalSha256": "864cfb696ef9234299eaabf795e2112f2735f4e66c3ec37c3d61f0076ea23518",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/collections.ts",
+      "sourcePath": "src/world/collections.ts",
+      "bytes": 547,
+      "sha256": "e16162ff5fac9960678fba72a333075071fc280c1b64a9a28d3cc7df89772949",
+      "originalSha256": "e16162ff5fac9960678fba72a333075071fc280c1b64a9a28d3cc7df89772949",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/economyClient.ts",
+      "sourcePath": "src/world/economyClient.ts",
+      "bytes": 18172,
+      "sha256": "ea23062e823dc1437c061d2df3723531c1505d789e27f342aa0947542940cfb4",
+      "originalSha256": "ea23062e823dc1437c061d2df3723531c1505d789e27f342aa0947542940cfb4",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/economyEntry.ts",
+      "sourcePath": "src/world/economyEntry.ts",
+      "bytes": 552,
+      "sha256": "22eef542168a55c2a0b1f069491d12d521638b603ae79a5e5f2418c2b5f5c698",
+      "originalSha256": "22eef542168a55c2a0b1f069491d12d521638b603ae79a5e5f2418c2b5f5c698",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/economyPane.css",
+      "sourcePath": "src/world/economyPane.css",
+      "bytes": 4661,
+      "sha256": "b24375f5bd009ee6ed97288ffd56a9a9d4c1d73d5146916c2145e715fbf06a11",
+      "originalSha256": "b24375f5bd009ee6ed97288ffd56a9a9d4c1d73d5146916c2145e715fbf06a11",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/economyWallet.ts",
+      "sourcePath": "src/world/economyWallet.ts",
+      "bytes": 26087,
+      "sha256": "a089ef9bcf0bc0c26252ec1b6c8bd5d3b473c07b084ce8dd76c54ebf624d5e87",
+      "originalSha256": "a089ef9bcf0bc0c26252ec1b6c8bd5d3b473c07b084ce8dd76c54ebf624d5e87",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/goldLocalPreview.tsx",
+      "sourcePath": "src/world/goldLocalPreview.tsx",
+      "bytes": 2477,
+      "sha256": "ebdae21021de94f7b3b085dbb5e70bc2dde37109ab47fd8c6105f2d4c064266c",
+      "originalSha256": "ebdae21021de94f7b3b085dbb5e70bc2dde37109ab47fd8c6105f2d4c064266c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/houseSize.ts",
+      "sourcePath": "src/world/houseSize.ts",
+      "bytes": 547,
+      "sha256": "86911f567f77cf9a01ce75147af7541bf016610f41251e155154547dfebb8aa8",
+      "originalSha256": "86911f567f77cf9a01ce75147af7541bf016610f41251e155154547dfebb8aa8",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/households.ts",
+      "sourcePath": "src/world/households.ts",
+      "bytes": 12411,
+      "sha256": "178d7343dcc316416f5457957610512e891794f1c8423ebadbbf8be7ef2ce235",
+      "originalSha256": "178d7343dcc316416f5457957610512e891794f1c8423ebadbbf8be7ef2ce235",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/interior/InteriorView.tsx",
+      "sourcePath": "src/world/interior/InteriorView.tsx",
+      "bytes": 14929,
+      "sha256": "582c4b094449b6cfd9b3074340558883d5a27d7f608824d5f4dafcd36bfbaa40",
+      "originalSha256": "582c4b094449b6cfd9b3074340558883d5a27d7f608824d5f4dafcd36bfbaa40",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/inventory.css",
+      "sourcePath": "src/world/inventory.css",
+      "bytes": 1567,
+      "sha256": "42d29a51bcbca673bdc599a9d359a2a03c720ecf65cf429e4eda314fef3c8b78",
+      "originalSha256": "42d29a51bcbca673bdc599a9d359a2a03c720ecf65cf429e4eda314fef3c8b78",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/inventory.ts",
+      "sourcePath": "src/world/inventory.ts",
+      "bytes": 2490,
+      "sha256": "09662ef63c6cec7d03664d3ca45adaafac5bbd154ecaf1fb51eb06cc9d8cfd07",
+      "originalSha256": "09662ef63c6cec7d03664d3ca45adaafac5bbd154ecaf1fb51eb06cc9d8cfd07",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/inventoryClient.ts",
+      "sourcePath": "src/world/inventoryClient.ts",
+      "bytes": 3715,
+      "sha256": "a9f7797b2f8f5ee828addd88603a59080a81030ae026fae07db36e98f09417fe",
+      "originalSha256": "a9f7797b2f8f5ee828addd88603a59080a81030ae026fae07db36e98f09417fe",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/inventoryDisplay.ts",
+      "sourcePath": "src/world/inventoryDisplay.ts",
+      "bytes": 979,
+      "sha256": "b38b0c5e972306bce020f7f0d4b12d22406c0b8c00ef7cf74c0a9514a3aa97c5",
+      "originalSha256": "b38b0c5e972306bce020f7f0d4b12d22406c0b8c00ef7cf74c0a9514a3aa97c5",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/layout.ts",
+      "sourcePath": "src/world/layout.ts",
+      "bytes": 100610,
+      "sha256": "18abd191c4d83857531375152956e99343da36c58416379b0b2237d5a2cb88a7",
+      "originalSha256": "18abd191c4d83857531375152956e99343da36c58416379b0b2237d5a2cb88a7",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/layoutBaked.ts",
+      "sourcePath": "src/world/layoutBaked.ts",
+      "bytes": 12726,
+      "sha256": "7fa798fbf6b89f43686c548f307a198a79b1d3618b9596f88f7baa4e999a08d6",
+      "originalSha256": "7fa798fbf6b89f43686c548f307a198a79b1d3618b9596f88f7baa4e999a08d6",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/links.ts",
+      "sourcePath": "src/world/links.ts",
+      "bytes": 7897,
+      "sha256": "6a837eaf33a6b7e0b5ce97b7cd30130b1bdb9b074724d9fb7573130372f74f56",
+      "originalSha256": "6a837eaf33a6b7e0b5ce97b7cd30130b1bdb9b074724d9fb7573130372f74f56",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/market.ts",
+      "sourcePath": "src/world/market.ts",
+      "bytes": 13093,
+      "sha256": "08143343580ea8197f465a66578813633a19745ef841ae1957da50fcf8461b5f",
+      "originalSha256": "08143343580ea8197f465a66578813633a19745ef841ae1957da50fcf8461b5f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/memberBalancesClient.ts",
+      "sourcePath": "src/world/memberBalancesClient.ts",
+      "bytes": 2478,
+      "sha256": "06c90d55ad079a23b96a481c03630536aed75ad127dcff5e1d84900e55d076f6",
+      "originalSha256": "06c90d55ad079a23b96a481c03630536aed75ad127dcff5e1d84900e55d076f6",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/memberName.ts",
+      "sourcePath": "src/world/memberName.ts",
+      "bytes": 5860,
+      "sha256": "9e0a57dbd6dc81262fc834c20bdb6063fb56038e213e89dd857f8fe42523978a",
+      "originalSha256": "9e0a57dbd6dc81262fc834c20bdb6063fb56038e213e89dd857f8fe42523978a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/model.ts",
+      "sourcePath": "src/world/model.ts",
+      "bytes": 15964,
+      "sha256": "a558fee386eb170bc432e90e0317b4459012dcec9ce9d8c2db37e6c6aa9cdea6",
+      "originalSha256": "a558fee386eb170bc432e90e0317b4459012dcec9ce9d8c2db37e6c6aa9cdea6",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/moves.ts",
+      "sourcePath": "src/world/moves.ts",
+      "bytes": 5009,
+      "sha256": "ff5a1f600d6faa96cb95380efdcab9d0e27beb197404cde36dbc7509210d7624",
+      "originalSha256": "ff5a1f600d6faa96cb95380efdcab9d0e27beb197404cde36dbc7509210d7624",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/portalPresentation.ts",
+      "sourcePath": "src/world/portalPresentation.ts",
+      "bytes": 416,
+      "sha256": "8965bd63f324df5d6f3f212338bdb2fd12a46301edeb51cc90582d0b931f5b4c",
+      "originalSha256": "8965bd63f324df5d6f3f212338bdb2fd12a46301edeb51cc90582d0b931f5b4c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/publicHalls/runtime.ts",
+      "sourcePath": "src/world/publicHalls/runtime.ts",
+      "bytes": 38265,
+      "sha256": "6eb9f60b62dd8af7e6a7643f510e4013973b6b746d4c506bb209ddf067492cd2",
+      "originalSha256": "6eb9f60b62dd8af7e6a7643f510e4013973b6b746d4c506bb209ddf067492cd2",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/publicHashes.ts",
+      "sourcePath": "src/world/publicHashes.ts",
+      "bytes": 1783,
+      "sha256": "89a1929462bae64d206862f868bf3a90fd65c5b05e96d087c54431fdecf21201",
+      "originalSha256": "89a1929462bae64d206862f868bf3a90fd65c5b05e96d087c54431fdecf21201",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/publicUrl.ts",
+      "sourcePath": "src/world/publicUrl.ts",
+      "bytes": 1956,
+      "sha256": "d19b999798d10fbf5ffb984000e8715849c6d4241a1a0b1319507286f1242de6",
+      "originalSha256": "d19b999798d10fbf5ffb984000e8715849c6d4241a1a0b1319507286f1242de6",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/scene.ts",
+      "sourcePath": "src/world/scene.ts",
+      "bytes": 153684,
+      "sha256": "a51ad2ce656b162ac3fd4bc480ed10241a1b6b10550e2b04d0422495fc010ab3",
+      "originalSha256": "a51ad2ce656b162ac3fd4bc480ed10241a1b6b10550e2b04d0422495fc010ab3",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/siwe.ts",
+      "sourcePath": "src/world/siwe.ts",
+      "bytes": 3508,
+      "sha256": "c5d6f1518939f206f193346cfcd83de5c66b0eccce5ef74aeda33619d6292296",
+      "originalSha256": "c5d6f1518939f206f193346cfcd83de5c66b0eccce5ef74aeda33619d6292296",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/skin/daynight.ts",
+      "sourcePath": "src/world/skin/daynight.ts",
+      "bytes": 20025,
+      "sha256": "f81d267a1d16520cbd93eb7d87fe0a4757fa4d03ac062e8f53165431eb8704f5",
+      "originalSha256": "f81d267a1d16520cbd93eb7d87fe0a4757fa4d03ac062e8f53165431eb8704f5",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/skin/houses.ts",
+      "sourcePath": "src/world/skin/houses.ts",
+      "bytes": 7801,
+      "sha256": "47525f97a507ee337cfb18be3a568c2f812ee5747ad143c2a33e424d628fc324",
+      "originalSha256": "47525f97a507ee337cfb18be3a568c2f812ee5747ad143c2a33e424d628fc324",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/skin/kit.ts",
+      "sourcePath": "src/world/skin/kit.ts",
+      "bytes": 4779,
+      "sha256": "6a90a4f385509ebe0d0c78b3e5fb0d497c8bf92d2690fb93dca45c1a9f35a821",
+      "originalSha256": "6a90a4f385509ebe0d0c78b3e5fb0d497c8bf92d2690fb93dca45c1a9f35a821",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/skin/sceneMaterialIndex.ts",
+      "sourcePath": "src/world/skin/sceneMaterialIndex.ts",
+      "bytes": 2332,
+      "sha256": "6b89b9e1505ea6fc9a74f21a113083366b3d8b2d9cd027931b0f8c713763d557",
+      "originalSha256": "6b89b9e1505ea6fc9a74f21a113083366b3d8b2d9cd027931b0f8c713763d557",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/status.ts",
+      "sourcePath": "src/world/status.ts",
+      "bytes": 4638,
+      "sha256": "3db2191ad96abe7dd4f0685414b0b49d334a7246fb26fbcc0df1115bbe1ec00f",
+      "originalSha256": "3db2191ad96abe7dd4f0685414b0b49d334a7246fb26fbcc0df1115bbe1ec00f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/wallet.ts",
+      "sourcePath": "src/world/wallet.ts",
+      "bytes": 7875,
+      "sha256": "05d5aa59f1eacc0514afd2107a08f33c76b4347dd06e51bd97e224621c3b05d1",
+      "originalSha256": "05d5aa59f1eacc0514afd2107a08f33c76b4347dd06e51bd97e224621c3b05d1",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/walletBalances.css",
+      "sourcePath": "src/world/walletBalances.css",
+      "bytes": 360,
+      "sha256": "720183bbdfbf6484e0ac8d4d3c54390753c660829e7b7b057aca9c2c5e3c087c",
+      "originalSha256": "720183bbdfbf6484e0ac8d4d3c54390753c660829e7b7b057aca9c2c5e3c087c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/walletView.ts",
+      "sourcePath": "src/world/walletView.ts",
+      "bytes": 11122,
+      "sha256": "82303e87042fbe6c8d36022c1402a3dcd92decf19bcd200f3377ae9f691abc7a",
+      "originalSha256": "82303e87042fbe6c8d36022c1402a3dcd92decf19bcd200f3377ae9f691abc7a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/worldGold.css",
+      "sourcePath": "src/world/worldGold.css",
+      "bytes": 2040,
+      "sha256": "937233b7dd2088d1507058379686541afbc63d3b54dd572ec430713a007c40ae",
+      "originalSha256": "937233b7dd2088d1507058379686541afbc63d3b54dd572ec430713a007c40ae",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/worldGoldClient.ts",
+      "sourcePath": "src/world/worldGoldClient.ts",
+      "bytes": 3723,
+      "sha256": "b2e4722db8d5897e330bc5e793b82f99ea8b09965ba01989f1686e93bfd3690b",
+      "originalSha256": "b2e4722db8d5897e330bc5e793b82f99ea8b09965ba01989f1686e93bfd3690b",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/src/world/worldTime.ts",
+      "sourcePath": "src/world/worldTime.ts",
+      "bytes": 4569,
+      "sha256": "b10874c3e730a3b41cccdde17f563de3e4968bb2e93833048d4f8ac795f33e10",
+      "originalSha256": "b10874c3e730a3b41cccdde17f563de3e4968bb2e93833048d4f8ac795f33e10",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/aimarket-admin-client.test.mjs",
+      "sourcePath": "tests/aimarket-admin-client.test.mjs",
+      "bytes": 13078,
+      "sha256": "ac1a64ab5ea677c2873e11512bdd4daeb00525c450b4d6eae369145d6ea19bca",
+      "originalSha256": "ac1a64ab5ea677c2873e11512bdd4daeb00525c450b4d6eae369145d6ea19bca",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/aimarket-admin.test.mjs",
+      "sourcePath": "tests/aimarket-admin.test.mjs",
+      "bytes": 13513,
+      "sha256": "d5a675ea4442008b22d033522797801dee0c4ec537ee774dd1c0536bdf574604",
+      "originalSha256": "d5a675ea4442008b22d033522797801dee0c4ec537ee774dd1c0536bdf574604",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/aimarket-auth.test.mjs",
+      "sourcePath": "tests/aimarket-auth.test.mjs",
+      "bytes": 16900,
+      "sha256": "d024ebe13afe60f5884a7d1a7eeb22b036f38cd354e48b9ce86c9c137887285f",
+      "originalSha256": "d024ebe13afe60f5884a7d1a7eeb22b036f38cd354e48b9ce86c9c137887285f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/aimarket-campaign.test.mjs",
+      "sourcePath": "tests/aimarket-campaign.test.mjs",
+      "bytes": 4588,
+      "sha256": "fa51593223e0eaffa71d58e8ac48ee83480a107fafec94bd402b9483fe06fa03",
+      "originalSha256": "fa51593223e0eaffa71d58e8ac48ee83480a107fafec94bd402b9483fe06fa03",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/aimarket-delivery.test.mjs",
+      "sourcePath": "tests/aimarket-delivery.test.mjs",
+      "bytes": 6153,
+      "sha256": "6a02887672e595d9d509a631095fd571dd0e0d324ffe2de16c5d39aa49458b4d",
+      "originalSha256": "6a02887672e595d9d509a631095fd571dd0e0d324ffe2de16c5d39aa49458b4d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/aimarket-resilience.test.mjs",
+      "sourcePath": "tests/aimarket-resilience.test.mjs",
+      "bytes": 5311,
+      "sha256": "b500b85dcef70d595f8b730f6138492ae4fa2effe5f743e72eeff4ba666e8163",
+      "originalSha256": "b500b85dcef70d595f8b730f6138492ae4fa2effe5f743e72eeff4ba666e8163",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/d1-sqlite.mjs",
+      "sourcePath": "tests/d1-sqlite.mjs",
+      "bytes": 1933,
+      "sha256": "3576354e98803d0f1cb6f2f07ae394f1eafae2a73d04b3c98f3e9fef6d1310f3",
+      "originalSha256": "3576354e98803d0f1cb6f2f07ae394f1eafae2a73d04b3c98f3e9fef6d1310f3",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-adversarial.test.mjs",
+      "sourcePath": "tests/economy-adversarial.test.mjs",
+      "bytes": 9173,
+      "sha256": "f4ced28187058c3bce241ef0d04ce4a1f9324f04d5bef1adc719fcbc069631f3",
+      "originalSha256": "f4ced28187058c3bce241ef0d04ce4a1f9324f04d5bef1adc719fcbc069631f3",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-api.test.mjs",
+      "sourcePath": "tests/economy-api.test.mjs",
+      "bytes": 16219,
+      "sha256": "dae5527cec61205223059419ad8d7e8c701cd8131ad29e3c27a0bf7ca08681a1",
+      "originalSha256": "dae5527cec61205223059419ad8d7e8c701cd8131ad29e3c27a0bf7ca08681a1",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-audit-regressions.test.mjs",
+      "sourcePath": "tests/economy-audit-regressions.test.mjs",
+      "bytes": 11037,
+      "sha256": "28d7eb500a533e555dd65369527ac84bce6f446c4831448f91e067d880af0995",
+      "originalSha256": "28d7eb500a533e555dd65369527ac84bce6f446c4831448f91e067d880af0995",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-audit2-medium.test.mjs",
+      "sourcePath": "tests/economy-audit2-medium.test.mjs",
+      "bytes": 16354,
+      "sha256": "e6581b722312e87a3ac41b8175744f4ed1624d6e2cdc63763b6a3a32bf505a3f",
+      "originalSha256": "e6581b722312e87a3ac41b8175744f4ed1624d6e2cdc63763b6a3a32bf505a3f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-audit3-recovery.test.mjs",
+      "sourcePath": "tests/economy-audit3-recovery.test.mjs",
+      "bytes": 19131,
+      "sha256": "4ddfca5942e714461e9f4f05e1efdc2b26e2d3c92afe0a1858b0f123fae6b29e",
+      "originalSha256": "4ddfca5942e714461e9f4f05e1efdc2b26e2d3c92afe0a1858b0f123fae6b29e",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-audit4-recovery.test.mjs",
+      "sourcePath": "tests/economy-audit4-recovery.test.mjs",
+      "bytes": 18031,
+      "sha256": "5af5b51686d42cf6c05012ead66ebc89c794266e670d2de7d5ea9af26a815a10",
+      "originalSha256": "5af5b51686d42cf6c05012ead66ebc89c794266e670d2de7d5ea9af26a815a10",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-client.test.mjs",
+      "sourcePath": "tests/economy-client.test.mjs",
+      "bytes": 35823,
+      "sha256": "2ebb6067282d4f7d92e894662700ed32c6a448e545c67a79a5c1c26ac98a5205",
+      "originalSha256": "2ebb6067282d4f7d92e894662700ed32c6a448e545c67a79a5c1c26ac98a5205",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-forwarder.test.mjs",
+      "sourcePath": "tests/economy-forwarder.test.mjs",
+      "bytes": 13323,
+      "sha256": "68c1972651e2ca1c873512f25d7dd580a310f01266058b7706a018c5ae9ea97f",
+      "originalSha256": "68c1972651e2ca1c873512f25d7dd580a310f01266058b7706a018c5ae9ea97f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-journey.test.mjs",
+      "sourcePath": "tests/economy-journey.test.mjs",
+      "bytes": 12206,
+      "sha256": "ea61f61483aa6f2e24a5682378d7cdf55141813ade9c22ec6e66259eb9ff1aef",
+      "originalSha256": "ea61f61483aa6f2e24a5682378d7cdf55141813ade9c22ec6e66259eb9ff1aef",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-ledger.test.mjs",
+      "sourcePath": "tests/economy-ledger.test.mjs",
+      "bytes": 17172,
+      "sha256": "c69838260d33c301b849576b36e4d149c6059ba027a269ed931640c99683802f",
+      "originalSha256": "c69838260d33c301b849576b36e4d149c6059ba027a269ed931640c99683802f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-migration.test.mjs",
+      "sourcePath": "tests/economy-migration.test.mjs",
+      "bytes": 2748,
+      "sha256": "510862dc7e16bf4555509de16754cc105ca97ed4a6cb2c4e1a6f9270e734732b",
+      "originalSha256": "510862dc7e16bf4555509de16754cc105ca97ed4a6cb2c4e1a6f9270e734732b",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-pane.test.mjs",
+      "sourcePath": "tests/economy-pane.test.mjs",
+      "bytes": 27339,
+      "sha256": "bae1969d66e0b8ab17e63ec8d60093e5ccf2758b68dc97fae30deeea59f90fcd",
+      "originalSha256": "bae1969d66e0b8ab17e63ec8d60093e5ccf2758b68dc97fae30deeea59f90fcd",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-payload-roundtrip.test.mjs",
+      "sourcePath": "tests/economy-payload-roundtrip.test.mjs",
+      "bytes": 6674,
+      "sha256": "519aa69556b205d1eeb839a5b6f421419989587a385b512d4c3f494db348bb15",
+      "originalSha256": "519aa69556b205d1eeb839a5b6f421419989587a385b512d4c3f494db348bb15",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-payment-timing.test.mjs",
+      "sourcePath": "tests/economy-payment-timing.test.mjs",
+      "bytes": 12328,
+      "sha256": "548632fabe9dfdc52fb9fed729f40c1e8d67721d5c1f119f46b386eeb13331cd",
+      "originalSha256": "548632fabe9dfdc52fb9fed729f40c1e8d67721d5c1f119f46b386eeb13331cd",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-provider-range.test.mjs",
+      "sourcePath": "tests/economy-provider-range.test.mjs",
+      "bytes": 6429,
+      "sha256": "7afe5f144b342f962020a49227e4fca7e1f74b4ab6d983d80b15a377fc73c88e",
+      "originalSha256": "7afe5f144b342f962020a49227e4fca7e1f74b4ab6d983d80b15a377fc73c88e",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-read-session.test.mjs",
+      "sourcePath": "tests/economy-read-session.test.mjs",
+      "bytes": 1568,
+      "sha256": "27bac64a27b5712394056259a7a0f60eff9ef35bdffd23001a4a54234bf4b95c",
+      "originalSha256": "27bac64a27b5712394056259a7a0f60eff9ef35bdffd23001a4a54234bf4b95c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-reconciliation.test.mjs",
+      "sourcePath": "tests/economy-reconciliation.test.mjs",
+      "bytes": 20899,
+      "sha256": "817f6f296b2875cb16846311733e61f4242a8cad0602b5d07b6bb52203d7578c",
+      "originalSha256": "817f6f296b2875cb16846311733e61f4242a8cad0602b5d07b6bb52203d7578c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-rpc.test.mjs",
+      "sourcePath": "tests/economy-rpc.test.mjs",
+      "bytes": 24460,
+      "sha256": "06550ab5dc2dfea7d29d978226da6a1f558624ee1fbc03c81e2b0f6704e3d68f",
+      "originalSha256": "06550ab5dc2dfea7d29d978226da6a1f558624ee1fbc03c81e2b0f6704e3d68f",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-settlement.test.mjs",
+      "sourcePath": "tests/economy-settlement.test.mjs",
+      "bytes": 9721,
+      "sha256": "46edff6b7aabb50afa932ccea757e3adcbf9c62dc51b4f8f6848e6e310dac65c",
+      "originalSha256": "46edff6b7aabb50afa932ccea757e3adcbf9c62dc51b4f8f6848e6e310dac65c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-staging.test.mjs",
+      "sourcePath": "tests/economy-staging.test.mjs",
+      "bytes": 7386,
+      "sha256": "2386e446f5aac0b542ce772f3730b50ab610ad55c46fe4ba558f0549e8755ec4",
+      "originalSha256": "2386e446f5aac0b542ce772f3730b50ab610ad55c46fe4ba558f0549e8755ec4",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-wallet-recovery.test.mjs",
+      "sourcePath": "tests/economy-wallet-recovery.test.mjs",
+      "bytes": 15642,
+      "sha256": "2b97da94ea43a1c2b4ab968642006cadc25d2462be6991968f0a08ede8590d89",
+      "originalSha256": "2b97da94ea43a1c2b4ab968642006cadc25d2462be6991968f0a08ede8590d89",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/economy-worker.test.mjs",
+      "sourcePath": "tests/economy-worker.test.mjs",
+      "bytes": 6651,
+      "sha256": "7f387d43e877c22bd62ad2079e6f5669ea4b4512650e106cc365a7ffe755a13c",
+      "originalSha256": "7f387d43e877c22bd62ad2079e6f5669ea4b4512650e106cc365a7ffe755a13c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/inventory-live.test.mjs",
+      "sourcePath": "tests/inventory-live.test.mjs",
+      "bytes": 9615,
+      "sha256": "a812b537dbbfa58f2509caf4af7e8f7cdd34d9609b8821208b3e26e3716c1456",
+      "originalSha256": "a812b537dbbfa58f2509caf4af7e8f7cdd34d9609b8821208b3e26e3716c1456",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/member-balances.test.mjs",
+      "sourcePath": "tests/member-balances.test.mjs",
+      "bytes": 8055,
+      "sha256": "7af1f08f92240afe73385d97662e56bcf18821ef6d72b891a89a76f29cb2b936",
+      "originalSha256": "7af1f08f92240afe73385d97662e56bcf18821ef6d72b891a89a76f29cb2b936",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/presence.test.mjs",
+      "sourcePath": "tests/presence.test.mjs",
+      "bytes": 20960,
+      "sha256": "73528484f3ed25bbd5a620f25510e668b53a94e29f38685a2af22d54c7d75eb1",
+      "originalSha256": "73528484f3ed25bbd5a620f25510e668b53a94e29f38685a2af22d54c7d75eb1",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/wallet-harness.mjs",
+      "sourcePath": "tests/wallet-harness.mjs",
+      "bytes": 9807,
+      "sha256": "20d5e9b6e001cc2476f077a9ef7d4529860a28f73e675c00481a7c4be2b3ba26",
+      "originalSha256": "20d5e9b6e001cc2476f077a9ef7d4529860a28f73e675c00481a7c4be2b3ba26",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-api.test.mjs",
+      "sourcePath": "tests/world-gold-api.test.mjs",
+      "bytes": 12096,
+      "sha256": "aacdfbd599620726679af189ac79482f75f4bf48d66ed0f56227507e25667d58",
+      "originalSha256": "aacdfbd599620726679af189ac79482f75f4bf48d66ed0f56227507e25667d58",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit5-adversarial.test.mjs",
+      "sourcePath": "tests/world-gold-audit5-adversarial.test.mjs",
+      "bytes": 13153,
+      "sha256": "3150a06ce2e624a609ca8f6b485f6fa97d737d304084661ae028a250aab384ba",
+      "originalSha256": "3150a06ce2e624a609ca8f6b485f6fa97d737d304084661ae028a250aab384ba",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit5-fixture.mjs",
+      "sourcePath": "tests/world-gold-audit5-fixture.mjs",
+      "bytes": 3428,
+      "sha256": "8ced5901213ef5fa062804564d7f5f2392cd207614a637e30b5a7889f5c2442c",
+      "originalSha256": "8ced5901213ef5fa062804564d7f5f2392cd207614a637e30b5a7889f5c2442c",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit5.test.mjs",
+      "sourcePath": "tests/world-gold-audit5.test.mjs",
+      "bytes": 7755,
+      "sha256": "7450f0fbd68e0867b5245c809323d02062ff5a9779d36d5ec3fa5f9f9b8b3d0a",
+      "originalSha256": "7450f0fbd68e0867b5245c809323d02062ff5a9779d36d5ec3fa5f9f9b8b3d0a",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit6-integration.test.mjs",
+      "sourcePath": "tests/world-gold-audit6-integration.test.mjs",
+      "bytes": 11349,
+      "sha256": "1a9064fef6aa99b46e2904363fc89834b3db4731fffa83aeb51cfb59f8f38b74",
+      "originalSha256": "1a9064fef6aa99b46e2904363fc89834b3db4731fffa83aeb51cfb59f8f38b74",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit6-matrix.test.mjs",
+      "sourcePath": "tests/world-gold-audit6-matrix.test.mjs",
+      "bytes": 20713,
+      "sha256": "21e1fe54852513d640ec56b408a2d72bacce8dfe5bdcf78a42415eff7c4547c6",
+      "originalSha256": "21e1fe54852513d640ec56b408a2d72bacce8dfe5bdcf78a42415eff7c4547c6",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit6.test.mjs",
+      "sourcePath": "tests/world-gold-audit6.test.mjs",
+      "bytes": 7433,
+      "sha256": "63a5730b6d767965c4fca54d306912ffe5f023e2e2a9b53729482ec0271dd6c9",
+      "originalSha256": "63a5730b6d767965c4fca54d306912ffe5f023e2e2a9b53729482ec0271dd6c9",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-audit7.test.mjs",
+      "sourcePath": "tests/world-gold-audit7.test.mjs",
+      "bytes": 5471,
+      "sha256": "7b5178909de348bf2a974c0aff6c045f53b3b8c8ec92086e7ab1133fc101ed7d",
+      "originalSha256": "7b5178909de348bf2a974c0aff6c045f53b3b8c8ec92086e7ab1133fc101ed7d",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold-native-journey.test.mjs",
+      "sourcePath": "tests/world-gold-native-journey.test.mjs",
+      "bytes": 6435,
+      "sha256": "55b34fe8885449e925eceaa0f3599513803192c278204c1f51cc84dfc065c2a6",
+      "originalSha256": "55b34fe8885449e925eceaa0f3599513803192c278204c1f51cc84dfc065c2a6",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-gold.test.mjs",
+      "sourcePath": "tests/world-gold.test.mjs",
+      "bytes": 16673,
+      "sha256": "89e479ae0616badcf87c65dbe9ef78ba2c76ae00cfbf61149288e2851be96aaa",
+      "originalSha256": "89e479ae0616badcf87c65dbe9ef78ba2c76ae00cfbf61149288e2851be96aaa",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tests/world-library-cover.test.mjs",
+      "sourcePath": "tests/world-library-cover.test.mjs",
+      "bytes": 11612,
+      "sha256": "a6dba395442cd488f772cc372411c634681893697094baa3c635f6339ede14a5",
+      "originalSha256": "a6dba395442cd488f772cc372411c634681893697094baa3c635f6339ede14a5",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/tsconfig.json",
+      "sourcePath": "tsconfig.json",
+      "bytes": 419,
+      "sha256": "03c177649a9bb7b7b64c8a7b7211ecad6fa1a9cc6d6cfe11eceb5e00ba53e3c3",
+      "originalSha256": "03c177649a9bb7b7b64c8a7b7211ecad6fa1a9cc6d6cfe11eceb5e00ba53e3c3",
+      "byteExact": true
+    },
+    {
+      "path": "world-source/worker/app.ts",
+      "sourcePath": "worker/app.ts",
+      "bytes": 21600,
+      "sha256": "f40b689825d70d00b7f624fb5ed470c6371146b6a46e2948a6ad83b7559182df",
+      "originalSha256": "f40b689825d70d00b7f624fb5ed470c6371146b6a46e2948a6ad83b7559182df",
+      "byteExact": true
+    }
+  ],
+  "previousSourceCommit": "41ca333db50696a0a2f4c886d6fe7171637908cc",
+  "previousPublicCommit": "e5ca6e5ac90a9e78b4739a242995121e791cff92",
+  "omittedUnrelatedChangedFiles": [
+    {
+      "path": "tests/deploy-evidence.test.mjs",
+      "reason": "Full-repository deployment provenance test needs historical Git refs/assets; passed in the full private release suite, outside selected financial reproduction."
+    }
+  ]
+}

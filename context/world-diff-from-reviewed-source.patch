@@ -1,0 +1,1619 @@
+diff --git a/docs/world-gold-audit6-release-gates.md b/docs/world-gold-audit6-release-gates.md
+new file mode 100644
+index 0000000..6e8573a
+--- /dev/null
++++ b/docs/world-gold-audit6-release-gates.md
+@@ -0,0 +1,19 @@
++# D-10: contracts supplied, production integration still closed
++
++Status: **local interface/documentation supplied; production integration unverified**. This Info item is not labelled a fixed production feature. `reviewedEconomyConfig()` still returns null. The deployed entry installs no real delivery consumer and no finalized public-chain Mint reader. No deployment, production DB migration, real payment or production setting switch belongs to this round.
++
++| Boundary | Existing local contract | Required independent production evidence |
++| --- | --- | --- |
++| World identity | Current SIWE session/wallet continuity, EOA write authority, origin and final SQL revalidation; immutable original order | Real wallet nonce/replacement/account switching and current deployment session behavior. No new bridge secret or second login signature is introduced by these fixes. |
++| Research/fortune delivery | `GoldDeliveryProvider` is a trusted server object, validated provider id, original `orderId` idempotency key, pending/delivered/structured terminal failure; no HTTP/env `serviceReady` grant | Actual AIMarket/fortune/VPS authenticated adapter, service/version allowlist and response validation, independent QUERY-before-retry after timeout, persistent upstream idempotency/receipt, result retrieval and one-time refund/restore under failure. |
++| Minimal result document | Reviewed research/fortune fixture contracts accept nonblank text/report/content, explained numeric0/false, or explained zero-signal status; reject empty/cyclic/oversize/invalid Unicode | Real product-specific output schemas, report ownership/access and source authenticity. The generic local validator does not prove that a genuine paid report was generated. Unknown result contract cannot admit new service charges. |
++| Shared pricing/treasury | Immutable price-version quotes; original-amount credit/refund; same confirmed treasury and three owners | Formal prices, verified revenue recipient, policy for admin pricing power. Per-product safe-integer bound is a technical bound, not a total issuance limit. Staking principal is never purchase revenue. |
++| Mint binding | `MintBinding` includes wallet/order/cost/chain/contract/instance/deadline plus validated recorded auth. Same-id full retry conflict checks persist | Production authorization schema/signature authority and runtime/immutables/catalogue verification; no implicit permission from a JSON document or successful fixture Mint. |
++| Mint facts | `MintProofReader` reads exact persisted original binding and returns complete proof; mode is31337/private or non31337/finalized with TS+SQL agreement | Deployment-pinned public-chain RPC/reader, canonical finalized blocks/receipts, reorg/lag/outage behavior, persistent original namespace registry and signer/version lifecycle. Non31337 is not by itself evidence of finality. |
++| Restart/restore | Durable SQLite obligations, immutable event/receipt history, bounded retries, same-live-chain EDR restore | Durable production provider/reader registry and original-chain access after real process/host restart. Lost EDR chain authority remains blocked. |
++| Worker/D1 | Exact production SQL on local workerd D1, page and queue bounds, no-schema refusal and independent maintenance | Measured deployed CPU/query/row limits, realistic indexes and volumes, rate limits and operator diagnostics. Local nine-fact D1 test is not production capacity proof. |
++| Rollout/rollback | Forward0016 and offline-copy plan; preserved old migrations, original source/artifacts/evidence and release | Explicit authorized production backup/migrate/deploy/config/consumer installation; external Audit verdict on the exact new public candidate; actual postflight and reversible code/config plan. |
++
++All tokenomics remain: GOLD wallet-bound/nontransferable/nonredeemable, no AMM/trading pair;100000 EMBEO per full UTC day produces1 GOLD with withdrawn shares losing only that day; principal withdrawable; free/paid R4 share2222 simultaneously, one eligible free Mint per wallet with neither fee and no three-day window; paid Mint still requires its separate EMBEO plus GOLD. Prices are fixtures. Game rewards and production NFT/collection rights remain deferred.
++
++No new GitHub commit URL exists until a separate authorized publication is verified. A local World commit is not necessarily a public repository commit. The Audit form must eventually use the actual newly published commit, never the old4505078 baseline.
+diff --git a/docs/world-gold-audit6-remediation.md b/docs/world-gold-audit6-remediation.md
+new file mode 100644
+index 0000000..d551ba1
+--- /dev/null
++++ b/docs/world-gold-audit6-remediation.md
+@@ -0,0 +1,56 @@
++# Shared GOLD cross-path remediation of Audit 188a3018
++
++Baseline public review commit: `450507815fec44e1c496999e07da1b006861c5dd`.
++Baseline World commit: `7afdd097847d2cd6b5d503734566afc1b78a2c8d`.
++This document belongs to the new local candidate identified by its selected-source manifest. The copied Mint/Python sources have separate exact hashes. It does not identify a new public commit or authorize publication, payment, production migration or deployment.
++
++## Disposition and failure evidence
++
++Finding numbers below refer only to job188a3018, not similarly numbered findings in earlier jobs. `audit6-before-node.log` reproduces nine failing Node cases on the unchanged baseline, including two schema cases for D-03; `audit6-before-python-isolated.log` reproduces both D-04 failures. The earlier Python launcher log records a Windows temporary-directory harness failure and accidental imported-test discovery; it is not counted as defect reproduction. The isolated rerun fixes only the launcher/test import. Expanded Python clock tests also corrected the test clock patcher target before the successful rerun. All attempts are retained privately.
++
++| ID | Original grade | Implementation and preserved boundary | Executable evidence |
++| --- | --- | --- | --- |
++| D-01 | Medium | Forward SQL0016 guards every positive `economy_gold_journal` insert before integer addition. Settlement creates immutable config/day/wallet entitlements within the existing page CAS transaction. Its trigger either credits the original journal or keeps a nonspendable owed row. Bounded independent retry credits once when capacity permits. Recovery counts issued and pending entitlements separately and preserves both. Topup/refund credits retain original immutable paid obligations and per-order retry. | `world-gold-audit6.test.mjs` M1; matrix T01–T03; integration exact1025-order reproduction and backup/recovery; native D1 capacity and concurrent retry facts. |
++| D-02 | Low | `sharedServiceAdmission` rejects unlinked catalogue GOLD orders in a shared DB. `createEconomyOrder` refuses new catalogue GOLD admissions there; new services use `goldQuote`. Valid linked payments keep final pause/session/available-balance checks plus atomic debit/paid/challenge/job. Old paid unlinked orders are preserved for read-only inspection, never silently refunded or declared delivered. | Baseline L2; existing pause/challenge/job-fault regressions; current-schema refusal and historical inventory tests. |
++| D-03 | Low | One uncached capability inventory checks112 financial SQL objects and244 columns across37 tables, including required indexes/triggers. All current shared quote/debit/reserve/maintenance paths refuse incomplete schemas with `SCHEMA_INCOMPLETE`. The deployed World POST entry requires readiness even before0014, so no standalone fallback can reopen old money routes. Old paid/refund/held facts remain stored and resume after forward migrations. | Schema version, table/column/index/trigger removal and migration-after-refusal matrix; retained paid pre0015 topup; Worker pre0014 admission and cron diagnostic tests. |
++| D-04 | Low | Python `_identity` separates structural errors from normal identity expiry using one post-response time sample. Expired identity cleanly denies and revokes; trial expiry only removes the trial grant. After balance/network waits the session is checked again and expired rows are revoked. External profile never receives World trial access. | Python audit6 identity/trial now−1/equal/+1, latency, balance wait, malformed upper/type bounds and external-profile cases; prior trial suite retained. |
++| D-05 | Low | A packet is reused only while its original deadline is strictly in the future. At equality, approval refuses `PAID_AUTH_NOT_MINEABLE` while leaving the original hold intact. Expired/latest evidence insufficient for the required reader also stays held. Only original namespace consumption/revocation/strictly-later chain expiry permits terminal settlement. Reuse retains wallet/cost/key/URI/epoch/recipient/domain/run bindings. | Baseline L5; private EVM before/equal/after deadline and pending-proof tests. |
++| D-06 | Low | `encodeGoldResult` validates the persisted JSON against explicit research/fortune review result contracts. Null, blank/empty documents, undefined, cycles, excessive UTF8 or lone surrogates become terminal unusable-result evidence and an original-price refund attempt. Explained zero/false and structured no-signal results are valid; timeout stays unknown. Unbound result contracts refuse new charges and cannot falsely finalize old jobs. Fresh post-validation time preserves lease fencing. | Baseline L6; empty/Unicode/deep JSON, explained zero/no-signal, timeout/idempotency, capacity/refund/reprice and late-lease tests. |
++| D-07 | Low | Both TS and additive SQL mode guard require31337/private-fixture in both directions. Complete original order/wallet/cost/chain/contract/instance/block/outcome proof checks remain. Mode is an internal classification, not proof of public finality. | Baseline L7; direct-SQL wrong-mode and guard-removal calibration, prior full proof/clock checks. |
++| D-08 | Low | Auth must be a nonempty lossless plain JSON object with no functions/symbols/undefined/cycles/accessors/custom serializers/nonfinite values; maximum32 nesting levels and16000 UTF8 bytes. Recorded fixture documents require matching wallet/id (and cost when present); real local wrapped auth/packet/anchor fields are checked against the complete Mint binding. Existing metadata conflicts still return `MINT_ORDER_CONFLICT`; malformed new auth returns `INVALID_MINT_AUTH` with no hold or journal. | Baseline L8; malformed structures, cross-wallet/id, multibyte size, no-write assertions and original same-binding retry tests. Actual private-EVM journey verifies the wrapped format. |
++| D-09 | Info | The private runtime hook receives the validated route and checks the GOLD mint feature for `paid` only. Existing paid holds can still settle while admission is paused. Independent contract-wide emergency pause, eligibility, one-free-per-wallet and supply rules remain. | Baseline I9 plus actual private free Mint with unchanged EMBEO/GOLD and existing paid-hold consumption during paid-only pause. |
++| D-10 | Info/release gates | Documentation/contracts are supplied; real integration is still unverified and disabled. `reviewedEconomyConfig` remains null. No fake provider or fixture finality reader is installed in the deployed entry. | Existing default-entry/HTTP/env capability refusal tests, separate release-gates document. |
++
++The expanded inspection additionally reproduced a stale payment-time sample after asynchronous shared readiness checks (`audit6-cross-path-discovery-before.log`), then corrected it and reran the failure (`...-after.log`). Pending service debit resamples time after admission I/O, checks the original challenge/order deadlines again and uses that fresh time in its SQL authorization predicates. The provider runner similarly supplies a live clock through claim/finalization waits.
++
++## Operation paths and final SQL boundaries
++
++| Operation | Actual trusted entry and data path | Final SQL protection / state |
++| --- | --- | --- |
++| UTC staking reward | finalized RPC -> `ingestEconomyEvents` -> bounded `settleEconomy` -> `rewardEntitlementStatement` -> `economy_gold_reward_entitlements` -> original `economy_gold_journal` -> `economy_gold_accounts` | Page CAS + frozen day/position scope; immutable reward identity; capacity predicate before positive addition; owed rows are not book or available GOLD. |
++| Owed reward retry | independent `reconcileWorldGold` -> `reconcileRewardEntitlements` (max32/call) -> original journal + settled marker in one batch | Same wallet/day/config/id/delta/reference; unique original journal; no settled marker without matching journal; per-row cooldown/error and immutable entitlement. |
++| EMBEO topup | `goldQuote` -> immutable product/link/order -> receipt-verifying indexer -> paid evidence -> per-order reconciliation -> `world_gold_entries` | Exact original paid payer/chain/token/treasury/order/amount; authority and capacity triggers; original remaining entitlement only; once-only source reference. |
++| Service payment | `goldQuote` -> existing explicit EOA challenge/signature -> `payEconomyOrderGold` | Complete schema + trusted runtime binding + known result contract + feature control; live session/current wallet/origin; available excludes held; one batch for journal/order/challenge/job. |
++| Legacy catalogue GOLD | retained standalone helpers only on explicit historical DBs; deployed World entry always requires the shared schema | Shared DB refuses unlinked new admissions/challenges/debits. Historical test profile is not a production fallback. No empty-catalogue assumption. |
++| Delivery/retry | trusted `GoldDeliveryProvider` -> max16 `runGoldServiceJobs` -> fenced claim/finish | Provider idempotency key is original orderId; fresh attempt/lease; saved result fetched without another debit; structured failure evidence. Timeout/unknown never authorizes refund. |
++| Refund | terminal failed job -> `refundGold` or original bounded administrator action -> shared credit | Original order/link/cost, failed job, authority/capacity guards, source dedupe; only actual credit permits `refunded`. At capacity job remains failed/refund-pending and original amount remains owed. |
++| Historical correction | offline original and independently rebuilt copies -> `prepare/applyEconomyRecovery` | Event replay entitlement, issued reward/adjustment + separately accounted pending reward; purchases/refunds excluded from earned amounts. Every source snapshot including owed rows is guarded in final atomic plan. New correction that cannot fit is a coded blocked plan, not an automatic partial/forgiven debt. |
++| Paid Mint hold | trusted adapter -> `reserveMintGold` -> mint binding + hold | Full schema, typed metadata/auth, feature check, immutable binding/retry equality, available-balance trigger; no browser-supplied balance/proof. |
++| Mint consume/release | trusted preserved namespace reader -> `settleMintGold` or bounded persisted reconciliation | Complete proof plus bidirectional mode mirror; exact original hold transition; one debit and immutable before/after settlement receipt; wall time/new process/SQLite restore is never release authority. |
++| Administrator | same confirmed owner allowlist + live EOA session -> versioned product/campaign/control or evidenced repair | Atomic before/after and reason/request evidence, immutable quotes and receipts, no arbitrary balance setter. Treasury/pricing trust assumptions remain explicit. |
++
++`economy_gold_days`/`settledDays` now mean that scanning has durably accounted for that day. Outstanding reward rows have a separate uncredited state and bounded retry. World GOLD and staking panes label pending rewards outside spendable balances; the staking heading says “Rewards calculated through.” A failed service is labelled refund-pending, not refunded.
++
++## Compatibility and tests
++
++| DB/profile | New World finances | Maintenance/recovery behavior |
++| --- | --- | --- |
++| pre0014 | Deployed World refuses POST finance; shared helpers refuse schema | Original standalone helper tests retain their historic profile; read-only historical recovery remains valid or coded refusal. It is not an alternate deployed money path. |
++|0014 without0015 | `SCHEMA_INCOMPLETE` | No raw missing-table error; paid/refund/held obligations stay stored. |
++|0015 without0016 | `SCHEMA_INCOMPLETE` | Complete shared capability required before resuming. No old migration file is rewritten. |
++| complete0016 | Normal reviewed candidate behavior | Per-order/per-wallet bounded maintenance, refund/reward recovery and original-chain Mint proof. |
++| missing required column/index/trigger/table | `SCHEMA_INCOMPLETE` even when other tables exist | Uncached readiness recognizes restoration/migration on the next call. Inspection reports uninspected rather than a clean inventory. |
++
++Original standalone catalogue tests explicitly run migrations before0014 with all their original authorization, signature, pricing, timing, atomicity and recovery assertions intact. Current shared tests exercise the new refusal/linked-service contracts, page fairness, real private EVM flows and direct SQL. Mutation calibrations issue SQL directly, so an application readiness refusal cannot masquerade as a working SQL guard; removing all relevant proof guards or the particular mode/reserve guard must expose the unsafe transition.
++
++T01–T22 from the supplied supplement are mapped to these tests, earlier retained audit regressions, the actual private-EVM journey and native workerd D1 facts. Final authoritative counts, commands, source pin and hashes are in the sealed candidate validation record after the complete run, not this preliminary document. No local test result is a new Swarm verdict.
+diff --git a/docs/world-gold-audit6-runbook.md b/docs/world-gold-audit6-runbook.md
+new file mode 100644
+index 0000000..a30f3c0
+--- /dev/null
++++ b/docs/world-gold-audit6-runbook.md
+@@ -0,0 +1,47 @@
++# Planned shared GOLD migration, inspection and recovery
++
++This is a reviewable LOCAL plan only. Do not execute remote D1 commands, restart/reset the preserved chain, alter production secrets/configuration, enable services, send real payments or deploy this candidate as part of packet preparation.
++
++## Forward migration and interruption
++
++1. Capture the exact reviewed source/auxiliary hashes and the original DB's applied-migration list plus table/column/index/trigger inventory. Preserve original exports and their SHA256, existing services, finalized event evidence, chain namespace registry and previous release.
++2. On an offline duplicate only, verify integrity and FK checks, then apply the exact *missing* canonical migrations in order. An already applied0010–0015 is never edited/reapplied. The new change is0016. Known historical schemas missing0014/0015 apply those original files first. Unknown partial/mixed schemas require explicit review; presence of one table does not authorize guessing a migration history.
++3. Verify `worldGoldSchemaReady` returns true for the complete reviewed112-object/244-column inventory. It has no positive/negative cache. Verify account/book/held/available, original paid entitlements, failed refunds, day progress and pending rewards. Compare the original export byte-for-byte; only the duplicate changes.
++4. Reproduce code-ahead-of-schema: current World POST refuses `SCHEMA_INCOMPLETE`, maintenance logs a coded deferred state, no new debit/quote/hold is accepted, and original obligations remain. Apply missing migrations on the duplicate and retry the exact original order; do not request payment again.
++5. The old `economy-recovery.mjs migrate-copy` is the retained historical0012/0013 recovery tool, not a complete shared-GOLD migrator. The0014–0016 duplicate upgrade is demonstrated separately by executable audit6 migration tests. No new production migration has been applied or promised.
++
++An eventual production rollout should keep all new admissions disabled through verified backup, migration, source/config/consumer compatibility checks and postflight. Code-first mistakes must still fail closed. Prefer forward fixes or roll back code/config to the compatible reviewed release; do not reverse a migration by dropping financial tables. Restoring SQLite does not restore EVM authority. A lost original reader/chain stays blocked.
++
++## Read-only exception inventory
++
++`inspectWorldGoldExceptions` is a bounded internal read-only helper, without a public HTTP endpoint or arbitrary SQL/credit input. It returns schema readiness, case rows and per-category next cursors. Paginate each category; a100-row page is not a full database certification. An incomplete schema yields `SCHEMA_INCOMPLETE` with no inspected cases and must not be interpreted as “no exceptions.” Use an upgraded offline duplicate to inspect older exports; retain the unchanged original.
++
++| Case | Preserved evidence | Planned handling; no production action this round |
++| --- | --- | --- |
++| Owed staking reward | Original config/day/wallet/delta/reference; settled-null and retry state | First verify earned event entitlement. Let bounded retry insert the original journal only when capacity fits. Never add a new-day replacement reward or erase the owed row. |
++| Failed service/refund pending | Original paid order/link/cost and terminal evidence; actual credits | Retry exact remaining original refund. Capacity failure retains failed/refund-pending, never claims `refunded`. Once actual credit commits, terminal refunded and receipt become authoritative. |
++| Legacy paid without durable job | Original service id/wallet/amount, signature debit, paid status and legacy fulfillment | Independently determine actual delivery/contract. Prepare a reviewed append-only reconciliation/compensation plan bound to the original order and maximum outstanding amount. Do not invent a new price, charge again, blindly deliver again, or assume legacy fulfillment means an external report was delivered. Current code blocks new legacy admissions; it does not assert all historical legacy cases are resolved. |
++| Historical delivered-empty result | Original debit/result/evidence/status | Preserve history and identify actual nondelivery. Propose separately reviewed compensating evidence/credit, with original-price cap and dedupe. Do not rewrite delivered/evidence fields or misuse a generic balance setter. |
++| Wrong historical proof-mode label | Original immutable settlement and original chain/reader facts | Preserve the immutable row. Prepare an append-only classification correction linked to independently verified facts; never relabel a private chain as finalized or alter the old receipt to conceal it. |
++| Held Mint | Full persisted binding, original registry/reader/chain and proof | Settle only with the preserved authority. Latest-time/retry eligibility is not finalized expiry authority. A new runId/chain, process restart, restored DB or missing memory map never suffices. |
++
++No inventory result establishes that production actually contains these cases. This round's examples are isolated fixtures. Historical compensation for paid-no-job or delivered-empty cases requires its own reviewed data plan; no such production mutation is implemented or executed here.
++
++## Observable maintenance and manual recovery
++
++- Topup/refund reconciliation processes at most128 candidates per class, commits each independently and records per-order stable error/cooldown. An explicit original-order retry can recheck after room appears without repricing it.
++- Pending reward retry processes at most32 original rows, exposes credited/capacity/retry status, and defers unsuccessful rows for five minutes. The day marker means accounted scanning; owed is not issued. A target journal fault must not roll back healthy peers or erase its entitlement.
++- Provider runner claims at most16 jobs. `orderId` is the external idempotency key across timeout/restart. Use QUERY/DELIVER semantics from the provider contract; unknown delivery is not terminal nondelivery. Attempts/leases fence stale writers.
++- Mint reconciliation is max32 with a persisted cursor. Wrong/missing authority returns a blocked diagnostic and preserves holds. Reset with an injected persistent ledger is refused before chain or memory changes.
++- Historical correction separates book/spent amounts from earned event entitlements. Pending rewards are counted as already owed and included in the atomic source snapshot, so the same share-day cannot be corrected and later retried twice. If a **new correction** cannot fit, the reviewed plan remains blocked with a coded integer-capacity error; it does not cancel rights or publish a partial unreviewed plan.
++- Real Workers CPU/D1 limits, provider completeness, durable chain namespace/reader registry, real-wallet behavior and production migration/postflight are separate release gates. Bounded local work and exact-SQL local D1 tests do not certify production capacity.
++
++## Three complete flow proofs
++
++1. **Topup -> shared balance:** exact contract payment receipt/log -> order paid -> one original credit -> replay/partial credit/price change -> state reload. Actual private EVM plus native D1 paths are retained. The exact1025-order SQL reproduction establishes the reported capacity precondition using legitimate current quotes rather than a balance setter.
++2. **Service -> delivery/refund:** explicit signed debit -> one durable job -> saved result without another charge; pending timeout with the same key; terminal invalid result or structured nondelivery -> original refund once. Refilled capacity keeps refund pending until room exists. Concurrent/late worker and DB-write-fault controls preserve atomicity.
++3. **Mint -> consume/legal release:** exact scoped hold -> real private EVM free/paid execution -> one consume receipt; equality refuses retry without release; delayed authority stays pending; later verified expiry/revocation releases; map loss and same-chain SQLite backup restore recover against the original reader. A paid-only GOLD pause leaves eligible free mint fee-free and existing hold settlement serviceable.
++
++The private EVM is memory-only. Same-chain backup tests retain its original running authority. They prove neither machine-restart EVM persistence nor public finality.
++
++Old pre0016 recovery binaries must not process a migrated book with owed rewards. SQL0016 refuses new plans without the pending-entitlement-aware report marker while owed rows exist. A rollback keeps finances disabled and preserves the compatible maintenance binary/obligations; it does not reactivate an old writer or discard a queue.
+diff --git a/migrations/0016_world_gold_cross_path_guards.sql b/migrations/0016_world_gold_cross_path_guards.sql
+new file mode 100644
+index 0000000..8ddf91b
+--- /dev/null
++++ b/migrations/0016_world_gold_cross_path_guards.sql
+@@ -0,0 +1,56 @@
++-- Forward-only remediation of Audit job 188a3018. Historical migrations and
++-- immutable journals/quotes remain unchanged. No production migration is run.
++CREATE TRIGGER economy_gold_credit_capacity BEFORE INSERT ON economy_gold_journal
++WHEN NEW.delta>0 AND COALESCE((SELECT balance FROM economy_gold_accounts WHERE wallet=NEW.wallet),0)>9223372036854775807-NEW.delta
++BEGIN SELECT RAISE(ABORT,'GOLD_BALANCE_CAPACITY'); END;
++
++-- A processed UTC day can have outstanding wallet entitlements. They are not
++-- spendable/book GOLD until the exact original journal is committed. One row
++-- per original config/day/wallet; no caller can alter its economic identity.
++CREATE TABLE economy_gold_reward_entitlements(
++ id TEXT PRIMARY KEY, config_id TEXT NOT NULL, day_start_ms INTEGER NOT NULL,
++ wallet TEXT NOT NULL, delta INTEGER NOT NULL CHECK(typeof(delta)='integer' AND delta>0),
++ reference TEXT NOT NULL UNIQUE, created_ms INTEGER NOT NULL,
++ settled_ms INTEGER, retry_ms INTEGER NOT NULL DEFAULT 0,
++ attempts INTEGER NOT NULL DEFAULT 0 CHECK(typeof(attempts)='integer' AND attempts>=0),
++ CHECK(typeof(day_start_ms)='integer' AND day_start_ms>=0 AND day_start_ms%86400000=0),
++ CHECK(reference=config_id||':'||CAST(day_start_ms AS TEXT)||':'||wallet),
++ CHECK(id='reward:'||reference), UNIQUE(config_id,day_start_ms,wallet)
++);
++CREATE INDEX economy_gold_reward_pending ON economy_gold_reward_entitlements(settled_ms,retry_ms,id);
++CREATE INDEX economy_gold_reward_wallet ON economy_gold_reward_entitlements(wallet,settled_ms,day_start_ms);
++CREATE TRIGGER economy_gold_reward_no_delete BEFORE DELETE ON economy_gold_reward_entitlements
++BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REWARD_ENTITLEMENT'); END;
++CREATE TRIGGER economy_gold_reward_update BEFORE UPDATE ON economy_gold_reward_entitlements
++WHEN NEW.id<>OLD.id OR NEW.config_id<>OLD.config_id OR NEW.day_start_ms<>OLD.day_start_ms
++ OR NEW.wallet<>OLD.wallet OR NEW.delta<>OLD.delta OR NEW.reference<>OLD.reference OR NEW.created_ms<>OLD.created_ms
++ OR (OLD.settled_ms IS NOT NULL AND NEW.settled_ms IS NOT OLD.settled_ms)
++ OR (NEW.settled_ms IS NOT NULL AND NOT EXISTS(SELECT 1 FROM economy_gold_journal j
++      WHERE j.id=OLD.id AND j.reference=OLD.reference AND j.wallet=OLD.wallet AND j.delta=OLD.delta AND j.kind='utc-reward'))
++BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REWARD_ENTITLEMENT'); END;
++CREATE TRIGGER economy_gold_reward_insert BEFORE INSERT ON economy_gold_reward_entitlements
++WHEN NEW.settled_ms IS NOT NULL OR NEW.retry_ms<>0 OR NEW.attempts<>0
++BEGIN SELECT RAISE(ABORT,'INVALID_REWARD_ENTITLEMENT'); END;
++CREATE TRIGGER economy_gold_reward_apply AFTER INSERT ON economy_gold_reward_entitlements
++BEGIN
++ INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms)
++ SELECT NEW.id,NEW.wallet,NEW.delta,'utc-reward',NEW.reference,NEW.created_ms
++ WHERE COALESCE((SELECT balance FROM economy_gold_accounts WHERE wallet=NEW.wallet),0)<=9223372036854775807-NEW.delta;
++ UPDATE economy_gold_reward_entitlements SET settled_ms=NEW.created_ms
++ WHERE id=NEW.id AND EXISTS(SELECT 1 FROM economy_gold_journal WHERE id=NEW.id AND reference=NEW.reference AND wallet=NEW.wallet AND delta=NEW.delta AND kind='utc-reward');
++END;
++
++-- An old recovery binary does not snapshot or subtract pending entitlements.
++-- Refuse its unversioned new plans while owed rows exist, rather than let a
++-- rollback tool compensate a share-day which the current queue will also pay.
++CREATE TRIGGER economy_gold_reward_recovery_version BEFORE INSERT ON economy_recoveries
++WHEN EXISTS(SELECT 1 FROM economy_gold_reward_entitlements WHERE settled_ms IS NULL)
++ AND NOT COALESCE(json_valid(NEW.report_json) AND json_extract(NEW.report_json,'$.pendingRewardsAccounted')=1,0)
++BEGIN SELECT RAISE(ABORT,'RECOVERY_REWARD_SCHEMA_REQUIRED'); END;
++
++-- The original complete proof predicate remains. Add its missing reverse
++-- namespace/mode restriction without rewriting immutable historical evidence.
++CREATE TRIGGER world_gold_mint_proof_mode BEFORE UPDATE ON world_gold_mints
++WHEN NOT COALESCE((OLD.chain_id=31337 AND json_extract(NEW.evidence_json,'$.mode')='private-chain-fixture')
++ OR (OLD.chain_id<>31337 AND json_extract(NEW.evidence_json,'$.mode')='finalized-chain'),0)
++BEGIN SELECT RAISE(ABORT,'MINT_EVIDENCE_REQUIRED'); END;
+diff --git a/scripts/world-gold-local-runtime.mjs b/scripts/world-gold-local-runtime.mjs
+index b6d9663..fcd948c 100644
+--- a/scripts/world-gold-local-runtime.mjs
++++ b/scripts/world-gold-local-runtime.mjs
+@@ -20,7 +20,7 @@ export async function createGoldLocalRuntime({filename=':memory:'}={}){
+  const config=await defineLocalEconomyConfig({chainId:31337,token:mint.tokenAddress,tokenDecimals:18,stakingContract:'0x'+'9'.repeat(40),paymentContract:await payment.getAddress(),treasury:mint.addresses[4],deploymentBlock:String(block.number),catalogue:[]});
+  const products=await goldProducts(db);if(!products.length){for(const c of [{action:'product',product:'gold-pack',kind:'topup',title:'本機測試購點',gold:'10',embeo:String(7n*10n**18n),enabled:true,version:1},{action:'product',product:'research',kind:'service',title:'AIMarket 本機交付測試',gold:'3',enabled:true,version:1},{action:'product',product:'fortune',kind:'service',title:'算命館本機交付測試',gold:'2',enabled:true,version:1}])await goldAdminCommand(db,{wallet:ECONOMY_TREASURY,requestId:crypto.randomUUID(),command:c,reason:'initialize isolated local fixture',nowMs:Date.now()});}
+  const mintReader=await createPrivateMintReader(mint);
+- mint.beforeApproval=()=>goldFeature(db,'mint');
++ mint.beforeApproval=route=>route==='paid'?goldFeature(db,'mint'):undefined;
+  mint.gold={
+   async view(id){const account=mint.account(id);const {book,reserved,available}=await worldGoldSnapshot(db,mint.addresses[account.index],Date.now());return {book,reserved,available};},
+   async reserve(id,wallet,cost,{auth,packet}){await reserveMintGold(db,{id,wallet:auth.wallet,auth:{auth,packet,chainAnchor:mintReader.anchor},gold:String(cost),chainId:31337,contract:mint.contractAddress,chainInstance:mint.runId,deadline:auth.deadline*1000},(await mint.time())*1000);},
+diff --git a/scripts/world-gold-native-d1.mjs b/scripts/world-gold-native-d1.mjs
+index e49aa91..1f1a650 100644
+--- a/scripts/world-gold-native-d1.mjs
++++ b/scripts/world-gold-native-d1.mjs
+@@ -3,7 +3,8 @@ import {readFileSync,readdirSync,writeFileSync} from 'node:fs';
+ import assert from 'node:assert/strict';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY} from '../server/economy-config.ts';
+ import {goldAdminCommand,goldQuote,reconcileWorldGold,worldGoldSnapshot,reserveMintGold,settleMintGold} from '../server/world-gold.ts';
+-import {ingestEconomyEvents} from '../server/economy-ledger.ts';
++import {ingestEconomyEvents,settleEconomy} from '../server/economy-ledger.ts';
++import {worldGoldSchemaReady} from '../server/world-gold-schema.ts';
+ const require=createRequire(new URL('../node_modules/wrangler/package.json',import.meta.url)),{Miniflare,convertV4MiniflareOptions}=require('miniflare');
+ const {unstable_splitSqlQuery:splitSqlQuery}=require('wrangler');
+ const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("local only")}}',compatibilityDate:'2026-05-15',d1Databases:{DB:'ember-shared-gold-native-fixture'}}));
+@@ -12,14 +13,25 @@ try{
+  const db=await mf.getD1Database('DB');
+  for(const name of readdirSync(new URL('../migrations/',import.meta.url)).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort())await db.batch(splitSqlQuery(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8')).map(sql=>db.prepare(sql)));
+  facts.push('exact production migrations accepted by local workerd D1');
++ assert.equal(await worldGoldSchemaReady(db),true);facts.push('D1 complete tables/columns/indexes/triggers capability query works');
+  const NOW=Date.UTC(2026,9,18),W='0x'+'a'.repeat(40),H=n=>'0x'+BigInt(n).toString(16).padStart(64,'0'),config=await defineEconomyConfig({chainId:1,token:ECONOMY_TOKEN,tokenDecimals:18,treasury:ECONOMY_TREASURY,stakingContract:'0x'+'1'.repeat(40),paymentContract:'0x'+'2'.repeat(40),deploymentBlock:'100',catalogue:[]});
+  await goldAdminCommand(db,{wallet:ECONOMY_TREASURY,requestId:crypto.randomUUID(),command:{action:'product',product:'native-pack',kind:'topup',title:'Native D1 fixture',gold:'10',embeo:'7000000000000000000',enabled:true,version:1},reason:'isolated native D1 validation',nowMs:NOW});
+  const id=await goldQuote({db,config,nowMs:NOW},{wallet:W,requestId:crypto.randomUUID(),product:'native-pack'});
+  await ingestEconomyEvents(db,config,{fromBlock:'100',toBlock:'100',toBlockHash:H(100),throughTimestamp:NOW,events:[{kind:'payment',transactionHash:H(200),logIndex:0,blockNumber:'100',blockHash:H(100),timestamp:NOW,wallet:W,amount:'7000000000000000000',orderId:id,token:config.token,receiver:config.treasury}]});
+  await Promise.all([reconcileWorldGold(db,NOW),reconcileWorldGold(db,NOW)]);assert.equal((await worldGoldSnapshot(db,W,NOW)).book,'10');facts.push('D1 concurrent projection credits once');
+- const mint={id:H(900),wallet:W,auth:{fixture:'authorized-proof-only'},gold:'8',chainId:1,contract:'0x'+'8'.repeat(40),chainInstance:'native-sql-fixture',deadline:NOW+1000};await reserveMintGold(db,mint,NOW);
++ const mint={id:H(900),wallet:W,auth:{id:H(900),wallet:W,fixture:'authorized-proof-only'},gold:'8',chainId:1,contract:'0x'+'8'.repeat(40),chainInstance:'native-sql-fixture',deadline:NOW+1000};await reserveMintGold(db,mint,NOW);
+  await assert.rejects(db.prepare("INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) VALUES(?,?,-3,'service-payment',?,?)").bind('bad-native',W,'bad-native',NOW).run());assert.equal((await worldGoldSnapshot(db,W,NOW)).available,'2');facts.push('D1 legacy debit cannot spend held GOLD');
+  await settleMintGold(db,{id:mint.id,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,state:'consumed',evidence:{schema:'ember-mint-proof-v1',mode:'finalized-chain',orderId:mint.id,wallet:W,gold:mint.gold,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,blockHash:H(501),blockNumber:'501',chainTimeMs:NOW,tokenId:'1',revoked:false,transactionHash:H(502)}},NOW);await settleMintGold(db,{id:mint.id,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,state:'consumed',evidence:{schema:'ember-mint-proof-v1',mode:'finalized-chain',orderId:mint.id,wallet:W,gold:mint.gold,chainId:1,contract:mint.contract,chainInstance:mint.chainInstance,blockHash:H(501),blockNumber:'501',chainTimeMs:NOW,tokenId:'1',revoked:false,transactionHash:H(502)}},NOW);assert.equal((await worldGoldSnapshot(db,W,NOW)).book,'2');facts.push('D1 hold consumption and debit commit once');
+  const audit=await db.prepare('SELECT before_json,after_json FROM world_gold_admin_actions LIMIT 1').first();assert.ok(audit.before_json&&audit.after_json);facts.push('D1 admin writes retain atomic before/after evidence');
++ const B='0x'+'b'.repeat(40),C='0x'+'c'.repeat(40),DAY=86400000,MAX='9223372036854775807';
++ await db.prepare("INSERT INTO economy_gold_journal VALUES(?,?,?,'utc-reward',?,?)").bind('native-cap',B,MAX,'native-cap',NOW).run();
++ await assert.rejects(db.prepare("INSERT INTO economy_gold_journal VALUES(?,?,1,'utc-reward',?,?)").bind('native-over',B,'native-over',NOW).run(),/GOLD_BALANCE_CAPACITY/);
++ facts.push('D1 positive journal capacity rejects before integer promotion');
++ await ingestEconomyEvents(db,config,{fromBlock:'101',toBlock:'102',toBlockHash:H(102),throughTimestamp:NOW+3*DAY,events:[B,C].map((wallet,i)=>({kind:'stake',transactionHash:H(700+i),logIndex:i,blockNumber:'101',blockHash:H(101),timestamp:NOW+DAY,wallet,positionId:String(i+1),shares:'1',amount:String(100000n*10n**18n)}))});
++ await settleEconomy(db,config,{nowMs:NOW+3*DAY});assert.equal((await worldGoldSnapshot(db,C,NOW)).book,'2');assert.equal((await worldGoldSnapshot(db,B,NOW)).pendingRewards.length,2);
++ facts.push('D1 capacity-bound reward is persisted without blocking another staker');
++ await db.prepare("INSERT INTO economy_gold_journal VALUES(?,?,-3,'service-payment',?,?)").bind('native-room',B,'native-room',NOW+3*DAY).run();
++ await Promise.all([reconcileWorldGold(db,NOW+3*DAY),reconcileWorldGold(db,NOW+3*DAY)]);assert.equal((await worldGoldSnapshot(db,B,NOW)).book,'9223372036854775806');assert.equal((await worldGoldSnapshot(db,B,NOW)).pendingRewards.length,0);
++ facts.push('D1 concurrent pending reward retries credit the original entitlement once');
+  const report={status:'PASS_LOCAL_WORKERD_D1_LOGIC',facts,productionCapacityProved:false,publicChainUsed:false,fixtureChainProfile:false};writeFileSync(process.env.EMBER_GOLD_D1_EVIDENCE??new URL('../../evidence/native-d1.private.json',import.meta.url),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+ }finally{await mf.dispose();}
+diff --git a/server/economy-ledger.ts b/server/economy-ledger.ts
+index b2b8149..dabb62e 100644
+--- a/server/economy-ledger.ts
++++ b/server/economy-ledger.ts
+@@ -2,6 +2,9 @@ import type {D1Database,D1PreparedStatement} from './d1.ts';
+ import {recoverMessageAddress} from 'viem';
+ import {economyConfigStatement,economyPaymentEvidenceStatement,economyOrderScope,economyPaymentCases} from './economy-reconciliation.ts';
+ import {ECONOMY_DAY_MS,ECONOMY_HASH,ECONOMY_MAX_INTEGER,ECONOMY_SHARE_WEI,economyAddress,economyDigest,economyUint,type EconomyConfig} from './economy-config.ts';
++import {sharedGoldSchemaPresent,requireWorldGoldSchema} from './world-gold-schema.ts';
++import {rewardEntitlementStatement} from './economy-rewards.ts';
++import {hasGoldResultContract} from './world-gold-result.ts';
+ 
+ /** Only a server RPC adapter may call ingestion. Browser transaction hashes,
+  * client timestamps, balances and claimed rewards are never accepted here. */
+@@ -97,6 +100,7 @@ type DayProgress={ceiling:string;wallet:string;position:string;carry:string;vers
+  * journal. Page CAS, journals and completion marker commit atomically. */
+ export async function settleEconomy(db:D1Database,config:EconomyConfig,{nowMs,maxDays=14}:{nowMs:number;maxDays?:number}):Promise<{settledDays:number;throughMs:number}>{
+   if(!validMs(nowMs)||!Number.isInteger(maxDays)||maxDays<1||maxDays>31)throw Error('INVALID_SETTLEMENT_CLOCK');
++  const shared=await sharedGoldSchemaPresent(db);if(shared)await requireWorldGoldSchema(db);
+   // The config digest scopes cursors, not the identity of staked principal.
+   // Bind this stable onchain stream once, so a start-block/payment-config edit
+   // cannot replay all historical rewards into the wallet-global GOLD balance.
+@@ -159,7 +163,7 @@ export async function settleEconomy(db:D1Database,config:EconomyConfig,{nowMs,ma
+       AND EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND through_ms>=? AND halted_reason IS NULL) AND EXISTS(SELECT 1 FROM economy_reward_bindings WHERE config_id=?) THEN 1 ELSE 0 END`,pageId,config.id,day,config.id,day,progress.version,config.id,end,config.id)];
+     for(const [who,reward] of rewards){
+       if(reward===0n)continue;const reference=`${config.id}:${day}:${who}`;
+-      statements.push(bind(db,'INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) VALUES(?,?,?,?,?,?)',`reward:${reference}`,who,String(reward),'utc-reward',reference,nowMs));
++      statements.push(shared?rewardEntitlementStatement(db,{configId:config.id,day,wallet:who,reward,nowMs}):bind(db,'INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) VALUES(?,?,?,?,?,?)',`reward:${reference}`,who,String(reward),'utc-reward',reference,nowMs));
+     }
+     statements.push(bind(db,`UPDATE economy_day_progress SET last_wallet=?,last_position=?,carry_reward=?,version=version+1,completed=? WHERE config_id=? AND day_start_ms=? AND version=CAST(? AS INTEGER)`,wallet,position,String(carry),complete?1:0,config.id,day,progress.version));
+     if(complete)statements.push(bind(db,'INSERT INTO economy_gold_days(config_id,day_start_ms,completed_ms,accepted) VALUES(?,?,?,1)',config.id,day,nowMs));
+@@ -178,6 +182,8 @@ export async function settleEconomy(db:D1Database,config:EconomyConfig,{nowMs,ma
+ export async function economyWalletSnapshot(db:D1Database,config:EconomyConfig,wallet:string){
+   wallet=economyAddress(wallet);
+   const shared=!!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='world_gold_holds'").first();
++  const rewardTable=!!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='economy_gold_reward_entitlements'").first();
++  const pendingRewards=rewardTable?await bind(db,'SELECT CAST(COUNT(*) AS TEXT) n FROM economy_gold_reward_entitlements WHERE wallet=? AND settled_ms IS NULL',wallet).first<{n:string}>():null;
+   const [account,positions,journal,orders,state,lastDay,paymentCases]=await Promise.all([
+     bind(db,`SELECT CAST(balance AS TEXT) balance,CAST(${shared?"COALESCE((SELECT SUM(amount) FROM world_gold_holds WHERE wallet=economy_gold_accounts.wallet AND state='held'),0)":'0'} AS TEXT) reserved FROM economy_gold_accounts WHERE wallet=?`,wallet).first<{balance:string;reserved:string}>(),
+     bind(db,'SELECT position_id id,CAST(initial_shares AS TEXT) initialShares,CAST(remaining_shares AS TEXT) shares,deposited_ms depositedMs FROM economy_positions WHERE config_id=? AND wallet=? ORDER BY (remaining_shares>0) DESC,deposited_ms,position_id LIMIT 201',config.id,wallet).all(),
+@@ -187,7 +193,7 @@ export async function economyWalletSnapshot(db:D1Database,config:EconomyConfig,w
+     bind(db,'SELECT MAX(day_start_ms) day FROM economy_gold_days WHERE config_id=?',config.id).first<{day:number|null}>(),
+     economyPaymentCases(db,wallet)
+   ]);
+-  return {address:wallet,gold:String(BigInt(account?.balance??'0')-BigInt(account?.reserved??'0')),goldBook:account?.balance??'0',goldReserved:account?.reserved??'0',positions:positions.results.slice(0,200),positionsTruncated:positions.results.length>200,journal:journal.results,orders:orders.results,paymentCases,chain:{block:state.lastBlock,throughMs:state.throughMs,haltedReason:state.haltedReason},settledThroughMs:lastDay?.day===null||lastDay?.day===undefined?null:lastDay.day+ECONOMY_DAY_MS};
++  return {address:wallet,gold:String(BigInt(account?.balance??'0')-BigInt(account?.reserved??'0')),goldBook:account?.balance??'0',goldReserved:account?.reserved??'0',...pendingRewards&&pendingRewards.n!=='0'?{pendingRewardCount:pendingRewards.n}:{},positions:positions.results.slice(0,200),positionsTruncated:positions.results.length>200,journal:journal.results,orders:orders.results,paymentCases,chain:{block:state.lastBlock,throughMs:state.throughMs,haltedReason:state.haltedReason},settledThroughMs:lastDay?.day===null||lastDay?.day===undefined?null:lastDay.day+ECONOMY_DAY_MS};
+ }
+ 
+ export type EconomyOrder={id:string;wallet:string;serviceId:string;currency:'GOLD'|'EMBEO';amount:string;status:'pending'|'paid';createdMs:number;expiresMs:number;paidMs:number|null};
+@@ -204,10 +210,12 @@ export type EconomyGoldChallenge={orderId:string;requestId:string;wallet:string;
+ /** Runtime capability comes from trusted server wiring, never a request body.
+  * Older standalone economy databases have no shared-service links. */
+ async function sharedServiceAdmission(db:D1Database,id:string,serviceReady?:boolean){
+-  if(!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='world_gold_links'").first())return false;
+-  const linked=await bind(db,"SELECT order_id FROM world_gold_links WHERE order_id=? AND kind='service'",id).first();
+-  if(!linked)return false;
++  if(!await sharedGoldSchemaPresent(db))return false;
++  await requireWorldGoldSchema(db);
++  const linked=await bind(db,"SELECT l.order_id,p.product FROM world_gold_links l JOIN world_gold_products p ON p.id=l.product_id WHERE l.order_id=? AND l.kind='service'",id).first<{order_id:string;product:string}>();
++  if(!linked)throw new EconomyConflict('LEGACY_GOLD_ORDER_UNSUPPORTED');
+   if(serviceReady!==true)throw new EconomyConflict('SERVICE_DELIVERY_UNAVAILABLE');
++  if(!hasGoldResultContract(linked.product))throw new EconomyConflict('SERVICE_RESULT_SCHEMA_UNBOUND');
+   if(!(await db.prepare("SELECT enabled FROM world_gold_controls WHERE feature='service'").first<{enabled:number}>())?.enabled)throw new EconomyConflict('FEATURE_PAUSED');
+   return true;
+ }
+@@ -239,11 +247,13 @@ export async function createEconomyGoldChallenge(db:D1Database,config:EconomyCon
+ }
+ export async function createEconomyOrder(db:D1Database,config:EconomyConfig,args:{wallet:string;requestId:string;serviceId:string;currency:'GOLD'|'EMBEO';nowMs:number;now?:()=>number;authorization?:EconomyAuthorization}):Promise<EconomyOrder>{
+   await requireRunning(db,config);
++  const shared=await sharedGoldSchemaPresent(db);if(shared)await requireWorldGoldSchema(db);
+   const wallet=economyAddress(args.wallet);if(!validMs(args.nowMs)||! /^[A-Za-z0-9_-]{16,80}$/.test(args.requestId)||!['GOLD','EMBEO'].includes(args.currency))throw new EconomyConflict('BAD_REQUEST');
+   const payload=JSON.stringify([config.id,args.serviceId,args.currency]);
+   const samePayload=async(saved:string)=>{if(saved===payload)return true;let parts;try{parts=JSON.parse(saved);}catch{return false;}return Array.isArray(parts)&&parts.length===3&&parts[1]===args.serviceId&&parts[2]===args.currency&&typeof parts[0]==='string'&&!!await bind(db,'SELECT ancestor_id FROM economy_config_lineage WHERE config_id=? AND ancestor_id=?',config.id,parts[0]).first();};
+   const previous=await bind(db,orderSelect+' WHERE wallet=? AND request_id=?',wallet,args.requestId).first<EconomyOrder&{payload:string}>();
+   if(previous){if(!await samePayload(previous.payload))throw new EconomyConflict('IDEMPOTENCY_CONFLICT');const now=freshEconomyClock(args);if(now<previous.createdMs)throw Error('INVALID_SETTLEMENT_CLOCK');if(previous.status==='pending'&&previous.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');const {payload:_,...order}=previous;return order;}
++  if(shared&&args.currency==='GOLD')throw new EconomyConflict('LEGACY_GOLD_ORDER_UNSUPPORTED');
+   const service=config.catalogue.find(s=>s.id===args.serviceId),amount=args.currency==='GOLD'?service?.gold:service?.embeo;
+   if(!amount)throw new EconomyConflict('SERVICE_UNAVAILABLE');
+   // The opaque order cannot be guessed and paid before its quote exists. A real
+@@ -275,13 +285,17 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+   if(challenge.message!==canonical||typeof args.signature!=='string'||! /^0x[0-9a-fA-F]{130}$/.test(args.signature))throw new EconomyConflict('INVALID_GOLD_SIGNATURE');
+   let signer:string;try{signer=(await recoverMessageAddress({message:canonical,signature:args.signature as `0x${string}`})).toLowerCase();}catch{throw new EconomyConflict('INVALID_GOLD_SIGNATURE');}
+   if(signer!==wallet)throw new EconomyConflict('INVALID_GOLD_SIGNATURE');
+-  const now=args.now?.()??args.nowMs;
++  let now=args.now?.()??args.nowMs;
+   if(!validMs(now)||now<args.nowMs||now<existing.createdMs||now<challenge.issuedMs)throw Error('INVALID_SETTLEMENT_CLOCK');
+   if(existing.status==='paid'){const {payload:_,goldRequestId:__,...order}=existing;return order;}
+   if(challenge.expiresMs<=now)throw new EconomyConflict('CHALLENGE_EXPIRED');
+   if(challenge.consumedMs!==null)throw new EconomyConflict('CHALLENGE_EXPIRED');
+   if(existing.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');
+   const shared=await sharedServiceAdmission(db,id,args.serviceReady);
++  const admissionNow=freshEconomyClock(args);
++  if(admissionNow<now)throw Error('INVALID_SETTLEMENT_CLOCK');now=admissionNow;
++  if(challenge.expiresMs<=now)throw new EconomyConflict('CHALLENGE_EXPIRED');
++  if(existing.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');
+   const reference='order:'+id;
+   const auth=authorizationSql(args.authorization,wallet,now,config);
+   try{
+diff --git a/server/economy-recovery.ts b/server/economy-recovery.ts
+index b8a42b8..ff96241 100644
+--- a/server/economy-recovery.ts
++++ b/server/economy-recovery.ts
+@@ -11,7 +11,7 @@ import {INVALID_POSITION_WITHDRAWAL,normalizedEvent,type EconomyChainEvent} from
+  * The operator reviews the deterministic plan hash before applying one batch.
+  */
+ export const RECOVERY_LIMITS=Object.freeze({events:5000,days:366,ancestors:16,statements:64,boundValueBytes:524288,planBytes:4194304,snapshotPageRows:128,guardParameters:100});
+-const TABLES=['economy_chain_state','economy_ingestions','economy_positions','economy_position_balances','economy_chain_events','economy_gold_accounts','economy_gold_journal','economy_gold_days','economy_day_progress','economy_settlement_pages','economy_orders','economy_gold_challenges','economy_fulfillments','economy_pending_blocks','economy_staged_events','economy_stage_batches','economy_reward_bindings','economy_config_registry','economy_recoveries','economy_config_lineage','economy_gold_adjustments','economy_payment_cases','economy_payment_case_actions',...WORLD_GOLD_TABLES.filter(t=>t!=='world_gold_write_checks'),...WORLD_GOLD_AUDIT_TABLES] as const;
++const TABLES=['economy_chain_state','economy_ingestions','economy_positions','economy_position_balances','economy_chain_events','economy_gold_accounts','economy_gold_journal','economy_gold_days','economy_day_progress','economy_settlement_pages','economy_orders','economy_gold_challenges','economy_fulfillments','economy_pending_blocks','economy_staged_events','economy_stage_batches','economy_reward_bindings','economy_config_registry','economy_recoveries','economy_config_lineage','economy_gold_adjustments','economy_payment_cases','economy_payment_case_actions','economy_gold_reward_entitlements',...WORLD_GOLD_TABLES.filter(t=>t!=='world_gold_write_checks'),...WORLD_GOLD_AUDIT_TABLES] as const;
+ type Cell=string|null;type Row=Record<string,Cell>;
+ type Snapshot={table:string;columns:string[];chunks:{json:string;query:string}[];rows:Row[]};
+ const fail=(code:string):never=>{throw Error(code);};
+@@ -38,6 +38,9 @@ async function snapshot(db:D1Database,table:string,side:string,budget:{bytes:num
+  return {table,columns,chunks,rows};
+ }
+ async function snapshots(db:D1Database,side:string,budget:{bytes:number}){const result:Snapshot[]=[];for(const t of TABLES){
++ if(t==='economy_gold_reward_entitlements'&&!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").bind(t).first()){
++  if(await db.prepare("SELECT name FROM sqlite_master WHERE name IN ('economy_gold_credit_capacity','world_gold_mint_proof_mode') LIMIT 1").first())return fail('RECOVERY_SCHEMA_MISSING');continue;
++ }
+  if((WORLD_GOLD_AUDIT_TABLES as readonly string[]).includes(t)&&!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").bind(t).first()){
+   const audit=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('world_gold_reconcile_errors','world_gold_mint_settlements') LIMIT 1").first();if(audit)return fail('RECOVERY_SCHEMA_MISSING');continue;
+  }
+@@ -80,13 +83,14 @@ function replay(events:Row[],horizon:number):{rewards:Map<string,bigint>;firstDa
+  for(const amount of rewards.values())if(amount>ECONOMY_MAX_INTEGER)return fail('GOLD_INTEGER_LIMIT');
+  return {rewards,firstDay};
+ }
+-export type EconomyRecoveryReport={fromConfig:string;toConfig:string;stakingKey:string;horizonMs:number;eventCount:number;boundary:{mode:'matching-finalized'|'bootstrap-predecessor';block:string;hash:string;throughMs:number};oldSettlementIncomplete:boolean;adjustments:{day:number;wallet:string;creditedBefore:string;entitlement:string;delta:string}[];totalDelta:string;preservesSpentGold:true;paymentContractChanged:false;oldHistoryPreserved:true;limits:typeof RECOVERY_LIMITS;capacity?:{snapshotBytes:number;guardParameters:number;tables:{side:string;table:string;rows:number;pages:number;bytes:number}[]}};
++export type EconomyRecoveryReport={fromConfig:string;toConfig:string;stakingKey:string;horizonMs:number;eventCount:number;boundary:{mode:'matching-finalized'|'bootstrap-predecessor';block:string;hash:string;throughMs:number};oldSettlementIncomplete:boolean;pendingRewardsAccounted?:true;adjustments:{day:number;wallet:string;creditedBefore:string;owedBefore?:string;entitlement:string;delta:string}[];totalDelta:string;preservesSpentGold:true;paymentContractChanged:false;oldHistoryPreserved:true;limits:typeof RECOVERY_LIMITS;capacity?:{snapshotBytes:number;guardParameters:number;tables:{side:string;table:string;rows:number;pages:number;bytes:number}[]}};
+ export type EconomyRecoveryPlan={hash:string;report:EconomyRecoveryReport};
+ /** A first-batch halt may have pending promises, but no finalized economics.
+  * Inventory the namespace, not the wallet-global balance of unrelated vaults.
+  * The rebuilt anchor is specifically the predecessor of the rejected batch,
+  * verified by the existing indexer; never an arbitrary later shadow boundary. */
+ function emptyBootstrap(old:Snapshot[],from:EconomyConfig){
++ if(old.find(s=>s.table==='economy_gold_reward_entitlements')?.rows.some(r=>r.config_id===from.id))return false;
+  const tables=['economy_ingestions','economy_positions','economy_position_balances','economy_chain_events','economy_gold_days','economy_day_progress','economy_settlement_pages'];
+  if(tables.some(t=>at(old,t).some(r=>r.config_id===from.id)))return false;
+  if(at(old,'economy_reward_bindings').some(r=>r.staking_key===domain(from))||at(old,'economy_config_lineage').some(r=>r.config_id===from.id||r.ancestor_id===from.id)
+@@ -101,6 +105,7 @@ function emptyBootstrap(old:Snapshot[],from:EconomyConfig){
+ /** Only provably empty sync metadata may be ignored. Pending orders/challenges,
+  * staged pages, payments, journals and reviewed lineage are economic footprint. */
+ function emptySync(old:Snapshot[],c:EconomyConfig){
++ if(old.find(s=>s.table==='economy_gold_reward_entitlements')?.rows.some(r=>r.config_id===c.id))return false;
+  const state=at(old,'economy_chain_state').find(r=>r.config_id===c.id);
+  if(!state||state.halted_reason)return false;
+  const tables=['economy_positions','economy_position_balances','economy_chain_events','economy_gold_days','economy_day_progress','economy_settlement_pages','economy_orders','economy_pending_blocks','economy_staged_events','economy_reward_bindings','economy_payment_cases'];
+@@ -204,20 +209,30 @@ async function build(db:D1Database,rebuilt:D1Database,fromInput:EconomyConfig,to
+   if(ancestors.has(match[1])){if(j.wallet!==match[3]||BigInt(j.delta!)<=0n||!Number.isSafeInteger(Number(match[2]))||Number(match[2])%DAY!==0)return fail('RECOVERY_JOURNAL_CONFLICT');const k=key(Number(match[2]),match[3]);paid.set(k,(paid.get(k)??0n)+BigInt(j.delta!));}
+  }
+  for(const j of at(old,'economy_gold_adjustments'))if(j.staking_key===domain(from)){const k=key(clock(j.day_start_ms),j.wallet!);paid.set(k,(paid.get(k)??0n)+integer(j.delta));}
++ // Owed is not issued/book GOLD, but it is already a durable day entitlement.
++ // Preserve its original namespace and include it in correction arithmetic so
++ // recovery cannot issue the same share-day again while a retry is pending.
++ const owed=new Map<string,bigint>();
++ for(const r of old.find(s=>s.table==='economy_gold_reward_entitlements')?.rows??[]){
++  const j=journal.find(j=>j.id===r.id);
++  if(r.settled_ms!==null){if(!j||j.wallet!==r.wallet||j.reference!==r.reference||j.delta!==r.delta)return fail('RECOVERY_REWARD_ENTITLEMENT_CONFLICT');continue;}
++  if(j)return fail('RECOVERY_REWARD_ENTITLEMENT_CONFLICT');
++  if(ancestors.has(r.config_id!)){const k=key(clock(r.day_start_ms),r.wallet!);owed.set(k,(owed.get(k)??0n)+integer(r.delta));}
++ }
+  const sharedEntries=old.find(s=>s.table==='world_gold_entries')?.rows??[];
+  const totals=new Map<string,bigint>();for(const j of [...journal,...sharedEntries])totals.set(j.wallet!,(totals.get(j.wallet!)??0n)+BigInt(j.delta!));
+  for(const account of at(old,'economy_gold_accounts')){if(BigInt(account.balance!)!==(totals.get(account.wallet!)??0n))return fail('RECOVERY_BALANCE_JOURNAL_MISMATCH');totals.delete(account.wallet!);}
+  if([...totals.values()].some(n=>n!==0n))return fail('RECOVERY_BALANCE_JOURNAL_MISMATCH');
+  const adjustments:EconomyRecoveryReport['adjustments']=[];
+- for(const k of new Set([...model.rewards.keys(),...paid.keys()])){
+-  const entitlement=model.rewards.get(k)??0n,credited=paid.get(k)??0n;
+-  if(credited>entitlement)return fail('RECOVERY_OVERISSUANCE_REQUIRES_REVIEW');
+-  if(entitlement>credited){const split=k.indexOf(':'),day=Number(k.slice(0,split)),wallet=k.slice(split+1);adjustments.push({day,wallet,creditedBefore:String(credited),entitlement:String(entitlement),delta:String(entitlement-credited)});}
++ for(const k of new Set([...model.rewards.keys(),...paid.keys(),...owed.keys()])){
++  const entitlement=model.rewards.get(k)??0n,credited=paid.get(k)??0n,pending=owed.get(k)??0n;
++  if(credited+pending>entitlement)return fail('RECOVERY_OVERISSUANCE_REQUIRES_REVIEW');
++  if(entitlement>credited+pending){const split=k.indexOf(':'),day=Number(k.slice(0,split)),wallet=k.slice(split+1);adjustments.push({day,wallet,creditedBefore:String(credited),...pending?{owedBefore:String(pending)}:{},entitlement:String(entitlement),delta:String(entitlement-credited-pending)});}
+  }
+  adjustments.sort((a,b)=>a.day-b.day||a.wallet.localeCompare(b.wallet));
+  const walletDeltas=new Map<string,bigint>();for(const r of adjustments)walletDeltas.set(r.wallet,(walletDeltas.get(r.wallet)??0n)+BigInt(r.delta));
+  for(const [wallet,delta]of walletDeltas){const current=at(old,'economy_gold_accounts').find(r=>r.wallet===wallet);if(BigInt(current?.balance??'0')+delta>ECONOMY_MAX_INTEGER)return fail('GOLD_INTEGER_LIMIT');}
+- const report:EconomyRecoveryReport={fromConfig:from.id,toConfig:to.id,stakingKey:domain(from),horizonMs:horizon,eventCount:events.length,boundary:{mode:bootstrap?'bootstrap-predecessor':'matching-finalized',block:b.last_block!,hash:b.last_hash!,throughMs:clock(b.through_ms)},oldSettlementIncomplete,adjustments,totalDelta:String(adjustments.reduce((n,r)=>n+BigInt(r.delta),0n)),preservesSpentGold:true,paymentContractChanged:false,oldHistoryPreserved:true,limits:RECOVERY_LIMITS};
++ const report:EconomyRecoveryReport={fromConfig:from.id,toConfig:to.id,stakingKey:domain(from),horizonMs:horizon,eventCount:events.length,boundary:{mode:bootstrap?'bootstrap-predecessor':'matching-finalized',block:b.last_block!,hash:b.last_hash!,throughMs:clock(b.through_ms)},oldSettlementIncomplete,pendingRewardsAccounted:true,adjustments,totalDelta:String(adjustments.reduce((n,r)=>n+BigInt(r.delta),0n)),preservesSpentGold:true,paymentContractChanged:false,oldHistoryPreserved:true,limits:RECOVERY_LIMITS};
+  const guardChunks=old.flatMap(s=>s.chunks),guardParameters=7+guardChunks.length;capacity('guardParameters',guardParameters);
+  report.capacity={snapshotBytes:budget.bytes,guardParameters,tables:[...old.map(s=>({side:'original',...s})),...shadow.map(s=>({side:'rebuilt',...s}))].map(s=>({side:s.side,table:s.table,rows:s.rows.length,pages:s.chunks.length,bytes:s.chunks.reduce((n,c)=>n+encode(c.json),0)}))};
+  const reportJson=()=>JSON.stringify(report);
+diff --git a/server/economy-rewards.ts b/server/economy-rewards.ts
+new file mode 100644
+index 0000000..70fb656
+--- /dev/null
++++ b/server/economy-rewards.ts
+@@ -0,0 +1,39 @@
++import type {D1Database} from './d1.ts';
++import {requireWorldGoldSchema} from './world-gold-schema.ts';
++
++/** Idempotent original UTC-day entitlement, atomically routed by migration0016
++ * to a journal or to an owed row. A day marker means scanning is accounted for,
++ * not that every capacity-bound wallet has received spendable GOLD. */
++export function rewardEntitlementStatement(db:D1Database,args:{configId:string;day:number;wallet:string;reward:bigint;nowMs:number}){
++ const reference=`${args.configId}:${args.day}:${args.wallet}`;
++ return db.prepare(`INSERT INTO economy_gold_reward_entitlements(id,config_id,day_start_ms,wallet,delta,reference,created_ms) VALUES(?,?,?,?,?,?,?)`)
++  .bind('reward:'+reference,args.configId,args.day,args.wallet,String(args.reward),reference,args.nowMs);
++}
++/** Server maintenance only. At most32 original entitlements per call. The
++ * journal and settled marker commit together; capacity cannot abort another
++ * wallet, and unknown storage faults remain visible as retryable obligations. */
++export async function reconcileRewardEntitlements(db:D1Database,nowMs:number){
++ if(!Number.isSafeInteger(nowMs)||nowMs<=0)throw Error('INVALID_CLOCK');
++ await requireWorldGoldSchema(db);
++ const rows=await db.prepare(`SELECT id,wallet FROM economy_gold_reward_entitlements WHERE settled_ms IS NULL AND retry_ms<=? ORDER BY retry_ms,id LIMIT 32`).bind(nowMs).all<{id:string;wallet:string}>();
++ const outcomes:{id:string;wallet:string;status:string}[]=[];
++ for(const row of rows.results){
++  try{await db.batch([
++   db.prepare(`INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms)
++    SELECT id,wallet,delta,'utc-reward',reference,? FROM economy_gold_reward_entitlements e
++    WHERE id=? AND settled_ms IS NULL AND NOT EXISTS(SELECT 1 FROM economy_gold_journal j WHERE j.reference=e.reference)
++    AND COALESCE((SELECT balance FROM economy_gold_accounts WHERE wallet=e.wallet),0)<=9223372036854775807-e.delta`).bind(nowMs,row.id),
++   db.prepare(`UPDATE economy_gold_reward_entitlements SET settled_ms=CASE WHEN EXISTS(SELECT 1 FROM economy_gold_journal j WHERE j.id=economy_gold_reward_entitlements.id AND j.reference=economy_gold_reward_entitlements.reference AND j.wallet=economy_gold_reward_entitlements.wallet AND j.delta=economy_gold_reward_entitlements.delta AND j.kind='utc-reward') THEN ? ELSE NULL END,
++    retry_ms=?,attempts=attempts+1 WHERE id=? AND settled_ms IS NULL`).bind(nowMs,nowMs+300000,row.id)
++  ]);
++  const state=await db.prepare('SELECT settled_ms FROM economy_gold_reward_entitlements WHERE id=?').bind(row.id).first<{settled_ms:number|null}>();
++  outcomes.push({...row,status:state?.settled_ms!==null&&state?.settled_ms!==undefined?'credited':'GOLD_BALANCE_CAPACITY'});
++  }catch{
++   // A single target's storage fault must not occupy every maintenance page.
++   // The original immutable entitlement remains even if diagnostics also fail.
++   try{await db.prepare('UPDATE economy_gold_reward_entitlements SET retry_ms=?,attempts=attempts+1 WHERE id=? AND settled_ms IS NULL').bind(nowMs+300000,row.id).run();}catch{/* Storage outage is reported, never mistaken for credit. */}
++   outcomes.push({...row,status:'GOLD_REWARD_RETRY'});
++  }
++ }
++ return outcomes;
++}
+diff --git a/server/world-gold-api.ts b/server/world-gold-api.ts
+index c4b3f75..cf52531 100644
+--- a/server/world-gold-api.ts
++++ b/server/world-gold-api.ts
+@@ -4,6 +4,7 @@ import type {D1Database} from './d1.ts';
+ import type {EconomyConfig} from './economy-config.ts';
+ import {AIMARKET_ACTIVITY_ADMIN_WALLETS} from './aimarket-admin.ts';
+ import {goldProducts,worldGoldSnapshot,goldQuote,goldCampaign,goldAdminCommand,reconcileWorldGold} from './world-gold.ts';
++import {requireWorldGoldSchema} from './world-gold-schema.ts';
+ type Deps={db?:D1Database;config?:EconomyConfig|null;now?:()=>number;allow?:(key:string)=>boolean|Promise<boolean>;client?:string;serviceReady?:boolean};
+ const reply=(status:number,value:unknown)=>new Response(JSON.stringify(value),{status,headers:API_HEADERS});
+ const bad=(status:number,error:string)=>reply(status,{error});
+@@ -45,6 +46,7 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+   const isAdmin=AIMARKET_ACTIVITY_ADMIN_WALLETS.includes(wallet);
+   if(admin&&!isAdmin)return bad(403,'ADMIN_REQUIRED');
+   if(write&&(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA'))return bad(403,'EOA_REQUIRED');
++  await requireWorldGoldSchema(deps.db);
+   if(!write){
+    if(trial)return reply(200,{address:wallet,campaign:await goldCampaign(deps.db,now)});
+    if(admin&&lookup){const order=await deps.db.prepare(`SELECT o.*,l.kind,l.product_id,CAST(l.gold AS TEXT) gold,j.state delivery,j.failure,j.delivery_evidence_json FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_jobs j ON j.order_id=o.id WHERE o.id=?`).bind(lookup).first();if(!order)return bad(404,'ORDER_NOT_FOUND');return reply(200,{order});}
+diff --git a/server/world-gold-delivery.ts b/server/world-gold-delivery.ts
+index b1cdde5..bc9f9b1 100644
+--- a/server/world-gold-delivery.ts
++++ b/server/world-gold-delivery.ts
+@@ -1,5 +1,6 @@
+ import type {D1Database} from './d1.ts';
+ import {claimGoldJob,finishGoldJob} from './world-gold.ts';
++import {hasGoldResultContract} from './world-gold-result.ts';
+ 
+ /** Trusted server adapter only. Real upstream installation is a release gate.
+  * A timeout/exception/pending response never authorizes a refund. A terminal
+@@ -15,11 +16,13 @@ export async function runGoldServiceJobs(db:D1Database,provider:GoldDeliveryProv
+  const now=clock();if(!Number.isSafeInteger(now)||now<=0)throw Error('INVALID_CLOCK');
+  const jobs=await db.prepare(`SELECT j.order_id,j.wallet,p.product FROM world_gold_jobs j JOIN world_gold_links l ON l.order_id=j.order_id JOIN world_gold_products p ON p.id=l.product_id WHERE j.state='queued' OR (j.state='working' AND j.lease_ms<=?) ORDER BY j.updated_ms,j.order_id LIMIT 16`).bind(now).all<{order_id:string;wallet:string;product:string}>();
+  const outcomes:{orderId:string;status:string}[]=[];
+- for(const j of jobs.results){const attempt=await claimGoldJob(db,j.order_id,clock());if(!attempt)continue;
++ for(const j of jobs.results){
++  if(!hasGoldResultContract(j.product)){outcomes.push({orderId:j.order_id,status:'SERVICE_RESULT_SCHEMA_UNBOUND'});continue;}
++  const attempt=await claimGoldJob(db,j.order_id,clock(),clock);if(!attempt)continue;
+   try{const outcome=await provider.deliver({orderId:j.order_id,wallet:j.wallet,product:j.product,idempotencyKey:j.order_id});
+-   if(outcome.kind==='delivered')await finishGoldJob(db,{orderId:j.order_id,attempt,nowMs:clock(),outcome:{result:outcome.result}});
++   if(outcome.kind==='delivered')await finishGoldJob(db,{orderId:j.order_id,attempt,nowMs:clock(),now:clock,outcome:{result:outcome.result}});
+    else if(outcome.kind==='terminal-failure'&&outcome.proof?.kind==='provider-confirmed-nondelivery'&&typeof outcome.proof.reference==='string'&&/^[A-Za-z0-9._:/-]{1,80}$/.test(outcome.proof.reference)&&typeof outcome.code==='string'&&/^[A-Z0-9_]{1,32}$/.test(outcome.code)){
+-    await finishGoldJob(db,{orderId:j.order_id,attempt,nowMs:clock(),outcome:{failure:outcome.code,evidence:{kind:'provider-confirmed-nondelivery',provider:provider.id,reference:outcome.proof.reference}}});
++    await finishGoldJob(db,{orderId:j.order_id,attempt,nowMs:clock(),now:clock,outcome:{failure:outcome.code,evidence:{kind:'provider-confirmed-nondelivery',provider:provider.id,reference:outcome.proof.reference}}});
+    }else {outcomes.push({orderId:j.order_id,status:'pending'});continue;}
+    outcomes.push({orderId:j.order_id,status:'finished'});
+   }catch{outcomes.push({orderId:j.order_id,status:'retry'});}
+diff --git a/server/world-gold-inspection.ts b/server/world-gold-inspection.ts
+new file mode 100644
+index 0000000..10b5619
+--- /dev/null
++++ b/server/world-gold-inspection.ts
+@@ -0,0 +1,31 @@
++import type {D1Database} from './d1.ts';
++import {worldGoldSchemaReady} from './world-gold-schema.ts';
++import {encodeGoldResult} from './world-gold-result.ts';
++
++/** Read-only bounded exception inventory. No HTTP route, signing, refunds,
++ * mutations or automatic historical rewriting. Complete inventories use the
++ * returned cursor; an empty page alone is not proof the entire DB is clean. */
++export async function inspectWorldGoldExceptions(db:D1Database,{after='',limit=100}:{after?:string;limit?:number}={}){
++ if(typeof after!=='string'||after.length>256||!Number.isInteger(limit)||limit<1||limit>100)throw Error('INVALID_INSPECTION_LIMIT');
++ const has=async(table:string)=>!!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").bind(table).first();
++ const query=async(sql:string)=> (await db.prepare(sql).bind(after,limit).all<Record<string,unknown>>()).results;
++ const ready=await worldGoldSchemaReady(db),issues:{kind:string;rows:Record<string,unknown>[];next:string|null}[]=[];
++ if(!ready)return {schemaReady:false,diagnostic:'SCHEMA_INCOMPLETE',readOnly:true,issues};
++ const add=(kind:string,rows:Record<string,unknown>[])=>issues.push({kind,rows,next:rows.length===limit?String(rows.at(-1)!.id):null});
++ if(await has('economy_gold_reward_entitlements'))add('owed-staking-reward',await query(`SELECT id,wallet,config_id,day_start_ms,CAST(delta AS TEXT) gold,retry_ms,attempts FROM economy_gold_reward_entitlements WHERE settled_ms IS NULL AND id>? ORDER BY id LIMIT ?`));
++ if(await has('economy_orders')&&await has('world_gold_links')&&await has('world_gold_jobs')){
++  add('legacy-paid-without-job',await query(`SELECT o.id,o.wallet,o.service_id,CAST(o.amount AS TEXT) gold,o.paid_ms FROM economy_orders o WHERE o.currency='GOLD' AND o.status='paid' AND o.id>? AND NOT EXISTS(SELECT 1 FROM world_gold_jobs j WHERE j.order_id=o.id) ORDER BY o.id LIMIT ?`));
++  add('failed-refund-pending',await query(`SELECT o.id,o.wallet,CAST(l.gold AS TEXT) originalGold,j.failure FROM world_gold_jobs j JOIN economy_orders o ON o.id=j.order_id JOIN world_gold_links l ON l.order_id=o.id WHERE j.state='failed' AND o.id>? ORDER BY o.id LIMIT ?`));
++  const delivered=await query(`SELECT j.order_id id,j.wallet,p.product,j.result_json FROM world_gold_jobs j JOIN world_gold_links l ON l.order_id=j.order_id JOIN world_gold_products p ON p.id=l.product_id WHERE j.state='delivered' AND j.order_id>? ORDER BY j.order_id LIMIT ?`);
++  const invalid=delivered.flatMap(r=>{try{const result=encodeGoldResult(String(r.product),JSON.parse(String(r.result_json)));return result.failure?[{id:r.id,wallet:r.wallet,reason:result.failure}]:[];}catch{return [{id:r.id,wallet:r.wallet,reason:'RESULT_NOT_SERIALIZABLE'}];}});
++  issues.push({kind:'delivered-result-needs-review',rows:invalid,next:delivered.length===limit?String(delivered.at(-1)!.id):null});
++ }
++ if(await has('world_gold_mints')){
++  const ended=await query(`SELECT id,wallet,chain_id,evidence_json FROM world_gold_mints WHERE state<>'held' AND id>? ORDER BY id LIMIT ?`);
++  const invalid=ended.flatMap(r=>{let mode:unknown;try{mode=JSON.parse(String(r.evidence_json)).mode;}catch{/* Invalid evidence needs review too. */}
++   return mode!==(r.chain_id===31337?'private-chain-fixture':'finalized-chain')?[{id:r.id,wallet:r.wallet,chainId:r.chain_id,mode:mode??null}]:[];});
++  issues.push({kind:'historical-proof-mode-needs-review',rows:invalid,next:ended.length===limit?String(ended.at(-1)!.id):null});
++  add('held-requires-original-reader',await query(`SELECT id,wallet,chain_id,contract,chain_instance,deadline FROM world_gold_mints WHERE state='held' AND id>? ORDER BY id LIMIT ?`));
++ }
++ return {schemaReady:ready,diagnostic:ready?'READY':'SCHEMA_INCOMPLETE',readOnly:true,issues};
++}
+diff --git a/server/world-gold-result.ts b/server/world-gold-result.ts
+new file mode 100644
+index 0000000..c044a83
+--- /dev/null
++++ b/server/world-gold-result.ts
+@@ -0,0 +1,78 @@
++/** Review fixture contracts for research/fortune results, not proof that a real
++ * upstream report exists. Real provider adapters must additionally validate
++ * their service-specific signed/authenticated response before this boundary. */
++const text=(v:unknown):v is string=>typeof v==='string'&&v.trim().length>0;
++const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
++export const hasGoldResultContract=(product:string)=>['research','fortune'].includes(product);
++function usableDocument(product:string,v:unknown){
++ if(!hasGoldResultContract(product))return false;
++ // Existing saved fixture text reports remain readable; new empty values do not.
++ if(text(v))return true;
++ if(!record(v))return false;
++ if(text(v.report)||text(v.content))return true;
++ // Zero signals, a numeric zero or false can be a meaningful documented result.
++ if(v.status==='no-signal')return text(v.explanation)&&Array.isArray(v.signals)&&v.signals.length===0;
++ return v.status==='ok'&&text(v.explanation)&&Object.hasOwn(v,'value')&&
++  (typeof v.value==='boolean'||typeof v.value==='number'&&Number.isFinite(v.value));
++}
++export function encodeGoldResult(product:string,result:unknown):{json:string|null;failure:string|null}{
++ let json:string|undefined;
++ try{json=JSON.stringify(result);}catch{return {json:null,failure:'RESULT_NOT_SERIALIZABLE'};}
++ if(typeof json!=='string')return {json:null,failure:'RESULT_NOT_SERIALIZABLE'};
++ if(new TextEncoder().encode(json).length>16000)return {json:null,failure:'RESULT_TOO_LARGE'};
++ // Validate the value actually persisted, including objects with toJSON hooks.
++ const stored:unknown=JSON.parse(json);
++ if(!usableDocument(product,stored))return {json:null,failure:'RESULT_UNUSABLE'};
++ // TextEncoder silently replaces lone surrogates. Reject rather than changing
++ // report contents while classifying a delivery as successful.
++ const stack:unknown[]=[stored];
++ while(stack.length){const v=stack.pop();
++  if(typeof v==='string'&&/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(v))return {json:null,failure:'RESULT_INVALID_UNICODE'};
++  if(Array.isArray(v))stack.push(...v);else if(record(v))for(const [k,x] of Object.entries(v))stack.push(k,x);
++ }
++ return {json,failure:null};
++}
++
++/** Opaque INTERNAL auth document plus the separately typed complete MintBinding.
++ * Only lossless plain JSON objects are allowed. No coercion or silent removal
++ * of undefined/functions/symbols, custom serializers, cycles or nonfinite data.
++ * Existing JSON bytes/key order and full retry equality are preserved. */
++export function encodeMintAuth(auth:unknown,binding:{id:string;wallet:string;gold:string;deadline:number;chainId:number;contract:string;chainInstance:string}):string{
++ const seen=new Set<object>();
++ const visit=(v:unknown,depth:number):boolean=>{
++  if(depth>32)return false;
++  if(v===null||typeof v==='boolean'||typeof v==='string')return true;
++  if(typeof v==='number')return Number.isFinite(v);
++  if(typeof v!=='object')return false;
++  if(seen.has(v))return false;
++  if(!Array.isArray(v)&&Object.getPrototypeOf(v)!==Object.prototype&&Object.getPrototypeOf(v)!==null)return false;
++  if(Array.isArray(v)&&Object.keys(v).length!==v.length)return false;
++  seen.add(v);
++  const descriptors=Object.getOwnPropertyDescriptors(v),keys=Reflect.ownKeys(v);
++  const ok=keys.every(k=>typeof k==='string'&&(Array.isArray(v)&&k==='length'||
++   descriptors[k].enumerable&&Object.hasOwn(descriptors[k],'value')&&visit(descriptors[k].value,depth+1)));
++  seen.delete(v);return ok;
++ };
++ try{
++  if(!record(auth)||!Object.keys(auth).length||!visit(auth,0))throw Error();
++  const encoded=JSON.stringify(auth);
++  if(typeof encoded!=='string'||new TextEncoder().encode(encoded).length>16000)throw Error();
++  const doc=JSON.parse(encoded) as Record<string,unknown>;
++  const sameAddress=(v:unknown,w:string)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)&&v.toLowerCase()===w;
++  const uint=(v:unknown)=>typeof v==='string'&&/^(0|[1-9][0-9]{0,77})$/.test(v);
++  const hash=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{64}$/.test(v);
++  if(Object.hasOwn(doc,'auth')){
++   const a=doc.auth,p=doc.packet,anchor=doc.chainAnchor;
++   if(!record(a)||!record(p)||!record(p.domain)||!record(anchor)||!hash(anchor.genesisHash)||!hash(anchor.codeHash)
++    ||a.orderId!==binding.id||!sameAddress(a.wallet,binding.wallet)||a.goldCost!==binding.gold||!Number.isSafeInteger(a.deadline)||Number(a.deadline)*1000!==binding.deadline
++    ||!hash(a.key)||!hash(a.uriHash)||!uint(a.embeoCost)||!uint(a.signerEpoch)||typeof a.recipient!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(a.recipient)
++    ||p.route!=='paid'||p.runId!==binding.chainInstance||p.domain.chainId!==binding.chainId||!sameAddress(p.domain.verifyingContract,binding.contract)
++    ||!sameAddress(p.walletAddress,binding.wallet)||p.key!==a.key||p.deadline!==a.deadline||p.signerEpoch!==a.signerEpoch||p.expectedRecipient!==a.recipient||p.expectedCost!==a.embeoCost)throw Error();
++  }else{
++   // Existing recorded fixture auth is wallet/order-bound. Neither form is a
++   // browser authorization or proof that the production signer is installed.
++   if(doc.id!==binding.id||!sameAddress(doc.wallet,binding.wallet)||(Object.hasOwn(doc,'cost')&&doc.cost!==binding.gold))throw Error();
++  }
++  return encoded;
++ }catch{throw Error('INVALID_MINT_AUTH');}
++}
+diff --git a/server/world-gold-schema.ts b/server/world-gold-schema.ts
+new file mode 100644
+index 0000000..ca37745
+--- /dev/null
++++ b/server/world-gold-schema.ts
+@@ -0,0 +1,20 @@
++import type {D1Database} from './d1.ts';
++
++// Static capability inventory of reviewed financial migrations0010..0016.
++// No positive/negative cache: forward migration is recognized on the next call.
++// Tables alone do not prove capacity/authorization/immutability guards exist.
++export const GOLD_SCHEMA_OBJECTS=[{"type":"index","name":"economy_events_payment_block"},{"type":"index","name":"economy_events_position_day"},{"type":"index","name":"economy_gold_journal_wallet"},{"type":"index","name":"economy_gold_reward_pending"},{"type":"index","name":"economy_gold_reward_wallet"},{"type":"index","name":"economy_orders_wallet"},{"type":"index","name":"economy_payment_cases_payer"},{"type":"index","name":"economy_positions_ceiling"},{"type":"index","name":"economy_positions_closed_end"},{"type":"index","name":"economy_positions_first"},{"type":"index","name":"economy_positions_open_page"},{"type":"index","name":"economy_positions_page"},{"type":"index","name":"economy_positions_visible"},{"type":"index","name":"economy_positions_wallet"},{"type":"index","name":"world_gold_entries_wallet"},{"type":"index","name":"world_gold_holds_wallet"},{"type":"table","name":"economy_accounts"},{"type":"table","name":"economy_chain_events"},{"type":"table","name":"economy_chain_state"},{"type":"table","name":"economy_config_lineage"},{"type":"table","name":"economy_config_registry"},{"type":"table","name":"economy_day_progress"},{"type":"table","name":"economy_fulfillments"},{"type":"table","name":"economy_gold_accounts"},{"type":"table","name":"economy_gold_adjustments"},{"type":"table","name":"economy_gold_challenges"},{"type":"table","name":"economy_gold_days"},{"type":"table","name":"economy_gold_journal"},{"type":"table","name":"economy_gold_reward_entitlements"},{"type":"table","name":"economy_ingestions"},{"type":"table","name":"economy_orders"},{"type":"table","name":"economy_payment_case_actions"},{"type":"table","name":"economy_payment_cases"},{"type":"table","name":"economy_pending_blocks"},{"type":"table","name":"economy_position_balances"},{"type":"table","name":"economy_positions"},{"type":"table","name":"economy_recoveries"},{"type":"table","name":"economy_reward_bindings"},{"type":"table","name":"economy_settlement_pages"},{"type":"table","name":"economy_stage_batches"},{"type":"table","name":"economy_staged_events"},{"type":"table","name":"world_gold_admin_actions"},{"type":"table","name":"world_gold_campaigns"},{"type":"table","name":"world_gold_controls"},{"type":"table","name":"world_gold_entries"},{"type":"table","name":"world_gold_holds"},{"type":"table","name":"world_gold_jobs"},{"type":"table","name":"world_gold_links"},{"type":"table","name":"world_gold_mint_settlements"},{"type":"table","name":"world_gold_mints"},{"type":"table","name":"world_gold_products"},{"type":"table","name":"world_gold_reconcile_errors"},{"type":"table","name":"world_gold_write_checks"},{"type":"trigger","name":"economy_adjustment_no_change"},{"type":"trigger","name":"economy_adjustment_no_delete"},{"type":"trigger","name":"economy_case_action_no_change"},{"type":"trigger","name":"economy_case_action_no_delete"},{"type":"trigger","name":"economy_event_immutable"},{"type":"trigger","name":"economy_event_no_delete"},{"type":"trigger","name":"economy_event_no_update"},{"type":"trigger","name":"economy_event_stake"},{"type":"trigger","name":"economy_event_withdraw"},{"type":"trigger","name":"economy_event_withdraw_apply"},{"type":"trigger","name":"economy_gold_apply"},{"type":"trigger","name":"economy_gold_credit_capacity"},{"type":"trigger","name":"economy_gold_no_delete"},{"type":"trigger","name":"economy_gold_no_update"},{"type":"trigger","name":"economy_gold_reward_apply"},{"type":"trigger","name":"economy_gold_reward_insert"},{"type":"trigger","name":"economy_gold_reward_no_delete"},{"type":"trigger","name":"economy_gold_reward_recovery_version"},{"type":"trigger","name":"economy_gold_reward_update"},{"type":"trigger","name":"economy_lineage_no_change"},{"type":"trigger","name":"economy_lineage_no_delete"},{"type":"trigger","name":"economy_order_paid"},{"type":"trigger","name":"economy_order_quote_immutable"},{"type":"trigger","name":"economy_payment_case_no_change"},{"type":"trigger","name":"economy_payment_case_no_delete"},{"type":"trigger","name":"economy_recovery_no_change"},{"type":"trigger","name":"economy_recovery_no_delete"},{"type":"trigger","name":"economy_registry_no_change"},{"type":"trigger","name":"economy_registry_no_delete"},{"type":"trigger","name":"economy_reward_binding_no_change"},{"type":"trigger","name":"economy_reward_binding_no_delete"},{"type":"trigger","name":"economy_reward_progress_binding"},{"type":"trigger","name":"world_gold_admin_no_delete"},{"type":"trigger","name":"world_gold_admin_no_update"},{"type":"trigger","name":"world_gold_available_guard"},{"type":"trigger","name":"world_gold_campaign_no_delete"},{"type":"trigger","name":"world_gold_campaign_no_update"},{"type":"trigger","name":"world_gold_credit_capacity"},{"type":"trigger","name":"world_gold_delivery_evidence_immutable"},{"type":"trigger","name":"world_gold_entries_no_delete"},{"type":"trigger","name":"world_gold_entries_no_update"},{"type":"trigger","name":"world_gold_entry_apply"},{"type":"trigger","name":"world_gold_entry_authority"},{"type":"trigger","name":"world_gold_hold_insert"},{"type":"trigger","name":"world_gold_hold_no_delete"},{"type":"trigger","name":"world_gold_hold_update"},{"type":"trigger","name":"world_gold_link_safe_integer"},{"type":"trigger","name":"world_gold_links_no_delete"},{"type":"trigger","name":"world_gold_links_no_update"},{"type":"trigger","name":"world_gold_mint_no_delete"},{"type":"trigger","name":"world_gold_mint_proof"},{"type":"trigger","name":"world_gold_mint_proof_mode"},{"type":"trigger","name":"world_gold_mint_settlements_no_delete"},{"type":"trigger","name":"world_gold_mint_settlements_no_update"},{"type":"trigger","name":"world_gold_mint_update"},{"type":"trigger","name":"world_gold_product_safe_integer"},{"type":"trigger","name":"world_gold_products_no_delete"},{"type":"trigger","name":"world_gold_products_no_update"},{"type":"view","name":"world_gold_history"}] as const;
++export const GOLD_SCHEMA_COLUMNS={"economy_accounts":["member_id","settled_balance","reserved_balance","available_balance","ledger_version","updated_at"],"economy_chain_events":["id","config_id","kind","tx_hash","log_index","block_number","block_hash","at_ms","wallet","position_id","shares","amount","order_id","token","receiver","payload"],"economy_chain_state":["config_id","last_block","last_hash","through_ms","halted_reason"],"economy_config_lineage":["ancestor_id","config_id","recovery_id"],"economy_config_registry":["config_id","config_json","chain_id","token","staking_contract","payment_contract","treasury"],"economy_day_progress":["config_id","day_start_ms","position_ceiling","last_wallet","last_position","carry_reward","version","completed"],"economy_fulfillments":["order_id","wallet","service_id","currency","paid_ms"],"economy_gold_accounts":["wallet","balance"],"economy_gold_adjustments":["journal_id","recovery_id","staking_key","day_start_ms","wallet","credited_before","entitlement","delta"],"economy_gold_challenges":["order_id","request_id","wallet","nonce","origin","message","issued_ms","expires_ms","consumed_ms"],"economy_gold_days":["config_id","day_start_ms","completed_ms","accepted"],"economy_gold_journal":["id","wallet","delta","kind","reference","created_ms"],"economy_gold_reward_entitlements":["id","config_id","day_start_ms","wallet","delta","reference","created_ms","settled_ms","retry_ms","attempts"],"economy_ingestions":["id","config_id","accepted"],"economy_orders":["id","config_id","wallet","request_id","service_id","currency","amount","request_payload","created_ms","expires_ms","status","paid_ms","paid_event_id","gold_request_id"],"economy_payment_case_actions":["id","event_id","request_id","action","note","created_ms"],"economy_payment_cases":["event_id","config_id","chain_id","payment_contract","tx_hash","log_index","block_hash","block_number","payer","order_id","expected_wallet","expected_amount","actual_amount","receiver","token","classification","at_ms"],"economy_pending_blocks":["config_id","block_number","block_hash","parent_hash","through_ms","total_logs","digest","next_offset"],"economy_position_balances":["config_id","position_id","at_ms","block_number","log_index","remaining_shares"],"economy_positions":["config_id","position_id","position_key","wallet","deposited_ms","initial_shares","remaining_shares","closed_ms"],"economy_recoveries":["id","staking_key","from_config","to_config","horizon_ms","applied_ms","report_json","accepted"],"economy_reward_bindings":["staking_key","config_id"],"economy_settlement_pages":["id","config_id","day_start_ms","accepted"],"economy_stage_batches":["id","accepted"],"economy_staged_events":["config_id","ordinal","payload"],"world_gold_admin_actions":["id","wallet","request_id","action","payload","created_ms","before_json","after_json"],"world_gold_campaigns":["version","starts_ms","ends_ms","stopped","created_ms","actor"],"world_gold_controls":["feature","enabled","version"],"world_gold_entries":["id","wallet","delta","kind","reference","order_id","created_ms"],"world_gold_holds":["id","wallet","amount","state"],"world_gold_jobs":["order_id","wallet","state","attempt","lease_ms","result_json","failure","updated_ms","delivery_evidence_json"],"world_gold_links":["order_id","product_id","kind","gold"],"world_gold_mint_settlements":["order_id","state","evidence_json","before_json","after_json","created_ms"],"world_gold_mints":["id","wallet","auth_json","amount","chain_id","contract","chain_instance","deadline","created_ms","state","evidence_json"],"world_gold_products":["id","product","version","kind","title","gold","embeo","enabled","created_ms"],"world_gold_reconcile_errors":["order_id","code","retry_ms","attempts"],"world_gold_write_checks":["id","accepted","before_json"]} as const;
++export async function sharedGoldSchemaPresent(db:D1Database){
++ return !!await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'world_gold_%' LIMIT 1").first();
++}
++export async function worldGoldSchemaReady(db:D1Database){
++ const row=await db.prepare(`SELECT CASE WHEN
++ NOT EXISTS(SELECT 1 FROM json_each(?) o WHERE NOT EXISTS(SELECT 1 FROM sqlite_master s WHERE s.type=json_extract(o.value,'$.type') AND s.name=json_extract(o.value,'$.name')))
++ AND NOT EXISTS(SELECT 1 FROM json_each(?) t,json_each(t.value) c WHERE NOT EXISTS(SELECT 1 FROM pragma_table_info(t.key) p WHERE p.name=c.value))
++ THEN 1 ELSE 0 END ready`).bind(JSON.stringify(GOLD_SCHEMA_OBJECTS),JSON.stringify(GOLD_SCHEMA_COLUMNS)).first<{ready:number}>();
++ return row?.ready===1;
++}
++export async function requireWorldGoldSchema(db:D1Database){
++ if(!await worldGoldSchemaReady(db))throw Error('SCHEMA_INCOMPLETE');
++}
+diff --git a/server/world-gold.ts b/server/world-gold.ts
+index 4905617..4386b75 100644
+--- a/server/world-gold.ts
++++ b/server/world-gold.ts
+@@ -2,6 +2,9 @@ import type {D1Database,D1PreparedStatement} from './d1.ts';
+ import {economyAddress,economyDigest,economyUint,ECONOMY_MAX_INTEGER,type EconomyConfig} from './economy-config.ts';
+ import {economyConfigStatement} from './economy-reconciliation.ts';
+ import {AIMARKET_ACTIVITY_ADMIN_WALLETS} from './aimarket-admin.ts';
++import {requireWorldGoldSchema} from './world-gold-schema.ts';
++import {reconcileRewardEntitlements} from './economy-rewards.ts';
++import {encodeGoldResult,encodeMintAuth,hasGoldResultContract} from './world-gold-result.ts';
+ 
+ export const WORLD_GOLD_TABLES=['world_gold_products','world_gold_links','world_gold_mints','world_gold_holds','world_gold_jobs','world_gold_entries','world_gold_admin_actions','world_gold_campaigns','world_gold_controls','world_gold_write_checks'] as const;
+ export const WORLD_GOLD_AUDIT_TABLES=['world_gold_reconcile_errors','world_gold_mint_settlements'] as const;
+@@ -22,25 +25,27 @@ export async function goldFeature(db:D1Database,feature:'topup'|'service'|'mint'
+  if(!(await st(db,'SELECT enabled FROM world_gold_controls WHERE feature=?',feature).first<{enabled:number}>())?.enabled)fail('FEATURE_PAUSED');
+ }
+ export async function worldGoldSnapshot(db:D1Database,wallet:string,nowMs:number){
+- wallet=economyAddress(wallet);at(nowMs);
+- const [balance,history,orders,mints]=await db.batch([
++ wallet=economyAddress(wallet);at(nowMs);await requireWorldGoldSchema(db);
++ const [balance,history,orders,mints,owed]=await db.batch([
+   st(db,`SELECT CAST(COALESCE((SELECT balance FROM economy_gold_accounts WHERE wallet=?),0) AS TEXT) book, CAST(COALESCE((SELECT SUM(amount) FROM world_gold_holds WHERE wallet=? AND state='held'),0) AS TEXT) reserved`,wallet,wallet),
+   st(db,'SELECT id,delta,kind,reference,created_ms FROM world_gold_history WHERE wallet=? ORDER BY created_ms DESC,id DESC LIMIT 100',wallet),
+   st(db,`SELECT o.id,o.service_id product,o.currency,o.amount,o.status,o.created_ms,o.expires_ms,l.kind,CAST(l.gold AS TEXT) gold,j.state delivery,j.result_json result FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_jobs j ON j.order_id=o.id WHERE o.wallet=? ORDER BY o.created_ms DESC,o.id DESC LIMIT 100`,wallet),
+-  st(db,`SELECT id,state,CAST(amount AS TEXT) gold,deadline FROM world_gold_mints WHERE wallet=? ORDER BY created_ms DESC,id DESC LIMIT 100`,wallet)
++  st(db,`SELECT id,state,CAST(amount AS TEXT) gold,deadline FROM world_gold_mints WHERE wallet=? ORDER BY created_ms DESC,id DESC LIMIT 100`,wallet),
++  st(db,`SELECT id,config_id configId,day_start_ms dayStartMs,CAST(delta AS TEXT) gold,retry_ms retryMs,attempts FROM economy_gold_reward_entitlements WHERE wallet=? AND settled_ms IS NULL ORDER BY day_start_ms,id LIMIT 100`,wallet)
+  ]);
+  const row=balance.results[0] as {book:string;reserved:string}|undefined;if(!row)fail('LEDGER_UNAVAILABLE');
+  const available=BigInt(row!.book)-BigInt(row!.reserved);if(available<0n)fail('LEDGER_INTEGRITY');
+- return {wallet,book:row!.book,reserved:row!.reserved,available:String(available),asOf:nowMs,history:history.results,orders:orders.results,mints:mints.results,historyLimit:100,goldTransferable:false};
++ return {wallet,book:row!.book,reserved:row!.reserved,available:String(available),asOf:nowMs,history:history.results,orders:orders.results,mints:mints.results,pendingRewards:owed.results,pendingRewardsLimit:100,historyLimit:100,goldTransferable:false};
+ }
+ export async function goldQuote(ctx:WorldGoldContext,args:{wallet:string;requestId:string;product:string;authorization?:{tokenHash:string}}){
+- const {db,config,nowMs}=ctx;at(nowMs);const wallet=economyAddress(args.wallet),rid=requestId(args.requestId);ident(args.product);
++ const {db,config,nowMs}=ctx;at(nowMs);await requireWorldGoldSchema(db);const wallet=economyAddress(args.wallet),rid=requestId(args.requestId);ident(args.product);
+  // Retrying an old request uses the original quote, even after disabling/repricing.
+  const old=await st(db,'SELECT id,service_id FROM economy_orders WHERE wallet=? AND request_id=?',wallet,rid).first<{id:string;service_id:string}>();
+  if(old){const link=await st(db,'SELECT p.product FROM world_gold_links l JOIN world_gold_products p ON p.id=l.product_id WHERE l.order_id=?',old.id).first<{product:string}>();if(link?.product!==args.product)fail('IDEMPOTENCY_CONFLICT');return old.id;}
+  const p=(await goldProducts(db)).find(p=>p.product===args.product);if(!p?.enabled)fail('PRODUCT_UNAVAILABLE');
+  economyUint(p!.gold,WORLD_GOLD_MAX_PRODUCT);
+  if(p!.kind==='service'&&ctx.serviceReady!==true)fail('SERVICE_DELIVERY_UNAVAILABLE');
++ if(p!.kind==='service'&&!hasGoldResultContract(p!.product))fail('SERVICE_RESULT_SCHEMA_UNBOUND');
+  await goldFeature(db,p!.kind);
+  const freshNow=at(ctx.now?.()??nowMs);if(freshNow<nowMs)fail('INVALID_CLOCK');
+  const id='0x'+[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,'0')).join(''),currency=p!.kind==='topup'?'EMBEO':'GOLD';
+@@ -59,7 +64,7 @@ const credit=(db:D1Database,orderId:string,kind:'topup'|'service-refund',nowMs:n
+  ON CONFLICT(reference) DO NOTHING`,kind+':'+orderId,kind,kind,kind+':'+orderId,nowMs,orderId,kind);
+ /** Shared by automatic retry and admin repair. No caller-supplied credit amount. */
+ export async function reconcileWorldGold(db:D1Database,nowMs:number,orderId?:string){
+- at(nowMs);
++ at(nowMs);await requireWorldGoldSchema(db);
+  const pending=await db.prepare(`SELECT o.id,l.kind FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id LEFT JOIN world_gold_reconcile_errors e ON e.order_id=o.id WHERE o.status='paid' AND ((l.kind='topup' AND l.gold>COALESCE((SELECT SUM(delta) FROM world_gold_entries WHERE order_id=o.id AND kind='topup'),0)) OR (l.kind='service' AND NOT EXISTS(SELECT 1 FROM world_gold_jobs WHERE order_id=o.id))) ${orderId?'AND o.id=?':'AND (e.order_id IS NULL OR e.retry_ms<=?)'} ORDER BY o.created_ms,o.id LIMIT 128`).bind(orderId??nowMs).all<{id:string;kind:string}>();
+  const failures:{orderId:string;code:string}[]=[];
+  const recordFailure=async(id:string,error:unknown)=>{const message=error instanceof Error?error.message:'';const code=message.includes('GOLD_BALANCE_CAPACITY')?'GOLD_BALANCE_CAPACITY':'GOLD_RECONCILE_RETRY';failures.push({orderId:id,code});await st(db,`INSERT INTO world_gold_reconcile_errors(order_id,code,retry_ms,attempts) VALUES(?,?,?,1) ON CONFLICT(order_id) DO UPDATE SET code=excluded.code,retry_ms=excluded.retry_ms,attempts=attempts+1`,id,code,nowMs+300000).run();};
+@@ -72,35 +77,42 @@ export async function reconcileWorldGold(db:D1Database,nowMs:number,orderId?:str
+  const failed=await db.prepare(`SELECT j.order_id FROM world_gold_jobs j LEFT JOIN world_gold_reconcile_errors e ON e.order_id=j.order_id WHERE j.state='failed' ${orderId?'AND j.order_id=?':'AND (e.order_id IS NULL OR e.retry_ms<=?)'} ORDER BY j.order_id LIMIT 128`).bind(orderId??nowMs).all<{order_id:string}>();
+  for(const j of failed.results)try{await refundGold(db,j.order_id,nowMs);await st(db,'DELETE FROM world_gold_reconcile_errors WHERE order_id=?',j.order_id).run();}catch(error){await recordFailure(j.order_id,error);}
+  await st(db,'DELETE FROM world_gold_write_checks').run();
+- return {processed:pending.results.length,failures};
++ const rewards=orderId?[]:await reconcileRewardEntitlements(db,nowMs);
++ return {processed:pending.results.length,failures,rewards};
+ }
+ export async function refundGold(db:D1Database,orderId:string,nowMs:number){
+- at(nowMs);await db.batch([credit(db,orderId,'service-refund',nowMs),st(db,`UPDATE world_gold_jobs SET state='refunded',updated_ms=? WHERE order_id=? AND state='failed' AND EXISTS(SELECT 1 FROM world_gold_entries e JOIN world_gold_links l ON l.order_id=e.order_id WHERE e.order_id=world_gold_jobs.order_id AND e.reference='service-refund:'||l.order_id||':'||CAST(l.gold AS TEXT))`,nowMs,orderId)]);
++ at(nowMs);await requireWorldGoldSchema(db);await db.batch([credit(db,orderId,'service-refund',nowMs),st(db,`UPDATE world_gold_jobs SET state='refunded',updated_ms=? WHERE order_id=? AND state='failed' AND EXISTS(SELECT 1 FROM world_gold_entries e JOIN world_gold_links l ON l.order_id=e.order_id WHERE e.order_id=world_gold_jobs.order_id AND e.reference='service-refund:'||l.order_id||':'||CAST(l.gold AS TEXT))`,nowMs,orderId)]);
+  const j=await st(db,'SELECT state FROM world_gold_jobs WHERE order_id=?',orderId).first<{state:string}>();if(j?.state!=='refunded')fail('REFUND_NOT_ENTITLED');
+ }
+ /** An adapter must use orderId as its provider idempotency key. A timeout is
+  * unknown, not failed. After lease expiry, retry QUERY/DELIVER of the same key. */
+-export async function claimGoldJob(db:D1Database,orderId:string,nowMs:number){
+- at(nowMs);const token=crypto.randomUUID();
++export async function claimGoldJob(db:D1Database,orderId:string,nowMs:number,clock?:()=>number){
++ at(nowMs);await requireWorldGoldSchema(db);const fresh=at(clock?.()??nowMs);if(fresh<nowMs)fail('INVALID_CLOCK');nowMs=fresh;const token=crypto.randomUUID();
+  const result=await st(db,`UPDATE world_gold_jobs SET state='working',attempt=?,lease_ms=?,updated_ms=? WHERE order_id=? AND (state='queued' OR (state='working' AND lease_ms<=?)) RETURNING wallet`,token,nowMs+60000,nowMs,orderId,nowMs).run();
+  return result.results.length?token:null;
+ }
+ export type GoldFailureProof={kind:'provider-confirmed-nondelivery';provider:string;reference:string};
+-export async function finishGoldJob(db:D1Database,args:{orderId:string;attempt:string;nowMs:number;outcome:{result:unknown}|{failure:string;evidence:GoldFailureProof}}){
+- at(args.nowMs);let json:string|null=null,failure:string|null=null,evidence:unknown=null;
+- if('result' in args.outcome){try{json=JSON.stringify(args.outcome.result)??null;}catch{failure='RESULT_NOT_SERIALIZABLE';}if(json===null)failure??='RESULT_NOT_SERIALIZABLE';else if(new TextEncoder().encode(json).length>16000){json=null;failure='RESULT_TOO_LARGE';}}
++export async function finishGoldJob(db:D1Database,args:{orderId:string;attempt:string;nowMs:number;now?:()=>number;outcome:{result:unknown}|{failure:string;evidence:GoldFailureProof}}){
++ at(args.nowMs);await requireWorldGoldSchema(db);let json:string|null=null,failure:string|null=null,evidence:unknown=null;
++ if('result' in args.outcome){
++  const job=await st(db,`SELECT p.product FROM world_gold_jobs j JOIN world_gold_links l ON l.order_id=j.order_id JOIN world_gold_products p ON p.id=l.product_id WHERE j.order_id=?`,args.orderId).first<{product:string}>();
++  if(job&&!hasGoldResultContract(job.product))fail('SERVICE_RESULT_SCHEMA_UNBOUND');
++  ({json,failure}=encodeGoldResult(job?.product??'',args.outcome.result));
++ }
+  else {const p=args.outcome.evidence;if(!p||p.kind!=='provider-confirmed-nondelivery'||typeof p.provider!=='string'||!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(p.provider)||typeof p.reference!=='string'||!/^[A-Za-z0-9._:/-]{1,80}$/.test(p.reference)||typeof args.outcome.failure!=='string'||!/^[A-Za-z0-9._:-]{1,120}$/.test(args.outcome.failure))fail('DELIVERY_EVIDENCE_REQUIRED');failure=args.outcome.failure;evidence=p;}
+  if(failure&&evidence===null)evidence={kind:'world-result-unusable',source:'storage-encoder',reference:args.orderId,code:failure};
++ const finishedAt=at(args.now?.()??args.nowMs);if(finishedAt<args.nowMs)fail('INVALID_CLOCK');
+  const done=failure===null;
+- const changed=await st(db,`UPDATE world_gold_jobs SET state=?,result_json=?,failure=?,delivery_evidence_json=?,lease_ms=NULL,updated_ms=? WHERE order_id=? AND state='working' AND attempt=? AND lease_ms>? RETURNING order_id`,done?'delivered':'failed',done?json:null,failure,evidence===null?null:JSON.stringify(evidence),args.nowMs,args.orderId,args.attempt,args.nowMs).run();
+- if(!changed.results.length)fail('STALE_DELIVERY');if(!done)await refundGold(db,args.orderId,args.nowMs);
++ const changed=await st(db,`UPDATE world_gold_jobs SET state=?,result_json=?,failure=?,delivery_evidence_json=?,lease_ms=NULL,updated_ms=? WHERE order_id=? AND state='working' AND attempt=? AND lease_ms>? RETURNING order_id`,done?'delivered':'failed',done?json:null,failure,evidence===null?null:JSON.stringify(evidence),finishedAt,args.orderId,args.attempt,finishedAt).run();
++ if(!changed.results.length)fail('STALE_DELIVERY');if(!done)await refundGold(db,args.orderId,finishedAt);
+ }
+ export type MintBinding={id:string;wallet:string;auth:unknown;gold:string;chainId:number;contract:string;chainInstance:string;deadline:number};
+ export async function reserveMintGold(db:D1Database,m:MintBinding,nowMs:number){
+- at(nowMs);const wallet=economyAddress(m.wallet),contract=economyAddress(m.contract),gold=economyUint(m.gold,WORLD_GOLD_MAX_PRODUCT);
+- if(!/^0x[0-9a-f]{64}$/.test(m.id)||!Number.isSafeInteger(m.deadline)||m.deadline<=nowMs||!Number.isSafeInteger(m.chainId)||m.chainId<1||!m.chainInstance||m.chainInstance.length>128)fail('INVALID_MINT_AUTH');
+- const encoded=JSON.stringify(m.auth);if(encoded.length>16000)fail('INVALID_MINT_AUTH');
++ at(nowMs);await requireWorldGoldSchema(db);const wallet=economyAddress(m.wallet),contract=economyAddress(m.contract),gold=economyUint(m.gold,WORLD_GOLD_MAX_PRODUCT);
++ if(!/^0x[0-9a-f]{64}$/.test(m.id)||!Number.isSafeInteger(m.deadline)||m.deadline<=nowMs||!Number.isSafeInteger(m.chainId)||m.chainId<1||typeof m.chainInstance!=='string'||!/^[A-Za-z0-9._:-]{1,128}$/.test(m.chainInstance))fail('INVALID_MINT_AUTH');
+  const old=await st(db,'SELECT auth_json,state,wallet,CAST(amount AS TEXT) gold,chain_id chainId,contract,chain_instance chainInstance,deadline FROM world_gold_mints WHERE id=?',m.id).first<Omit<StoredMintBinding,'auth'>&{auth_json:string}>();
++ if(old&&(old.state!=='held'||old.wallet!==wallet||old.gold!==gold||old.chainId!==m.chainId||old.contract!==contract||old.chainInstance!==m.chainInstance||old.deadline!==m.deadline))fail('MINT_ORDER_CONFLICT');
++ const encoded=encodeMintAuth(m.auth,{...m,wallet,contract,gold});
+  if(old){if(old.auth_json!==encoded||old.state!=='held'||old.wallet!==wallet||old.gold!==gold||old.chainId!==m.chainId||old.contract!==contract||old.chainInstance!==m.chainInstance||old.deadline!==m.deadline)fail('MINT_ORDER_CONFLICT');return;}
+  await goldFeature(db,'mint');
+  await db.batch([
+@@ -117,12 +129,13 @@ export type MintProof={schema:'ember-mint-proof-v1';mode:'finalized-chain'|'priv
+  * A new private chain/process instance cannot stand in for the original one. */
+ export type MintProofReader={chainId:number;contract:string;chainInstance:string;read:(binding:StoredMintBinding)=>Promise<MintProof>};
+ export async function storedMintGold(db:D1Database,id:string):Promise<StoredMintBinding>{
++ await requireWorldGoldSchema(db);
+  const r=await st(db,`SELECT id,wallet,auth_json,CAST(amount AS TEXT) gold,chain_id chainId,contract,chain_instance chainInstance,deadline,state FROM world_gold_mints WHERE id=?`,id).first<Omit<StoredMintBinding,'auth'>&{auth_json:string}>();
+  if(!r)fail('MINT_ORDER_MISSING');const {auth_json,...binding}=r!;return {...binding,auth:JSON.parse(auth_json)};
+ }
+ function validateMintProof(m:StoredMintBinding,o:MintOutcome,pending=false){
+  const e=o.evidence as unknown as MintProof,hash=(s:unknown)=>typeof s==='string'&&/^0x[0-9a-f]{64}$/.test(s)&&s!=='0x'+'0'.repeat(64),uint=(s:unknown)=>typeof s==='string'&&/^(0|[1-9][0-9]*)$/.test(s);
+- if(!e||e.schema!=='ember-mint-proof-v1'||!['finalized-chain','private-chain-fixture'].includes(e.mode)||(e.mode==='private-chain-fixture'&&m.chainId!==31337)||e.orderId!==m.id||e.wallet!==m.wallet||e.gold!==m.gold||e.chainId!==m.chainId||e.contract!==m.contract||e.chainInstance!==m.chainInstance||!hash(e.blockHash)||!uint(e.blockNumber)||!Number.isSafeInteger(e.chainTimeMs)||e.chainTimeMs<=0||!uint(e.tokenId)||typeof e.revoked!=='boolean')fail('MINT_EVIDENCE_REQUIRED');
++ if(!e||e.schema!=='ember-mint-proof-v1'||!['finalized-chain','private-chain-fixture'].includes(e.mode)||((e.mode==='private-chain-fixture')!==(m.chainId===31337))||e.orderId!==m.id||e.wallet!==m.wallet||e.gold!==m.gold||e.chainId!==m.chainId||e.contract!==m.contract||e.chainInstance!==m.chainInstance||!hash(e.blockHash)||!uint(e.blockNumber)||!Number.isSafeInteger(e.chainTimeMs)||e.chainTimeMs<=0||!uint(e.tokenId)||typeof e.revoked!=='boolean')fail('MINT_EVIDENCE_REQUIRED');
+  if(!pending){if(o.state==='consumed'){if(BigInt(e.tokenId)===0n||!hash(e.transactionHash)||e.revoked)fail('MINT_PROOF_CONFLICT');}
+  else if(o.state!=='released'||e.tokenId!=='0'||(!e.revoked&&e.chainTimeMs<=m.deadline))fail('MINT_AUTH_EXECUTABLE');}
+  const json=JSON.stringify(e);if(new TextEncoder().encode(json).length>16000)fail('MINT_EVIDENCE_REQUIRED');return json;
+@@ -142,7 +155,7 @@ export async function settleMintGold(db:D1Database,o:MintOutcome,nowMs:number){
+  * Supply a trusted reader for the preserved namespace. Missing original chain
+  * authority is an explicit blocked outcome; elapsed wall time never releases. */
+ export async function reconcileHeldMintGold(db:D1Database,reader:MintProofReader,nowMs:number,options:{orderId?:string;after?:string;limit?:number}={}){
+- at(nowMs);const limit=options.limit??32;if(!Number.isInteger(limit)||limit<1||limit>32)fail('INVALID_RECONCILIATION_LIMIT');
++ at(nowMs);await requireWorldGoldSchema(db);const limit=options.limit??32;if(!Number.isInteger(limit)||limit<1||limit>32)fail('INVALID_RECONCILIATION_LIMIT');
+  const ids=await st(db,`SELECT id FROM world_gold_mints WHERE state='held' AND id>? ${options.orderId?'AND id=?':''} ORDER BY id LIMIT ?`,options.after??'',...options.orderId?[options.orderId]:[],limit).all<{id:string}>();
+  const outcomes:{id:string;status:string}[]=[];
+  for(const {id} of ids.results){try{const m=await storedMintGold(db,id);if(reader.chainId!==m.chainId||economyAddress(reader.contract)!==m.contract||reader.chainInstance!==m.chainInstance)fail('MINT_SCOPE_MISMATCH');
+@@ -161,6 +174,7 @@ type AdminCommand={action:'product';product:string;kind:'topup'|'service';title:
+ export async function goldAdminCommand(db:D1Database,args:{wallet:string;requestId:string;command:AdminCommand;reason:string;nowMs:number;now?:()=>number;authorization?:{tokenHash:string};serviceReady?:boolean}){
+  const wallet=economyAddress(args.wallet),rid=requestId(args.requestId),started=at(args.nowMs),cmd=args.command;
+  if(!AIMARKET_ACTIVITY_ADMIN_WALLETS.includes(wallet))fail('ADMIN_REQUIRED');
++ await requireWorldGoldSchema(db);
+  if(typeof args.reason!=='string'||args.reason.trim().length<3||args.reason.length>500)fail('REASON_REQUIRED');
+  const id=await economyDigest(wallet+':'+rid),payload=JSON.stringify([cmd,args.reason]);
+  const old=await st(db,'SELECT payload FROM world_gold_admin_actions WHERE id=?',id).first<{payload:string}>();if(old){if(old.payload!==payload)fail('IDEMPOTENCY_CONFLICT');return;}
+diff --git a/src/world/EconomyPane.tsx b/src/world/EconomyPane.tsx
+index 09442ca..1352f83 100644
+--- a/src/world/EconomyPane.tsx
++++ b/src/world/EconomyPane.tsx
+@@ -68,7 +68,8 @@ export function EconomyPane({language,state,onSignIn,onClose}:EconomyPaneProps){
+    {enabled&&!session&&<div className="economy-notice"><p>{say('沿用 World 的錢包登入查看帳本；每次質押或付款會另行明確確認。','Use your World wallet sign-in to view the ledger. Each stake or payment requires its own confirmation.')}</p>{options.needsChoice&&<div className="economy-actions">{options.options.map((option,index)=><button key={index} onClick={()=>registry.choose(option)}>{option.info.name}</button>)}</div>}<button disabled={!state.sessionKnown||state.phase!=='idle'||options.needsChoice||state.leaving} onClick={onSignIn}>{say('登入 World 錢包','Sign in to World')}</button></div>}
+    {enabled&&session&&<>
+     <div className="economy-account"><span>{say('目前登入錢包','Signed-in wallet')}</span><code>{session.address}</code><button disabled={loading} onClick={()=>void readAccount()}>{say('更新帳本','Refresh ledger')}</button></div>
+-    <section className="economy-ledger" aria-labelledby="economy-gold-title"><div><h2 id="economy-gold-title">{say('我的 GOLD','My GOLD')}</h2><strong>{visibleSnapshot?.gold??'—'} <small>GOLD</small></strong><p>{say('已確認的可用 GOLD，已扣除處理中保留','Confirmed available GOLD, excluding reservations')}</p></div><dl><dt>{say('鏈上資料同步至','Chain data through')}</dt><dd>{visibleSnapshot?economyUtc(visibleSnapshot.chain.throughMs):'—'}</dd><dt>{say('GOLD 結算至','GOLD settled through')}</dt><dd>{visibleSnapshot?economyUtc(visibleSnapshot.settledThroughMs):'—'}</dd></dl></section>
++    <section className="economy-ledger" aria-labelledby="economy-gold-title"><div><h2 id="economy-gold-title">{say('我的 GOLD','My GOLD')}</h2><strong>{visibleSnapshot?.gold??'—'} <small>GOLD</small></strong><p>{say('已確認的可用 GOLD，已扣除處理中保留','Confirmed available GOLD, excluding reservations')}</p></div><dl><dt>{say('鏈上資料同步至','Chain data through')}</dt><dd>{visibleSnapshot?economyUtc(visibleSnapshot.chain.throughMs):'—'}</dd><dt>{say('獎勵計算至','Rewards calculated through')}</dt><dd>{visibleSnapshot?economyUtc(visibleSnapshot.settledThroughMs):'—'}</dd></dl></section>
++    {visibleSnapshot?.pendingRewardCount&&visibleSnapshot.pendingRewardCount!=='0'&&<p className="economy-notice" role="status">{say('仍有待補發質押獎勵，尚未計入可用 GOLD。可至購點與世界帳本核對原始權益。','Some staking rewards are pending and are not included in spendable GOLD. Review their original entitlements in the World GOLD ledger.')}</p>}
+     {visibleSnapshot?.chain.throughMs===0&&<p className="economy-muted">{say('鏈上資料尚未同步，不能視為沒有持倉；請稍後更新帳本。','Chain data has not synced. This does not mean you have no positions. Refresh the ledger later.')}</p>}
+     {halted&&<p className="economy-notice" role="status">{say('鏈上索引核對暫停，此設定的新增質押與付款已停止；帳本餘額保留，仍可核對並取回本金。','Chain indexing is paused for this configuration. Its new stakes and payments are stopped; balances are retained and principal withdrawal remains available.')}</p>}
+     <section className="economy-section"><h2>{say('新增質押','Stake EMBEO')}</h2><div className="economy-form"><label htmlFor="economy-shares">{say('質押份數','Shares to stake')}</label><input id="economy-shares" inputMode="numeric" pattern="[0-9]*" value={shares} onChange={event=>setShares(event.target.value.replace(/[^0-9]/g,'').slice(0,54))}/><span>{/^[1-9][0-9]*$/.test(shares)?String(BigInt(shares)*100000n):'—'} EMBEO</span><button disabled={!canSpend||!/^[1-9][0-9]*$/.test(shares)} onClick={()=>prepare({kind:'stake',shares})}>{say('核對質押','Review stake')}</button></div><p className="economy-muted">{say('每次新增質押會建立獨立持倉。日中存入從下一個 UTC 日開始計算，以實際上鏈時間為準。','Every deposit creates a separate position. A deposit during the day starts counting on the next UTC day, based on its actual on-chain time.')}</p></section>
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index b6745db..265c570 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -66,7 +66,8 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  {data.deliveryReady!==true&&<p role="status">{zh?'服務尚未接通，目前不接受新的服務扣點。':'Services are unavailable; new service payments are disabled.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled).map(p=><article key={p.id}><h2>{p.title}</h2><p>{p.kind==='topup'?`${p.embeo?economyTokenAmount(p.embeo):'—'} EMBEO → ${p.gold} GOLD`:`${p.gold} GOLD`}</p><small>v{p.version}</small><button disabled={busy||wallet.busy||!data.controls.find(c=>c.feature===p.kind)?.enabled||(p.kind==='service'&&data.deliveryReady!==true)} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立測試訂單':'Create test order'}</button></article>)}</div>
+  {selected&&selected.status==='pending'&&<section className="gold-confirm"><h2>{zh?'核對原始訂單':'Review original order'}</h2><code>{selected.id}</code><p>{selected.currency==='EMBEO'?economyTokenAmount(selected.amount):selected.amount} {selected.currency} · {selected.kind==='topup'?`${zh?'獲得':'Receive'} ${selected.gold} GOLD`:zh?'此筆服務費用':'Service payment'}</p><button disabled={busy||wallet.busy} onClick={()=>void run(()=>pay(selected))}>{(data as (GoldState&{localFixture?:boolean})|null)?.localFixture?(zh?'執行本機測試付款':'Execute local fixture payment'):selected.currency==='GOLD'?(zh?'簽名確認扣點':'Sign GOLD payment'):zh?'核對錢包付款':'Review wallet payment'}</button></section>}
+  <div className="gold-actions">{['approve-required','reset-required'].includes(wallet.phase)&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.approve())}>{zh?'確認指定額度授權':'Approve exact amount'}</button>}{wallet.phase==='confirm'&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.confirm())}>{zh?'確認 EMBEO 付款':'Confirm EMBEO payment'}</button>}{wallet.hash&&<code>{wallet.hash}</code>}{['unknown','pending'].includes(wallet.phase)&&<button onClick={()=>void run(()=>controller!.checkReceipt())}>{zh?'查詢原交易':'Check original transaction'}</button>}</div>
+- <h2>{zh?'訂單與交付':'Orders & delivery'}</h2><ul className="gold-orders">{data.orders.map(o=><li key={o.id}><b>{o.product}</b> · {o.status} {o.delivery??''}<code>{o.id}</code><button disabled={busy} onClick={()=>void run(async()=>{await client.reconcile(o.id);setSelected(o);})}>{zh?'核對原單':'Check original order'}</button>{o.result&&o.delivery==='delivered'&&<details><summary>{zh?'開啟原結果（不再扣點）':'Open saved result (no charge)'}</summary><pre>{o.result}</pre></details>}</li>)}</ul>
++ <h2>{zh?'訂單與交付':'Orders & delivery'}</h2><ul className="gold-orders">{data.orders.map(o=><li key={o.id}><b>{o.product}</b> · {o.status} {o.delivery==='failed'?(zh?'待退點（尚未入帳）':'Refund pending (not credited)'):o.delivery==='refunded'?(zh?'已退點':'Refunded'):o.delivery??''}<code>{o.id}</code><button disabled={busy} onClick={()=>void run(async()=>{await client.reconcile(o.id);setSelected(o);})}>{zh?'核對原單':'Check original order'}</button>{o.result&&o.delivery==='delivered'&&<details><summary>{zh?'開啟原結果（不再扣點）':'Open saved result (no charge)'}</summary><pre>{o.result}</pre></details>}</li>)}</ul>
++ {(data.pendingRewards?.length??0)>0&&<section><h2>{zh?'待補發質押獎勵':'Pending staking rewards'}</h2><p>{zh?'以下權益尚未入帳，也未計入可用餘額；空間恢復後會依原始紀錄補發。最多顯示 100 筆。':'These entitlements are not credited or spendable. Original rewards retry when capacity is available. Up to 100 entries are shown.'}</p><ul>{data.pendingRewards!.map(r=><li key={r.id}>{new Date(r.dayStartMs).toISOString().slice(0,10)} UTC · {r.gold} GOLD</li>)}</ul></section>}
+  <h2>{zh?'GOLD 紀錄（最近 100 筆）':'GOLD history (latest 100)'}</h2><ul className="gold-history">{data.history.map(h=><li key={h.id}><span>{h.kind}</span><b>{h.delta} GOLD</b><small>{new Date(h.created_ms).toISOString()}</small></li>)}</ul>
+  {data.isAdmin&&<Admin client={client} data={data} refresh={refresh} zh={zh}/>}</>:<p role="status">{error?(zh?'帳本目前無法取得；請重試，不代表餘額為零。':'Ledger unavailable. Try again; this does not mean a zero balance.'):(zh?'讀取帳本…':'Reading ledger…')}</p>}
+  <button disabled={busy} onClick={()=>void refresh()}>{zh?'更新餘額與狀態':'Refresh ledger'}</button></>}
+diff --git a/src/world/economyClient.ts b/src/world/economyClient.ts
+index fd7a894..0521827 100644
+--- a/src/world/economyClient.ts
++++ b/src/world/economyClient.ts
+@@ -9,7 +9,7 @@ export type EconomyDisabled={enabled:false;reason:string;shareTokens:'100000';ru
+ export type EconomyPosition={id:string;initialShares:string;shares:string;depositedMs:number};
+ export type EconomyOrder={id:string;wallet?:string;serviceId:string;currency:'GOLD'|'EMBEO';amount:string;status:'pending'|'paid';createdMs:number;expiresMs:number;paidMs:number|null};
+ export type EconomyPaymentCase={id:string;transactionHash:string;orderId:string;actualAmount:string;expectedAmount:string|null;classification:string;createdMs:number;correctPaymentEvent:string|null;disposition:'unreviewed'|'acknowledged-no-entitlement'};
+-export type EconomySnapshot={address:string;gold:string;goldBook?:string;goldReserved?:string;positions:EconomyPosition[];positionsTruncated:boolean;journal:{id:string;delta:string;kind:string;createdMs:number}[];orders:EconomyOrder[];paymentCases?:EconomyPaymentCase[];chain:{block:string;throughMs:number;haltedReason:string|null};settledThroughMs:number|null};
++export type EconomySnapshot={address:string;gold:string;goldBook?:string;goldReserved?:string;pendingRewardCount?:string;positions:EconomyPosition[];positionsTruncated:boolean;journal:{id:string;delta:string;kind:string;createdMs:number}[];orders:EconomyOrder[];paymentCases?:EconomyPaymentCase[];chain:{block:string;throughMs:number;haltedReason:string|null};settledThroughMs:number|null};
+ export type EconomyPayment={chainId:1;contract:string;token:string;receiver:string;orderId:string;amount:string};
+ export type EconomyGoldChallenge={orderId:string;requestId:string;wallet:string;nonce:string;origin:string;message:string;issuedMs:number;expiresMs:number;amount:string;serviceId:string};
+ type Requester=(path:string,init?:RequestInit)=>Promise<Response>;
+@@ -54,7 +54,8 @@ export function parseEconomySnapshot(value:unknown,address:string):EconomySnapsh
+   });
+  }
+  if(value.goldBook!==undefined||value.goldReserved!==undefined){if(!economyInteger(value.goldBook,true,9_223_372_036_854_775_807n)||!economyInteger(value.goldReserved,true,9_223_372_036_854_775_807n)||BigInt(value.goldBook)!==BigInt(value.gold)+BigInt(value.goldReserved))throw new EconomyClientError('INVALID_RESPONSE');}
+- return {address:address.toLowerCase(),gold:value.gold,...value.goldBook!==undefined?{goldBook:value.goldBook as string,goldReserved:value.goldReserved as string}:{},positions,positionsTruncated:value.positionsTruncated,journal,orders:value.orders.map(o=>order(o,address)),...paymentCases?{paymentCases}:{},chain:{block:value.chain.block,throughMs:value.chain.throughMs,haltedReason:value.chain.haltedReason as string|null},settledThroughMs:value.settledThroughMs as number|null};
++ if(value.pendingRewardCount!==undefined&&!economyInteger(value.pendingRewardCount,true,9_223_372_036_854_775_807n))throw new EconomyClientError('INVALID_RESPONSE');
++ return {address:address.toLowerCase(),gold:value.gold,...value.pendingRewardCount!==undefined?{pendingRewardCount:value.pendingRewardCount as string}:{},...value.goldBook!==undefined?{goldBook:value.goldBook as string,goldReserved:value.goldReserved as string}:{},positions,positionsTruncated:value.positionsTruncated,journal,orders:value.orders.map(o=>order(o,address)),...paymentCases?{paymentCases}:{},chain:{block:value.chain.block,throughMs:value.chain.throughMs,haltedReason:value.chain.haltedReason as string|null},settledThroughMs:value.settledThroughMs as number|null};
+ }
+ export function economyGoldMessage(challenge:Omit<EconomyGoldChallenge,'message'>){
+  const c=challenge;return `IMD Ember World GOLD payment\n\nAuthorize one World service payment using nontransferable GOLD.\nThis signature does not authorize EMBEO, token allowances, or blockchain transfers.\n\nOrigin: ${c.origin}\nWallet: ${c.wallet}\nOrder: ${c.orderId}\nService: ${c.serviceId}\nAmount: ${c.amount} GOLD\nRequest: ${c.requestId}\nNonce: ${c.nonce}\nIssued at: ${new Date(c.issuedMs).toISOString()}\nExpires at: ${new Date(c.expiresMs).toISOString()}`;
+diff --git a/src/world/worldGoldClient.ts b/src/world/worldGoldClient.ts
+index 394925a..b00874a 100644
+--- a/src/world/worldGoldClient.ts
++++ b/src/world/worldGoldClient.ts
+@@ -5,8 +5,8 @@ export function goldPriceInputAtomic(value:string):string|null{
+  const [whole,fraction='']=value.split('.'),amount=BigInt(whole)*10n**18n+BigInt(fraction.padEnd(18,'0'));
+  return amount>0n&&amount<2n**256n?String(amount):null;
+ }
+-export type GoldOrder={id:string;product:string;currency:'GOLD'|'EMBEO';amount:string;status:'pending'|'paid';created_ms:number;expires_ms:number;kind:'topup'|'service';gold:string;delivery:string|null;result:string|null};
+-export type GoldState={deliveryReady?:boolean;wallet:string;book:string;reserved:string;available:string;asOf:number;isAdmin:boolean;products:{id:string;product:string;version:number;kind:'topup'|'service';title:string;gold:string;embeo:string|null;enabled:number}[];orders:GoldOrder[];history:{id:string;delta:string;kind:string;created_ms:number}[];campaign:{version:number;startsMs:number|null;endsMs:number|null;stopped:number;active:boolean;asOf:number};controls:{feature:string;enabled:number;version:number}[]};
++export type GoldOrder={id:string;product:string;currency:'GOLD'|'EMBEO';amount:string;status:'pending'|'paid';created_ms:number;expires_ms:number;kind:'topup'|'service';gold:string;delivery:string|null;result:string|null;failure?:string|null};
++export type GoldState={pendingRewards?:{id:string;configId:string;dayStartMs:number;gold:string;retryMs:number;attempts:number}[];deliveryReady?:boolean;wallet:string;book:string;reserved:string;available:string;asOf:number;isAdmin:boolean;products:{id:string;product:string;version:number;kind:'topup'|'service';title:string;gold:string;embeo:string|null;enabled:number}[];orders:GoldOrder[];history:{id:string;delta:string;kind:string;created_ms:number}[];campaign:{version:number;startsMs:number|null;endsMs:number|null;stopped:number;active:boolean;asOf:number};controls:{feature:string;enabled:number;version:number}[]};
+ export function parseWorldGold(value:unknown,address:string):GoldState{
+  const v=value as GoldState;const uint=(s:unknown)=>typeof s==='string'&&/^(0|[1-9][0-9]{0,18})$/.test(s);
+  if(!v||v.wallet!==address.toLowerCase()||!uint(v.book)||!uint(v.available)||!uint(v.reserved)||BigInt(v.book)!==BigInt(v.available)+BigInt(v.reserved)||!Number.isSafeInteger(v.asOf)||v.asOf<=0||!Array.isArray(v.products)||!Array.isArray(v.orders)||!Array.isArray(v.history)||typeof v.isAdmin!=='boolean'||!v.campaign||!Array.isArray(v.controls))throw new EconomyClientError('INVALID_RESPONSE');
+diff --git a/tests/d1-sqlite.mjs b/tests/d1-sqlite.mjs
+index 8166def..67ac4b6 100644
+--- a/tests/d1-sqlite.mjs
++++ b/tests/d1-sqlite.mjs
+@@ -4,9 +4,12 @@ import {readFileSync,readdirSync} from 'node:fs';
+ // batch() is one transaction (BEGIN/COMMIT, ROLLBACK on any error), as D1 documents. Values bound as undefined are null.
+ const dir=new URL('../migrations/',import.meta.url);
+ export function migrationFiles(){return readdirSync(dir).filter(f=>/^\d{4}_.+\.sql$/.test(f)).sort();}
++/** Historical standalone catalogue profile, before shared GOLD existed. Keep
++ * its original assertions distinct from current shared-schema route refusals. */
++export function openStandaloneEconomyD1(files=migrationFiles().filter(f=>Number(f.slice(0,4))<14)){return openD1(files);}
+ /** `files`: the migrations to run (default all; a test of a deploy that ran ahead of a migration passes fewer). */
+-export function openD1(files=migrationFiles()){
+-  const db=new DatabaseSync(':memory:');
++export function openD1(files=migrationFiles(),filename=':memory:'){
++  const db=new DatabaseSync(filename);
+   for(const f of files)db.exec(readFileSync(new URL(f,dir),'utf8'));
+   const exec=(sql,args)=>{
+     const s=db.prepare(sql),values=args.map(v=>v===undefined?null:v);
+diff --git a/tests/deploy-evidence.test.mjs b/tests/deploy-evidence.test.mjs
+index 861295f..0f8bf8b 100644
+--- a/tests/deploy-evidence.test.mjs
++++ b/tests/deploy-evidence.test.mjs
+@@ -44,7 +44,7 @@ test('deploy evidence from a real deploy record: commit, id, times, version id,
+       assert.ok(md.includes(part),part);
+     // The migrations of that commit, by name (their hashes are whatever the files hold; the next test pins the hashing).
+     const migrations=text=>[...text.matchAll(/^\| `(\d{4}_[\w]+\.sql)` \| `[0-9a-f]{64}` \|$/gm)].map(m=>m[1]);
+-    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql']);
++    assert.deepEqual(migrations(md),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql']);
+     assert.ok(!md.includes('third-party-licenses'),'only JS, CSS and HTML are listed');
+     // The limiter keys come from server/auth.ts at the record's commit: HEAD has A-1's lane key and N-6's index-lane key
+     // (Swarm audit 8c3aea2e); 132228c (the code of Worker 1a0dd495) has the first but not the second, nor migration 0005;
+diff --git a/tests/economy-adversarial.test.mjs b/tests/economy-adversarial.test.mjs
+index ffb1ec2..5be3d2c 100644
+--- a/tests/economy-adversarial.test.mjs
++++ b/tests/economy-adversarial.test.mjs
+@@ -1,7 +1,8 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+-import {openD1} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_SHARE_WEI as SHARE,ECONOMY_DAY_MS as DAY} from '../server/economy-config.ts';
+ import {ingestEconomyEvents,economyWalletSnapshot,economyChainState} from '../server/economy-ledger.ts';
+ import {syncEconomyChain,ECONOMY_EVENT_TOPICS} from '../server/economy-rpc.ts';
+diff --git a/tests/economy-api.test.mjs b/tests/economy-api.test.mjs
+index 70c4f1c..8a26618 100644
+--- a/tests/economy-api.test.mjs
++++ b/tests/economy-api.test.mjs
+@@ -1,6 +1,7 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {openD1,migrationFiles} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1,migrationFiles} from './d1-sqlite.mjs';
+ import {sha256,SESSION_COOKIE} from '../server/auth.ts';
+ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+ import {API_HEADERS} from '../server/world-api.ts';
+@@ -83,7 +84,7 @@ test('missing config, missing migration, limiter failure and invalid clock fail
+  const f=await fixture();
+  for(const patch of [{config:null},{db:undefined},{allow:undefined},{allow:async()=>{throw Error('broken limiter');}},{now:()=>NaN},{now:()=>-1},{now:()=>1.5}])await checked(handleEconomyApi(request('/api/economy/orders',{method:'POST',body:orderBody}),{...f.deps,...patch}),503);
+  await checked(handleEconomyApi(request(me),{...f.deps,allow:async()=>false}),429);assert.equal(count(f,'economy_orders'),0);f.close();
+- const old=await fixture({db:openD1(migrationFiles().filter(x=>!/^001[0-5]_/.test(x)))});await checked(handleEconomyApi(request(me),old.deps),503);old.close();
++ const old=await fixture({db:openD1(migrationFiles().filter(x=>Number(x.slice(0,4))<10))});await checked(handleEconomyApi(request(me),old.deps),503);old.close();
+ });
+ test('body is bounded, valid UTF-8 JSON with a closed schema; arbitrary currencies/IDs cannot become services',async()=>{
+  const f=await fixture();
+diff --git a/tests/economy-audit-regressions.test.mjs b/tests/economy-audit-regressions.test.mjs
+index c95a3dd..add323c 100644
+--- a/tests/economy-audit-regressions.test.mjs
++++ b/tests/economy-audit-regressions.test.mjs
+@@ -2,7 +2,8 @@ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+ import {readFileSync} from 'node:fs';
+-import {openD1,migrationFiles} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1,migrationFiles} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
+ import {ingestEconomyEvents,settleEconomy,economyWalletSnapshot,createEconomyOrder,createEconomyGoldChallenge,payEconomyOrderGold} from '../server/economy-ledger.ts';
+ const T=Date.UTC(2026,9,1),account=privateKeyToAccount(generatePrivateKey()),W=account.address.toLowerCase();
+diff --git a/tests/economy-audit2-medium.test.mjs b/tests/economy-audit2-medium.test.mjs
+index 7b2c3ae..8495f51 100644
+--- a/tests/economy-audit2-medium.test.mjs
++++ b/tests/economy-audit2-medium.test.mjs
+@@ -1,6 +1,7 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {openD1} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,publicEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
+ import {ingestEconomyEvents,economyChainState,economyWalletSnapshot,settleEconomy,createEconomyOrder,haltEconomyChain} from '../server/economy-ledger.ts';
+ import {stageEconomyBlock,pendingEconomyBlock} from '../server/economy-staging.ts';
+diff --git a/tests/economy-audit3-recovery.test.mjs b/tests/economy-audit3-recovery.test.mjs
+index eeb510a..d928d48 100644
+--- a/tests/economy-audit3-recovery.test.mjs
++++ b/tests/economy-audit3-recovery.test.mjs
+@@ -6,7 +6,8 @@ import {tmpdir} from 'node:os';
+ import {join,sep} from 'node:path';
+ import {createHash} from 'node:crypto';
+ import {runEconomyRecoveryTool} from '../scripts/economy-recovery.mjs';
+-import {openD1} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
+ import {ingestEconomyEvents,economyChainState,economyWalletSnapshot,settleEconomy,createEconomyOrder,haltEconomyChain} from '../server/economy-ledger.ts';
+ import {stageEconomyBlock,pendingEconomyBlock} from '../server/economy-staging.ts';
+diff --git a/tests/economy-journey.test.mjs b/tests/economy-journey.test.mjs
+index d8f6b4a..01cf4b2 100644
+--- a/tests/economy-journey.test.mjs
++++ b/tests/economy-journey.test.mjs
+@@ -2,7 +2,8 @@ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import {writeFileSync} from 'node:fs';
+ import {ethers,createIsolatedProvider,deploy,artifacts,tokenArtifact,SHARE,TX,EMBEO_RUNTIME} from '../../contracts/test/runtime.mjs';
+-import {openD1} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1} from './d1-sqlite.mjs';
+ import {sha256,SESSION_COOKIE} from '../server/auth.ts';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_DAY_MS as DAY} from '../server/economy-config.ts';
+ import {handleEconomyApi} from '../server/economy.ts';
+diff --git a/tests/economy-ledger.test.mjs b/tests/economy-ledger.test.mjs
+index 655eb19..c1adda5 100644
+--- a/tests/economy-ledger.test.mjs
++++ b/tests/economy-ledger.test.mjs
+@@ -1,6 +1,7 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {openD1,migrationFiles} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1,migrationFiles} from './d1-sqlite.mjs';
+ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_DAY_MS as DAY,ECONOMY_MAX_INTEGER as MAX,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
+ import {ingestEconomyEvents,settleEconomy,economyChainState,economyWalletSnapshot,createEconomyOrder,createEconomyGoldChallenge,payEconomyOrderGold,haltEconomyChain} from '../server/economy-ledger.ts';
+diff --git a/tests/economy-migration.test.mjs b/tests/economy-migration.test.mjs
+index c8e1623..4cd820e 100644
+--- a/tests/economy-migration.test.mjs
++++ b/tests/economy-migration.test.mjs
+@@ -9,14 +9,14 @@ import {readSession,sha256,SESSION_COOKIE} from '../server/auth.ts';
+ const NOW=Date.UTC(2026,9,16),W='0x'+'a'.repeat(40),TOKEN='b'.repeat(43);
+ 
+ test('new schema preserves verified login and old data; pre-migration SQLite backup really restores independently',async()=>{
+- const previous=migrationFiles().filter(f=>!/^001[0-5]_/.test(f)),db=openD1(previous),folder=mkdtempSync(join(tmpdir(),'ember-economy-migration-'));
++ const previous=migrationFiles().filter(f=>Number(f.slice(0,4))<10),db=openD1(previous),folder=mkdtempSync(join(tmpdir(),'ember-economy-migration-'));
+  let restored;
+  try{
+   const tokenHash=await sha256(TOKEN);
+   db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,?,?,?,?,?,?)').run(tokenHash,W,1,NOW-1,NOW+60000,'migration-fixture-session','EOA','ECDSA');
+   const before=db.raw.prepare('SELECT * FROM sessions ORDER BY token_hash').all(),oldEconomyNames=db.raw.prepare("SELECT name FROM sqlite_schema WHERE name LIKE 'economy_%' ORDER BY name").all();
+   const filename=join(folder,'before-economy.sqlite');await backup(db.raw,filename);
+-  db.raw.exec('BEGIN');try{for(const f of migrationFiles().filter(f=>/^001[0-5]_/.test(f)))db.raw.exec(readFileSync(new URL('../migrations/'+f,import.meta.url),'utf8'));db.raw.exec('COMMIT');}catch(e){db.raw.exec('ROLLBACK');throw e;}
++  db.raw.exec('BEGIN');try{for(const f of migrationFiles().filter(f=>Number(f.slice(0,4))>=10))db.raw.exec(readFileSync(new URL('../migrations/'+f,import.meta.url),'utf8'));db.raw.exec('COMMIT');}catch(e){db.raw.exec('ROLLBACK');throw e;}
+   assert.deepEqual(db.raw.prepare('SELECT * FROM sessions ORDER BY token_hash').all(),before);
+   for(const table of ['economy_gold_accounts','economy_gold_journal','economy_chain_events','economy_pending_blocks'])assert.equal(db.raw.prepare('SELECT COUNT(*) n FROM '+table).get().n,0);
+   const session=await readSession(new Request('https://imdember.com/api/me/economy',{headers:{cookie:SESSION_COOKIE+'='+TOKEN}}),db,NOW);assert.equal(session.address,W);assert.equal(session.verificationMethod,'ECDSA');
+diff --git a/tests/economy-pane.test.mjs b/tests/economy-pane.test.mjs
+index ebf6436..3463868 100644
+--- a/tests/economy-pane.test.mjs
++++ b/tests/economy-pane.test.mjs
+@@ -40,6 +40,11 @@ test('actual English disabled state and return action preserve the original Worl
+ test('enabled panel reads only the current server account and displays finalized balance and sync',async()=>{
+  const f=fixture();f.requests[0].resolve(enabled);await f.settle();assert.equal(f.controllers.length,1);assert.equal(f.requests.filter(r=>r.kind==='snapshot').length,1);assert.equal(f.walletReads,0);f.requests.find(r=>r.kind==='snapshot').resolve(snapshot());await f.settle();assert.match(f.text,/12\s+GOLD/);assert.match(f.text,/已確認的可用 GOLD，已扣除處理中保留/);assert.match(f.text,/尚無上架服務/);assert.equal(f.nodes('button').some(b=>b.props.children==='核對質押'&&!b.props.disabled),true);f.unmount();assert.equal(f.controllers[0].disposed,true);
+ });
++
++test('capacity-pending rewards are labelled separately from spendable GOLD in the actual staking pane',async()=>{
++ for(const language of ['zh','en']){const f=fixture({language});f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot({gold:'12',pendingRewardCount:'2'}));await f.settle();
++  assert.match(f.text,/12\s+GOLD/);assert.match(f.text,language==='zh'?/尚未計入可用 GOLD/:/not included in spendable GOLD/);assert.equal(f.controllers[0].plans.length,0);f.unmount();}
++});
+ test('actual pane labels historical corrections and retained wrong-amount evidence without promising refunds or resending',async()=>{
+  const f=fixture();f.requests[0].resolve(enabled);await f.settle();
+  f.requests.find(r=>r.kind==='snapshot').resolve(snapshot({journal:[{id:'adjust:fixture',delta:'1',kind:'historical-adjustment',createdMs:NOW}],paymentCases:[{id:'case-fixture',transactionHash:'0x'+'f'.repeat(64),orderId:'0x'+'3'.repeat(64),actualAmount:'1',expectedAmount:String(10n**18n),classification:'wrong-amount',createdMs:NOW,correctPaymentEvent:'event-fixture',disposition:'unreviewed'}]}));await f.settle();
+diff --git a/tests/economy-payload-roundtrip.test.mjs b/tests/economy-payload-roundtrip.test.mjs
+index 5a63dc0..5da2ef2 100644
+--- a/tests/economy-payload-roundtrip.test.mjs
++++ b/tests/economy-payload-roundtrip.test.mjs
+@@ -1,6 +1,7 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {openD1} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY} from '../server/economy-config.ts';
+ import {createEconomyOrder,ingestEconomyEvents,economyWalletSnapshot} from '../server/economy-ledger.ts';
+ import {parseEconomySnapshot} from '../src/world/economyClient.ts';
+diff --git a/tests/economy-payment-timing.test.mjs b/tests/economy-payment-timing.test.mjs
+index 585c648..bd8c8d8 100644
+--- a/tests/economy-payment-timing.test.mjs
++++ b/tests/economy-payment-timing.test.mjs
+@@ -2,7 +2,8 @@ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import {writeFileSync} from 'node:fs';
+ import {ethers,createIsolatedProvider,deploy,artifacts,tokenArtifact,TX,EMBEO_RUNTIME} from '../../contracts/test/runtime.mjs';
+-import {openD1} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,economyDigest} from '../server/economy-config.ts';
+ import {createEconomyOrder,economyWalletSnapshot} from '../server/economy-ledger.ts';
+ import {syncEconomyChain,ECONOMY_EVENT_TOPICS} from '../server/economy-rpc.ts';
+diff --git a/tests/economy-reconciliation.test.mjs b/tests/economy-reconciliation.test.mjs
+index 3d2200e..68bfe3d 100644
+--- a/tests/economy-reconciliation.test.mjs
++++ b/tests/economy-reconciliation.test.mjs
+@@ -6,7 +6,8 @@ import {tmpdir} from 'node:os';
+ import {join,sep} from 'node:path';
+ import {createHash} from 'node:crypto';
+ import {runEconomyRecoveryTool,openEconomySqlite} from '../scripts/economy-recovery.mjs';
+-import {openD1,migrationFiles} from './d1-sqlite.mjs';
++// Original standalone catalogue invariants; current shared route refusals are tested by Audit6.
++import {openStandaloneEconomyD1 as openD1,migrationFiles} from './d1-sqlite.mjs';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY,ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
+ import {ingestEconomyEvents,settleEconomy,economyWalletSnapshot,createEconomyOrder,createEconomyGoldChallenge,payEconomyOrderGold} from '../server/economy-ledger.ts';
+ import {prepareEconomyRecovery,applyEconomyRecovery} from '../server/economy-recovery.ts';
+diff --git a/tests/presence.test.mjs b/tests/presence.test.mjs
+index dd523b4..9e52d9a 100644
+--- a/tests/presence.test.mjs
++++ b/tests/presence.test.mjs
+@@ -16,7 +16,7 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
+ const owners=map=>Object.assign(Array(2000).fill(null),map);
+ 
+ test('migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes',()=>{
+-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql']);
++  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql']);
+   // Exact legacy identity schema; additive financial preservation is exercised
+   // separately against all migrations by economy-migration/world-gold tests.
+   const db=openD1(migrationFiles().filter(f=>!/^001/.test(f))),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
+diff --git a/tests/world-gold-audit5-adversarial.test.mjs b/tests/world-gold-audit5-adversarial.test.mjs
+index aea7e65..f598f56 100644
+--- a/tests/world-gold-audit5-adversarial.test.mjs
++++ b/tests/world-gold-audit5-adversarial.test.mjs
+@@ -66,6 +66,6 @@ test('second inspection: HTTP/env cannot manufacture a delivery capability; trus
+  const closed=createWorker({},undefined,()=>NOW,[],undefined,{config:async()=>f.config});assert.equal((await (await closed.fetch(request({}),env,context)).json()).error,'SERVICE_DELIVERY_UNAVAILABLE');assert.equal((await closed.fetch(request({serviceReady:true}),env,context)).status,400);
+  const bound=createWorker({},undefined,()=>NOW,[],undefined,{config:async()=>f.config,delivery:{id:'fixture',deliver:async()=>({kind:'pending'})}});assert.equal((await bound.fetch(request({}),env,context)).status,200);
+  }finally{f.close();}});
+-test('second inspection: malformed-proof rejection evaluator detects removal of the SQL proof guard',async()=>{for(const defect of [false,true]){const f=await fixture();try{
+- await f.topup();const m=f.mint();await gold.reserveMintGold(f.db,m,NOW);if(defect)f.db.raw.exec('DROP TRIGGER world_gold_mint_proof');let blocked=false;try{f.db.raw.prepare("UPDATE world_gold_mints SET state='released',evidence_json=? WHERE id=?").run('{"timeout":true}',m.id);}catch{blocked=true;}assert.equal(blocked,!defect);assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_mints WHERE id=?').get(m.id).state,defect?'released':'held');
++test('second inspection: malformed-proof rejection evaluator detects removal of the SQL proof guards',async()=>{for(const defect of [false,true]){const f=await fixture();try{
++ await f.topup();const m=f.mint();await gold.reserveMintGold(f.db,m,NOW);if(defect)f.db.raw.exec('DROP TRIGGER world_gold_mint_proof; DROP TRIGGER world_gold_mint_proof_mode');let blocked=false;try{f.db.raw.prepare("UPDATE world_gold_mints SET state='released',evidence_json=? WHERE id=?").run('{"timeout":true}',m.id);}catch{blocked=true;}assert.equal(blocked,!defect);assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_mints WHERE id=?').get(m.id).state,defect?'released':'held');
+  }finally{f.close();}}});
+diff --git a/tests/world-gold-audit6-integration.test.mjs b/tests/world-gold-audit6-integration.test.mjs
+new file mode 100644
+index 0000000..12ac5e9
+--- /dev/null
++++ b/tests/world-gold-audit6-integration.test.mjs
+@@ -0,0 +1,104 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync,mkdtempSync,realpathSync,rmSync} from 'node:fs';
++import {tmpdir} from 'node:os';
++import {join,sep} from 'node:path';
++import {backup} from 'node:sqlite';
++import {fixture,NOW,W,B,H,rid,OWNER,mintProof} from './world-gold-audit5-fixture.mjs';
++import {openD1,migrationFiles} from './d1-sqlite.mjs';
++import * as gold from '../server/world-gold.ts';
++import {defineEconomyConfig,ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
++import {ingestEconomyEvents,settleEconomy} from '../server/economy-ledger.ts';
++import {prepareEconomyRecovery,applyEconomyRecovery} from '../server/economy-recovery.ts';
++import {reconcileRewardEntitlements} from '../server/economy-rewards.ts';
++import {createWorker} from '../worker/app.ts';
++import {initialLook} from '../../mint/shared-workbench/appearance.mjs';
++const MAX=9223372036854775807n;
++const stake=(wallet,id,block,time)=>({kind:'stake',transactionHash:H(20000+id),logIndex:id-1,blockNumber:String(block),blockHash:H(block),timestamp:time,wallet,positionId:String(id),shares:'1',amount:String(SHARE)});
++
++test('Audit original M1 reproduction: 1025 lawful current-price orders reach capacity without starving staking',async()=>{
++ const f=await fixture();try{
++  await f.admin({action:'product',product:'maxp',kind:'topup',title:'Maximum technical fixture',gold:'9007199254740991',embeo:'1',enabled:true,version:1});
++  await f.admin({action:'product',product:'tail',kind:'topup',title:'Fixture tail',gold:'1023',embeo:'1',enabled:true,version:1});
++  for(let i=0;i<1024;i++){const id=await f.quote('maxp');await f.paid(id);if(i%128===127)assert.deepEqual((await gold.reconcileWorldGold(f.db,NOW)).failures,[]);}
++  await f.paid(await f.quote('tail'));await gold.reconcileWorldGold(f.db,NOW);assert.equal((await f.snapshot()).book,String(MAX));
++  await ingestEconomyEvents(f.db,f.config,{fromBlock:'1125',toBlock:'1126',toBlockHash:H(1126),throughTimestamp:NOW+3*DAY,events:[stake(W,1,1125,NOW+DAY),stake(B,2,1125,NOW+DAY)]});
++  await settleEconomy(f.db,f.config,{nowMs:NOW+3*DAY});assert.equal((await f.snapshot(B)).book,'2');assert.equal((await f.snapshot()).pendingRewards.length,2);
++  assert.equal(f.db.raw.prepare('SELECT COUNT(*) n FROM economy_gold_days').get().n,2);
++ }finally{f.close();}
++});
++
++test('T02/T22: recovery and SQLite backup preserve owed share-days without compensating them twice',async()=>{
++ const f=await fixture(),old=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<15)),shadow=openD1();
++ const dir=mkdtempSync(join(tmpdir(),'ember-gold-audit6-'));let restored;
++ try{
++  const c=f.config,next=await defineEconomyConfig({...c,deploymentBlock:'99'}),id=H(90000),at=NOW-3*DAY;
++  // Historical 0014 legitimately allowed a larger per-product amount. Prepare
++  // that old immutable quote, then use the normal event indexer and forward SQL.
++  old.raw.prepare("INSERT INTO world_gold_products VALUES('old-max:1','old-max',1,'topup','Historical fixture',?,'7',1,?)").run(String(MAX),at);
++  old.raw.prepare("INSERT INTO economy_orders(id,config_id,wallet,request_id,service_id,currency,amount,request_payload,created_ms,expires_ms) VALUES(?,?,?,?,?,'EMBEO','7',?,?,?)").run(id,c.id,W,rid(),'old-max',JSON.stringify([c.id,'old-max','EMBEO']),at,at+900000);
++  old.raw.prepare("INSERT INTO world_gold_links VALUES(?,'old-max:1','topup',?)").run(id,String(MAX));
++  const payment={kind:'payment',transactionHash:H(10000),logIndex:0,blockNumber:'100',blockHash:H(100),timestamp:at,wallet:W,amount:'7',orderId:id,token:c.token,receiver:c.treasury};
++  const events=[payment,stake(W,1,101,NOW-2*DAY),stake(B,2,101,NOW-2*DAY)];
++  await ingestEconomyEvents(old,c,{fromBlock:'100',toBlock:'102',toBlockHash:H(102),throughTimestamp:NOW,events});
++  for(const name of migrationFiles().filter(n=>Number(n.slice(0,4))>=15))old.raw.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
++  await gold.reconcileWorldGold(old,NOW);await settleEconomy(old,c,{nowMs:NOW});assert.equal((await gold.worldGoldSnapshot(old,W,NOW)).pendingRewards.length,2);
++  assert.throws(()=>old.raw.prepare('INSERT INTO economy_recoveries(id,staking_key,from_config,to_config,horizon_ms,applied_ms,report_json,accepted) VALUES(?,?,?,?,?,?,?,1)').run('a'.repeat(64),`${c.chainId}:${c.token}:${c.stakingContract}`,c.id,next.id,NOW,NOW+1,'{}'),/RECOVERY_REWARD_SCHEMA_REQUIRED/);
++  await ingestEconomyEvents(shadow,next,{fromBlock:'99',toBlock:'102',toBlockHash:H(102),throughTimestamp:NOW,events});await settleEconomy(shadow,next,{nowMs:NOW});
++  const plan=await prepareEconomyRecovery(old,shadow,c,next,{nowMs:NOW+1});assert.equal(plan.report.totalDelta,'0');assert.equal(plan.report.pendingRewardsAccounted,true);
++  await backup(old.raw,join(dir,'owed.sqlite'));restored=openD1([],join(dir,'owed.sqlite'));
++  const restoredPlan=await prepareEconomyRecovery(restored,shadow,c,next,{nowMs:NOW+1});assert.equal(restoredPlan.hash,plan.hash);
++  await applyEconomyRecovery(restored,shadow,c,next,{nowMs:NOW+1,expectedPlanHash:plan.hash});assert.equal((await gold.worldGoldSnapshot(restored,W,NOW)).pendingRewards.length,2);
++  // A real authenticated GOLD service spend supplies room for the original
++  // deferred rows. The old namespace stays in their immutable references.
++  await gold.goldAdminCommand(restored,{wallet:OWNER,requestId:rid(),command:{action:'product',product:'research',kind:'service',title:'Fixture research',gold:'3',enabled:true,version:1},reason:'isolated historical recovery exercise',nowMs:NOW+2});
++  const service=await gold.goldQuote({db:restored,config:next,nowMs:NOW+3,serviceReady:true},{wallet:W,requestId:rid(),product:'research'});
++  const {createEconomyGoldChallenge,payEconomyOrderGold}=await import('../server/economy-ledger.ts'),{account}=await import('./world-gold-audit5-fixture.mjs'),requestId=rid();
++  const ch=await createEconomyGoldChallenge(restored,next,{wallet:W,orderId:service,requestId,origin:'https://imdember.com',nowMs:NOW+4,serviceReady:true});
++  await payEconomyOrderGold(restored,next,{wallet:W,orderId:service,requestId,origin:ch.origin,signature:await account.signMessage({message:ch.message}),nowMs:NOW+5,serviceReady:true});
++  await reconcileRewardEntitlements(restored,NOW+6);await reconcileRewardEntitlements(restored,NOW+7);
++  assert.equal((await gold.worldGoldSnapshot(restored,W,NOW)).book,String(MAX-1n));assert.equal((await gold.worldGoldSnapshot(restored,B,NOW)).book,'2');assert.equal((await gold.worldGoldSnapshot(restored,W,NOW)).pendingRewards.length,0);
++  assert.equal((await applyEconomyRecovery(restored,shadow,c,next,{nowMs:NOW+1,expectedPlanHash:plan.hash})).replayed,true);
++  assert.equal((await gold.worldGoldSnapshot(old,W,NOW)).book,String(MAX));assert.equal((await gold.worldGoldSnapshot(old,W,NOW)).pendingRewards.length,2);
++ }finally{restored?.raw.close();f.close();old.raw.close();shadow.raw.close();const base=realpathSync(tmpdir())+sep,target=realpathSync(dir);assert.ok(target.toLowerCase().startsWith(base.toLowerCase())&&target.includes('ember-gold-audit6-'));rmSync(dir,{recursive:true,force:true});}
++});
++
++test('T10/T11: private latest time does not authorize release when the required proof is still pending',async()=>{
++ const {createLocalService}=await import('../../mint/service/chain.mjs'),m=await createLocalService();try{
++  const packet=(await m.approval({wallet:'B',look:initialLook(),route:'paid'})).packet,id=packet.goldAuthorization.orderId;
++  const release=m.gold.release.bind(m.gold);m.gold.release=()=>{throw Error('MINT_AUTH_EXECUTABLE');};
++  await m.admin({action:'advance',seconds:301});await assert.rejects(m.approval({wallet:'B',look:initialLook(),route:'paid'}),/PAID_AUTH_NOT_MINEABLE/);
++  assert.equal(m.orders.get(id).status,'reserved');assert.equal(m.orders.size,1);
++  m.gold.release=release;const fresh=(await m.approval({wallet:'B',look:initialLook(),route:'paid'})).packet;
++  assert.notEqual(fresh.goldAuthorization.orderId,id);assert.equal(m.orders.get(id).status,'released');
++ }finally{await m.close();}
++});
++
++test('T17: private paid pause preserves a free onchain Mint and settlement of an existing paid hold',async()=>{
++ const {createGoldLocalRuntime}=await import('../scripts/world-gold-local-runtime.mjs'),r=await createGoldLocalRuntime();try{
++  const A=r.mint.addresses[1].toLowerCase(),quote=await gold.goldQuote({db:r.db,config:r.config,nowMs:Date.now()},{wallet:A,requestId:rid(),product:'gold-pack'});await r.pay(quote,A);
++  const paid=(await r.mint.approval({wallet:'A',look:initialLook(),route:'paid'})).packet;
++  await gold.goldAdminCommand(r.db,{wallet:OWNER,requestId:rid(),command:{action:'control',feature:'mint',enabled:false,version:0},reason:'isolated paid-only pause',nowMs:Date.now()});
++  const tokenBefore=await r.mint.token.balanceOf(r.mint.addresses[2]),free=(await r.mint.approval({wallet:'B',look:{...initialLook(),hat:'beanie'},route:'free'})).packet;
++  await r.mint.transaction({wallet:'B',action:'mintFree',packet:free,submissionId:rid()});assert.equal(await r.mint.token.balanceOf(r.mint.addresses[2]),tokenBefore);
++  assert.equal((await gold.worldGoldSnapshot(r.db,r.mint.addresses[2],Date.now())).book,'0');assert.equal((await gold.worldGoldSnapshot(r.db,A,Date.now())).reserved,'1');
++  await r.mint.transaction({wallet:'A',action:'approve',submissionId:rid()});await r.mint.transaction({wallet:'A',action:'mintPaid',packet:paid,submissionId:rid()});assert.equal((await gold.worldGoldSnapshot(r.db,A,Date.now())).book,'9');
++  await assert.rejects(r.mint.approval({wallet:'A',look:{...initialLook(),hat:'captain'},route:'paid'}),/FEATURE_PAUSED/);
++ }finally{await r.close();}
++});
++
++test('T06: deployed World entry never falls back to standalone catalogue finance on a pre-0014 DB',async()=>{
++ const f=await fixture(),db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<14));try{
++  const config=await defineEconomyConfig({...f.config,catalogue:[{id:'legacy',gold:'1',titleZh:'測試',titleEn:'Fixture'}]}),worker=createWorker({},undefined,()=>NOW,[],undefined,{config:async()=>config});
++  const r=await worker.fetch(new Request('https://imdember.com/api/economy/orders',{method:'POST',headers:{origin:'https://imdember.com','content-type':'application/json'},body:JSON.stringify({expectedAddress:W,requestId:rid(),serviceId:'legacy',currency:'GOLD'})}),{DB:db},{waitUntil(){}});
++  assert.equal(r.status,503);assert.equal((await r.json()).error,'SCHEMA_INCOMPLETE');assert.equal(db.raw.prepare('SELECT COUNT(*) n FROM economy_orders').get().n,0);
++ }finally{f.close();db.raw.close();}
++});
++
++test('T10: private authorization just before deadline remains reusable and executes at the contract boundary',async()=>{
++ const {createLocalService}=await import('../../mint/service/chain.mjs'),m=await createLocalService();try{
++  await m.transaction({wallet:'B',action:'approve',submissionId:rid()});const first=(await m.approval({wallet:'B',look:initialLook(),route:'paid'})).packet;
++  await m.admin({action:'advance',seconds:299});const second=(await m.approval({wallet:'B',look:initialLook(),route:'paid'})).packet;assert.equal(second.packetId,first.packetId);
++  await m.transaction({wallet:'B',action:'mintPaid',packet:second,submissionId:rid()});assert.equal(m.orders.get(second.goldAuthorization.orderId).status,'consumed');
++ }finally{await m.close();}
++});
+diff --git a/tests/world-gold-audit6-matrix.test.mjs b/tests/world-gold-audit6-matrix.test.mjs
+new file mode 100644
+index 0000000..d12f635
+--- /dev/null
++++ b/tests/world-gold-audit6-matrix.test.mjs
+@@ -0,0 +1,213 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++import {fixture,NOW,W,B,H,rid,OWNER,account,mintProof} from './world-gold-audit5-fixture.mjs';
++import {openD1,migrationFiles} from './d1-sqlite.mjs';
++import * as gold from '../server/world-gold.ts';
++import {worldGoldSchemaReady,GOLD_SCHEMA_OBJECTS,GOLD_SCHEMA_COLUMNS} from '../server/world-gold-schema.ts';
++import {reconcileRewardEntitlements} from '../server/economy-rewards.ts';
++import {inspectWorldGoldExceptions} from '../server/world-gold-inspection.ts';
++import {ingestEconomyEvents,settleEconomy,createEconomyOrder,payEconomyOrderGold,createEconomyGoldChallenge} from '../server/economy-ledger.ts';
++import {ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE,defineEconomyConfig} from '../server/economy-config.ts';
++import {prepareEconomyRecovery,applyEconomyRecovery} from '../server/economy-recovery.ts';
++import {runGoldServiceJobs} from '../server/world-gold-delivery.ts';
++import {createWorker} from '../worker/app.ts';
++const MAX=9223372036854775807n;
++const count=(db,table)=>Number(db.raw.prepare(`SELECT COUNT(*) n FROM ${table}`).get().n);
++const oldMax=(db,wallet,amount=MAX)=>db.raw.prepare("INSERT INTO economy_gold_journal VALUES(?,?,?,'utc-reward',?,?)").run('historical-cap:'+wallet,wallet,String(amount),'historical-cap:'+wallet,NOW-3*DAY);
++async function stakes(f,{wallets=[W,B],at=NOW-2*DAY,horizon=NOW}={}){
++ await ingestEconomyEvents(f.db,f.config,{fromBlock:'100',toBlock:'101',toBlockHash:H(101),throughTimestamp:horizon,events:wallets.map((wallet,i)=>({kind:'stake',transactionHash:H(2000+i),logIndex:i,blockNumber:'100',blockHash:H(100),timestamp:at,wallet,positionId:String(i+1),shares:'1',amount:String(SHARE)}))});
++}
++async function finalizePayment(f,id,at=NOW+100){
++ const old=await f.db.prepare('SELECT last_block FROM economy_chain_state WHERE config_id=?').bind(f.config.id).first(),n=Number(old?.last_block??99)+1;
++ const order=f.db.raw.prepare('SELECT * FROM economy_orders WHERE id=?').get(id);
++ await ingestEconomyEvents(f.db,f.config,{fromBlock:String(n),toBlock:String(n),toBlockHash:H(n),throughTimestamp:at,events:[{kind:'payment',transactionHash:H(10000+n),logIndex:0,blockNumber:String(n),blockHash:H(n),timestamp:at,wallet:order.wallet,amount:order.amount,orderId:id,token:f.config.token,receiver:f.config.treasury}]});
++}
++
++test('T01/T02: owed UTC rewards survive capacity, cooldown, duplicate workers, spending and replay',async()=>{
++ const f=await fixture();try{oldMax(f.db,W);await stakes(f);await settleEconomy(f.db,f.config,{nowMs:NOW});
++  assert.equal((await f.snapshot(B)).book,'2');assert.equal((await f.snapshot()).pendingRewards.length,2);
++  const first=await reconcileRewardEntitlements(f.db,NOW);assert.equal(first.length,2);assert.ok(first.every(x=>x.status==='GOLD_BALANCE_CAPACITY'));
++  assert.equal((await reconcileRewardEntitlements(f.db,NOW+1)).length,0);
++  const id=await f.service();assert.equal((await f.snapshot()).book,String(MAX-3n));
++  await Promise.all([reconcileRewardEntitlements(f.db,NOW+300001),reconcileRewardEntitlements(f.db,NOW+300001)]);
++  assert.equal((await f.snapshot()).book,String(MAX-1n));assert.equal((await f.snapshot()).pendingRewards.length,0);
++  await settleEconomy(f.db,f.config,{nowMs:NOW});await reconcileRewardEntitlements(f.db,NOW+600001);assert.equal((await f.snapshot()).book,String(MAX-1n));
++  assert.equal(count(f.db,'economy_gold_reward_entitlements'),4);assert.equal(f.db.raw.prepare("SELECT state FROM world_gold_jobs WHERE order_id=?").get(id).state,'queued');
++  assert.throws(()=>f.db.raw.exec('DELETE FROM economy_gold_reward_entitlements'),/IMMUTABLE_REWARD_ENTITLEMENT/);
++ }finally{f.close();}
++});
++
++test('T03/T21: refilled capacity defers the original-price refund; later room credits it only once',async()=>{
++ const f=await fixture();try{oldMax(f.db,W);const service=await f.service();
++  await f.admin({action:'product',product:'tail',kind:'topup',title:'Fixture tail',gold:'3',embeo:'1',enabled:true,version:1});
++  const topup=await f.quote('tail');await f.paid(topup);await gold.reconcileWorldGold(f.db,NOW);assert.equal((await f.snapshot()).book,String(MAX));
++  await f.admin({action:'product',product:'research',kind:'service',title:'New fixture price',gold:'9',enabled:true,version:2});
++  const a=await gold.claimGoldJob(f.db,service,NOW);
++  await assert.rejects(gold.finishGoldJob(f.db,{orderId:service,attempt:a,nowMs:NOW+1,outcome:{result:null}}),/GOLD_BALANCE_CAPACITY/);
++  assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(service).state,'failed');
++  const r=await gold.reconcileWorldGold(f.db,NOW+2);assert.ok(r.failures.some(x=>x.code==='GOLD_BALANCE_CAPACITY'));
++  await f.admin({action:'product',product:'research',kind:'service',title:'Another price',gold:'3',enabled:true,version:3});
++  await f.service();assert.equal((await f.snapshot()).book,String(MAX-3n));
++  await gold.reconcileWorldGold(f.db,NOW+3,service);await gold.reconcileWorldGold(f.db,NOW+4,service);
++  assert.equal((await f.snapshot()).book,String(MAX));assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(service).state,'refunded');
++  assert.equal(f.db.raw.prepare("SELECT CAST(SUM(delta) AS TEXT) n FROM world_gold_entries WHERE order_id=? AND kind='service-refund'").get(service).n,'3');
++ }finally{f.close();}
++});
++
++test('T01: all positive journal writers have an exact int64 boundary guard',async()=>{
++ for(const before of [MAX-1n,MAX]){const f=await fixture();try{oldMax(f.db,W,before);
++  const insert=n=>f.db.raw.prepare("INSERT INTO economy_gold_journal VALUES(?,?,?,'utc-reward',?,?)").run('boundary:'+n,W,String(n),'boundary:'+n,NOW);
++  if(before===MAX-1n){insert(1);assert.equal((await f.snapshot()).book,String(MAX));}
++  assert.throws(()=>insert(2),/GOLD_BALANCE_CAPACITY/);assert.equal((await f.snapshot()).book,String(before===MAX-1n?MAX:before));
++ }finally{f.close();}}
++});
++
++test('T01: a target journal storage fault is isolated with durable reward retry metadata',async()=>{
++ const f=await fixture();try{oldMax(f.db,W);await stakes(f);await settleEconomy(f.db,f.config,{nowMs:NOW});await f.pay(await f.quote('research'));
++  f.db.raw.exec(`CREATE TRIGGER audit6_target_fault BEFORE INSERT ON economy_gold_journal WHEN NEW.wallet='${W}' AND NEW.delta>0 BEGIN SELECT RAISE(ABORT,'SIMULATED_TARGET_IO'); END`);
++  const outcomes=await reconcileRewardEntitlements(f.db,NOW);assert.ok(outcomes.every(o=>o.status==='GOLD_REWARD_RETRY'));
++  assert.equal((await f.snapshot(B)).book,'2');assert.equal((await f.snapshot()).pendingRewards.length,2);
++  f.db.raw.exec('DROP TRIGGER audit6_target_fault');await reconcileRewardEntitlements(f.db,NOW+300001);assert.equal((await f.snapshot()).book,String(MAX-1n));
++ }finally{f.close();}
++});
++
++test('T06/T07: pre-0014/0015/0016 refuse new shared operations, then migrations reopen the same DB',async()=>{
++ const f=await fixture();try{for(const ceiling of [14,15,16]){const db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<ceiling));try{
++  assert.equal(await worldGoldSchemaReady(db),false);
++  await assert.rejects(gold.goldQuote({db,config:f.config,nowMs:NOW},{wallet:W,requestId:rid(),product:'pack'}),/SCHEMA_INCOMPLETE/);
++  await assert.rejects(gold.reserveMintGold(db,f.mint(),NOW),/SCHEMA_INCOMPLETE/);
++  await assert.rejects(gold.reconcileWorldGold(db,NOW),/SCHEMA_INCOMPLETE/);
++  for(const name of migrationFiles().filter(n=>Number(n.slice(0,4))>=ceiling))db.raw.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
++  assert.equal(await worldGoldSchemaReady(db),true);
++  await gold.goldAdminCommand(db,{wallet:OWNER,requestId:rid(),command:{action:'product',product:'pack',kind:'topup',title:'Fixture',gold:'10',embeo:'7',enabled:true,version:1},reason:'isolated migration test',nowMs:NOW});
++  assert.match(await gold.goldQuote({db,config:f.config,nowMs:NOW},{wallet:W,requestId:rid(),product:'pack'}),/^0x[0-9a-f]{64}$/);
++ }finally{db.raw.close();}}}finally{f.close();}
++});
++
++test('T06: readiness checks columns, indexes and every required financial trigger without caching',async()=>{
++ const f=await fixture();try{
++  for(const obj of GOLD_SCHEMA_OBJECTS.filter(o=>o.type==='trigger'||o.type==='index')){
++   const saved=f.db.raw.prepare('SELECT sql FROM sqlite_master WHERE name=?').get(obj.name).sql;
++   f.db.raw.exec(`DROP ${obj.type.toUpperCase()} ${obj.name}`);assert.equal(await worldGoldSchemaReady(f.db),false,obj.name);
++   f.db.raw.exec(saved);assert.equal(await worldGoldSchemaReady(f.db),true,obj.name);
++  }
++  // Keep a same-name trigger present so this refusal specifically exercises
++  // the required-column inventory rather than merely the object-name guard.
++  f.db.raw.exec('DROP TRIGGER world_gold_delivery_evidence_immutable; ALTER TABLE world_gold_jobs DROP COLUMN delivery_evidence_json; CREATE TRIGGER world_gold_delivery_evidence_immutable BEFORE UPDATE ON world_gold_jobs BEGIN SELECT 1; END;');
++  assert.equal(await worldGoldSchemaReady(f.db),false);
++  await assert.rejects(f.quote(),/SCHEMA_INCOMPLETE/);assert.equal(count(f.db,'economy_orders'),0);
++ }finally{f.close();}
++});
++
++test('T07: a paid pre-0015 topup is preserved through refusal and credits once after forward migration',async()=>{
++ const f=await fixture();try{const id=await f.quote();await f.paid(id);
++  // Reproduce the old deployment by copying only the immutable business rows.
++  const db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<15));try{
++   for(const table of ['economy_chain_state','economy_config_registry','world_gold_products','economy_orders','world_gold_links']){
++    const rows=f.db.raw.prepare('SELECT * FROM '+table).all();for(const row of rows){const cols=Object.keys(row),values=cols.map(c=>row[c]);db.raw.prepare(`INSERT INTO ${table}(${cols}) VALUES(${cols.map(()=>'?')})`).run(...values);}
++   }
++   await assert.rejects(gold.reconcileWorldGold(db,NOW),/SCHEMA_INCOMPLETE/);assert.equal(db.raw.prepare('SELECT status FROM economy_orders WHERE id=?').get(id).status,'paid');
++   for(const name of migrationFiles().filter(n=>Number(n.slice(0,4))>=15))db.raw.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
++   await gold.reconcileWorldGold(db,NOW);await gold.reconcileWorldGold(db,NOW);assert.equal((await gold.worldGoldSnapshot(db,W,NOW)).book,'10');
++  }finally{db.raw.close();}
++ }finally{f.close();}
++});
++
++test('T12/T13: result contracts reject empty/corrupt documents but accept explained zero and no-signal results',async()=>{
++ const invalid=[null,'','   ',{},[],undefined,'\ud800',(()=>{const v={};v.self=v;return v;})(),'燼'.repeat(6000)];
++ for(const result of invalid){const f=await fixture();try{await f.topup();const id=await f.service(),a=await gold.claimGoldJob(f.db,id,NOW);await gold.finishGoldJob(f.db,{orderId:id,attempt:a,nowMs:NOW+1,outcome:{result}});assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'refunded');}finally{f.close();}}
++ for(const result of [{status:'ok',value:0,explanation:'Measured zero'},{status:'ok',value:false,explanation:'No match'},{status:'no-signal',signals:[],explanation:'No criteria matched'},{report:'usable fixture research'}]){
++  const f=await fixture();try{await f.topup();const id=await f.service(),a=await gold.claimGoldJob(f.db,id,NOW);await gold.finishGoldJob(f.db,{orderId:id,attempt:a,nowMs:NOW+1,outcome:{result}});assert.equal((await f.snapshot()).book,'7');assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'delivered');}finally{f.close();}
++ }
++});
++
++test('T14/T19: provider empty output refunds once; unknown timeout retains the original idempotency key',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.service(),seen=[];let now=NOW;
++  const p={id:'fixture',deliver:async o=>{seen.push(o.idempotencyKey);if(seen.length===1)throw Error('UNKNOWN_NETWORK_TIMEOUT');return {kind:'delivered',result:null};}};
++  await runGoldServiceJobs(f.db,p,()=>now);assert.equal((await f.snapshot()).book,'7');assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'working');
++  now+=60001;await runGoldServiceJobs(f.db,p,()=>now);assert.equal((await f.snapshot()).book,'10');await runGoldServiceJobs(f.db,p,()=>now);assert.deepEqual(seen,[id,id]);
++ }finally{f.close();}
++});
++
++test('T15: removal calibration proves the SQL mode guard independently rejects both namespace directions',async()=>{
++ for(const remove of [false,true]){const f=await fixture();try{await f.topup();const m={...f.mint(),chainId:31337};await gold.reserveMintGold(f.db,m,NOW);if(remove)f.db.raw.exec('DROP TRIGGER world_gold_mint_proof_mode');
++  const write=()=>f.db.raw.prepare("UPDATE world_gold_mints SET state='released',evidence_json=? WHERE id=?").run(JSON.stringify(mintProof(m,'released',{mode:'finalized-chain'})),m.id);
++  if(remove){write();assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_mints WHERE id=?').get(m.id).state,'released');}
++  else {assert.throws(write,/MINT_EVIDENCE_REQUIRED/);assert.equal((await f.snapshot()).reserved,'8');assert.equal(count(f.db,'world_gold_mint_settlements'),0);}
++ }finally{f.close();}}
++});
++
++test('T16: lossless auth input is byte-bounded, coded and has no financial side effects',async()=>{
++ const f=await fixture();try{await f.topup();const symbolKey={[Symbol('x')]:1},sparse=new Array(2),bad=[null,[],{},{wrong:'structure'},{id:H(2),wallet:W},{id:f.mint().id,wallet:B},()=>1,Symbol('x'),{nested:undefined},{nested:Infinity},{nested:1n},symbolKey,sparse,{payload:'燼'.repeat(6000)},{get unsafe(){throw Error('getter');}}];
++  for(const auth of bad)await assert.rejects(gold.reserveMintGold(f.db,{...f.mint(),auth},NOW),/^Error: INVALID_MINT_AUTH$/);
++  assert.equal(count(f.db,'world_gold_mints'),0);assert.equal((await f.snapshot()).reserved,'0');
++  await gold.reserveMintGold(f.db,f.mint(),NOW);await gold.reserveMintGold(f.db,f.mint(),NOW);assert.equal(count(f.db,'world_gold_mints'),1);
++ }finally{f.close();}
++});
++
++test('T06: a missing required table refuses both inspection and new quotes with a coded diagnostic',async()=>{
++ const f=await fixture();try{f.db.raw.exec('DROP TABLE world_gold_products');assert.equal(await worldGoldSchemaReady(f.db),false);
++  await assert.rejects(f.quote(),/SCHEMA_INCOMPLETE/);const result=await inspectWorldGoldExceptions(f.db);assert.equal(result.diagnostic,'SCHEMA_INCOMPLETE');assert.equal(result.issues.length,0);assert.equal(count(f.db,'economy_orders'),0);
++ }finally{f.close();}
++});
++
++test('T12: deep valid JSON cannot crash result validation or strand a paid service',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.service(),attempt=await gold.claimGoldJob(f.db,id,NOW);let nested=0;for(let i=0;i<2000;i++)nested=[nested];
++  await gold.finishGoldJob(f.db,{orderId:id,attempt,nowMs:NOW+1,outcome:{result:{report:'usable fixture report',nested}}});
++  assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'delivered');assert.equal((await f.snapshot()).book,'7');
++ }finally{f.close();}
++});
++
++test('T06/T12: unbound service result contracts refuse new charges',async()=>{
++ const f=await fixture();try{await f.topup();await f.admin({action:'product',product:'unbound-service',kind:'service',title:'Unbound fixture',gold:'3',enabled:true,version:1});
++  await assert.rejects(f.quote('unbound-service'),/SERVICE_RESULT_SCHEMA_UNBOUND/);assert.equal((await f.snapshot()).book,'10');
++ }finally{f.close();}
++});
++
++test('T04/T22: old pending signatures cannot bypass the new gate; old paid catalogue rights stay inventoried',async()=>{
++ const f=await fixture(),db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<14));try{
++  const config=await defineEconomyConfig({...f.config,catalogue:[{id:'legacy',titleZh:'歷史測試',titleEn:'Historical fixture',gold:'3'}]});
++  db.raw.prepare("INSERT INTO economy_gold_journal VALUES(?,?,10,'utc-reward',?,?)").run('old-earned',W,'old-earned',NOW-1);
++  const create=()=>createEconomyOrder(db,config,{wallet:W,requestId:rid(),serviceId:'legacy',currency:'GOLD',nowMs:NOW});
++  const sign=async order=>{const requestId=rid(),c=await createEconomyGoldChallenge(db,config,{wallet:W,orderId:order.id,requestId,origin:'https://imdember.com',nowMs:NOW});return {wallet:W,orderId:order.id,requestId,origin:c.origin,nowMs:NOW,signature:await account.signMessage({message:c.message})};};
++  const pending=await create(),oldSigned=await sign(pending),paid=await create();await payEconomyOrderGold(db,config,await sign(paid));
++  for(const name of migrationFiles().filter(n=>Number(n.slice(0,4))>=14))db.raw.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
++  await assert.rejects(payEconomyOrderGold(db,config,{...oldSigned,serviceReady:true}),/LEGACY_GOLD_ORDER_UNSUPPORTED/);
++  await gold.reconcileWorldGold(db,NOW);assert.equal((await gold.worldGoldSnapshot(db,W,NOW)).book,'7');
++  assert.equal(db.raw.prepare('SELECT consumed_ms FROM economy_gold_challenges WHERE order_id=?').get(pending.id).consumed_ms,null);
++  const list=await inspectWorldGoldExceptions(db);assert.equal(list.issues.find(x=>x.kind==='legacy-paid-without-job').rows[0].id,paid.id);assert.equal(count(db,'world_gold_jobs'),0);
++ }finally{db.raw.close();f.close();}
++});
++
++test('T14: a lease expiring during result validation cannot finalize through a stale timestamp',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.service(),attempt=await gold.claimGoldJob(f.db,id,NOW);let clock=NOW,once=false;const prepare=f.db.prepare;
++  f.db.prepare=sql=>{const s=prepare(sql);if(!sql.includes('SELECT p.product FROM world_gold_jobs'))return s;return {...s,bind:(...v)=>{const b=s.bind(...v);return {...b,first:async()=>{const result=await b.first();if(!once){clock=NOW+60000;once=true;}return result;}};}};};
++  await assert.rejects(gold.finishGoldJob(f.db,{orderId:id,attempt,nowMs:NOW,now:()=>clock,outcome:{result:{report:'late'}}}),/STALE_DELIVERY/);
++  assert.equal((await f.snapshot()).book,'7');assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'working');
++ }finally{f.close();}
++});
++
++test('T18: partial schema emits a stable maintenance diagnostic instead of raw SQLite errors',async()=>{
++ const db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<15)),logs=[],waits=[],before=console.log;
++ try{console.log=(...v)=>logs.push(v.join(' '));const worker=createWorker({},undefined,()=>NOW,[],undefined,{config:async()=>{throw Error('CONFIG_OUTAGE');}});
++  await worker.scheduled({cron:'* * * * *'},{DB:db},{waitUntil:p=>waits.push(p)});await Promise.all(waits);
++  assert.ok(logs.some(x=>x.includes('SCHEMA_INCOMPLETE')));assert.ok(logs.every(x=>!x.includes('no such table')));
++ }finally{console.log=before;db.raw.close();}
++});
++
++test('T22: exception inventory is read-only, bounded and distinguishes unpaid refunds and held authority',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.service();f.db.raw.prepare("UPDATE world_gold_jobs SET state='failed',failure='historical-provider-proof' WHERE order_id=?").run(id);
++  await gold.reserveMintGold(f.db,{...f.mint(),gold:'1'},NOW);const before=f.db.raw.prepare('SELECT total_changes() n').get().n;
++  const result=await inspectWorldGoldExceptions(f.db,{limit:1});assert.equal(result.readOnly,true);assert.equal(result.schemaReady,true);assert.equal(f.db.raw.prepare('SELECT total_changes() n').get().n,before);
++  assert.equal(result.issues.find(x=>x.kind==='failed-refund-pending').rows[0].id,id);assert.equal(result.issues.find(x=>x.kind==='held-requires-original-reader').rows.length,1);assert.equal((await f.snapshot()).reserved,'1');
++ }finally{f.close();}
++});
++
++test('expanded inspection: signature-time success cannot debit after a shared readiness await crosses expiry',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.quote('research'),signed=await f.challenge(id);let clock=NOW,once=false;const prepare=f.db.prepare;
++  f.db.prepare=sql=>{const s=prepare(sql);if(!sql.includes('json_each(?) o'))return s;return {...s,bind:(...v)=>{const b=s.bind(...v);return {...b,first:async()=>{const result=await b.first();if(!once){clock=NOW+300001;once=true;}return result;}};}};};
++  await assert.rejects(payEconomyOrderGold(f.db,f.config,{...signed,now:()=>clock}),/CHALLENGE_EXPIRED/);
++  assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT status FROM economy_orders WHERE id=?').get(id).status,'pending');assert.equal(count(f.db,'world_gold_jobs'),0);
++ }finally{f.close();}
++});
+diff --git a/tests/world-gold-audit6.test.mjs b/tests/world-gold-audit6.test.mjs
+new file mode 100644
+index 0000000..3d4b2c9
+--- /dev/null
++++ b/tests/world-gold-audit6.test.mjs
+@@ -0,0 +1,95 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,NOW,W,B,H,rid,mintProof,account} from './world-gold-audit5-fixture.mjs';
++import {openD1,migrationFiles} from './d1-sqlite.mjs';
++import {defineEconomyConfig,ECONOMY_DAY_MS as DAY,ECONOMY_SHARE_WEI as SHARE} from '../server/economy-config.ts';
++import {ingestEconomyEvents,settleEconomy,createEconomyOrder,createEconomyGoldChallenge,payEconomyOrderGold} from '../server/economy-ledger.ts';
++import * as gold from '../server/world-gold.ts';
++
++test('Audit6 M1: a capacity-bound staker preserves owed rewards without starving another wallet',async()=>{
++ const f=await fixture();try{
++  // Exact lawful historical journal boundary; the adversarial suite also reaches it through real topup orders.
++  f.db.raw.prepare("INSERT INTO economy_gold_journal VALUES(?,?,9223372036854775807,'utc-reward',?,?)").run('historical-capacity',B,'historical-capacity',NOW);
++  const events=[B,W].map((wallet,i)=>({kind:'stake',transactionHash:H(3000+i),logIndex:i,blockNumber:'100',blockHash:H(100),timestamp:NOW,wallet,amount:String(SHARE),positionId:String(i+1),shares:'1'}));
++  await ingestEconomyEvents(f.db,f.config,{fromBlock:'100',toBlock:'101',toBlockHash:H(101),throughTimestamp:NOW+2*DAY,events});
++  await settleEconomy(f.db,f.config,{nowMs:NOW+2*DAY});
++  assert.equal((await f.snapshot(W)).book,'2');assert.equal((await f.snapshot(B)).book,'9223372036854775807');
++  assert.equal(f.db.raw.prepare('SELECT COUNT(*) n FROM economy_gold_days').get().n,2);
++  const owed=f.db.raw.prepare("SELECT CAST(SUM(delta) AS TEXT) total FROM economy_gold_reward_entitlements WHERE wallet=? AND settled_ms IS NULL").get(B);assert.equal(owed.total,'2');
++  await settleEconomy(f.db,f.config,{nowMs:NOW+30*DAY});assert.equal((await f.snapshot(W)).book,'2');
++ }finally{f.close();}
++});
++
++test('Audit6 L2: legacy GOLD catalogue orders cannot debit outside shared jobs',async()=>{
++ const f=await fixture();try{await f.topup();
++  const c=await defineEconomyConfig({...f.config,catalogue:[{id:'legacy-research',titleZh:'研究',titleEn:'Research',gold:'3'}]});
++  await f.admin({action:'control',feature:'service',enabled:false,version:0});
++  await assert.rejects(async()=>{
++   const o=await createEconomyOrder(f.db,c,{wallet:W,requestId:rid(),serviceId:'legacy-research',currency:'GOLD',nowMs:NOW});
++   const req=rid(),ch=await createEconomyGoldChallenge(f.db,c,{wallet:W,orderId:o.id,requestId:req,origin:'https://imdember.com',nowMs:NOW,serviceReady:false});
++   await payEconomyOrderGold(f.db,c,{wallet:W,orderId:o.id,requestId:req,origin:'https://imdember.com',nowMs:NOW,serviceReady:false,signature:await account.signMessage({message:ch.message})});
++  },/LEGACY_GOLD_ORDER_UNSUPPORTED|FEATURE_PAUSED|SERVICE_DELIVERY_UNAVAILABLE/);
++  assert.equal((await f.snapshot()).book,'10');assert.equal(f.db.raw.prepare('SELECT COUNT(*) n FROM world_gold_jobs').get().n,0);
++ }finally{f.close();}
++});
++
++test('Audit6 L3: pre-0015 reconciliation returns coded schema refusal',async()=>{
++ const db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<15));try{
++  await assert.rejects(gold.reconcileWorldGold(db,NOW),/SCHEMA_INCOMPLETE/);
++ }finally{db.raw.close();}
++});
++
++test('Audit6 L3: pre-0015 schema cannot create a new quote',async()=>{
++ const f=await fixture(),db=openD1(migrationFiles().filter(n=>Number(n.slice(0,4))<15));try{
++  db.raw.prepare("INSERT INTO world_gold_products(id,product,version,kind,title,gold,embeo,enabled,created_ms) VALUES('pack:1','pack',1,'topup','Fixture',10,'7',1,?)").run(NOW);
++  await assert.rejects(gold.goldQuote({db,config:f.config,nowMs:NOW},{wallet:W,requestId:rid(),product:'pack'}),/SCHEMA_INCOMPLETE/);
++  assert.equal(db.raw.prepare('SELECT COUNT(*) n FROM economy_orders').get().n,0);
++ }finally{f.close();db.raw.close();}
++});
++
++test('Audit6 L6: null provider result is unusable and refunds exactly once',async()=>{
++ const f=await fixture();try{await f.topup();const id=await f.service(),attempt=await gold.claimGoldJob(f.db,id,NOW);
++  await gold.finishGoldJob(f.db,{orderId:id,attempt,nowMs:NOW+1,outcome:{result:null}});
++  assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'refunded');
++  assert.equal((await f.snapshot()).book,'10');await gold.refundGold(f.db,id,NOW+2);assert.equal((await f.snapshot()).book,'10');
++ }finally{f.close();}
++});
++
++test('Audit6 L7: private chain cannot persist a finalized public-chain mode',async()=>{
++ const f=await fixture();try{await f.topup();const m={...f.mint(),chainId:31337};await gold.reserveMintGold(f.db,m,NOW);
++  await assert.rejects(gold.settleMintGold(f.db,{id:m.id,chainId:m.chainId,contract:m.contract,chainInstance:m.chainInstance,state:'released',evidence:mintProof(m,'released',{mode:'finalized-chain'})},NOW+1),/MINT_EVIDENCE_REQUIRED/);
++  assert.equal((await f.snapshot()).reserved,'8');
++  assert.throws(()=>f.db.raw.prepare("UPDATE world_gold_mints SET state='released',evidence_json=? WHERE id=?").run(JSON.stringify(mintProof(m,'released',{mode:'finalized-chain'})),m.id),/MINT_EVIDENCE_REQUIRED/);
++ }finally{f.close();}
++});
++
++test('Audit6 L8: unserializable auth rejects with a stable code and no hold',async()=>{
++ const f=await fixture();try{await f.topup();for(const auth of [undefined,()=>1,Symbol('x'),1n]){
++  await assert.rejects(gold.reserveMintGold(f.db,{...f.mint(),auth},NOW),/^Error: INVALID_MINT_AUTH$/);
++ }
++ const cycle={};cycle.self=cycle;await assert.rejects(gold.reserveMintGold(f.db,{...f.mint(),auth:cycle},NOW),/^Error: INVALID_MINT_AUTH$/);
++ assert.equal(f.db.raw.prepare('SELECT COUNT(*) n FROM world_gold_mints').get().n,0);assert.equal((await f.snapshot()).reserved,'0');
++ }finally{f.close();}
++});
++
++test('Audit6 L5: authorization at exact chain deadline is refused before gas or a duplicate hold',async()=>{
++ const {createLocalService}=await import('../../mint/service/chain.mjs');const {initialLook}=await import('../../mint/shared-workbench/appearance.mjs');
++ const mint=await createLocalService();try{
++  await mint.transaction({wallet:'B',action:'approve',submissionId:rid()});
++  const first=(await mint.approval({wallet:'B',look:initialLook(),route:'paid'})).packet;
++  await mint.admin({action:'advance',seconds:first.goldAuthorization.deadline-await mint.time()});
++  assert.equal(await mint.time(),first.goldAuthorization.deadline);
++  const before=(await mint.gold.view('B')).reserved;
++  await assert.rejects(mint.approval({wallet:'B',look:initialLook(),route:'paid'}),/PAID_AUTH_NOT_MINEABLE/);
++  assert.equal((await mint.gold.view('B')).reserved,before);
++ }finally{await mint.close();}
++});
++
++test('Audit6 I9: GOLD mint pause blocks paid holds but preserves fee-free free approval',async()=>{
++ const {createGoldLocalRuntime}=await import('../scripts/world-gold-local-runtime.mjs');const {initialLook}=await import('../../mint/shared-workbench/appearance.mjs');
++ const r=await createGoldLocalRuntime();try{
++  await gold.goldAdminCommand(r.db,{wallet:(await import('../server/economy-config.ts')).ECONOMY_TREASURY,requestId:rid(),command:{action:'control',feature:'mint',enabled:false,version:0},reason:'Audit route-specific pause regression',nowMs:Date.now()});
++  assert.equal((await r.mint.approval({wallet:'A',look:initialLook(),route:'free'})).packet.route,'free');
++  await assert.rejects(r.mint.approval({wallet:'B',look:initialLook(),route:'paid'}),/FEATURE_PAUSED/);
++ }finally{await r.close();}
++});
+diff --git a/tests/world-gold.test.mjs b/tests/world-gold.test.mjs
+index a9d03aa..9ec4c64 100644
+--- a/tests/world-gold.test.mjs
++++ b/tests/world-gold.test.mjs
+@@ -43,7 +43,14 @@ test('manual controls stop new quotes but preserve already paid reconciliation',
+ test('campaign schedule uses start inclusive/end exclusive and supports early stop',async()=>{const f=await setup();try{await f.admin({action:'campaign',version:1,startsMs:NOW+1000,endsMs:NOW+10000,stopped:false});assert.equal((await goldCampaign(f.db,NOW+999)).active,false);assert.equal((await goldCampaign(f.db,NOW+1000)).active,true);assert.equal((await goldCampaign(f.db,NOW+10000)).active,false);await f.admin({action:'campaign',version:2,startsMs:NOW+1000,endsMs:NOW+10000,stopped:true});assert.equal((await goldCampaign(f.db,NOW+2000)).active,false);}finally{f.close();}});
+ test('admin unauthorized, stale price/campaign/control versions and altered retry are rejected',async()=>{const f=await setup();try{await assert.rejects(goldAdminCommand(f.db,{wallet:W,requestId:rid(),command:{action:'control',feature:'topup',enabled:false,version:0},reason:'test unauthorized',nowMs:NOW}),/ADMIN_REQUIRED/);await assert.rejects(f.admin({action:'product',product:'gold-pack',kind:'topup',title:'stale',gold:'20',embeo:'1',enabled:true,version:1}));const request=rid(),args={wallet:OWNER,requestId:request,command:{action:'control',feature:'topup',enabled:false,version:0},reason:'test idempotent request',nowMs:NOW};await goldAdminCommand(f.db,args);await goldAdminCommand(f.db,args);await assert.rejects(goldAdminCommand(f.db,{...args,reason:'changed intent'}),/IDEMPOTENCY_CONFLICT/);}finally{f.close();}});
+ test('admin repair captures exact before/after balances and does not invent an entitlement',async()=>{const f=await setup();try{const id=await f.quote();await f.paid(id);await f.admin({action:'repair-topup',orderId:id});const a=f.db.raw.prepare("SELECT before_json,after_json FROM world_gold_admin_actions WHERE action='repair-topup'").get();assert.equal(JSON.parse(a.before_json).order.book,'0');assert.equal(JSON.parse(a.after_json).order.book,'10');assert.equal(JSON.parse(a.after_json).order.credited,'10');}finally{f.close();}});
+-test('calibrated cross-spend evaluator rejects the task-shaped removal of the reserve guard',async()=>{for(const defect of [false,true]){const f=await setup();try{await f.topup();await reserveMintGold(f.db,f.mint(),NOW);if(defect)f.db.raw.exec('DROP TRIGGER world_gold_available_guard');let blocked=false;try{await f.service();}catch{blocked=true;}assert.equal(blocked,!defect);if(defect)await assert.rejects(f.snapshot(),/LEDGER_INTEGRITY/);else assert.equal((await economyWalletSnapshot(f.db,f.config,W)).gold,'2');}finally{f.close();}}});
++test('calibrated cross-spend evaluator detects SQL guard removal independently of the new readiness refusal',async()=>{for(const defect of [false,true]){const f=await setup();try{
++ await f.topup();await reserveMintGold(f.db,f.mint(),NOW);if(defect)f.db.raw.exec('DROP TRIGGER world_gold_available_guard');let blocked=false;
++ try{f.db.raw.prepare("INSERT INTO economy_gold_journal VALUES(?,?,-3,'service-payment',?,?)").run('guard-calibration',W,'guard-calibration',NOW);}catch{blocked=true;}
++ assert.equal(blocked,!defect);
++ if(defect){assert.equal(f.db.raw.prepare('SELECT balance FROM economy_gold_accounts WHERE wallet=?').get(W).balance,7);await assert.rejects(f.snapshot(),/SCHEMA_INCOMPLETE/);}
++ else assert.equal((await economyWalletSnapshot(f.db,f.config,W)).gold,'2');
++ }finally{f.close();}}});
++
+ test('historical staking recovery preserves purchased GOLD and holds; new-source concurrent changes invalidate the plan',async()=>{
+  const f=await setup(),shadow=openD1();try{
+   await f.topup();const payment=JSON.parse(f.db.raw.prepare("SELECT payload FROM economy_chain_events WHERE kind='payment'").get().payload);for(const k of Object.keys(payment))if(payment[k]===null)delete payment[k];
+diff --git a/worker/app.ts b/worker/app.ts
+index 3050f2e..27873ac 100644
+--- a/worker/app.ts
++++ b/worker/app.ts
+@@ -1,5 +1,5 @@
+ import {GATEWAY_DEFAULTS,SHARED_SHAPE,type ReadGateway,type SharedCopy} from '../server/gateway.ts';
+-import {handleWorldApi,LimiterMissing,type Allow} from '../server/world-api.ts';
++import {handleWorldApi,LimiterMissing,API_HEADERS,type Allow} from '../server/world-api.ts';
+ import {UPSTREAM_TTL_MS} from '../src/world/cadence.ts';
+ import {handleAccountApi,pruneIndexProbes} from '../server/auth.ts';
+ import {handleMemberApi,pruneMemberRecords} from '../server/member.ts';
+@@ -8,6 +8,7 @@ import {handleAIMarketAdmin} from '../server/aimarket-admin.ts';
+ import {handleEconomyApi} from '../server/economy.ts';
+ import {handleWorldGoldApi} from '../server/world-gold-api.ts';
+ import {reconcileWorldGold} from '../server/world-gold.ts';
++import {sharedGoldSchemaPresent,worldGoldSchemaReady} from '../server/world-gold-schema.ts';
+ import {hasGoldDeliveryProvider,runGoldServiceJobs,type GoldDeliveryProvider} from '../server/world-gold-delivery.ts';
+ import {reviewedEconomyConfig} from '../server/economy-deployment.ts';
+ import {createEconomyRpc,syncEconomyChain,type EconomyRpc} from '../server/economy-rpc.ts';
+@@ -155,8 +156,11 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+     await syncEconomyChain(env.DB,config,{rpc,nowMs:at});
+   };
+   const maintainGold=async(env:Env,at:number)=>{
+-    if(!env.DB||!await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='world_gold_jobs'").first())return;
++    if(!env.DB)return;
++    if(!await sharedGoldSchemaPresent(env.DB))return;
++    if(!await worldGoldSchemaReady(env.DB)){console.log('gold_maintenance',JSON.stringify({status:'deferred',code:'SCHEMA_INCOMPLETE'}));return;}
+     const result=await reconcileWorldGold(env.DB,at);if(result.failures.length)console.log('gold_reconcile',JSON.stringify(result.failures));
++    if(result.rewards.some(r=>r.status!=='credited'))console.log('gold_rewards',JSON.stringify(result.rewards));
+     if(hasGoldDeliveryProvider(economy.delivery))await runGoldServiceJobs(env.DB,economy.delivery,now);
+   };
+   return {
+@@ -176,6 +180,10 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+           if(!env.ECONOMY_LIMITER)throw new LimiterMissing('ECONOMY_LIMITER');
+           return (await env.ECONOMY_LIMITER.limit({key})).success;
+         }};
++        // This deployed World entry always requires the complete shared book,
++        // even on a pre-0014 DB. Historical standalone helper tests are not a
++        // fallback deployment mode and cannot reopen the old catalogue route.
++        if(config&&env.DB&&request.method==='POST'&&!await worldGoldSchemaReady(env.DB))return new Response(JSON.stringify({error:'SCHEMA_INCOMPLETE'}),{status:503,headers:API_HEADERS});
+         const response=await handleWorldGoldApi(request,deps)??await handleEconomyApi(request,deps);
+         if(response)return response;
+       }

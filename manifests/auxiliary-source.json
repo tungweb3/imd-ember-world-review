@@ -1,0 +1,329 @@
+{
+  "worldSourceCommit": "1015b2c5c8663c6c4bfb46f135be84cacea1cae0",
+  "files": [
+    {
+      "path": "aimarket/test_world_gold_delivery.py",
+      "sourcePath": "test_world_gold_delivery.py",
+      "sourceSha256": "5b41f331b59ef13b26955439522d2da8448f862152b5164460b3d24bde0866bc",
+      "sha256": "5b41f331b59ef13b26955439522d2da8448f862152b5164460b3d24bde0866bc",
+      "bytes": 4360,
+      "byteExact": true
+    },
+    {
+      "sourcePath": "aimarket/test_world_trial.py",
+      "sourceSha256": "0e8f687ba2dff26b1032a9ba8dac38411639cbbf8e6fe67c6bcb567df866bc89",
+      "path": "aimarket/test_world_trial.py",
+      "sha256": "0e8f687ba2dff26b1032a9ba8dac38411639cbbf8e6fe67c6bcb567df866bc89",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "aimarket/test_world_trial_audit5.py",
+      "sourceSha256": "53855d0c056f75c08a94075dbd461abdb16db91a5c2d2209866202104564cd04",
+      "path": "aimarket/test_world_trial_audit5.py",
+      "sha256": "53855d0c056f75c08a94075dbd461abdb16db91a5c2d2209866202104564cd04",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "aimarket/test_world_trial_audit6.py",
+      "sourceSha256": "f7c145e98eba850c5bc7553d211dd1ce873c340c9b9892fb5bb10b99237e64fc",
+      "path": "aimarket/test_world_trial_audit6.py",
+      "sha256": "f7c145e98eba850c5bc7553d211dd1ce873c340c9b9892fb5bb10b99237e64fc",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "aimarket/web/__init__.py",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "aimarket/web/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byteExact": true
+    },
+    {
+      "path": "aimarket/web/world_auth.py",
+      "sourcePath": "web/world_auth.py",
+      "sourceSha256": "eda22c723da123654f481d8da3d98b7943617d8b3d09cdf438b06989a8ba047a",
+      "sha256": "eda22c723da123654f481d8da3d98b7943617d8b3d09cdf438b06989a8ba047a",
+      "bytes": 19421,
+      "byteExact": true
+    },
+    {
+      "path": "aimarket/web/world_gold_delivery.py",
+      "sourcePath": "web/world_gold_delivery.py",
+      "sourceSha256": "22dcc1803cd0dbe16d6ef122afee32cc4c13d1c733d7a222df34962f311991b6",
+      "sha256": "22dcc1803cd0dbe16d6ef122afee32cc4c13d1c733d7a222df34962f311991b6",
+      "bytes": 8455,
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/artifacts/build-receipt.private.json",
+      "sourceSha256": "1b7b72aee8637d0880a84ccea9b8121c2f89a5ff889f5674ab0823e7a62d6d57",
+      "path": "mint/contract/artifacts/build-receipt.json",
+      "sha256": "c3272b8577cab140083e0dc05475d76f548b5e810a639488814d16a0cb07d5a7",
+      "byteExact": false
+    },
+    {
+      "sourcePath": "mint/contract/artifacts/standard-input.private.json",
+      "sourceSha256": "89454091401ab56e6583e482d032c3c2d5bacc91151344789bb7a44733063dcc",
+      "path": "mint/contract/artifacts/standard-input.json",
+      "sha256": "89454091401ab56e6583e482d032c3c2d5bacc91151344789bb7a44733063dcc",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/artifacts/test-artifacts.private.json",
+      "sourceSha256": "34f0b97fc08b893656b94bf5ac1cdeea082defab1b5480b3e89a27c2c49f9aed",
+      "path": "mint/contract/artifacts/test-artifacts.json",
+      "sha256": "34f0b97fc08b893656b94bf5ac1cdeea082defab1b5480b3e89a27c2c49f9aed",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/config/genesis.json",
+      "sourceSha256": "8fcbdce7e664fc6101a8c79e9238eb6504dacef3e93d9f71e66f2d246cab04a7",
+      "path": "mint/contract/config/genesis.json",
+      "sha256": "8fcbdce7e664fc6101a8c79e9238eb6504dacef3e93d9f71e66f2d246cab04a7",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/contracts/EmberEvoGenesisCandidate.sol",
+      "sourceSha256": "f08dffac8515d64f681083eb081915a7d3f03db0a6acabbfea15a375857f006e",
+      "path": "mint/contract/contracts/EmberEvoGenesisCandidate.sol",
+      "sha256": "f08dffac8515d64f681083eb081915a7d3f03db0a6acabbfea15a375857f006e",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/contracts/test/Fixtures.sol",
+      "sourceSha256": "7ffb537ec59fe5de43fb560cb204bbed253ca5a8abb750b5c4e4bcad020f5c8e",
+      "path": "mint/contract/contracts/test/Fixtures.sol",
+      "sha256": "7ffb537ec59fe5de43fb560cb204bbed253ca5a8abb750b5c4e4bcad020f5c8e",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/contracts/test/HardeningFixtures.sol",
+      "sourceSha256": "64c78be668864e526234e0f09da8e65eb880adb9381774874dbc32924aa7e5e5",
+      "path": "mint/contract/contracts/test/HardeningFixtures.sol",
+      "sha256": "64c78be668864e526234e0f09da8e65eb880adb9381774874dbc32924aa7e5e5",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/contracts/test/R3Fixtures.sol",
+      "sourceSha256": "80bd2eebab18d2e8853d8b66e72defa4fcde8b43ed7f096529a32c8f2c65ab15",
+      "path": "mint/contract/contracts/test/R3Fixtures.sol",
+      "sha256": "80bd2eebab18d2e8853d8b66e72defa4fcde8b43ed7f096529a32c8f2c65ab15",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/lib/appearance.mjs",
+      "sourceSha256": "78cb4c3ea1b9cd9248b90c9e5ab77158c21781b9ecce135524b49262d72a6a0a",
+      "path": "mint/contract/lib/appearance.mjs",
+      "sha256": "78cb4c3ea1b9cd9248b90c9e5ab77158c21781b9ecce135524b49262d72a6a0a",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/lib/policy.mjs",
+      "sourceSha256": "3b1517b488e638c684ea43c9a0e58e6939d6d469b9049250319493427b9b7fa2",
+      "path": "mint/contract/lib/policy.mjs",
+      "sha256": "3b1517b488e638c684ea43c9a0e58e6939d6d469b9049250319493427b9b7fa2",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/contract/tools/compile.mjs",
+      "sourceSha256": "4309c694f53327d26859cc31a9af64ac4557d33ef66c0e9099b61afef8bfc7ed",
+      "path": "mint/contract/tools/compile.mjs",
+      "sha256": "ac323adf78ccc36d44696cb8f2fb0bc6416ce2763951b588d9e6108f31091051",
+      "byteExact": false
+    },
+    {
+      "sourcePath": "mint/contract/tools/runtime.mjs",
+      "sourceSha256": "2bac85537add48cae447fa42e542605f16722ca1ef771b711d6a4424fbd7a023",
+      "path": "mint/contract/tools/runtime.mjs",
+      "sha256": "6775fbd7228646ed757447f0c7a325fafed5f82f869c912cc736a89e2a1b32bc",
+      "byteExact": false
+    },
+    {
+      "sourcePath": "mint/lib/json.mjs",
+      "sourceSha256": "67a66d193097a447b103b2df49294f9a5209685cb4fbf8c143d6ae5de97a78a4",
+      "path": "mint/lib/json.mjs",
+      "sha256": "67a66d193097a447b103b2df49294f9a5209685cb4fbf8c143d6ae5de97a78a4",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/lib/policy.mjs",
+      "sourceSha256": "a5bd8d80a080d9c8f99aebfc638ce9ecf6575fa77c530063a4c807ab761345c4",
+      "path": "mint/lib/policy.mjs",
+      "sha256": "a5bd8d80a080d9c8f99aebfc638ce9ecf6575fa77c530063a4c807ab761345c4",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/lib/snapshot.mjs",
+      "sourceSha256": "de831e9cfb91941ef0f5fa1678a66ab577ce1082e8e162003dd1c3e2f55f1d25",
+      "path": "mint/lib/snapshot.mjs",
+      "sha256": "de831e9cfb91941ef0f5fa1678a66ab577ce1082e8e162003dd1c3e2f55f1d25",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/mock/app.mjs",
+      "sourceSha256": "21b83d49ec382006f55a869c204c1d3f3b782020bd95dd951bf3d81627ed0036",
+      "path": "mint/mock/app.mjs",
+      "sha256": "21b83d49ec382006f55a869c204c1d3f3b782020bd95dd951bf3d81627ed0036",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/mock/client-state.mjs",
+      "sourceSha256": "23bbf8e61d90d89797344b3c1c994c4249d68d49b053bb9a74dc867009126e64",
+      "path": "mint/mock/client-state.mjs",
+      "sha256": "23bbf8e61d90d89797344b3c1c994c4249d68d49b053bb9a74dc867009126e64",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/mock/client-state.test.mjs",
+      "sourceSha256": "2289fbc3eff0e4fa3a817e72c46fe3ec92f8345ba4e67ff83467c76647c8a610",
+      "path": "mint/mock/client-state.test.mjs",
+      "sha256": "2289fbc3eff0e4fa3a817e72c46fe3ec92f8345ba4e67ff83467c76647c8a610",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/mock/index.html",
+      "sourceSha256": "24aa1568265577dc84f5f8e068808225de064d192bc52f4e48745a2548d803d0",
+      "path": "mint/mock/index.html",
+      "sha256": "24aa1568265577dc84f5f8e068808225de064d192bc52f4e48745a2548d803d0",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/mock/style.css",
+      "sourceSha256": "adbdcbe2056b7f756e3aa9a4d9f8a57f8e3442045bc0277e8fa09788563acaa8",
+      "path": "mint/mock/style.css",
+      "sha256": "adbdcbe2056b7f756e3aa9a4d9f8a57f8e3442045bc0277e8fa09788563acaa8",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/service/artifacts.mjs",
+      "sourceSha256": "eebe3700738eb2f717a7edcff85c86ef06ca1e9196d4d79edef09fc526ddda9a",
+      "path": "mint/service/artifacts.mjs",
+      "sha256": "3aaad4f2cdb1e56cf3236c08295981b425d140901aff82d4f8dea9946cf460b8",
+      "byteExact": false
+    },
+    {
+      "sourcePath": "mint/service/chain.mjs",
+      "sourceSha256": "d2d42f6c45db74ed48952d90ee56f324c4f62ebbcb2ad700127134577ebad734",
+      "path": "mint/service/chain.mjs",
+      "sha256": "d2d42f6c45db74ed48952d90ee56f324c4f62ebbcb2ad700127134577ebad734",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/service/gold-ledger.mjs",
+      "sourceSha256": "85945be4a77baa098db5275238e027ebd3a430187c255f8776a5970fe6d65895",
+      "path": "mint/service/gold-ledger.mjs",
+      "sha256": "85945be4a77baa098db5275238e027ebd3a430187c255f8776a5970fe6d65895",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/service/receipts.mjs",
+      "sourceSha256": "94690ad808c8f795550c44e1a31c9c2db57be869c7cf769b8b3e129d67323092",
+      "path": "mint/service/receipts.mjs",
+      "sha256": "94690ad808c8f795550c44e1a31c9c2db57be869c7cf769b8b3e129d67323092",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/service/schema.mjs",
+      "sourceSha256": "e9ec1022ea0919ebfffa91f4f78fe0d0df173abd6afd300c08ecec545a07d1e4",
+      "path": "mint/service/schema.mjs",
+      "sha256": "e9ec1022ea0919ebfffa91f4f78fe0d0df173abd6afd300c08ecec545a07d1e4",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/service/server.mjs",
+      "sourceSha256": "555e2a3d69371a4fd675c926863e6ed948e34cc1e262fbde24f48adcb4d3c6e2",
+      "path": "mint/service/server.mjs",
+      "sha256": "555e2a3d69371a4fd675c926863e6ed948e34cc1e262fbde24f48adcb4d3c6e2",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/shared-workbench/appearance.mjs",
+      "sourceSha256": "78cb4c3ea1b9cd9248b90c9e5ab77158c21781b9ecce135524b49262d72a6a0a",
+      "path": "mint/shared-workbench/appearance.mjs",
+      "sha256": "78cb4c3ea1b9cd9248b90c9e5ab77158c21781b9ecce135524b49262d72a6a0a",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/shared-workbench/approval.mjs",
+      "sourceSha256": "e3e609a92a1e5d3aa0c71fb0d22ce0826d9209ed9f2855615861fc208467a886",
+      "path": "mint/shared-workbench/approval.mjs",
+      "sha256": "e3e609a92a1e5d3aa0c71fb0d22ce0826d9209ed9f2855615861fc208467a886",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/shared-workbench/catalogue.mjs",
+      "sourceSha256": "6f39b154516de8666bfb2091554ac1d799aa45f403a5f7672cf8da1fb8c1e0ac",
+      "path": "mint/shared-workbench/catalogue.mjs",
+      "sha256": "6f39b154516de8666bfb2091554ac1d799aa45f403a5f7672cf8da1fb8c1e0ac",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/shared-workbench/json.mjs",
+      "sourceSha256": "d577a3bc5eb4d465483b2da678f5cd3650b278c4968f89e529c429612224f0da",
+      "path": "mint/shared-workbench/json.mjs",
+      "sha256": "d577a3bc5eb4d465483b2da678f5cd3650b278c4968f89e529c429612224f0da",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/shared-workbench/metadata.mjs",
+      "sourceSha256": "9f95d3793070f24c67e38d9f33eaae4ab0f2bdc35df2deb8accaddb2ef893849",
+      "path": "mint/shared-workbench/metadata.mjs",
+      "sha256": "9f95d3793070f24c67e38d9f33eaae4ab0f2bdc35df2deb8accaddb2ef893849",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/shared-workbench/policy.mjs",
+      "sourceSha256": "3b1517b488e638c684ea43c9a0e58e6939d6d469b9049250319493427b9b7fa2",
+      "path": "mint/shared-workbench/policy.mjs",
+      "sha256": "3b1517b488e638c684ea43c9a0e58e6939d6d469b9049250319493427b9b7fa2",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/vendor/ethers.LICENSE.md",
+      "sourceSha256": "44eea86637405118248327fbe9d9fa95d04c7a57221c7e8c155f736db9f1b612",
+      "path": "mint/vendor/ethers.LICENSE.md",
+      "sha256": "44eea86637405118248327fbe9d9fa95d04c7a57221c7e8c155f736db9f1b612",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/vendor/ethers.min.js",
+      "sourceSha256": "66580dbb32353addbbfd2c1880a29693436c2d41ebdd4bf4a4516b9ad6f5f5ea",
+      "path": "mint/vendor/ethers.min.js",
+      "sha256": "66580dbb32353addbbfd2c1880a29693436c2d41ebdd4bf4a4516b9ad6f5f5ea",
+      "byteExact": true
+    },
+    {
+      "sourcePath": "mint/vendor/manifest.json",
+      "sourceSha256": "8e8b82db83375f06cbe09d6cce2fff03c718376f012e180b23143bf1d58b9399",
+      "path": "mint/vendor/manifest.json",
+      "sha256": "8e8b82db83375f06cbe09d6cce2fff03c718376f012e180b23143bf1d58b9399",
+      "byteExact": true
+    }
+  ],
+  "omittedNonAuditAssets": [
+    {
+      "path": "mint/mock/assets/captain.png",
+      "sha256": "de1d67c2f5f07223a87436f2d1e512ebd16c13d35fbc42b7481879642fa194ba",
+      "reason": "Concept illustration omitted from curated review export; original source and earlier sealed package retained. Mock image presentation is not part of the financial reproduction."
+    },
+    {
+      "path": "mint/mock/assets/classic.png",
+      "sha256": "b061e85d347f06b678fa58d3b3d45b9e6d4de29b4e819374d3087b98313418dc",
+      "reason": "Concept illustration omitted from curated review export; original source and earlier sealed package retained. Mock image presentation is not part of the financial reproduction."
+    },
+    {
+      "path": "mint/mock/assets/explorer.png",
+      "sha256": "0c77f07cd358431a7b8d46d55bb433b76b87da58bb83ae7c2209647bca091335",
+      "reason": "Concept illustration omitted from curated review export; original source and earlier sealed package retained. Mock image presentation is not part of the financial reproduction."
+    },
+    {
+      "path": "mint/mock/assets/mage.png",
+      "sha256": "780e95450c11224a4b2808c884220a48546329b162d5f3b0ff2cb426f44b142a",
+      "reason": "Concept illustration omitted from curated review export; original source and earlier sealed package retained. Mock image presentation is not part of the financial reproduction."
+    },
+    {
+      "path": "mint/mock/assets/surveyor.png",
+      "sha256": "225ec642f9ccda0793a00fee83a5de285d0a36862529498ee99a0b50d8415f4f",
+      "reason": "Concept illustration omitted from curated review export; original source and earlier sealed package retained. Mock image presentation is not part of the financial reproduction."
+    }
+  ]
+}

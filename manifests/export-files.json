@@ -1,0 +1,1560 @@
+{
+  "sourceCommit": "1015b2c5c8663c6c4bfb46f135be84cacea1cae0",
+  "files": [
+    {
+      "path": "AUDIT_OBJECTIVE.en.txt",
+      "bytes": 3253,
+      "sha256": "c4da2530932349a6170d60b906daeb9304dcffb05bd1f17ca3e1f3c48f5d2a16"
+    },
+    {
+      "path": "AUDIT_OBJECTIVE.zh-Hant.txt",
+      "bytes": 496,
+      "sha256": "bb8bfec17dab7428629f251445e37659e05497ceaf9db9020744509ee080911c"
+    },
+    {
+      "path": "CURRENT_STATUS.md",
+      "bytes": 1533,
+      "sha256": "6a5f01268ab99551917424cc148d1fd002c4e28f2aa6f160d1a8d6a9a82adf3c"
+    },
+    {
+      "path": "DEPENDENCIES.md",
+      "bytes": 1970,
+      "sha256": "69ad977e71a7faadf75b3b9dc446b433dfb640cf0eb5ea41da6855016bec5567"
+    },
+    {
+      "path": "LOCAL_TESTS.md",
+      "bytes": 986,
+      "sha256": "750cb713c55c50d6d3e080bb0582fcb3fb251f2a3493a9826b039054cb731509"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1177,
+      "sha256": "42192740f04d9605c1551897e6101c458e943cd01f7545573872029bd507e3c9"
+    },
+    {
+      "path": "REDACTIONS.md",
+      "bytes": 1142,
+      "sha256": "e8b003944cc0c52688cb2776948efee2418d497a80aaaf187efbd8ddf3e82d39"
+    },
+    {
+      "path": "REQUIREMENTS.md",
+      "bytes": 2483,
+      "sha256": "f64f4eaabaf4a0de932b3e72de9af7e7fb559f992201e0972294f17c8c70f563"
+    },
+    {
+      "path": "SCOPE.md",
+      "bytes": 1547,
+      "sha256": "11cdca76e617b2ae429260378ea7e703bfec14302b709f3d98a105526ba2d441"
+    },
+    {
+      "path": "aimarket/test_world_gold_delivery.py",
+      "bytes": 4360,
+      "sha256": "5b41f331b59ef13b26955439522d2da8448f862152b5164460b3d24bde0866bc"
+    },
+    {
+      "path": "aimarket/test_world_trial.py",
+      "bytes": 3569,
+      "sha256": "0e8f687ba2dff26b1032a9ba8dac38411639cbbf8e6fe67c6bcb567df866bc89"
+    },
+    {
+      "path": "aimarket/test_world_trial_audit5.py",
+      "bytes": 1659,
+      "sha256": "53855d0c056f75c08a94075dbd461abdb16db91a5c2d2209866202104564cd04"
+    },
+    {
+      "path": "aimarket/test_world_trial_audit6.py",
+      "bytes": 4685,
+      "sha256": "f7c145e98eba850c5bc7553d211dd1ce873c340c9b9892fb5bb10b99237e64fc"
+    },
+    {
+      "path": "aimarket/web/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "aimarket/web/world_auth.py",
+      "bytes": 19421,
+      "sha256": "eda22c723da123654f481d8da3d98b7943617d8b3d09cdf438b06989a8ba047a"
+    },
+    {
+      "path": "aimarket/web/world_gold_delivery.py",
+      "bytes": 8455,
+      "sha256": "22dcc1803cd0dbe16d6ef122afee32cc4c13d1c733d7a222df34962f311991b6"
+    },
+    {
+      "path": "context/T01-T22-evidence.md",
+      "bytes": 3859,
+      "sha256": "4076dcf541805e0a2ebbb9115fcfda704b2e7f30ff6da7c7bf7631de84d11db8"
+    },
+    {
+      "path": "context/aimarket-app.py",
+      "bytes": 326158,
+      "sha256": "a0a319d9b484dd8d34c18bb06ee299c5711caf68d3e4491801634fb26f6bd023"
+    },
+    {
+      "path": "context/audit-d6268e87-e5ca6e5a.md",
+      "bytes": 17786,
+      "sha256": "59319228eff67304957d2cd1cb90b80c676f2c9d7abb913abbdc2e006040989f"
+    },
+    {
+      "path": "context/audit7-changes-from-41ca333d.patch",
+      "bytes": 258550,
+      "sha256": "b38a9d5dd724fb14e8d0677f70be65d10c653d812c66fd7233d5767e73f59669"
+    },
+    {
+      "path": "context/auxiliary-diff-from-reviewed-source.patch",
+      "bytes": 9747,
+      "sha256": "d468e628a6b179bec889a57d71cab75170b62bf2e43882094d2647e29b0892f4"
+    },
+    {
+      "path": "context/candidate.json",
+      "bytes": 416,
+      "sha256": "bc8f57c00312428ed8d438c3721120cda4d119da152dd83e1ba84718cd7bcb78"
+    },
+    {
+      "path": "context/previous-267fcf01/server/aimarket-delivery.ts",
+      "bytes": 5403,
+      "sha256": "c4a006ed60ed473a6f53a31323ab8f1b216f75ca63e26b27357643952001502f"
+    },
+    {
+      "path": "context/previous-267fcf01/server/economy.ts",
+      "bytes": 7715,
+      "sha256": "c9aad0703b2db867355af908d51b92cb1511fe2bfd6f93497203a93c1f5792d8"
+    },
+    {
+      "path": "context/previous-267fcf01/server/world-gold-delivery.ts",
+      "bytes": 3029,
+      "sha256": "06639d3abd075236b583975ef5617d4fcd36330eb4663ddd66922325e4e40089"
+    },
+    {
+      "path": "context/previous-267fcf01/server/world-gold-result.ts",
+      "bytes": 5401,
+      "sha256": "366686ddb94c64d1c54976f89b1dcd06aa138834a62a903dec6472efec3e59ce"
+    },
+    {
+      "path": "context/previous-audit-188a3018.md",
+      "bytes": 32995,
+      "sha256": "f756f8ebedf9f67f3fa8d29df862941bde44e084827b6e06a9e599d17381e8d4"
+    },
+    {
+      "path": "context/previous-audit-c47bc2a0.md",
+      "bytes": 36375,
+      "sha256": "60bad8eed7fa63ceb09ad5264df29d7cd61531e90d71a873d9e1c258ad9ee863"
+    },
+    {
+      "path": "context/review-fixes-267fcf01.patch",
+      "bytes": 41747,
+      "sha256": "acdc5c4872d90494cf4c9188ecb368320855394e7ccc3394e5bd535650050ac2"
+    },
+    {
+      "path": "context/world-diff-from-reviewed-source.patch",
+      "bytes": 194817,
+      "sha256": "5ce0e725246028c897074849ef9db0cc665ce0f4b01e60ea9e39ce60354a0585"
+    },
+    {
+      "path": "contracts/.gitignore",
+      "bytes": 52,
+      "sha256": "3bd35d23e46f8ad4b48f17c13e501e799556d5f4c137f2bbc71568a48955c987"
+    },
+    {
+      "path": "contracts/DEPENDENCIES.md",
+      "bytes": 1970,
+      "sha256": "69ad977e71a7faadf75b3b9dc446b433dfb640cf0eb5ea41da6855016bec5567"
+    },
+    {
+      "path": "contracts/LICENSE",
+      "bytes": 1233,
+      "sha256": "80e2c610c131bf475fc954cd1eefa78561d9704bf3007545f494cef41262b8cf"
+    },
+    {
+      "path": "contracts/LICENSES/EDR-MIT.txt",
+      "bytes": 1354,
+      "sha256": "806e3b98541d048da2d4596e63250caa679b2da875bd5ab15bdb63dff1b79863"
+    },
+    {
+      "path": "contracts/LICENSES/ETHERS-MIT.txt",
+      "bytes": 1075,
+      "sha256": "44eea86637405118248327fbe9d9fa95d04c7a57221c7e8c155f736db9f1b612"
+    },
+    {
+      "path": "contracts/LICENSES/HARDHAT-MIT.txt",
+      "bytes": 1073,
+      "sha256": "a5568cbcc009084c9c9a3e67ab8a3122aaf86d41bac500728c8b4bdc22c864b4"
+    },
+    {
+      "path": "contracts/LICENSES/OPENZEPPELIN-MIT.txt",
+      "bytes": 1090,
+      "sha256": "13cd784a6c31361f0e0c6aa3b410a1cb9a079868b7314c13e3eb8a75351746b9"
+    },
+    {
+      "path": "contracts/LICENSES/SOLC-JS-MIT.txt",
+      "bytes": 1067,
+      "sha256": "852bcc033a46c62f99fb5ffd43b3241ba2c0c440c6034aa2114505f2c4f03c4a"
+    },
+    {
+      "path": "contracts/LICENSES/SOLIDITY-COMPILER-GPL-3.0.txt",
+      "bytes": 35148,
+      "sha256": "0ae0485a5bd37a63e63603596417e4eb0e653334fa6c7f932ca3a0e85d4af227"
+    },
+    {
+      "path": "contracts/README.md",
+      "bytes": 4044,
+      "sha256": "b5b23ee1a0e5084c041f919975c885bb3d20a36f34101f8f4e0156eed18b0943"
+    },
+    {
+      "path": "contracts/artifacts/EmbeoPayments.json",
+      "bytes": 29447,
+      "sha256": "0036fc322657a31d318a230b1a173435823b25dfc2bbf84ca5ab0c82d44a876e"
+    },
+    {
+      "path": "contracts/artifacts/EmbeoStakingVault.json",
+      "bytes": 32794,
+      "sha256": "74274c75b2e3034de90b68ea8159554b0c1a41197b1f709210953c40721a7c43"
+    },
+    {
+      "path": "contracts/artifacts/compiler-input.json",
+      "bytes": 30480,
+      "sha256": "bd7db2fcdf2ecbe8733d7244f3c40594d6476a3659f905986bd479c830fcc1ee"
+    },
+    {
+      "path": "contracts/baseline/EmbeoPayments.json",
+      "bytes": 29447,
+      "sha256": "0036fc322657a31d318a230b1a173435823b25dfc2bbf84ca5ab0c82d44a876e"
+    },
+    {
+      "path": "contracts/baseline/EmbeoStakingVault.json",
+      "bytes": 32794,
+      "sha256": "74274c75b2e3034de90b68ea8159554b0c1a41197b1f709210953c40721a7c43"
+    },
+    {
+      "path": "contracts/baseline/compiler-input.json",
+      "bytes": 30275,
+      "sha256": "4563cc91ff9341837a1c5b0b56ce2c4292b84e02a149aa3d876c5e99d6a063bf"
+    },
+    {
+      "path": "contracts/baseline/projection-manifest.json",
+      "bytes": 1724,
+      "sha256": "535374ec9adeff4e8d7a175cbb8655fe8cbf6d461dc8e78ab2be9c7b2f77d3b8"
+    },
+    {
+      "path": "contracts/fixtures/embeo-token-artifact.json",
+      "bytes": 15452,
+      "sha256": "02bd4fda2a656dd1727de840d4cbf89b1b4b74a3d134bdfa1f90a9c23ea6f2aa"
+    },
+    {
+      "path": "contracts/fixtures/embeo-token-provenance.json",
+      "bytes": 789,
+      "sha256": "a0d0c394ad5b2ba4ce891fcfc03ce0eb44f56cb2e9416c0a0a63adca30523f6c"
+    },
+    {
+      "path": "contracts/interface.json",
+      "bytes": 11791,
+      "sha256": "114afe156021a6ebdae0ad366f9b25fa9f80496c06f1e9898486656e5ed9a1b7"
+    },
+    {
+      "path": "contracts/package-lock.json",
+      "bytes": 51332,
+      "sha256": "82d9f1c24051a41d336d8dd6fa53e443a661efa52fa335ea7901222dad4dce37"
+    },
+    {
+      "path": "contracts/package.json",
+      "bytes": 791,
+      "sha256": "e067ebf015f816416fc6ac60716d7590e29523bece42be8a44aec0082084da6b"
+    },
+    {
+      "path": "contracts/src/EmbeoPayments.sol",
+      "bytes": 1724,
+      "sha256": "df7cf883f5578be1f6d7801b85580a15509915eee0f0d5110b00cf52dd2f98f3"
+    },
+    {
+      "path": "contracts/src/EmbeoStakingVault.sol",
+      "bytes": 2133,
+      "sha256": "39e792c0c52ff5a4a58cf905850a452fd1756bf1aa8b821f12d455382b35a109"
+    },
+    {
+      "path": "contracts/src/ExactEmbeo.sol",
+      "bytes": 1941,
+      "sha256": "03515d2c88315655178d31e3283e7403a08cf1b22c7bdc5071772ae91b245db3"
+    },
+    {
+      "path": "contracts/test/AdversarialToken.sol",
+      "bytes": 2364,
+      "sha256": "2cfa01f61cb4aa9a240fd24a5c67475e57d89aa07ac5b0cd6b00971094d2e7ae"
+    },
+    {
+      "path": "contracts/test/audit-order-amount.test.mjs",
+      "bytes": 1708,
+      "sha256": "3a6785a2c11b385e78a5a5c71045c3578cb4f00aa0f16831336b26542c2b0f80"
+    },
+    {
+      "path": "contracts/test/contracts.test.mjs",
+      "bytes": 24131,
+      "sha256": "e0bafb408a35db5d04baabdf1defd08b93df303e5c403453c64e6a02afd9105b"
+    },
+    {
+      "path": "contracts/test/preflight.test.mjs",
+      "bytes": 3088,
+      "sha256": "da4aca683e50c720294dd8b51edb41e937f928554349bea570f1460c4fffe62b"
+    },
+    {
+      "path": "contracts/test/runtime.mjs",
+      "bytes": 3067,
+      "sha256": "f94f2c24bb341e282e41c674ec9b789e6473e70ef221dd110136707453e95bd3"
+    },
+    {
+      "path": "contracts/tools/build.mjs",
+      "bytes": 4553,
+      "sha256": "7fe1495baee2174b1b43aa9260e81d40e33ebcc875fa3ebc1cbf4d947fb20c68"
+    },
+    {
+      "path": "contracts/tools/check-projection.mjs",
+      "bytes": 2112,
+      "sha256": "fabbb41c58296f8c175cc713bf644ab36b56f47e45b54baa8e52a51252a1d053"
+    },
+    {
+      "path": "contracts/tools/manifest.mjs",
+      "bytes": 2087,
+      "sha256": "c60639f379743b3f491501016e4e5a2240b2d30703ea3d62074fb84e1b2f2c32"
+    },
+    {
+      "path": "contracts/tools/preflight.mjs",
+      "bytes": 8525,
+      "sha256": "92c10dfe47735f56aec8f926ae5185ca7a57f2fc6188b6a00f5f105318848da7"
+    },
+    {
+      "path": "contracts/tools/runtime.mjs",
+      "bytes": 2973,
+      "sha256": "640a71df9728ff5dadf1d26b44f930ea1237d1bd7331fc6a7f05a4f09c16411f"
+    },
+    {
+      "path": "contracts/vendor/compiler-provenance.json",
+      "bytes": 959,
+      "sha256": "2b8fcd61dad0da1d94075885297c8677f118555ebe89203e4ac220d7e521432d"
+    },
+    {
+      "path": "contracts/vendor/soljson-v0.8.37+commit.f401782d.cjs",
+      "bytes": 9222701,
+      "sha256": "d73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f"
+    },
+    {
+      "path": "deployment/close-admission.sql",
+      "bytes": 596,
+      "sha256": "d188cf0847493721f376728c6029e8a255de6c1e995a18e8d7fbabd45f0dbd5b"
+    },
+    {
+      "path": "evidence/audit7-audit7-after.log",
+      "bytes": 1713,
+      "sha256": "6bd1c4359b893f5a07cba7f36cf3c343e3686272ef8c9cf6ea51c308da472580"
+    },
+    {
+      "path": "evidence/audit7-audit7-before.log",
+      "bytes": 3366,
+      "sha256": "0019c582af14fcada57c8afaf5e41cc57324db3f51d349ae73947976afe4e76b"
+    },
+    {
+      "path": "evidence/audit7-balances-targeted.log",
+      "bytes": 8871,
+      "sha256": "da6bc9abb29880ce841e994b407a373b6329b86bc8c1a7ce3655f5c0735578a4"
+    },
+    {
+      "path": "evidence/audit7-baseline-validation.json",
+      "bytes": 2162,
+      "sha256": "f67cbb5100345acfa693b09415f0ce251eb59354b7b285157aabd75e9582ce9f"
+    },
+    {
+      "path": "evidence/audit7-contracts.log",
+      "bytes": 8237,
+      "sha256": "b8fadbd67ed3d35966023d16dd7795f8d3bbd6b35ebb89651604120430701333"
+    },
+    {
+      "path": "evidence/audit7-financial.log",
+      "bytes": 122052,
+      "sha256": "e5709bb88bf5f87feff579ac560cf7c00f88c0242b6c96545c8da8fc412f3c5f"
+    },
+    {
+      "path": "evidence/audit7-native-d1.log",
+      "bytes": 655,
+      "sha256": "1205bd607bb50fc66a3b23a279ad2882ea176df29366246bc572337d67b1f566"
+    },
+    {
+      "path": "evidence/audit7-python.log",
+      "bytes": 2826,
+      "sha256": "c8e36925eaf5cef8a96a0e490d6ef609f9e93e0382aa7dab3ee10af494e42aab"
+    },
+    {
+      "path": "evidence/audit7-source.log",
+      "bytes": 123,
+      "sha256": "5c3dffeb6e5a3939becc7468bbe4ba4ef058f00a176190acb0be7c7f3bd26a7e"
+    },
+    {
+      "path": "evidence/baseline-audit6-packet-validation.json",
+      "bytes": 5330,
+      "sha256": "1f52a9f7602f55f89e957c8c4c03729f771272462acf137ae04ae99ecb6967fe"
+    },
+    {
+      "path": "evidence/current-review.json",
+      "bytes": 3275,
+      "sha256": "ad13da3abb25d4f19c365ef042520a7f6c6be70be6210c29be982134573a8245"
+    },
+    {
+      "path": "evidence/historical-267fcf01-packet-validation.json",
+      "bytes": 900,
+      "sha256": "3237e4c10dad3b4ecaa63e7f3cfa49191c392ca0794ab57df81337f99c313d4b"
+    },
+    {
+      "path": "evidence/live-release.json",
+      "bytes": 519,
+      "sha256": "e0c60f4f6c54974419ce8a6e9a84654a51da6dd7ae38a33670c77f1537b00f49"
+    },
+    {
+      "path": "evidence/logs/audit6-before-node.log",
+      "bytes": 7535,
+      "sha256": "3c198152b18e57acee905f597c16bc5bdb374f9e4d6214fb2cd415988edafa02"
+    },
+    {
+      "path": "evidence/logs/audit6-before-python-isolated.log",
+      "bytes": 2606,
+      "sha256": "51999c6804c498feb0d9b4bcbcd035b71203dd56a0e8fb08f00c638ab4d2ec9d"
+    },
+    {
+      "path": "evidence/logs/audit6-cross-path-discovery-after.log",
+      "bytes": 355,
+      "sha256": "0e6790752fa55515aae19ed4c2d9586e985db6b83604cde64ab8255fc4b60115"
+    },
+    {
+      "path": "evidence/logs/audit6-cross-path-discovery-before.log",
+      "bytes": 1002,
+      "sha256": "0f6053806bad4e90a1f8a2b46412382da21f4afd587b6969eee1898551052e79"
+    },
+    {
+      "path": "evidence/logs/audit6-final-portable-contracts.log",
+      "bytes": 8362,
+      "sha256": "de5da888cffec67713b0cfa3c96e6e40a6088aad280d7c02a9331036cc58305c"
+    },
+    {
+      "path": "evidence/logs/audit6-final-portable-financial.log",
+      "bytes": 118403,
+      "sha256": "a37806cc9d9173a34e74448ec4c7246f3ede1a3e3cfceca20b7f662d6de67421"
+    },
+    {
+      "path": "evidence/logs/audit6-full-gaps-reproduction.log",
+      "bytes": 11192,
+      "sha256": "0fc5f97da4e10e2ab15d9d16826117aecdf519fa1c400bc89676a6ed98c874b9"
+    },
+    {
+      "path": "evidence/logs/audit6-portable-python.log",
+      "bytes": 2941,
+      "sha256": "de8d9f36e683ad2e4229b935191ef0fbd5cbe83fb57d3527d21fe03e25ba0207"
+    },
+    {
+      "path": "evidence/logs/index.json",
+      "bytes": 2054,
+      "sha256": "0c443c4dad6e8a6572af55b59d965186b3f97f5a55bba0e3d95e4272ace0bd5d"
+    },
+    {
+      "path": "evidence/mainnet-binding.json",
+      "bytes": 1590,
+      "sha256": "181cea5c6e259d013c3f092d309f029665e35504c9f6d0a822d7d77cfdfdb58e"
+    },
+    {
+      "path": "evidence/native-d1.json",
+      "bytes": 724,
+      "sha256": "75e744237c7bb7573f1d71a7bcbb9d552e241972ddf86dd89247c489f7918f94"
+    },
+    {
+      "path": "evidence/preservation.json",
+      "bytes": 139,
+      "sha256": "f01708c722e44a871bbe372b49d3647db970dd4999e5cd9bf3df4ca5a136f2c9"
+    },
+    {
+      "path": "manifests/auxiliary-source.json",
+      "bytes": 15397,
+      "sha256": "0f97ab25a6d28314cdfe8e1984d354f3d8b577c919bc9c572587384f9516c692"
+    },
+    {
+      "path": "manifests/portable-adaptations.json",
+      "bytes": 2617,
+      "sha256": "65565556f359cab5c1a2c639607a29d2f42cce8c8b4bd618f25d28259e3996ba"
+    },
+    {
+      "path": "manifests/selected-source.json",
+      "bytes": 64336,
+      "sha256": "20a11d6fe84a20c271322f15cc4669f4d9d3b72b46bc06bc34ed499f70fb97ce"
+    },
+    {
+      "path": "mint/contract/artifacts/build-receipt.json",
+      "bytes": 9263,
+      "sha256": "c3272b8577cab140083e0dc05475d76f548b5e810a639488814d16a0cb07d5a7"
+    },
+    {
+      "path": "mint/contract/artifacts/standard-input.json",
+      "bytes": 262637,
+      "sha256": "89454091401ab56e6583e482d032c3c2d5bacc91151344789bb7a44733063dcc"
+    },
+    {
+      "path": "mint/contract/artifacts/test-artifacts.json",
+      "bytes": 291225,
+      "sha256": "34f0b97fc08b893656b94bf5ac1cdeea082defab1b5480b3e89a27c2c49f9aed"
+    },
+    {
+      "path": "mint/contract/config/genesis.json",
+      "bytes": 2702,
+      "sha256": "8fcbdce7e664fc6101a8c79e9238eb6504dacef3e93d9f71e66f2d246cab04a7"
+    },
+    {
+      "path": "mint/contract/contracts/EmberEvoGenesisCandidate.sol",
+      "bytes": 15264,
+      "sha256": "f08dffac8515d64f681083eb081915a7d3f03db0a6acabbfea15a375857f006e"
+    },
+    {
+      "path": "mint/contract/contracts/test/Fixtures.sol",
+      "bytes": 2301,
+      "sha256": "7ffb537ec59fe5de43fb560cb204bbed253ca5a8abb750b5c4e4bcad020f5c8e"
+    },
+    {
+      "path": "mint/contract/contracts/test/HardeningFixtures.sol",
+      "bytes": 2850,
+      "sha256": "64c78be668864e526234e0f09da8e65eb880adb9381774874dbc32924aa7e5e5"
+    },
+    {
+      "path": "mint/contract/contracts/test/R3Fixtures.sol",
+      "bytes": 1425,
+      "sha256": "80bd2eebab18d2e8853d8b66e72defa4fcde8b43ed7f096529a32c8f2c65ab15"
+    },
+    {
+      "path": "mint/contract/lib/appearance.mjs",
+      "bytes": 1858,
+      "sha256": "78cb4c3ea1b9cd9248b90c9e5ab77158c21781b9ecce135524b49262d72a6a0a"
+    },
+    {
+      "path": "mint/contract/lib/policy.mjs",
+      "bytes": 1551,
+      "sha256": "3b1517b488e638c684ea43c9a0e58e6939d6d469b9049250319493427b9b7fa2"
+    },
+    {
+      "path": "mint/contract/tools/compile.mjs",
+      "bytes": 4289,
+      "sha256": "ac323adf78ccc36d44696cb8f2fb0bc6416ce2763951b588d9e6108f31091051"
+    },
+    {
+      "path": "mint/contract/tools/runtime.mjs",
+      "bytes": 1169,
+      "sha256": "6775fbd7228646ed757447f0c7a325fafed5f82f869c912cc736a89e2a1b32bc"
+    },
+    {
+      "path": "mint/lib/json.mjs",
+      "bytes": 4229,
+      "sha256": "67a66d193097a447b103b2df49294f9a5209685cb4fbf8c143d6ae5de97a78a4"
+    },
+    {
+      "path": "mint/lib/policy.mjs",
+      "bytes": 115,
+      "sha256": "a5bd8d80a080d9c8f99aebfc638ce9ecf6575fa77c530063a4c807ab761345c4"
+    },
+    {
+      "path": "mint/lib/snapshot.mjs",
+      "bytes": 8758,
+      "sha256": "de831e9cfb91941ef0f5fa1678a66ab577ce1082e8e162003dd1c3e2f55f1d25"
+    },
+    {
+      "path": "mint/mock/app.mjs",
+      "bytes": 18392,
+      "sha256": "21b83d49ec382006f55a869c204c1d3f3b782020bd95dd951bf3d81627ed0036"
+    },
+    {
+      "path": "mint/mock/client-state.mjs",
+      "bytes": 10439,
+      "sha256": "23bbf8e61d90d89797344b3c1c994c4249d68d49b053bb9a74dc867009126e64"
+    },
+    {
+      "path": "mint/mock/client-state.test.mjs",
+      "bytes": 14348,
+      "sha256": "2289fbc3eff0e4fa3a817e72c46fe3ec92f8345ba4e67ff83467c76647c8a610"
+    },
+    {
+      "path": "mint/mock/index.html",
+      "bytes": 8046,
+      "sha256": "24aa1568265577dc84f5f8e068808225de064d192bc52f4e48745a2548d803d0"
+    },
+    {
+      "path": "mint/mock/style.css",
+      "bytes": 7015,
+      "sha256": "adbdcbe2056b7f756e3aa9a4d9f8a57f8e3442045bc0277e8fa09788563acaa8"
+    },
+    {
+      "path": "mint/service/artifacts.mjs",
+      "bytes": 3856,
+      "sha256": "3aaad4f2cdb1e56cf3236c08295981b425d140901aff82d4f8dea9946cf460b8"
+    },
+    {
+      "path": "mint/service/chain.mjs",
+      "bytes": 20158,
+      "sha256": "d2d42f6c45db74ed48952d90ee56f324c4f62ebbcb2ad700127134577ebad734"
+    },
+    {
+      "path": "mint/service/gold-ledger.mjs",
+      "bytes": 1954,
+      "sha256": "85945be4a77baa098db5275238e027ebd3a430187c255f8776a5970fe6d65895"
+    },
+    {
+      "path": "mint/service/receipts.mjs",
+      "bytes": 1670,
+      "sha256": "94690ad808c8f795550c44e1a31c9c2db57be869c7cf769b8b3e129d67323092"
+    },
+    {
+      "path": "mint/service/schema.mjs",
+      "bytes": 2234,
+      "sha256": "e9ec1022ea0919ebfffa91f4f78fe0d0df173abd6afd300c08ecec545a07d1e4"
+    },
+    {
+      "path": "mint/service/server.mjs",
+      "bytes": 5713,
+      "sha256": "555e2a3d69371a4fd675c926863e6ed948e34cc1e262fbde24f48adcb4d3c6e2"
+    },
+    {
+      "path": "mint/shared-workbench/appearance.mjs",
+      "bytes": 1858,
+      "sha256": "78cb4c3ea1b9cd9248b90c9e5ab77158c21781b9ecce135524b49262d72a6a0a"
+    },
+    {
+      "path": "mint/shared-workbench/approval.mjs",
+      "bytes": 4280,
+      "sha256": "e3e609a92a1e5d3aa0c71fb0d22ce0826d9209ed9f2855615861fc208467a886"
+    },
+    {
+      "path": "mint/shared-workbench/catalogue.mjs",
+      "bytes": 1836,
+      "sha256": "6f39b154516de8666bfb2091554ac1d799aa45f403a5f7672cf8da1fb8c1e0ac"
+    },
+    {
+      "path": "mint/shared-workbench/json.mjs",
+      "bytes": 5672,
+      "sha256": "d577a3bc5eb4d465483b2da678f5cd3650b278c4968f89e529c429612224f0da"
+    },
+    {
+      "path": "mint/shared-workbench/metadata.mjs",
+      "bytes": 1736,
+      "sha256": "9f95d3793070f24c67e38d9f33eaae4ab0f2bdc35df2deb8accaddb2ef893849"
+    },
+    {
+      "path": "mint/shared-workbench/policy.mjs",
+      "bytes": 1551,
+      "sha256": "3b1517b488e638c684ea43c9a0e58e6939d6d469b9049250319493427b9b7fa2"
+    },
+    {
+      "path": "mint/vendor/ethers.LICENSE.md",
+      "bytes": 1075,
+      "sha256": "44eea86637405118248327fbe9d9fa95d04c7a57221c7e8c155f736db9f1b612"
+    },
+    {
+      "path": "mint/vendor/ethers.min.js",
+      "bytes": 512985,
+      "sha256": "66580dbb32353addbbfd2c1880a29693436c2d41ebdd4bf4a4516b9ad6f5f5ea"
+    },
+    {
+      "path": "mint/vendor/manifest.json",
+      "bytes": 255,
+      "sha256": "8e8b82db83375f06cbe09d6cce2fff03c718376f012e180b23143bf1d58b9399"
+    },
+    {
+      "path": "package.json",
+      "bytes": 641,
+      "sha256": "918174488bc18084a6980edb1c14a0cc42f49a00e12121aad82bfc541a43bdef"
+    },
+    {
+      "path": "tools/run-contract-tests.mjs",
+      "bytes": 1119,
+      "sha256": "5381d3578f8b49efb1c454bf78785f35eb92e423ec1d358d73a8bdb81ecbdf46"
+    },
+    {
+      "path": "tools/run-python-tests.mjs",
+      "bytes": 606,
+      "sha256": "514dc72fd5e09cdf051626cc0d88cfd85f0b0c7fa1fad5e77e8005cc0c56c61a"
+    },
+    {
+      "path": "tools/run-review-tests.mjs",
+      "bytes": 520,
+      "sha256": "7b5ae745840d1882ae78a48a3b89a62aeaf7d1e127e63b06e556214fb1de01fb"
+    },
+    {
+      "path": "tools/run-selected-financial-tests.mjs",
+      "bytes": 1100,
+      "sha256": "c25ff259c3c0551d1445f3b91669aa09131b30a714addd7ce97eccd5021ce2af"
+    },
+    {
+      "path": "tools/scan-public-tree.mjs",
+      "bytes": 2258,
+      "sha256": "e1ce6083a19da1ccaf993de54443aef44fba0ef7337753100b1aec0e2f9bc3f5"
+    },
+    {
+      "path": "tools/verify-source.mjs",
+      "bytes": 2282,
+      "sha256": "4824df495e064061207cec08180d6a80b7ed1efd988ff3f984ea9ede31e5a312"
+    },
+    {
+      "path": "world-source/docs/combined-release-20261019.md",
+      "bytes": 6451,
+      "sha256": "140cdf6e73b6bc6068d05f246dc94722aed9fe2b553864be73ea6b117f14e2dc"
+    },
+    {
+      "path": "world-source/docs/economy/AUDIT4_REMEDIATION.md",
+      "bytes": 3686,
+      "sha256": "31efa9408bce8954dbfc3ecfd0c9a56ed43eb9aada1181660e274947e1c24414"
+    },
+    {
+      "path": "world-source/docs/economy/README.md",
+      "bytes": 12883,
+      "sha256": "3b034519ec0cd2de14cfa8dde6cc47a53ca02ee10d1079dcb91e779dd31b983f"
+    },
+    {
+      "path": "world-source/docs/economy/RECONCILIATION.md",
+      "bytes": 18288,
+      "sha256": "27019d1d48610fa40a02c9909cec964858b45420015ef53af4eb2f22f3ad3736"
+    },
+    {
+      "path": "world-source/docs/formal-connection-20261019.md",
+      "bytes": 6054,
+      "sha256": "02e92641e84677dea1fb131613b5c3f4197fb83038103bfd0dca29b867abe55a"
+    },
+    {
+      "path": "world-source/docs/mainnet-binding-20261019.md",
+      "bytes": 1425,
+      "sha256": "dbdaa6a7384f3310b70ab770fd21befbd8c7f8f92b5c4411d9e01fb4b414d075"
+    },
+    {
+      "path": "world-source/docs/mainnet-provider-compatibility-20261019.md",
+      "bytes": 2302,
+      "sha256": "7c48923a2b3d759f557c318c57811e400b60fccea2365814baf81569b78e0ea9"
+    },
+    {
+      "path": "world-source/docs/release-review-fixes-20261019.md",
+      "bytes": 2616,
+      "sha256": "632b5c2aa7e7f71614704ac25611dc01b0f136529ec00cd6c15abd9849026425"
+    },
+    {
+      "path": "world-source/docs/world-gold-audit5-remediation.md",
+      "bytes": 8442,
+      "sha256": "0b1fe4263ee041b354bdbd8d146fc485157638f188497ec7abad7738350a990b"
+    },
+    {
+      "path": "world-source/docs/world-gold-audit6-release-gates.md",
+      "bytes": 4476,
+      "sha256": "a32a22d495bfcfc8d677675899743715c56461860c1da09a673eba6cc7563419"
+    },
+    {
+      "path": "world-source/docs/world-gold-audit6-remediation.md",
+      "bytes": 12958,
+      "sha256": "a0dabee0a55fbc368e9bc3b373f261fbb2efbe7162e42a7110502a4ad882aca0"
+    },
+    {
+      "path": "world-source/docs/world-gold-audit6-runbook.md",
+      "bytes": 8665,
+      "sha256": "90640d2ab8c9068d8681db26ebb9f179efe2efd6a858c8a3ae5e1d7c520a8ab0"
+    },
+    {
+      "path": "world-source/gold-local-preview.html",
+      "bytes": 338,
+      "sha256": "84c4675ecdfe97cefc2515b0d297efa0cd621896d36e4da50d68183c6f626d6e"
+    },
+    {
+      "path": "world-source/migrations/0001_wallet_login.sql",
+      "bytes": 1694,
+      "sha256": "696eeccbebd66ce944d86ec248540a0afa10a0283e255c0bf9df85c2cfc22a71"
+    },
+    {
+      "path": "world-source/migrations/0002_sign_in_budgets.sql",
+      "bytes": 1354,
+      "sha256": "685531c5e7a0a1f7160a4e80312c58794556a9d8e57419b69a6a51e68f6cde55"
+    },
+    {
+      "path": "world-source/migrations/0003_sign_in_layers.sql",
+      "bytes": 2258,
+      "sha256": "d58c12bd78a4453fef098a19181eb7361612a2c931cd61f7e70acb7127200953"
+    },
+    {
+      "path": "world-source/migrations/0004_index_candidates.sql",
+      "bytes": 1341,
+      "sha256": "fb186abcc36f4f1eecc4a0cd1de55f04832457fe5816ed6bac0034dc9dc0f787"
+    },
+    {
+      "path": "world-source/migrations/0005_lanes_and_subnets.sql",
+      "bytes": 1872,
+      "sha256": "dfa3c6462072204d3607a2ea90aac4cf7f292812024ccefd5f3d439bc0aca876"
+    },
+    {
+      "path": "world-source/migrations/0006_members.sql",
+      "bytes": 8328,
+      "sha256": "8c158d2be281331728e357fec06a252354a38cc698e208306c86a981841e3298"
+    },
+    {
+      "path": "world-source/migrations/0008_member_hardening.sql",
+      "bytes": 1822,
+      "sha256": "4cb40da03cebd49a7f0bf3d0d787b56e31aff4b1cba9a90a66c4c322de5c288c"
+    },
+    {
+      "path": "world-source/migrations/0009_aimarket_bridge.sql",
+      "bytes": 867,
+      "sha256": "a2f5bd0398296b341427ae4c39a148b5c89638f758db397abce40b29d82e7b3e"
+    },
+    {
+      "path": "world-source/migrations/0010_world_economy.sql",
+      "bytes": 9544,
+      "sha256": "88d4e9f502def890213b55a0d0c72e4acd7215a144bb48d61ba3fee887dadd71"
+    },
+    {
+      "path": "world-source/migrations/0011_world_economy_staging.sql",
+      "bytes": 1145,
+      "sha256": "bc65b8ac2b163bb91a29c865c60c64aff4df228af54d50e419719c6c7c9fef3d"
+    },
+    {
+      "path": "world-source/migrations/0012_economy_reward_bindings.sql",
+      "bytes": 1114,
+      "sha256": "8fc2902b444ae7a0ef3a4e697d64e3ec3060f306aa2b955746a4f3ca8347cbae"
+    },
+    {
+      "path": "world-source/migrations/0013_economy_reconciliation.sql",
+      "bytes": 4974,
+      "sha256": "d4ecba4488e59e8c77bd4756efe1c33cfc9407eee489d67beac33b2e1a7b8dc4"
+    },
+    {
+      "path": "world-source/migrations/0014_world_gold_integration.sql",
+      "bytes": 8653,
+      "sha256": "d53d121ed6a919a2e5399f8d42a3d7121bdf5530701abd92d53f83801f7c6a7b"
+    },
+    {
+      "path": "world-source/migrations/0015_world_gold_audit_hardening.sql",
+      "bytes": 5034,
+      "sha256": "e801cb9cdb212b0567d8514ddecb79b3c9c6cd6c2c2755fac4447352d03038e5"
+    },
+    {
+      "path": "world-source/migrations/0016_world_gold_cross_path_guards.sql",
+      "bytes": 4251,
+      "sha256": "d94ce9d78b7cb13f4288967cb09987ac02a36acfa35016cc91906ed28032ee21"
+    },
+    {
+      "path": "world-source/migrations/0017_world_inventory.sql",
+      "bytes": 1007,
+      "sha256": "6a1c5db9876c2eeb9cf1ea5e2c7e1fcb9704834fea0dc87af4c6dcc4c0269701"
+    },
+    {
+      "path": "world-source/package-lock.json",
+      "bytes": 87792,
+      "sha256": "efb34f7b2120d24b9869ddc6aa30a40e96400e0bcee62359c4c6739bc3ad8837"
+    },
+    {
+      "path": "world-source/package.json",
+      "bytes": 1210,
+      "sha256": "9b8ac3d76d821ad3c5e0b1ed2e6af6f633324e6c1a7725cecd3d2d65f305616d"
+    },
+    {
+      "path": "world-source/scripts/economy-recovery.mjs",
+      "bytes": 8740,
+      "sha256": "1ddeed1c6f34c7d3fab9d48840be085b837dbc480cb4ec17ab152921e877276d"
+    },
+    {
+      "path": "world-source/scripts/world-gold-local-db.mjs",
+      "bytes": 1975,
+      "sha256": "e335d1238a17f5641acafaf0d271be23c890a237f4bf9d47298f6a95046a6e07"
+    },
+    {
+      "path": "world-source/scripts/world-gold-local-runtime.mjs",
+      "bytes": 6265,
+      "sha256": "22588410ec0987e936872c5d08c050fe2880356c0c063e7c7477aa5fe87669f5"
+    },
+    {
+      "path": "world-source/scripts/world-gold-mint-reader.mjs",
+      "bytes": 3097,
+      "sha256": "93358f1a193e014b582d836ce173e073f1bdf7c48240c9ebf3252c44d281db5e"
+    },
+    {
+      "path": "world-source/scripts/world-gold-native-d1.mjs",
+      "bytes": 6268,
+      "sha256": "f6974288dd08d8c1dfbce44c75a328396cbf42d6e172c66ea721373d141af814"
+    },
+    {
+      "path": "world-source/scripts/world-gold-preview.mjs",
+      "bytes": 9284,
+      "sha256": "6d53bfae8f4998d1a59d23e41903f02a6c67a7e08bd21ad4e9116a24e56717a2"
+    },
+    {
+      "path": "world-source/server/aimarket-admin.ts",
+      "bytes": 3388,
+      "sha256": "1282e4042ad32c36e173820f705ebb65f45847c3ed6b1e39741836fe893099e1"
+    },
+    {
+      "path": "world-source/server/aimarket-auth.ts",
+      "bytes": 14716,
+      "sha256": "1e4f5ffcab879222087ce8149c68f11a2546c1f08895cd3f5310ddf6700b841f"
+    },
+    {
+      "path": "world-source/server/aimarket-campaign.ts",
+      "bytes": 4586,
+      "sha256": "80dacb937df5afaefc882ed17819aad180b078dbd95b0bf26b1f0b875de9f167"
+    },
+    {
+      "path": "world-source/server/aimarket-delivery.ts",
+      "bytes": 5718,
+      "sha256": "010f5c9df030c52d70e909fe2c2b6407a96c08a5f8dec2aa6ec796c5a109f57c"
+    },
+    {
+      "path": "world-source/server/aimarket-proxy.ts",
+      "bytes": 9355,
+      "sha256": "26fdeef9166dcf658f11e23f1cc91839e14dc47de0289ce9e0461dfee0bf995d"
+    },
+    {
+      "path": "world-source/server/auth.ts",
+      "bytes": 75133,
+      "sha256": "d674e6248b9d81faa9b5e455a97e0d7a69fdcd812696f6bf4a416899c717a4dd"
+    },
+    {
+      "path": "world-source/server/chain-mock.ts",
+      "bytes": 2923,
+      "sha256": "ded51ea8c3b02e3cb090180eed187094e7c8fd1401ca35c12086cd31afd34bec"
+    },
+    {
+      "path": "world-source/server/d1.ts",
+      "bytes": 708,
+      "sha256": "67b345fe451e42a97f37ac9d44df27997914faea59275a3d3821b50a8f34f65e"
+    },
+    {
+      "path": "world-source/server/economy-config.ts",
+      "bytes": 4674,
+      "sha256": "5e70737b0ffd0f24b36124262842863d189c81a2d353ef82aed5c8d36ad7abf3"
+    },
+    {
+      "path": "world-source/server/economy-deployment.ts",
+      "bytes": 681,
+      "sha256": "0e8ce2a8aede07461f02a0847cf84c8d38f87fc15ee4518b53008ca7614d66f3"
+    },
+    {
+      "path": "world-source/server/economy-ledger.ts",
+      "bytes": 36917,
+      "sha256": "e545d92f0874d6615f0467cbbe9bed350e1fb69d725c717c7253160340363331"
+    },
+    {
+      "path": "world-source/server/economy-reconciliation.ts",
+      "bytes": 8506,
+      "sha256": "3cec7a01681f1161a66660d0cdffa4a1398a691b62221ff11623cdc1f57452e2"
+    },
+    {
+      "path": "world-source/server/economy-recovery.ts",
+      "bytes": 32634,
+      "sha256": "e6cbf31a98a47557b7a973e5101ce56b93fe2eff95def22d7284e5809506ff1a"
+    },
+    {
+      "path": "world-source/server/economy-rewards.ts",
+      "bytes": 3229,
+      "sha256": "72e74102192ea26812121706240e19fc3f970e12e4ad69b762d4f14f84b29c6d"
+    },
+    {
+      "path": "world-source/server/economy-rpc.ts",
+      "bytes": 19237,
+      "sha256": "3726191a0dee52f48fa0e397f374e97e2ddfbe1c935986914aebfe0103574c88"
+    },
+    {
+      "path": "world-source/server/economy-staging.ts",
+      "bytes": 9240,
+      "sha256": "97053d0145716a0d99d8b381f67dd6c79448b77f77f33e7d8b1d44ff48d13946"
+    },
+    {
+      "path": "world-source/server/economy.ts",
+      "bytes": 8401,
+      "sha256": "8232d6f50fa944b162fd081efdac33943c90719ec1695f78fcc136e5a76ce4ea"
+    },
+    {
+      "path": "world-source/server/gateway.ts",
+      "bytes": 26405,
+      "sha256": "f48adf7bd91aeb30fdfd2f9e76f2b967022dd998d80c851581e31512b7cd98d9"
+    },
+    {
+      "path": "world-source/server/inventory-catalogue.ts",
+      "bytes": 561,
+      "sha256": "a8074ba026b27400c5f8491b49fa88bcac0699b085dfb81704eaddd0ec448c43"
+    },
+    {
+      "path": "world-source/server/inventory.ts",
+      "bytes": 11235,
+      "sha256": "7675ae8ce78fadf8927626e0bec90556c662d3eb9d4e5cc27f0dbf88e42a8e69"
+    },
+    {
+      "path": "world-source/server/member-balances.ts",
+      "bytes": 6313,
+      "sha256": "f20603a56ccfef35e1f78d8e2a9fc5ef62cc7e3ac8ae52c54969c8ddc5f4ca7f"
+    },
+    {
+      "path": "world-source/server/member.ts",
+      "bytes": 23791,
+      "sha256": "1f0eb92f66a30aac6485c00dd79f13bb2b6b27735d2aac4034d5e94cb49071a2"
+    },
+    {
+      "path": "world-source/server/ownership.ts",
+      "bytes": 34295,
+      "sha256": "30b8447d4599f4a1db8e8e149a284a253b67d62094befcd10e0df3b095644c72"
+    },
+    {
+      "path": "world-source/server/presence.ts",
+      "bytes": 6249,
+      "sha256": "61ea5ae25d38dd4572cc0d987fdc2746161dc77c7f8b23758c0f5745de0efe81"
+    },
+    {
+      "path": "world-source/server/vite-plugin.ts",
+      "bytes": 1983,
+      "sha256": "12a6356dbf2158d0677712cbd7283de1a003242389d023fd0cf3d004c894c50f"
+    },
+    {
+      "path": "world-source/server/world-api.ts",
+      "bytes": 5818,
+      "sha256": "eb982d751564c6946a20f7a0c434a634ad60501baf3f190fd2a2e82fbca79669"
+    },
+    {
+      "path": "world-source/server/world-gold-api.ts",
+      "bytes": 8831,
+      "sha256": "86580b26f492a4d616a369ee29c658f149a498ac0c7c84f7a758c968c78bb08c"
+    },
+    {
+      "path": "world-source/server/world-gold-delivery.ts",
+      "bytes": 3139,
+      "sha256": "237ed9125ce90f2bb8d809ce2b564d17d67f3d7468615ef157c7c4dc796321d4"
+    },
+    {
+      "path": "world-source/server/world-gold-inspection.ts",
+      "bytes": 3752,
+      "sha256": "854555c90a112ee1bbe91dcbb5fc5f5233de10c988eb18e95fea84cd438a728b"
+    },
+    {
+      "path": "world-source/server/world-gold-report.ts",
+      "bytes": 2772,
+      "sha256": "327fa3ea53471ace13ee22c1431efa39a3e3fc8569006ae4f0012a2cbff2da58"
+    },
+    {
+      "path": "world-source/server/world-gold-result.ts",
+      "bytes": 5469,
+      "sha256": "4d160ed7c4f6d62a79d5c48cd06cf4ee0062cdeaa1fbdcace2bb9d438eec247d"
+    },
+    {
+      "path": "world-source/server/world-gold-schema.ts",
+      "bytes": 10928,
+      "sha256": "fb22864a7e7f23885f33a336d63084e7c939b1694498dc356f8d9933f6ddfebb"
+    },
+    {
+      "path": "world-source/server/world-gold.ts",
+      "bytes": 29229,
+      "sha256": "bbb3b60a49a04600e9798f695058296f16d89bd59ddcd6ea75e5f83e46324436"
+    },
+    {
+      "path": "world-source/src/shared/freshness.ts",
+      "bytes": 1303,
+      "sha256": "1929d582520028ca543e7eaa8998979055a28fd642d1df404ad778275c815986"
+    },
+    {
+      "path": "world-source/src/world/AIMarketCampaignBlock.tsx",
+      "bytes": 4804,
+      "sha256": "aac02931df0f2536b96cc151bcae250f51cff332a4dfa1b5694d7e3a877d7c92"
+    },
+    {
+      "path": "world-source/src/world/AIMarketPane.tsx",
+      "bytes": 9507,
+      "sha256": "0380cc575872ad2ea981ca43849dc0caa87bd00f0877eaae65423ee5247a4c23"
+    },
+    {
+      "path": "world-source/src/world/EconomyPane.tsx",
+      "bytes": 32603,
+      "sha256": "985ef937ced5fae662b3387965e97aba2a63aefb5ee246df5dcdc2b09c6b53f2"
+    },
+    {
+      "path": "world-source/src/world/HomePanels.tsx",
+      "bytes": 3978,
+      "sha256": "0965f3902877ed55e482e187dd7d1c2187b67b23f276d1baf96deb8df2296705"
+    },
+    {
+      "path": "world-source/src/world/InventoryPane.tsx",
+      "bytes": 8442,
+      "sha256": "34fa52b12feb5589567bebd2e1b2075fd0fc01c01bea68b916329375ff861578"
+    },
+    {
+      "path": "world-source/src/world/PublicCabinetBlock.tsx",
+      "bytes": 2155,
+      "sha256": "f564733493cd44d427f7efbf6923eed38b58ce1cc52de1b395e393a6e378cc3a"
+    },
+    {
+      "path": "world-source/src/world/WalletBalancesBlock.tsx",
+      "bytes": 3704,
+      "sha256": "9b5b79d6cfd1f700661d6464c346a296b96624c8653bd2e0187bb73bedc9b318"
+    },
+    {
+      "path": "world-source/src/world/WalletPanel.tsx",
+      "bytes": 18609,
+      "sha256": "ee41c0a74c13490e790a615f47a21446b65b7c976286e70ae6dba6edaab3195a"
+    },
+    {
+      "path": "world-source/src/world/WorldApp.tsx",
+      "bytes": 85774,
+      "sha256": "70a5fe3f299d151911534937dcb2b6676da140dfe6be3e3d8cee9abf0ebc0223"
+    },
+    {
+      "path": "world-source/src/world/WorldGoldPanel.tsx",
+      "bytes": 18588,
+      "sha256": "49a3cf370cf4d534d055f82b4ae9e3f7ce4b091e747d04fc8ed1d0c7c9e60e92"
+    },
+    {
+      "path": "world-source/src/world/aimarketAdmin.ts",
+      "bytes": 1838,
+      "sha256": "2a952ed80cb2b396e21a7759192a5c79c70d0258e395807fda76b7e5fba8fd8d"
+    },
+    {
+      "path": "world-source/src/world/aimarketEntry.ts",
+      "bytes": 2500,
+      "sha256": "9a9c01b39c86f909033482677cb928475553624d20a53089cac3caeea1d31ebd"
+    },
+    {
+      "path": "world-source/src/world/aimarketMessages.ts",
+      "bytes": 1154,
+      "sha256": "8898c4a63f0bb8954543899229ee4514057f7baf8126271c57980c71c1dce1ec"
+    },
+    {
+      "path": "world-source/src/world/aimarketTrial.ts",
+      "bytes": 1245,
+      "sha256": "f51532d9f1c3cb0c92343a2e71295be9bb06e00a2db574166965dbb86bb9bb11"
+    },
+    {
+      "path": "world-source/src/world/auth.ts",
+      "bytes": 63914,
+      "sha256": "f2e7be50da1b2473aab3a9f97e00f73b482e6a8fe77cb2e45d9cce4416e96647"
+    },
+    {
+      "path": "world-source/src/world/authCleanup.ts",
+      "bytes": 1793,
+      "sha256": "de5e50fe3a7d68d4dd3ffd5b489cdaa2e2a2e789c21ee590ef9cfd716b418c90"
+    },
+    {
+      "path": "world-source/src/world/authLifecycle.ts",
+      "bytes": 9767,
+      "sha256": "9e19a45950ced3f4ce9f04c13169da1597b2e061420927cdaa852f8e0c4e5dce"
+    },
+    {
+      "path": "world-source/src/world/cadence.ts",
+      "bytes": 8827,
+      "sha256": "864cfb696ef9234299eaabf795e2112f2735f4e66c3ec37c3d61f0076ea23518"
+    },
+    {
+      "path": "world-source/src/world/collections.ts",
+      "bytes": 547,
+      "sha256": "e16162ff5fac9960678fba72a333075071fc280c1b64a9a28d3cc7df89772949"
+    },
+    {
+      "path": "world-source/src/world/economyClient.ts",
+      "bytes": 18172,
+      "sha256": "ea23062e823dc1437c061d2df3723531c1505d789e27f342aa0947542940cfb4"
+    },
+    {
+      "path": "world-source/src/world/economyEntry.ts",
+      "bytes": 552,
+      "sha256": "22eef542168a55c2a0b1f069491d12d521638b603ae79a5e5f2418c2b5f5c698"
+    },
+    {
+      "path": "world-source/src/world/economyPane.css",
+      "bytes": 4661,
+      "sha256": "b24375f5bd009ee6ed97288ffd56a9a9d4c1d73d5146916c2145e715fbf06a11"
+    },
+    {
+      "path": "world-source/src/world/economyWallet.ts",
+      "bytes": 26087,
+      "sha256": "a089ef9bcf0bc0c26252ec1b6c8bd5d3b473c07b084ce8dd76c54ebf624d5e87"
+    },
+    {
+      "path": "world-source/src/world/goldLocalPreview.tsx",
+      "bytes": 2477,
+      "sha256": "ebdae21021de94f7b3b085dbb5e70bc2dde37109ab47fd8c6105f2d4c064266c"
+    },
+    {
+      "path": "world-source/src/world/houseSize.ts",
+      "bytes": 547,
+      "sha256": "86911f567f77cf9a01ce75147af7541bf016610f41251e155154547dfebb8aa8"
+    },
+    {
+      "path": "world-source/src/world/households.ts",
+      "bytes": 12411,
+      "sha256": "178d7343dcc316416f5457957610512e891794f1c8423ebadbbf8be7ef2ce235"
+    },
+    {
+      "path": "world-source/src/world/interior/InteriorView.tsx",
+      "bytes": 14929,
+      "sha256": "582c4b094449b6cfd9b3074340558883d5a27d7f608824d5f4dafcd36bfbaa40"
+    },
+    {
+      "path": "world-source/src/world/inventory.css",
+      "bytes": 1567,
+      "sha256": "42d29a51bcbca673bdc599a9d359a2a03c720ecf65cf429e4eda314fef3c8b78"
+    },
+    {
+      "path": "world-source/src/world/inventory.ts",
+      "bytes": 2490,
+      "sha256": "09662ef63c6cec7d03664d3ca45adaafac5bbd154ecaf1fb51eb06cc9d8cfd07"
+    },
+    {
+      "path": "world-source/src/world/inventoryClient.ts",
+      "bytes": 3715,
+      "sha256": "a9f7797b2f8f5ee828addd88603a59080a81030ae026fae07db36e98f09417fe"
+    },
+    {
+      "path": "world-source/src/world/inventoryDisplay.ts",
+      "bytes": 979,
+      "sha256": "b38b0c5e972306bce020f7f0d4b12d22406c0b8c00ef7cf74c0a9514a3aa97c5"
+    },
+    {
+      "path": "world-source/src/world/layout.ts",
+      "bytes": 100610,
+      "sha256": "18abd191c4d83857531375152956e99343da36c58416379b0b2237d5a2cb88a7"
+    },
+    {
+      "path": "world-source/src/world/layoutBaked.ts",
+      "bytes": 12726,
+      "sha256": "7fa798fbf6b89f43686c548f307a198a79b1d3618b9596f88f7baa4e999a08d6"
+    },
+    {
+      "path": "world-source/src/world/links.ts",
+      "bytes": 7897,
+      "sha256": "6a837eaf33a6b7e0b5ce97b7cd30130b1bdb9b074724d9fb7573130372f74f56"
+    },
+    {
+      "path": "world-source/src/world/market.ts",
+      "bytes": 13093,
+      "sha256": "08143343580ea8197f465a66578813633a19745ef841ae1957da50fcf8461b5f"
+    },
+    {
+      "path": "world-source/src/world/memberBalancesClient.ts",
+      "bytes": 2478,
+      "sha256": "06c90d55ad079a23b96a481c03630536aed75ad127dcff5e1d84900e55d076f6"
+    },
+    {
+      "path": "world-source/src/world/memberName.ts",
+      "bytes": 5860,
+      "sha256": "9e0a57dbd6dc81262fc834c20bdb6063fb56038e213e89dd857f8fe42523978a"
+    },
+    {
+      "path": "world-source/src/world/model.ts",
+      "bytes": 15964,
+      "sha256": "a558fee386eb170bc432e90e0317b4459012dcec9ce9d8c2db37e6c6aa9cdea6"
+    },
+    {
+      "path": "world-source/src/world/moves.ts",
+      "bytes": 5009,
+      "sha256": "ff5a1f600d6faa96cb95380efdcab9d0e27beb197404cde36dbc7509210d7624"
+    },
+    {
+      "path": "world-source/src/world/portalPresentation.ts",
+      "bytes": 416,
+      "sha256": "8965bd63f324df5d6f3f212338bdb2fd12a46301edeb51cc90582d0b931f5b4c"
+    },
+    {
+      "path": "world-source/src/world/publicHalls/runtime.ts",
+      "bytes": 38265,
+      "sha256": "6eb9f60b62dd8af7e6a7643f510e4013973b6b746d4c506bb209ddf067492cd2"
+    },
+    {
+      "path": "world-source/src/world/publicHashes.ts",
+      "bytes": 1783,
+      "sha256": "89a1929462bae64d206862f868bf3a90fd65c5b05e96d087c54431fdecf21201"
+    },
+    {
+      "path": "world-source/src/world/publicUrl.ts",
+      "bytes": 1956,
+      "sha256": "d19b999798d10fbf5ffb984000e8715849c6d4241a1a0b1319507286f1242de6"
+    },
+    {
+      "path": "world-source/src/world/scene.ts",
+      "bytes": 153684,
+      "sha256": "a51ad2ce656b162ac3fd4bc480ed10241a1b6b10550e2b04d0422495fc010ab3"
+    },
+    {
+      "path": "world-source/src/world/siwe.ts",
+      "bytes": 3508,
+      "sha256": "c5d6f1518939f206f193346cfcd83de5c66b0eccce5ef74aeda33619d6292296"
+    },
+    {
+      "path": "world-source/src/world/skin/daynight.ts",
+      "bytes": 20025,
+      "sha256": "f81d267a1d16520cbd93eb7d87fe0a4757fa4d03ac062e8f53165431eb8704f5"
+    },
+    {
+      "path": "world-source/src/world/skin/houses.ts",
+      "bytes": 7801,
+      "sha256": "47525f97a507ee337cfb18be3a568c2f812ee5747ad143c2a33e424d628fc324"
+    },
+    {
+      "path": "world-source/src/world/skin/kit.ts",
+      "bytes": 4779,
+      "sha256": "6a90a4f385509ebe0d0c78b3e5fb0d497c8bf92d2690fb93dca45c1a9f35a821"
+    },
+    {
+      "path": "world-source/src/world/skin/sceneMaterialIndex.ts",
+      "bytes": 2332,
+      "sha256": "6b89b9e1505ea6fc9a74f21a113083366b3d8b2d9cd027931b0f8c713763d557"
+    },
+    {
+      "path": "world-source/src/world/status.ts",
+      "bytes": 4638,
+      "sha256": "3db2191ad96abe7dd4f0685414b0b49d334a7246fb26fbcc0df1115bbe1ec00f"
+    },
+    {
+      "path": "world-source/src/world/wallet.ts",
+      "bytes": 7875,
+      "sha256": "05d5aa59f1eacc0514afd2107a08f33c76b4347dd06e51bd97e224621c3b05d1"
+    },
+    {
+      "path": "world-source/src/world/walletBalances.css",
+      "bytes": 360,
+      "sha256": "720183bbdfbf6484e0ac8d4d3c54390753c660829e7b7b057aca9c2c5e3c087c"
+    },
+    {
+      "path": "world-source/src/world/walletView.ts",
+      "bytes": 11122,
+      "sha256": "82303e87042fbe6c8d36022c1402a3dcd92decf19bcd200f3377ae9f691abc7a"
+    },
+    {
+      "path": "world-source/src/world/worldGold.css",
+      "bytes": 2040,
+      "sha256": "937233b7dd2088d1507058379686541afbc63d3b54dd572ec430713a007c40ae"
+    },
+    {
+      "path": "world-source/src/world/worldGoldClient.ts",
+      "bytes": 3723,
+      "sha256": "b2e4722db8d5897e330bc5e793b82f99ea8b09965ba01989f1686e93bfd3690b"
+    },
+    {
+      "path": "world-source/src/world/worldTime.ts",
+      "bytes": 4569,
+      "sha256": "b10874c3e730a3b41cccdde17f563de3e4968bb2e93833048d4f8ac795f33e10"
+    },
+    {
+      "path": "world-source/tests/aimarket-admin-client.test.mjs",
+      "bytes": 13078,
+      "sha256": "ac1a64ab5ea677c2873e11512bdd4daeb00525c450b4d6eae369145d6ea19bca"
+    },
+    {
+      "path": "world-source/tests/aimarket-admin.test.mjs",
+      "bytes": 13513,
+      "sha256": "d5a675ea4442008b22d033522797801dee0c4ec537ee774dd1c0536bdf574604"
+    },
+    {
+      "path": "world-source/tests/aimarket-auth.test.mjs",
+      "bytes": 16900,
+      "sha256": "d024ebe13afe60f5884a7d1a7eeb22b036f38cd354e48b9ce86c9c137887285f"
+    },
+    {
+      "path": "world-source/tests/aimarket-campaign.test.mjs",
+      "bytes": 4588,
+      "sha256": "fa51593223e0eaffa71d58e8ac48ee83480a107fafec94bd402b9483fe06fa03"
+    },
+    {
+      "path": "world-source/tests/aimarket-delivery.test.mjs",
+      "bytes": 6153,
+      "sha256": "6a02887672e595d9d509a631095fd571dd0e0d324ffe2de16c5d39aa49458b4d"
+    },
+    {
+      "path": "world-source/tests/aimarket-resilience.test.mjs",
+      "bytes": 5311,
+      "sha256": "b500b85dcef70d595f8b730f6138492ae4fa2effe5f743e72eeff4ba666e8163"
+    },
+    {
+      "path": "world-source/tests/d1-sqlite.mjs",
+      "bytes": 1933,
+      "sha256": "3576354e98803d0f1cb6f2f07ae394f1eafae2a73d04b3c98f3e9fef6d1310f3"
+    },
+    {
+      "path": "world-source/tests/economy-adversarial.test.mjs",
+      "bytes": 9173,
+      "sha256": "f4ced28187058c3bce241ef0d04ce4a1f9324f04d5bef1adc719fcbc069631f3"
+    },
+    {
+      "path": "world-source/tests/economy-api.test.mjs",
+      "bytes": 16219,
+      "sha256": "dae5527cec61205223059419ad8d7e8c701cd8131ad29e3c27a0bf7ca08681a1"
+    },
+    {
+      "path": "world-source/tests/economy-audit-regressions.test.mjs",
+      "bytes": 11037,
+      "sha256": "28d7eb500a533e555dd65369527ac84bce6f446c4831448f91e067d880af0995"
+    },
+    {
+      "path": "world-source/tests/economy-audit2-medium.test.mjs",
+      "bytes": 16354,
+      "sha256": "e6581b722312e87a3ac41b8175744f4ed1624d6e2cdc63763b6a3a32bf505a3f"
+    },
+    {
+      "path": "world-source/tests/economy-audit3-recovery.test.mjs",
+      "bytes": 19131,
+      "sha256": "4ddfca5942e714461e9f4f05e1efdc2b26e2d3c92afe0a1858b0f123fae6b29e"
+    },
+    {
+      "path": "world-source/tests/economy-audit4-recovery.test.mjs",
+      "bytes": 18031,
+      "sha256": "5af5b51686d42cf6c05012ead66ebc89c794266e670d2de7d5ea9af26a815a10"
+    },
+    {
+      "path": "world-source/tests/economy-client.test.mjs",
+      "bytes": 35823,
+      "sha256": "2ebb6067282d4f7d92e894662700ed32c6a448e545c67a79a5c1c26ac98a5205"
+    },
+    {
+      "path": "world-source/tests/economy-forwarder.test.mjs",
+      "bytes": 13323,
+      "sha256": "68c1972651e2ca1c873512f25d7dd580a310f01266058b7706a018c5ae9ea97f"
+    },
+    {
+      "path": "world-source/tests/economy-journey.test.mjs",
+      "bytes": 12206,
+      "sha256": "ea61f61483aa6f2e24a5682378d7cdf55141813ade9c22ec6e66259eb9ff1aef"
+    },
+    {
+      "path": "world-source/tests/economy-ledger.test.mjs",
+      "bytes": 17172,
+      "sha256": "c69838260d33c301b849576b36e4d149c6059ba027a269ed931640c99683802f"
+    },
+    {
+      "path": "world-source/tests/economy-migration.test.mjs",
+      "bytes": 2748,
+      "sha256": "510862dc7e16bf4555509de16754cc105ca97ed4a6cb2c4e1a6f9270e734732b"
+    },
+    {
+      "path": "world-source/tests/economy-pane.test.mjs",
+      "bytes": 27339,
+      "sha256": "bae1969d66e0b8ab17e63ec8d60093e5ccf2758b68dc97fae30deeea59f90fcd"
+    },
+    {
+      "path": "world-source/tests/economy-payload-roundtrip.test.mjs",
+      "bytes": 6674,
+      "sha256": "519aa69556b205d1eeb839a5b6f421419989587a385b512d4c3f494db348bb15"
+    },
+    {
+      "path": "world-source/tests/economy-payment-timing.test.mjs",
+      "bytes": 12328,
+      "sha256": "548632fabe9dfdc52fb9fed729f40c1e8d67721d5c1f119f46b386eeb13331cd"
+    },
+    {
+      "path": "world-source/tests/economy-provider-range.test.mjs",
+      "bytes": 6429,
+      "sha256": "7afe5f144b342f962020a49227e4fca7e1f74b4ab6d983d80b15a377fc73c88e"
+    },
+    {
+      "path": "world-source/tests/economy-read-session.test.mjs",
+      "bytes": 1568,
+      "sha256": "27bac64a27b5712394056259a7a0f60eff9ef35bdffd23001a4a54234bf4b95c"
+    },
+    {
+      "path": "world-source/tests/economy-reconciliation.test.mjs",
+      "bytes": 20899,
+      "sha256": "817f6f296b2875cb16846311733e61f4242a8cad0602b5d07b6bb52203d7578c"
+    },
+    {
+      "path": "world-source/tests/economy-rpc.test.mjs",
+      "bytes": 24460,
+      "sha256": "06550ab5dc2dfea7d29d978226da6a1f558624ee1fbc03c81e2b0f6704e3d68f"
+    },
+    {
+      "path": "world-source/tests/economy-settlement.test.mjs",
+      "bytes": 9721,
+      "sha256": "46edff6b7aabb50afa932ccea757e3adcbf9c62dc51b4f8f6848e6e310dac65c"
+    },
+    {
+      "path": "world-source/tests/economy-staging.test.mjs",
+      "bytes": 7386,
+      "sha256": "2386e446f5aac0b542ce772f3730b50ab610ad55c46fe4ba558f0549e8755ec4"
+    },
+    {
+      "path": "world-source/tests/economy-wallet-recovery.test.mjs",
+      "bytes": 15642,
+      "sha256": "2b97da94ea43a1c2b4ab968642006cadc25d2462be6991968f0a08ede8590d89"
+    },
+    {
+      "path": "world-source/tests/economy-worker.test.mjs",
+      "bytes": 6651,
+      "sha256": "7f387d43e877c22bd62ad2079e6f5669ea4b4512650e106cc365a7ffe755a13c"
+    },
+    {
+      "path": "world-source/tests/inventory-live.test.mjs",
+      "bytes": 9615,
+      "sha256": "a812b537dbbfa58f2509caf4af7e8f7cdd34d9609b8821208b3e26e3716c1456"
+    },
+    {
+      "path": "world-source/tests/member-balances.test.mjs",
+      "bytes": 8055,
+      "sha256": "7af1f08f92240afe73385d97662e56bcf18821ef6d72b891a89a76f29cb2b936"
+    },
+    {
+      "path": "world-source/tests/presence.test.mjs",
+      "bytes": 20960,
+      "sha256": "73528484f3ed25bbd5a620f25510e668b53a94e29f38685a2af22d54c7d75eb1"
+    },
+    {
+      "path": "world-source/tests/wallet-harness.mjs",
+      "bytes": 9807,
+      "sha256": "20d5e9b6e001cc2476f077a9ef7d4529860a28f73e675c00481a7c4be2b3ba26"
+    },
+    {
+      "path": "world-source/tests/world-gold-api.test.mjs",
+      "bytes": 12096,
+      "sha256": "aacdfbd599620726679af189ac79482f75f4bf48d66ed0f56227507e25667d58"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit5-adversarial.test.mjs",
+      "bytes": 13153,
+      "sha256": "3150a06ce2e624a609ca8f6b485f6fa97d737d304084661ae028a250aab384ba"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit5-fixture.mjs",
+      "bytes": 3428,
+      "sha256": "8ced5901213ef5fa062804564d7f5f2392cd207614a637e30b5a7889f5c2442c"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit5.test.mjs",
+      "bytes": 7755,
+      "sha256": "7450f0fbd68e0867b5245c809323d02062ff5a9779d36d5ec3fa5f9f9b8b3d0a"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit6-integration.test.mjs",
+      "bytes": 11349,
+      "sha256": "1a9064fef6aa99b46e2904363fc89834b3db4731fffa83aeb51cfb59f8f38b74"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit6-matrix.test.mjs",
+      "bytes": 20713,
+      "sha256": "21e1fe54852513d640ec56b408a2d72bacce8dfe5bdcf78a42415eff7c4547c6"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit6.test.mjs",
+      "bytes": 7433,
+      "sha256": "63a5730b6d767965c4fca54d306912ffe5f023e2e2a9b53729482ec0271dd6c9"
+    },
+    {
+      "path": "world-source/tests/world-gold-audit7.test.mjs",
+      "bytes": 5471,
+      "sha256": "7b5178909de348bf2a974c0aff6c045f53b3b8c8ec92086e7ab1133fc101ed7d"
+    },
+    {
+      "path": "world-source/tests/world-gold-native-journey.test.mjs",
+      "bytes": 6435,
+      "sha256": "55b34fe8885449e925eceaa0f3599513803192c278204c1f51cc84dfc065c2a6"
+    },
+    {
+      "path": "world-source/tests/world-gold.test.mjs",
+      "bytes": 16673,
+      "sha256": "89e479ae0616badcf87c65dbe9ef78ba2c76ae00cfbf61149288e2851be96aaa"
+    },
+    {
+      "path": "world-source/tests/world-library-cover.test.mjs",
+      "bytes": 11612,
+      "sha256": "a6dba395442cd488f772cc372411c634681893697094baa3c635f6339ede14a5"
+    },
+    {
+      "path": "world-source/tsconfig.json",
+      "bytes": 419,
+      "sha256": "03c177649a9bb7b7b64c8a7b7211ecad6fa1a9cc6d6cfe11eceb5e00ba53e3c3"
+    },
+    {
+      "path": "world-source/worker/app.ts",
+      "bytes": 21600,
+      "sha256": "f40b689825d70d00b7f624fb5ed470c6371146b6a46e2948a6ad83b7559182df"
+    }
+  ]
+}

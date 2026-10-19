@@ -1,0 +1,770 @@
+diff --git a/docs/release-review-fixes-20261019.md b/docs/release-review-fixes-20261019.md
+new file mode 100644
+index 0000000..c5ddce5
+--- /dev/null
++++ b/docs/release-review-fixes-20261019.md
+@@ -0,0 +1,44 @@
++# Post-release review remediation
++
++This release fixes three reproduced defects on the prior World267fcf01 baseline:
++
++1. Delivery pagination selected16 jobs before excluding products unsupported by
++   the current provider. Sixteen deferred historical jobs could starve a valid
++   research job. Filter the supported result-contract products in SQL before the
++   limit. Preserve deferred jobs, original debit amounts and provider keys.
++2. A valid900KB report can exceed2.1MB when the protocol includes both its JSON
++   document and its canonical JSON string. Re-escaping the latter produced a
++   reproducible2,400,495-byte response from an800,120-byte Python document.
++   Bound read responses at3*900,000+16,000 bytes; retain summary size, timeout,
++   stream cancellation, HMAC, original wallet/order and document-hash checks.
++3. The legacy private economy snapshot checked the session before asynchronous
++   reads but not after them. Revalidate the same session and a monotonic clock
++   before returning; logout/expiry returns401 without private data, and a clock
++   regression returns503.
++
++Nine regression cases reproduce starvation, later provider resumption, bounded
++pagination, lease expiry equality, JSON response limits and late logout/expiry.
++The report-size fixture additionally uses the actual Python serialization code.
++
++## Build-tool repair
++
++Keep the previously tested Wrangler/Miniflare versions. Patch only the vulnerable
++transitive dependencies with exact npm overrides: sharp0.35.5 and
++source-map-js1.2.2. These address GHSA-wq5f-xc86-pv6w and GHSA-68fv-2mgg-jv7q.
++Use an isolated clean dependency installation, with installation scripts disabled;
++do not update a shared dependency directory used by another project. Record the
++exact lock and tool versions in release evidence and rerun native Worker/D1 tests.
++An advisory scan alone is not integration or deployment evidence.
++
++## Unchanged release boundaries
++
++No Solidity, deployed contract addresses, production schema, financial rate,
++retail prices, NFT allowlist, buildings, roads, models, video or audio are changed.
++Purchases, paid services and Mint new-admission controls remain closed while
++prices/issuance are unset. GOLD remains nontransferable and nonredeemable.
++Do not redeploy the existing mainnet contracts or create real paid fixture orders.
++
++The source commit and successful release record identify what actually shipped.
++Prepared audit materials, public GitHub availability, paid Swarm submission and
++an accepted audit verdict are separate facts. Preserve earlier backup and audit
++snapshots; they do not silently acquire these changes.
+diff --git a/package-lock.json b/package-lock.json
+index b55eb00..0c86d3a 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -629,9 +629,9 @@
+       }
+     },
+     "node_modules/@img/sharp-darwin-arm64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.35.4.tgz",
+-      "integrity": "sha512-Uhfl4V4lhP2nbUVF9+hyH1+luj86f1gUFeo8ALYxFoULoU+G87D43BfeMP8XHsk9boxAnCY/bf2EHwhA7MuGsA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.35.5.tgz",
++      "integrity": "sha512-QRUlFQ0WxvdWyqqG/WtI3iupfD5rBzmCHXSdPsY91sAtVtTo7Q4cb6zOccZ3gqEqkr0f1As1ehLqmEpDsRf+lg==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -648,13 +648,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-darwin-arm64": "1.3.3"
++        "@img/sharp-libvips-darwin-arm64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-darwin-x64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.35.4.tgz",
+-      "integrity": "sha512-hWniXY3bG5qKpkKrAwPe4y+VTPmf086YQAnkxWh7uA1YrlRouWGa0M0Mxj3ZjnXFkv7/TD1bTy9lGUK26vRvWw==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.35.5.tgz",
++      "integrity": "sha512-+BR255RhDlpygUpOc/Jdt1nT6DQ3XG/ERo5wbcdOf5Q320dKtPCKPLR1LJs9VGXRaMa8l1uUa0tkCNOXiAxZUw==",
+       "cpu": [
+         "x64"
+       ],
+@@ -671,13 +671,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-darwin-x64": "1.3.3"
++        "@img/sharp-libvips-darwin-x64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-freebsd-wasm32": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-freebsd-wasm32/-/sharp-freebsd-wasm32-0.35.4.tgz",
+-      "integrity": "sha512-lIsKw/BU+kjB4eZjxrYrZmwOJYi3Ajrv66iAlBmUPyKc3HpnloevB1g3wxGD9P/5BbQ1brBGl65VRRrCvQDEqA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-freebsd-wasm32/-/sharp-freebsd-wasm32-0.35.5.tgz",
++      "integrity": "sha512-Y/z91nEZ4uIBX5X3nfTovjU9lHNKFYbL2lpHCLVNmXQK03VIZvXBBt0KxbPGp2SdGSF+2mQU4e+hQaWOt86iAw==",
+       "dev": true,
+       "license": "Apache-2.0",
+       "optional": true,
+@@ -685,7 +685,7 @@
+         "freebsd"
+       ],
+       "dependencies": {
+-        "@img/sharp-wasm32": "0.35.4"
++        "@img/sharp-wasm32": "0.35.5"
+       },
+       "engines": {
+         "node": ">=20.9.0"
+@@ -695,9 +695,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-darwin-arm64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.3.tgz",
+-      "integrity": "sha512-suTBPTDGrI9WodccaDdwZItTSaBYASlBk1NSfElSHrUfzu3szG6lvIF58+WiFvnfzuK8ZBFS5zE00PxqxnRiPg==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.4.tgz",
++      "integrity": "sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -712,9 +712,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-darwin-x64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.3.tgz",
+-      "integrity": "sha512-FVJZ5mITMobmXIz/hPDTw0EintTW5H3WfrxwLqEqjiIihlu+hVRyGrFQ60xl0Lxn7Bt3zdpevPaQi0HEzqz9fw==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.4.tgz",
++      "integrity": "sha512-iR2OKH80yi0U+dUplyh3/xdpFvps6YkCwsXenIJxqxR1v9o+xtKTGbS9H7cps+2Vxjc8B1j96p75NmTGjIhtpQ==",
+       "cpu": [
+         "x64"
+       ],
+@@ -729,9 +729,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-arm": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.3.tgz",
+-      "integrity": "sha512-3rbU4vqXXc3hY/OiXdl52xZvT0F1yEngWfvqudtPJg/KkyiaQw2DRsFrNzpmLvfavbwOq3qXn36GP8obHRULQA==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.4.tgz",
++      "integrity": "sha512-LmRtTsOHuvM2+wlO2Db37dx5MiZhB0FvSunciw48YjdOkZz9KAiRbm8ujeMOA1INqmei5NapFxYEK1D1ZSidmw==",
+       "cpu": [
+         "arm"
+       ],
+@@ -749,9 +749,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-arm64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.3.3.tgz",
+-      "integrity": "sha512-0DaL0A6Xu6sQSQFwe4iVCrKWU2cCTItnRsYsCdxAMm9NF6twAA9BKnoqy4hqz4+azQ0JHuA26qiUKsf1XJ/v5A==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.3.4.tgz",
++      "integrity": "sha512-Y3dgX/6lE2QhQb+Gxy0WZxfg9MEm/JBjamZpS2IklP7xIQoKN4hzAm7KcMVGtaVDt3neE9OKBC7vAfonA/Lr1A==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -769,9 +769,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-ppc64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.3.3.tgz",
+-      "integrity": "sha512-cdn1OvUBwsXhbC0zSzJnNzf5MZ/mTrobawDvNXBTxe8VtqKAm0sRuEY2Evzovb/w9JMk4TvRxqt1mekSuJz64w==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.3.4.tgz",
++      "integrity": "sha512-Le6boB8Tai0Nis+gIxIpKx68UDVVIqdR8Tin5Yf1z2LJJQLDJvCDRqRu+jC2qCoD+eIomonmOwB4smBRxfVpYQ==",
+       "cpu": [
+         "ppc64"
+       ],
+@@ -789,9 +789,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-riscv64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.3.3.tgz",
+-      "integrity": "sha512-HjPVx7yKz+0lqdhDlTw1tt90wamBoxhiXpvl1XZpJLiHH4RCJ5yDTqH+VlYPv2fwFs89JFw4c1IexYOcQUi4IQ==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.3.4.tgz",
++      "integrity": "sha512-aHkkIEHPRdQEegJN20MLmGtxYD9R2wQr3Cwpddnu5+YKMt6Uzax7S9h5gpZTo8wyrGuZSlfQ63OevL5mTyOC7Q==",
+       "cpu": [
+         "riscv64"
+       ],
+@@ -809,9 +809,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-s390x": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.3.3.tgz",
+-      "integrity": "sha512-neWLh+3yCNThxnfy3c4BbVBeGgt9aftno+XbT56iK28RgeDs3UOFWviLWlUu0bArYVYJaFDK+RRohbicUNCm8Q==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.3.4.tgz",
++      "integrity": "sha512-ra/mB6MikESDUO7Yg+Mi95bFBb9GsObURuhnOv3OqknjGe9sZrG8tCe9q0xSIGrtLgvgw0gKnFWcK4blSgQOuQ==",
+       "cpu": [
+         "s390x"
+       ],
+@@ -829,9 +829,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-x64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.3.3.tgz",
+-      "integrity": "sha512-4vKmvAst9nrowcqquKFAyZJUDolUaIp8uRiN0mWFguJ1IplC9/pitXtlnnlU4aa/eJw3J7i67V+pwUL+wZGdsA==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.3.4.tgz",
++      "integrity": "sha512-GJ//SSXbnwSDes02umB3nDJLFcQzw8a18V8fyhqr6tV515tOEMdImjjxj1AoafMRz56F3PHgftnj1QEKSU1zkw==",
+       "cpu": [
+         "x64"
+       ],
+@@ -849,9 +849,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linuxmusl-arm64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.3.3.tgz",
+-      "integrity": "sha512-Y9kQaLMuNoB0bPYOOdcZMaseNrFpPodIWWMrx+CZyydf2xn68j9WYc6sWWRrDwNkzCQjKYfc68L7jKjGlHMibw==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.3.4.tgz",
++      "integrity": "sha512-hvulFwtjUcagsis6BBxHwGFwWoNZjgYmULGVrZcyfNbjA8hKILbRxGg15/7w5HDyXHXUos/j6baAWqnCyQ2DWA==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -869,9 +869,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linuxmusl-x64": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.3.3.tgz",
+-      "integrity": "sha512-fj8Mv0HHfD1Rr+4I68+3agJynxDWtBFgicTbSOb9Bke6pIwzGcJ+RX/yHjmiEGFMCavY/dxvem7MyNaJF+wDiw==",
++      "version": "1.3.4",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.3.4.tgz",
++      "integrity": "sha512-6zXKeE/p39I1AmA3cJG35eyBGNqNddLnUXjhwBnsGjFPWqf5VKkDBEqaEkPDoTEtkxwi2vv8Tcr2mDyP4So7Fg==",
+       "cpu": [
+         "x64"
+       ],
+@@ -889,9 +889,9 @@
+       }
+     },
+     "node_modules/@img/sharp-linux-arm": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.35.4.tgz",
+-      "integrity": "sha512-7OAS8gI0EReKGVN2HssHlM6umJgxF5VI3xN0p9FA91p/YO+ou5hiNghLdZ5BEHztwaaK5+bLKRf8x/o2L2nk9A==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.35.5.tgz",
++      "integrity": "sha512-LEaXK2WdXVK5ykcw0buWyPMsmLLL2vpHLD6yrNSW+JGEL3BZPA4tpKN6iaMc4AxTTAoaX/sU1rOL51lcIz48ZQ==",
+       "cpu": [
+         "arm"
+       ],
+@@ -911,13 +911,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-arm": "1.3.3"
++        "@img/sharp-libvips-linux-arm": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linux-arm64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.35.4.tgz",
+-      "integrity": "sha512-De4jpEnAU8Hd5oT0j1G3uL4ZvTuipVMn7YC6vPaJhy6/7EwEae0SVAoBrUMYQbkLGDm85taVWwuPc1a44LTzCQ==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.35.5.tgz",
++      "integrity": "sha512-LYVx5JTsOM2CBzmxreh+nl64/3H6Xb09iSLknqH47z2T2DFFxDeFLP5y4dJwe6H7uGQlHPyEEtIqyo3DYsRwdQ==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -937,13 +937,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-arm64": "1.3.3"
++        "@img/sharp-libvips-linux-arm64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linux-ppc64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.35.4.tgz",
+-      "integrity": "sha512-2oYZJeIl4kCcMGk4ouZVjnkCtFrpQFlNEtJ6GbxzhHQchwH0NH/qEb9ykmOl29dqwMq+JhFdZn+1ak2FKhI9fQ==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.35.5.tgz",
++      "integrity": "sha512-QVxAAq8evVRI9ia2vqgwrmWucn5Dfv+JdWzj75pD8omHLPSP7f8p20O8jxzjCcuCEQEOtYOZUmX1hkiZ0kdevA==",
+       "cpu": [
+         "ppc64"
+       ],
+@@ -963,13 +963,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-ppc64": "1.3.3"
++        "@img/sharp-libvips-linux-ppc64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linux-riscv64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.35.4.tgz",
+-      "integrity": "sha512-cPbNChoRURAWdebDIHSenxRpgEdy7JkPydSnUxRm9VvKD7m0/xVaR/8Fzlu81pk5nHEvHH87UZUA7cTtwnbJSA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.35.5.tgz",
++      "integrity": "sha512-LtdreXguaavKODPIfzJ4kffx7UNt1omwtK0rch4EBbbSTXPnxWmYSayXdLJw0fJzQ97kHt1gL/yh4tvU+nCyRQ==",
+       "cpu": [
+         "riscv64"
+       ],
+@@ -989,13 +989,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-riscv64": "1.3.3"
++        "@img/sharp-libvips-linux-riscv64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linux-s390x": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.35.4.tgz",
+-      "integrity": "sha512-RY0JFY8Fd6RonCBtHz+DvadaPkXDSI1AUn6yWL9TipqkZ1vY8w8evqdgyDFnkm4/K1ve1TvZiaePP5oSd4+WVQ==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.35.5.tgz",
++      "integrity": "sha512-UZasTOFiYzotTsGOCu42BfUzP6Tu6Do/947iRm1RsLKvlllxwGcn4RN27LibGWceix4Y+Pmw3jsnTcCQIgWjqA==",
+       "cpu": [
+         "s390x"
+       ],
+@@ -1015,13 +1015,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-s390x": "1.3.3"
++        "@img/sharp-libvips-linux-s390x": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linux-x64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.35.4.tgz",
+-      "integrity": "sha512-9qvvEAuk8k89TfWUoX2htWjbAMX8p+NxCppjpcg5k6xMsjhBQPTsoIh36h9Qde4WRuGpJeYnOjdosDn/cnv+OA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.35.5.tgz",
++      "integrity": "sha512-SxFtLTeJInhAA9Q836kux2vZNeOBQEx658qvbboZScr0wIARym3IcGmW7KpVD5sbVg0Ojy+udFQdayYIZyoNog==",
+       "cpu": [
+         "x64"
+       ],
+@@ -1041,13 +1041,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-x64": "1.3.3"
++        "@img/sharp-libvips-linux-x64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linuxmusl-arm64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.35.4.tgz",
+-      "integrity": "sha512-KB5jxpfWQTr0nc3xdHtWChdbifHrBGsd2SM62Eyxrl8afikm+f5qGBU75SJIZBT/S1MC8XyacdlXBMSWq6OURA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.35.5.tgz",
++      "integrity": "sha512-9HbMclmI1zlNkFRs3z9/eBtDjfD0sGlrX1z6b1qwmiFY5ElDLh4BC0LPBdVp7z1DXFiKlIcznf+ZlsuZzLxQqg==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -1067,13 +1067,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linuxmusl-arm64": "1.3.3"
++        "@img/sharp-libvips-linuxmusl-arm64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-linuxmusl-x64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.35.4.tgz",
+-      "integrity": "sha512-f+eZJZIQNEEd26RPSW+76chwOf1XtA2Y/O+5ocVyLliHkeih3e+jhLVBdNTd2rS3IbNXK8+ug93Vf5ZXtF5Lxg==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.35.5.tgz",
++      "integrity": "sha512-4KOphqB035HrVdqLZfCgMzzERrQkkzOwRhl4OAkRO1YCldbaFjySXMaK534Mo0V+LndnlJk+sbUyLeU0ULyD1A==",
+       "cpu": [
+         "x64"
+       ],
+@@ -1093,13 +1093,13 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linuxmusl-x64": "1.3.3"
++        "@img/sharp-libvips-linuxmusl-x64": "1.3.4"
+       }
+     },
+     "node_modules/@img/sharp-wasm32": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.35.4.tgz",
+-      "integrity": "sha512-zQnl4Kwp7Q6NHsENtU2T/00Zi+w3AQNwz3+UaTyVBy2FpXrzXzGjndpK61onhZjRtRpQXxCTeqw19bVyXOh7jA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.35.5.tgz",
++      "integrity": "sha512-Ptsga1su4tQx+LLF1ECS9U6nz5kmrXKo6XVbtR48Ke3ZRxxgaWBu7IDtEe1quo8hiupwm6WFqxVlXaSf7IINGQ==",
+       "dev": true,
+       "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+       "optional": true,
+@@ -1114,9 +1114,9 @@
+       }
+     },
+     "node_modules/@img/sharp-webcontainers-wasm32": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-webcontainers-wasm32/-/sharp-webcontainers-wasm32-0.35.4.tgz",
+-      "integrity": "sha512-ESfNkywmCfPNyaZjxooddJQiQ+l/nTpGEOGthxiLnIHXC/CmcBixnfwUleX9mCz9ovrUUvKMap/pm8RYbzfwaA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-webcontainers-wasm32/-/sharp-webcontainers-wasm32-0.35.5.tgz",
++      "integrity": "sha512-hfhF/FmoQyTUkA0bIKFOtw536BQSeBMe6BF6QyWlrPxT754+TFLaZ7sKKTfvvM0yJgKgaYTwnFCIZ/GuDw5SUA==",
+       "cpu": [
+         "wasm32"
+       ],
+@@ -1124,7 +1124,7 @@
+       "license": "Apache-2.0",
+       "optional": true,
+       "dependencies": {
+-        "@img/sharp-wasm32": "0.35.4"
++        "@img/sharp-wasm32": "0.35.5"
+       },
+       "engines": {
+         "node": ">=20.9.0"
+@@ -1134,9 +1134,9 @@
+       }
+     },
+     "node_modules/@img/sharp-win32-arm64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.35.4.tgz",
+-      "integrity": "sha512-iNdlBX9gLVvqe2I3uIJSIKTq6wckP/DYxZtcqxm09x5Gi24DnFBmPAWZmr60ZyYMG0xlzo6goG3670ar+RXvRw==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.35.5.tgz",
++      "integrity": "sha512-X4t7g+7ZA5DKblCBEXGjUqqemj4vczING/5viFwAL8h4N3qYeyjwdCvRLHi4EdOUI+2Z7UFlp1VM+p/AuEtm6Q==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -1154,9 +1154,9 @@
+       }
+     },
+     "node_modules/@img/sharp-win32-ia32": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.35.4.tgz",
+-      "integrity": "sha512-kqRsbaa5CS6KHlpxnN7WhE6vAAugXyZButpRdvDWetlv6Qv4N9WTcrWzF7tXfB9T7MsoadqdI8hmwLq6UlLvtw==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.35.5.tgz",
++      "integrity": "sha512-5Zm82LoBc43nhwNybZlG7Y1KO//Zhsn306fQl29ZOuStHLGTo3BWL83q3cznX0poxSAMuYL1On/BHBxkBeKr6A==",
+       "cpu": [
+         "ia32"
+       ],
+@@ -1174,9 +1174,9 @@
+       }
+     },
+     "node_modules/@img/sharp-win32-x64": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.4.tgz",
+-      "integrity": "sha512-XtmnYhBcrORsJ4XJngyzr/EWP0hRZLAZRFaApdKuviyqF78+ylxh2y06ZmtULAMOnObJ3ucpN0AcwSWnMowTRg==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.5.tgz",
++      "integrity": "sha512-x76eH0vEiHlcMQu8Y8IenntaACtddpT6W0wmXtWrnKcnKI7ME5DdgqhAD6SEWOEl1v2zDvkZDhFA9KnURwpfqg==",
+       "cpu": [
+         "x64"
+       ],
+@@ -2394,9 +2394,9 @@
+       }
+     },
+     "node_modules/sharp": {
+-      "version": "0.35.4",
+-      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.35.4.tgz",
+-      "integrity": "sha512-n++8XWcj+jCOr2IOl7h8LbKnGBDY4aPbmprMONBNFdn0ImXqpGVv5zliDs0V9HbmbCQLpbuo2ej9rAoOQTvMDA==",
++      "version": "0.35.5",
++      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.35.5.tgz",
++      "integrity": "sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==",
+       "dev": true,
+       "license": "Apache-2.0",
+       "dependencies": {
+@@ -2411,31 +2411,31 @@
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-darwin-arm64": "0.35.4",
+-        "@img/sharp-darwin-x64": "0.35.4",
+-        "@img/sharp-freebsd-wasm32": "0.35.4",
+-        "@img/sharp-libvips-darwin-arm64": "1.3.3",
+-        "@img/sharp-libvips-darwin-x64": "1.3.3",
+-        "@img/sharp-libvips-linux-arm": "1.3.3",
+-        "@img/sharp-libvips-linux-arm64": "1.3.3",
+-        "@img/sharp-libvips-linux-ppc64": "1.3.3",
+-        "@img/sharp-libvips-linux-riscv64": "1.3.3",
+-        "@img/sharp-libvips-linux-s390x": "1.3.3",
+-        "@img/sharp-libvips-linux-x64": "1.3.3",
+-        "@img/sharp-libvips-linuxmusl-arm64": "1.3.3",
+-        "@img/sharp-libvips-linuxmusl-x64": "1.3.3",
+-        "@img/sharp-linux-arm": "0.35.4",
+-        "@img/sharp-linux-arm64": "0.35.4",
+-        "@img/sharp-linux-ppc64": "0.35.4",
+-        "@img/sharp-linux-riscv64": "0.35.4",
+-        "@img/sharp-linux-s390x": "0.35.4",
+-        "@img/sharp-linux-x64": "0.35.4",
+-        "@img/sharp-linuxmusl-arm64": "0.35.4",
+-        "@img/sharp-linuxmusl-x64": "0.35.4",
+-        "@img/sharp-webcontainers-wasm32": "0.35.4",
+-        "@img/sharp-win32-arm64": "0.35.4",
+-        "@img/sharp-win32-ia32": "0.35.4",
+-        "@img/sharp-win32-x64": "0.35.4"
++        "@img/sharp-darwin-arm64": "0.35.5",
++        "@img/sharp-darwin-x64": "0.35.5",
++        "@img/sharp-freebsd-wasm32": "0.35.5",
++        "@img/sharp-libvips-darwin-arm64": "1.3.4",
++        "@img/sharp-libvips-darwin-x64": "1.3.4",
++        "@img/sharp-libvips-linux-arm": "1.3.4",
++        "@img/sharp-libvips-linux-arm64": "1.3.4",
++        "@img/sharp-libvips-linux-ppc64": "1.3.4",
++        "@img/sharp-libvips-linux-riscv64": "1.3.4",
++        "@img/sharp-libvips-linux-s390x": "1.3.4",
++        "@img/sharp-libvips-linux-x64": "1.3.4",
++        "@img/sharp-libvips-linuxmusl-arm64": "1.3.4",
++        "@img/sharp-libvips-linuxmusl-x64": "1.3.4",
++        "@img/sharp-linux-arm": "0.35.5",
++        "@img/sharp-linux-arm64": "0.35.5",
++        "@img/sharp-linux-ppc64": "0.35.5",
++        "@img/sharp-linux-riscv64": "0.35.5",
++        "@img/sharp-linux-s390x": "0.35.5",
++        "@img/sharp-linux-x64": "0.35.5",
++        "@img/sharp-linuxmusl-arm64": "0.35.5",
++        "@img/sharp-linuxmusl-x64": "0.35.5",
++        "@img/sharp-webcontainers-wasm32": "0.35.5",
++        "@img/sharp-win32-arm64": "0.35.5",
++        "@img/sharp-win32-ia32": "0.35.5",
++        "@img/sharp-win32-x64": "0.35.5"
+       },
+       "peerDependenciesMeta": {
+         "@types/node": {
+@@ -2444,9 +2444,9 @@
+       }
+     },
+     "node_modules/source-map-js": {
+-      "version": "1.2.1",
+-      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
+-      "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
++      "version": "1.2.2",
++      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
++      "integrity": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==",
+       "dev": true,
+       "license": "BSD-3-Clause",
+       "engines": {
+diff --git a/package.json b/package.json
+index 627c31f..029a3a8 100644
+--- a/package.json
++++ b/package.json
+@@ -19,7 +19,9 @@
+   },
+   "overrides": {
+     "ws": "^8.21.0",
+-    "undici": "7.29.1"
++    "undici": "7.29.1",
++    "sharp": "0.35.5",
++    "source-map-js": "1.2.2"
+   },
+   "dependencies": {
+     "@noble/curves": "1.9.1",
+diff --git a/server/aimarket-delivery.ts b/server/aimarket-delivery.ts
+index 6be4dea..f87c7e8 100644
+--- a/server/aimarket-delivery.ts
++++ b/server/aimarket-delivery.ts
+@@ -1,6 +1,10 @@
+ import type {GoldDeliveryProvider} from './world-gold-delivery.ts';
+ 
+ const ORIGIN='https://aimarket.trade',PATH='/api/internal/world-gold',VERSION='ember-world-research-delivery/v1';
++// The VPS accepts a 900,000-byte document and returns both its JSON object and
++// canonical JSON string. Escaping the latter again needs up to twice its UTF-8
++// bytes, in addition to the document. Reserve bounded envelope overhead too.
++export const MAX_RESEARCH_RESPONSE_BYTES=3*900_000+16_000;
+ const bytes=(s:string)=>new TextEncoder().encode(s),hex=(b:ArrayBuffer)=>[...new Uint8Array(b)].map(n=>n.toString(16).padStart(2,'0')).join('');
+ const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
+ export const deliveryDigest=async(s:string)=>hex(await crypto.subtle.digest('SHA-256',bytes(s)));
+@@ -23,7 +27,7 @@ export function createAIMarketDelivery(secret:string|undefined,transport:typeof
+     const path=PATH+'/'+action,body=JSON.stringify({orderId:order.orderId,wallet:order.wallet,product:order.product,...action==='read'?{reference:order.reference}:{}}),time=String(Math.floor(at/1000));
+     const response=await transport(ORIGIN+path,{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),headers:{'content-type':'application/json','accept':'application/json','x-ember-gold-signature':await deliverySignature(secret!,'request',path,time,body)},body});
+     if(response.status!==200||response.headers.get('content-type')?.split(';')[0]!=='application/json'||!response.body)throw Error('DELIVERY_UNAVAILABLE');
+-    const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let raw='',size=0;const cap=action==='read'?2_100_000:16000;
++    const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let raw='',size=0;const cap=action==='read'?MAX_RESEARCH_RESPONSE_BYTES:16000;
+     try{for(;;){const c=await reader.read();if(c.done)break;size+=c.value.length;if(size>cap){await reader.cancel();throw Error('DELIVERY_UNAVAILABLE');}raw+=decoder.decode(c.value,{stream:true});}raw+=decoder.decode();}finally{reader.releaseLock();}
+     const fresh=clock();if(!Number.isSafeInteger(fresh)||fresh<at||!await verified(secret!,path,response.headers.get('x-ember-gold-signature'),raw,fresh))throw Error('DELIVERY_UNAVAILABLE');
+     const value:unknown=JSON.parse(raw);if(!object(value)||value.schema!==VERSION||value.orderId!==order.orderId||value.wallet!==order.wallet||value.product!==order.product)throw Error('DELIVERY_UNAVAILABLE');
+diff --git a/server/economy.ts b/server/economy.ts
+index 104c677..53ebf1d 100644
+--- a/server/economy.ts
++++ b/server/economy.ts
+@@ -54,7 +54,16 @@ export async function handleEconomyApi(request:Request,deps:EconomyDeps={}):Prom
+     }
+     if(typeof expected!=='string'||!ECONOMY_ADDRESS.test(expected))return error(400,'BAD_REQUEST');
+     if(expected.toLowerCase()!==wallet)return error(409,'ACCOUNT_MISMATCH');
+-    if(meRoute)return reply(200,await economyWalletSnapshot(deps.db,deps.config,wallet));
++    if(meRoute){
++      const snapshot=await economyWalletSnapshot(deps.db,deps.config,wallet),finished=clock();
++      if(!validClock(finished)||finished<now)return error(503,'ECONOMY_UNAVAILABLE');
++      const fresh=await readSession(request,deps.db,finished),returned=clock();
++      if(!validClock(returned)||returned<finished)return error(503,'ECONOMY_UNAVAILABLE');
++      // The legacy private view needs the same late-logout boundary as balances
++      // and the shared GOLD view; never return a completed stale wallet read.
++      if(typeof fresh==='string'||fresh.tokenHash!==session.tokenHash||fresh.address.toLowerCase()!==wallet||fresh.expiresAt!==session.expiresAt||fresh.expiresAt<=returned)return error(401,'AUTH_REQUIRED');
++      return reply(200,snapshot);
++    }
+     // Retain the existing persistent-write boundary. ERC-1271 identity can read,
+     // but does not silently gain this new order/debit authority.
+     if(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA')return error(403,'EOA_REQUIRED');
+diff --git a/server/world-gold-delivery.ts b/server/world-gold-delivery.ts
+index 4a13ea6..f0d3593 100644
+--- a/server/world-gold-delivery.ts
++++ b/server/world-gold-delivery.ts
+@@ -1,6 +1,6 @@
+ import type {D1Database} from './d1.ts';
+ import {claimGoldJob,finishGoldJob} from './world-gold.ts';
+-import {hasGoldResultContract} from './world-gold-result.ts';
++import {GOLD_RESULT_PRODUCTS,hasGoldResultContract} from './world-gold-result.ts';
+ 
+ /** Trusted server adapter only. Real upstream installation is a release gate.
+  * A timeout/exception/pending response never authorizes a refund. A terminal
+@@ -14,11 +14,13 @@ export function hasGoldDeliveryProvider(provider:GoldDeliveryProvider|undefined)
+ export async function runGoldServiceJobs(db:D1Database,provider:GoldDeliveryProvider,clock:()=>number){
+  if(!hasGoldDeliveryProvider(provider))throw Error('SERVICE_DELIVERY_UNAVAILABLE');
+  const now=clock();if(!Number.isSafeInteger(now)||now<=0)throw Error('INVALID_CLOCK');
+- const jobs=await db.prepare(`SELECT j.order_id,j.wallet,p.product FROM world_gold_jobs j JOIN world_gold_links l ON l.order_id=j.order_id JOIN world_gold_products p ON p.id=l.product_id WHERE j.state='queued' OR (j.state='working' AND j.lease_ms<=?) ORDER BY j.updated_ms,j.order_id LIMIT 16`).bind(now).all<{order_id:string;wallet:string;product:string}>();
++ // Filter before the page limit: deferred jobs for another provider must not
++ // occupy every slot forever. They stay queued for their own provider/review.
++ const products=[...new Set((provider.products??GOLD_RESULT_PRODUCTS).filter(hasGoldResultContract))];
++ if(!products.length)return [];
++ const jobs=await db.prepare(`SELECT j.order_id,j.wallet,p.product FROM world_gold_jobs j JOIN world_gold_links l ON l.order_id=j.order_id JOIN world_gold_products p ON p.id=l.product_id WHERE (j.state='queued' OR (j.state='working' AND j.lease_ms<=?)) AND p.product IN (${products.map(()=>'?').join(',')}) ORDER BY j.updated_ms,j.order_id LIMIT 16`).bind(now,...products).all<{order_id:string;wallet:string;product:string}>();
+  const outcomes:{orderId:string;status:string}[]=[];
+  for(const j of jobs.results){
+-  if(!hasGoldResultContract(j.product)){outcomes.push({orderId:j.order_id,status:'SERVICE_RESULT_SCHEMA_UNBOUND'});continue;}
+-  if(provider.products&&!provider.products.includes(j.product)){outcomes.push({orderId:j.order_id,status:'SERVICE_PROVIDER_UNBOUND'});continue;}
+   const attempt=await claimGoldJob(db,j.order_id,clock(),clock);if(!attempt)continue;
+   try{const outcome=await provider.deliver({orderId:j.order_id,wallet:j.wallet,product:j.product,idempotencyKey:j.order_id});
+    if(outcome.kind==='delivered')await finishGoldJob(db,{orderId:j.order_id,attempt,nowMs:clock(),now:clock,outcome:{result:outcome.result}});
+diff --git a/server/world-gold-result.ts b/server/world-gold-result.ts
+index 951a452..aab5c90 100644
+--- a/server/world-gold-result.ts
++++ b/server/world-gold-result.ts
+@@ -3,7 +3,8 @@
+  * their service-specific signed/authenticated response before this boundary. */
+ const text=(v:unknown):v is string=>typeof v==='string'&&v.trim().length>0;
+ const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
+-export const hasGoldResultContract=(product:string)=>['research','fortune'].includes(product);
++export const GOLD_RESULT_PRODUCTS=['research','fortune'] as const;
++export const hasGoldResultContract=(product:string)=>GOLD_RESULT_PRODUCTS.some(p=>p===product);
+ function usableDocument(product:string,v:unknown){
+  if(!hasGoldResultContract(product))return false;
+  // A bare non-JSON upstream error is not a report. Historical rows remain
+diff --git a/tests/aimarket-resilience.test.mjs b/tests/aimarket-resilience.test.mjs
+new file mode 100644
+index 0000000..c367278
+--- /dev/null
++++ b/tests/aimarket-resilience.test.mjs
+@@ -0,0 +1,84 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,NOW,W} from './world-gold-audit5-fixture.mjs';
++import {reconcileWorldGold} from '../server/world-gold.ts';
++import {runGoldServiceJobs} from '../server/world-gold-delivery.ts';
++import {createAIMarketDelivery,deliveryDigest,deliverySignature} from '../server/aimarket-delivery.ts';
++
++test('eligible research delivery is not starved by sixteen older jobs for another provider',async()=>{
++ const f=await fixture();try{
++  for(let i=0;i<3;i++)await f.topup();
++  await f.admin({action:'product',product:'fortune',kind:'service',title:'Former provider',gold:'1',enabled:true,version:1});
++  const older=[];
++  for(let i=0;i<16;i++){const id=await f.quote('fortune');await f.pay(id);older.push(id);}
++  await reconcileWorldGold(f.db,NOW);
++  const id=await f.service();
++  f.db.raw.prepare('UPDATE world_gold_jobs SET updated_ms=? WHERE order_id=?').run(NOW+1,id);
++  const seen=[];
++  const provider={id:'research-only',products:['research'],deliver:async o=>{seen.push(o.orderId);return {kind:'delivered',result:{report:'Original research'}};}};
++  await runGoldServiceJobs(f.db,provider,()=>NOW+2);
++  assert.deepEqual(seen,[id]);
++  assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'delivered');
++  assert.equal(f.db.raw.prepare("SELECT COUNT(*) n FROM world_gold_jobs WHERE state='queued'").get().n,16);
++  assert.equal((await f.snapshot()).book,'11'); // Original debits; no extra charge or refund.
++  provider.products=['fortune'];seen.length=0;
++  await runGoldServiceJobs(f.db,provider,()=>NOW+3);
++  assert.equal(seen.length,16); // Deferred jobs remain intact for their own provider.
++  assert.equal((await f.snapshot()).book,'11');
++ }finally{f.close();}
++});
++
++test('an empty provider product list does not claim unrelated queued jobs',async()=>{
++ const f=await fixture();try{
++  await f.topup();const id=await f.service();let calls=0;
++  await runGoldServiceJobs(f.db,{id:'disabled',products:[],deliver:async()=>{calls++;return {kind:'pending'};}},()=>NOW);
++  assert.equal(calls,0);
++  assert.equal(f.db.raw.prepare('SELECT state FROM world_gold_jobs WHERE order_id=?').get(id).state,'queued');
++ }finally{f.close();}
++});
++
++test('research delivery drains at most sixteen eligible jobs and preserves every original charge',async()=>{
++ const f=await fixture();try{
++  for(let i=0;i<7;i++)await f.topup();
++  for(let i=0;i<21;i++)await f.service();
++  const seen=[],provider={id:'research-only',products:['research'],deliver:async o=>{seen.push(o.orderId);return {kind:'delivered',result:{report:'Original report'}};}};
++  await runGoldServiceJobs(f.db,provider,()=>NOW);assert.equal(seen.length,16);
++  await runGoldServiceJobs(f.db,provider,()=>NOW);assert.equal(seen.length,21);
++  await runGoldServiceJobs(f.db,provider,()=>NOW);assert.equal(seen.length,21);
++  assert.equal(new Set(seen).size,21);assert.equal((await f.snapshot()).book,'7');
++ }finally{f.close();}
++});
++
++test('research leases cannot be reclaimed before expiry and are retried with the same order key',async()=>{
++ const f=await fixture();try{
++  await f.topup();const id=await f.service();const seen=[];
++  const provider={id:'research-only',products:['research'],deliver:async o=>{seen.push(o.idempotencyKey);return {kind:'pending'};}};
++  await runGoldServiceJobs(f.db,provider,()=>NOW);
++  await runGoldServiceJobs(f.db,provider,()=>NOW+59999);assert.deepEqual(seen,[id]);
++  await runGoldServiceJobs(f.db,provider,()=>NOW+60000);assert.deepEqual(seen,[id,id]);
++  assert.equal((await f.snapshot()).book,'7');
++ }finally{f.close();}
++});
++
++const secret='local-resilience-fixture-secret-32',path='/api/internal/world-gold/read';
++const order={orderId:'0x'+'1'.repeat(64),wallet:W,product:'research'};
++async function signed(raw){return new Response(raw,{headers:{'content-type':'application/json','x-ember-gold-signature':await deliverySignature(secret,'response',path,String(Math.floor(NOW/1000)),raw)}});}
++
++test('every supported 900KB report remains readable after JSON escaping the canonical copy',async()=>{
++ // Python stores both the report object and its exact canonical JSON string.
++ // Escaping that string a second time may exceed 2.1MB even below its 900KB limit.
++ const canonical=JSON.stringify({content:'\\'.repeat(400000),report_date:'2026-10-19'})+'\n';
++ const reference=await deliveryDigest(canonical),document={...JSON.parse(canonical),report_id:reference};
++ assert.ok(Buffer.byteLength(JSON.stringify(document))<900000);
++ const raw=JSON.stringify({schema:'ember-world-research-delivery/v1',...order,kind:'delivered',reference,document,canonical});
++ assert.ok(Buffer.byteLength(raw)>2100000);
++ const provider=createAIMarketDelivery(secret,async()=>signed(raw),()=>NOW);
++ assert.deepEqual(await provider.readReport({...order,reference}),document);
++});
++
++test('oversized report responses stay bounded and their response stream is cancelled',async()=>{
++ let cancelled=false;
++ const provider=createAIMarketDelivery(secret,async()=>new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(2800000));},cancel(){cancelled=true;}}),{headers:{'content-type':'application/json'}}),()=>NOW);
++ await assert.rejects(provider.readReport({...order,reference:'a'.repeat(64)}),/DELIVERY_UNAVAILABLE/);
++ assert.equal(cancelled,true);
++});
+diff --git a/tests/economy-read-session.test.mjs b/tests/economy-read-session.test.mjs
+new file mode 100644
+index 0000000..9239c46
+--- /dev/null
++++ b/tests/economy-read-session.test.mjs
+@@ -0,0 +1,27 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {handleEconomyApi} from '../server/economy.ts';
++import {sha256,SESSION_COOKIE} from '../server/auth.ts';
++import {fixture,NOW,W} from './world-gold-audit5-fixture.mjs';
++
++for(const mutation of ['logout','expiry','backward-clock'])test(`legacy private economy read discards late results on ${mutation}`,async()=>{
++ const f=await fixture();try{
++  await f.topup();const token='r'.repeat(43);
++  f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,?,?,?,?,?,?)').run(await sha256(token),W,1,NOW-1,NOW+60000,'legacy-read','EOA','ECDSA');
++  let at=NOW,intercepted=false;const prepare=f.db.prepare;
++  f.db.prepare=sql=>{
++   if(!intercepted&&sql.includes('SELECT position_id id')){
++    intercepted=true;
++    if(mutation==='logout')f.db.raw.prepare('UPDATE sessions SET revoked_at=?').run(NOW);
++    if(mutation==='expiry')at=NOW+60000;
++    if(mutation==='backward-clock')at=NOW-1;
++   }
++   return prepare(sql);
++  };
++  const request=new Request('https://imdember.com/api/me/economy?expected_address='+W,{headers:{cookie:SESSION_COOKIE+'='+token}});
++  const response=await handleEconomyApi(request,{db:f.db,config:f.config,now:()=>at,allow:async()=>true});
++  assert.equal(intercepted,true);
++  assert.equal(response.status,mutation==='backward-clock'?503:401);
++  const body=await response.json();assert.equal(Object.hasOwn(body,'gold'),false);assert.equal(Object.hasOwn(body,'orders'),false);
++ }finally{f.close();}
++});
