@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: Audit7 M1: shared book refuses unlinked catalogue admission in both currencies even with a paused service
+ok 1 - Audit7 M1: shared book refuses unlinked catalogue admission in both currencies even with a paused service
+  ---
+  duration_ms: 62.6857
+  type: 'test'
+  ...
+# Subtest: Audit7 M2: bare upstream error text cannot be a delivered report and refunds the original amount once
+ok 2 - Audit7 M2: bare upstream error text cannot be a delivered report and refunds the original amount once
+  ---
+  duration_ms: 486.6189
+  type: 'test'
+  ...
+# Subtest: Audit7 L1: Mint auth expiring during admission I/O creates neither a mint row nor a GOLD hold
+ok 3 - Audit7 L1: Mint auth expiring during admission I/O creates neither a mint row nor a GOLD hold
+  ---
+  duration_ms: 63.6713
+  type: 'test'
+  ...
+# Subtest: Audit7 I1: retry refuses a pending quote at expiry while preserving an already-paid receipt
+ok 4 - Audit7 I1: retry refuses a pending quote at expiry while preserving an already-paid receipt
+  ---
+  duration_ms: 72.4268
+  type: 'test'
+  ...
+# Subtest: Audit7 M1: upgrading does not reopen an original pending unlinked legacy quote in either currency
+ok 5 - Audit7 M1: upgrading does not reopen an original pending unlinked legacy quote in either currency
+  ---
+  duration_ms: 123.8025
+  type: 'test'
+  ...
+# Subtest: Audit7 L1: omitted clock uses real time, while a SQL deadline refusal rolls back both mint and hold
+ok 6 - Audit7 L1: omitted clock uses real time, while a SQL deadline refusal rolls back both mint and hold
+  ---
+  duration_ms: 112.7813
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2069.2262

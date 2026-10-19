@@ -1,0 +1,23 @@
+test_authenticated_trial_is_world_only (test_world_trial.TrialTests.test_authenticated_trial_is_world_only) ... ok
+test_external_session_cannot_use_trial_claim (test_world_trial.TrialTests.test_external_session_cannot_use_trial_claim) ... ok
+test_invalid_or_client_style_claims_rejected (test_world_trial.TrialTests.test_invalid_or_client_style_claims_rejected) ... ok
+test_old_identity_stays_compatible (test_world_trial.TrialTests.test_old_identity_stays_compatible) ... ok
+test_trial_end_and_manual_stop_apply_on_next_read_without_relogin (test_world_trial.TrialTests.test_trial_end_and_manual_stop_apply_on_next_read_without_relogin) ... ok
+test_untrusted_or_revoked_source_cannot_keep_trial (test_world_trial.TrialTests.test_untrusted_or_revoked_source_cannot_keep_trial) ... ok
+test_world_login_can_use_trial_without_holder_balance (test_world_trial.TrialTests.test_world_login_can_use_trial_without_holder_balance) ... ok
+test_expired_trial_never_grants_nonholder_access (test_world_trial_audit5.TrialBoundaryAuditTests.test_expired_trial_never_grants_nonholder_access) ... ok
+test_expired_trial_still_allows_holder_login (test_world_trial_audit5.TrialBoundaryAuditTests.test_expired_trial_still_allows_holder_login) ... ok
+test_expired_trial_still_allows_holder_session (test_world_trial_audit5.TrialBoundaryAuditTests.test_expired_trial_still_allows_holder_session) ... ok
+test_balance_wait_cannot_keep_identity_that_has_expired (test_world_trial_audit6.IdentityExpiryAuditTests.test_balance_wait_cannot_keep_identity_that_has_expired) ... ok
+test_expired_introspection_denies_and_revokes_instead_of_outage (test_world_trial_audit6.IdentityExpiryAuditTests.test_expired_introspection_denies_and_revokes_instead_of_outage) ... ok
+test_expired_login_is_source_expired_denial (test_world_trial_audit6.IdentityExpiryAuditTests.test_expired_login_is_source_expired_denial) ... ok
+test_external_profile_never_gets_trial_boundary_access (test_world_trial_audit6.IdentityExpiryAuditTests.test_external_profile_never_gets_trial_boundary_access) ... ok
+test_identity_now_minus_equal_plus_boundary (test_world_trial_audit6.IdentityExpiryAuditTests.test_identity_now_minus_equal_plus_boundary) ... ok
+test_malformed_expiry_is_not_promoted_to_valid_or_expired_identity (test_world_trial_audit6.IdentityExpiryAuditTests.test_malformed_expiry_is_not_promoted_to_valid_or_expired_identity) ... ok
+test_network_latency_crossing_identity_expiry_revokes (test_world_trial_audit6.IdentityExpiryAuditTests.test_network_latency_crossing_identity_expiry_revokes) ... ok
+test_trial_boundary_removes_only_trial_grant (test_world_trial_audit6.IdentityExpiryAuditTests.test_trial_boundary_removes_only_trial_grant) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.420s
+
+OK

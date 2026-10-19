@@ -1,0 +1,17 @@
+{
+  "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+  "facts": [
+    "exact production migrations accepted by local workerd D1",
+    "D1 complete tables/columns/indexes/triggers capability query works",
+    "D1 concurrent projection credits once",
+    "D1 legacy debit cannot spend held GOLD",
+    "D1 hold consumption and debit commit once",
+    "D1 admin writes retain atomic before/after evidence",
+    "D1 positive journal capacity rejects before integer promotion",
+    "D1 capacity-bound reward is persisted without blocking another staker",
+    "D1 concurrent pending reward retries credit the original entitlement once"
+  ],
+  "productionCapacityProved": false,
+  "publicChainUsed": false,
+  "fixtureChainProfile": false
+}

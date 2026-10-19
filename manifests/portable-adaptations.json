@@ -1,0 +1,53 @@
+[
+  {
+    "path": "contracts/tools/runtime.mjs",
+    "beforeSha256": "c63a0dd6745893f550f298043bb9cb496151d079545c993fe7abdc3c4a1206d1",
+    "afterSha256": "640a71df9728ff5dadf1d26b44f930ea1237d1bd7331fc6a7f05a4f09c16411f",
+    "reason": "Expose the verified compiler payload path required by the unchanged R4 artifact verifier."
+  },
+  {
+    "path": "world-source/scripts/world-gold-local-runtime.mjs",
+    "beforeSha256": "f848b9b97d7ea9041a42b2583dc3c81d9ae7d927e7365e167e2f6a2ad2295b16",
+    "afterSha256": "d631d5d393adffa75f1930b2d5d410a67a6d6d808fca0233996f23d7d015777f",
+    "reason": "Resolve the same byte-exact payment artifact inside the portable packet."
+  },
+  {
+    "path": "mint/contract/artifacts/build-receipt.json",
+    "originalPath": "mint/contract/artifacts/build-receipt.private.json",
+    "reason": "Synthetic compiler artifact filename only."
+  },
+  {
+    "path": "mint/contract/artifacts/build-receipt.json",
+    "beforeSha256": "1b7b72aee8637d0880a84ccea9b8121c2f89a5ff889f5674ab0823e7a62d6d57",
+    "afterSha256": "c3272b8577cab140083e0dc05475d76f548b5e810a639488814d16a0cb07d5a7",
+    "reason": "Remove machine paths from compiler receipt; all verifier-relevant source/artifact hashes retained."
+  },
+  {
+    "path": "mint/contract/artifacts/standard-input.json",
+    "originalPath": "mint/contract/artifacts/standard-input.private.json",
+    "reason": "Synthetic compiler artifact filename only."
+  },
+  {
+    "path": "mint/contract/artifacts/test-artifacts.json",
+    "originalPath": "mint/contract/artifacts/test-artifacts.private.json",
+    "reason": "Synthetic compiler artifact filename only."
+  },
+  {
+    "path": "mint/contract/tools/compile.mjs",
+    "beforeSha256": "4309c694f53327d26859cc31a9af64ac4557d33ef66c0e9099b61afef8bfc7ed",
+    "afterSha256": "ac323adf78ccc36d44696cb8f2fb0bc6416ce2763951b588d9e6108f31091051",
+    "reason": "Synthetic artifact filenames only; verifier conditions unchanged."
+  },
+  {
+    "path": "mint/contract/tools/runtime.mjs",
+    "beforeSha256": "2bac85537add48cae447fa42e542605f16722ca1ef771b711d6a4424fbd7a023",
+    "afterSha256": "6775fbd7228646ed757447f0c7a325fafed5f82f869c912cc736a89e2a1b32bc",
+    "reason": "Reuse the previously verified portable dependency resolver and public synthetic test mnemonic; no production key."
+  },
+  {
+    "path": "mint/service/artifacts.mjs",
+    "beforeSha256": "eebe3700738eb2f717a7edcff85c86ef06ca1e9196d4d79edef09fc526ddda9a",
+    "afterSha256": "3aaad4f2cdb1e56cf3236c08295981b425d140901aff82d4f8dea9946cf460b8",
+    "reason": "Synthetic artifact filenames only; verifier conditions unchanged."
+  }
+]

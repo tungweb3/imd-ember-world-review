@@ -1,0 +1,11 @@
+Workstation paths redacted; original log SHA256: 5ac625022eb14e5ab15ec897feaec7da8b4cdefcd4ebf9951508897e07c0c724
+
+✔ expanded inspection: signature-time success cannot debit after a shared readiness await crosses expiry (68.1229ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 889.206

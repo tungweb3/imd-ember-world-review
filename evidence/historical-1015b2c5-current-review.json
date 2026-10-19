@@ -1,0 +1,86 @@
+{
+  "schema": "ember-world-current-review/v1",
+  "verifiedAtUtc": "2026-10-19T05:37:25.658835+00:00",
+  "worldSourceCommit": "1015b2c5c8663c6c4bfb46f135be84cacea1cae0",
+  "fullWorldRegression": {
+    "tests": 2950,
+    "pass": 2945,
+    "fail": 0,
+    "skipped": 5
+  },
+  "portableContracts": 30,
+  "portableFinancial": 494,
+  "portablePython": 26,
+  "typescript": "PASS",
+  "build": "PASS",
+  "nativeInventory": {
+    "status": "PASS_NATIVE_WORKERD_INVENTORY_AND_CAMPAIGN",
+    "facts": [
+      "native D1 concurrent arrangement CAS commits one revision and one reference",
+      "production empty catalogue quarantines fixture or unknown holdings",
+      "native D1 campaign writes audit evidence without prices or a chain configuration",
+      "native D1 real empty ledger is readable while financial admission stays closed"
+    ],
+    "productionDbUsed": false,
+    "publicChainUsed": false
+  },
+  "nativeFinancial": {
+    "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+    "facts": [
+      "exact production migrations accepted by local workerd D1",
+      "D1 complete tables/columns/indexes/triggers capability query works",
+      "D1 concurrent projection credits once",
+      "D1 legacy debit cannot spend held GOLD",
+      "D1 hold consumption and debit commit once",
+      "D1 admin writes retain atomic before/after evidence",
+      "D1 positive journal capacity rejects before integer promotion",
+      "D1 capacity-bound reward is persisted without blocking another staker",
+      "D1 concurrent pending reward retries credit the original entitlement once"
+    ],
+    "productionCapacityProved": false,
+    "publicChainUsed": false,
+    "fixtureChainProfile": false
+  },
+  "knownDependencyAdvisories": 0,
+  "production": {
+    "status": "DEPLOYED_AND_POSTFLIGHT_VERIFIED",
+    "versionId": "c3e85472-5370-47f3-89cd-c334fc5bcd69",
+    "deploymentId": "9c7add6c-47d6-4e2d-abe6-ee9e73dc461c",
+    "all49FrontendEntryAssetsFullyHashed": true,
+    "privateRoutesRequireAuthentication": true,
+    "externalResearchLocked": true,
+    "unsignedProviderDenied": true,
+    "scheduledOutcomes": [
+      {
+        "cron": "*/15 * * * *",
+        "outcome": "ok"
+      },
+      {
+        "cron": "* * * * *",
+        "outcome": "ok"
+      }
+    ],
+    "chainIndexAdvanced": true,
+    "indexHalted": false,
+    "retailTopupServiceMintAdmission": "CLOSED_PENDING_OWNER_PRICES_AND_COLLECTION",
+    "approvedGameNftCollections": [],
+    "newContractDeployments": 0
+  },
+  "appearance": {
+    "fixedAssetHashesIdentical": 284,
+    "completeRoadGeometryProfiles": [
+      208,
+      320
+    ],
+    "roadProvenanceChangedOnlyByLockfile": true,
+    "frontendSourceUnchanged": true
+  },
+  "externalAuditVerdict": "NOT_YET_OBTAINED_FOR_THIS_VERSION",
+  "walletTransactionsSentByVerification": false,
+  "limitations": [
+    "Five existing Windows file-symlink privilege skips are not passes.",
+    "Local D1 semantics and empty live pages do not prove dense-block CPU, large-report peak CPU or production load capacity.",
+    "No real-wallet paid purchase is asserted; retail admission remains closed.",
+    "Cloud backup completion is independent and is not certified by this public review packet."
+  ]
+}

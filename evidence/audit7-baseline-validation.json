@@ -1,0 +1,64 @@
+{
+  "status": "LOCAL_SOURCE_AND_PORTABLE_VALIDATED_PRODUCTION_GATES_OPEN",
+  "sourceCommit": "e845674f414edb9103fa9ae97d4f0d3caf359f57",
+  "fullWorld": {
+    "tests": 2910,
+    "pass": 2905,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 5,
+    "sha256": "d713ee15ea86465d410fea24a668efc324275728956e8ef04ee72d518e0321e3"
+  },
+  "portableFinancial": {
+    "tests": 447,
+    "pass": 447,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "sha256": "e5709bb88bf5f87feff579ac560cf7c00f88c0242b6c96545c8da8fc412f3c5f"
+  },
+  "portableContracts": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "sha256": "b8fadbd67ed3d35966023d16dd7795f8d3bbd6b35ebb89651604120430701333"
+  },
+  "portablePython": {
+    "tests": 18,
+    "fail": 0,
+    "sha256": "c8e36925eaf5cef8a96a0e490d6ef609f9e93e0382aa7dab3ee10af494e42aab"
+  },
+  "typescript": "PASS",
+  "build": "PASS",
+  "workerDryRun": "PASS_NO_UPLOAD",
+  "localD1": {
+    "status": "PASS_LOCAL_WORKERD_D1_LOGIC",
+    "facts": [
+      "exact production migrations accepted by local workerd D1",
+      "D1 complete tables/columns/indexes/triggers capability query works",
+      "D1 concurrent projection credits once",
+      "D1 legacy debit cannot spend held GOLD",
+      "D1 hold consumption and debit commit once",
+      "D1 admin writes retain atomic before/after evidence",
+      "D1 positive journal capacity rejects before integer promotion",
+      "D1 capacity-bound reward is persisted without blocking another staker",
+      "D1 concurrent pending reward retries credit the original entitlement once"
+    ],
+    "productionCapacityProved": false,
+    "publicChainUsed": false,
+    "fixtureChainProfile": false
+  },
+  "publicAssetChanges": 0,
+  "priorMigrationChanges": 0,
+  "auxiliary45Preserved": true,
+  "sourcePublished": false,
+  "newAuditSubmitted": false,
+  "deployed": false,
+  "productionReady": false,
+  "mainnetPreflight": "UNVERIFIED_RPC_CONNECTION_TIMEOUT",
+  "realGameNftContracts": [],
+  "productionCollectionConnected": false,
+  "cloudBackupAfterDeploy": "PENDING_UNIFIED_RELEASE"
+}

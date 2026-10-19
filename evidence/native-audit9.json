@@ -1,0 +1,12 @@
+{
+  "status": "PASS_NATIVE_WORKERD_D1_AUDIT9",
+  "facts": [
+    "native D1 unsupported pending provider-transition payment is refused without a debit",
+    "native D1 bound json_each product predicate independently blocks debit when application lookup is bypassed",
+    "native D1 supported payment and replay debit once and create one job",
+    "native D1 private read refuses a clock regression above request start"
+  ],
+  "productionDbUsed": false,
+  "publicChainUsed": false,
+  "realWalletUsed": false
+}

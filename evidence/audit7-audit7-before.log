@@ -1,0 +1,75 @@
+✖ Audit7 M1: shared book refuses unlinked catalogue admission in both currencies even with a paused service (72.9721ms)
+✖ Audit7 M2: bare upstream error text cannot be a delivered report and refunds the original amount once (145.3175ms)
+✖ Audit7 L1: Mint auth expiring during admission I/O creates neither a mint row nor a GOLD hold (78.243ms)
+✖ Audit7 I1: retry refuses a pending quote at expiry while preserving an already-paid receipt (69.3374ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2488.147
+
+✖ failing tests:
+
+test at tests\world-gold-audit7.test.mjs:8:1
+✖ Audit7 M1: shared book refuses unlinked catalogue admission in both currencies even with a paused service (72.9721ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///WORKSPACE/world-hive-pepe-release-2026-10-19/source/tests/world-gold-audit7.test.mjs:12:42)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /LEGACY_.*ORDER_UNSUPPORTED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit7.test.mjs:19:1
+✖ Audit7 M2: bare upstream error text cannot be a delivered report and refunds the original amount once (145.3175ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'delivered'
+  - 'refunded'
+  
+      at TestContext.<anonymous> (file:///WORKSPACE/world-hive-pepe-release-2026-10-19/source/tests/world-gold-audit7.test.mjs:25:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'delivered',
+    expected: 'refunded',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit7.test.mjs:32:1
+✖ Audit7 L1: Mint auth expiring during admission I/O creates neither a mint row nor a GOLD hold (78.243ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///WORKSPACE/world-hive-pepe-release-2026-10-19/source/tests/world-gold-audit7.test.mjs:37:3)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /INVALID_MINT_AUTH|MINT_AUTH_EXPIRED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests\world-gold-audit7.test.mjs:43:1
+✖ Audit7 I1: retry refuses a pending quote at expiry while preserving an already-paid receipt (69.3374ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///WORKSPACE/world-hive-pepe-release-2026-10-19/source/tests/world-gold-audit7.test.mjs:48:3)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ORDER_EXPIRED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
