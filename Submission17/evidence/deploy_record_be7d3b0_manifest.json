@@ -1,0 +1,2383 @@
+{
+ "kind": "imd-world deploy record",
+ "mode": "deploy",
+ "startedAt": "2026-10-27T17:18:06.511Z",
+ "finishedAt": "2026-10-27T17:23:09.249Z",
+ "commit": "be7d3b0c2a8086a9e6c1884481b62dedbe91de2e",
+ "branch": "fix/gold-finality-credit",
+ "dirty": false,
+ "envFiles": [],
+ "viteEnv": [],
+ "buildEnv": [],
+ "targetEnv": [
+  "CLOUDFLARE_ACCOUNT_ID"
+ ],
+ "nodeEnv": null,
+ "dependencies": {
+  "mismatches": []
+ },
+ "source": {
+  "unchangedDuringUpload": true
+ },
+ "tests": "passed",
+ "tools": {
+  "node": "v24.22.1",
+  "wrangler": "4.143.0",
+  "vite": "8.3.5",
+  "typescript": "5.9.3"
+ },
+ "config": [
+  {
+   "path": "wrangler.jsonc",
+   "sha256": "cb4a6455663216b8bc387c1f4a14edec9b7cf2104174c2ba00d863dcf4fb841f"
+  },
+  {
+   "path": "package-lock.json",
+   "sha256": "5c3a31164984b15b89bd1913ed9a9d6b3978e7d262e23101095ead2da5626999"
+  },
+  {
+   "path": "public/_headers",
+   "sha256": "37e479f7bb49d523a93d2c0e745615d257cd57a4881d5e2ef4f6c311f52e87bf"
+  }
+ ],
+ "wrangler": {
+  "exitCode": 0,
+  "versionId": "7dfe57a1-9917-4d36-87e5-159a8aa6d134"
+ },
+ "dist": {
+  "sha256": "5f5f54b6689588b1a8525016c593ad8b8cd55a687da76dbf0a7f004beefcd331",
+  "files": [
+   {
+    "path": "dist/_headers",
+    "size": 3958,
+    "sha256": "37e479f7bb49d523a93d2c0e745615d257cd57a4881d5e2ef4f6c311f52e87bf"
+   },
+   {
+    "path": "dist/_redirects",
+    "size": 82,
+    "sha256": "88e104f0d2983308791bf71351fdeb28fc350fdbb7654e3e0028ae23b92b379b"
+   },
+   {
+    "path": "dist/assets/AIMarketCampaignBlock-tqlM5Y5v.js",
+    "size": 4021,
+    "sha256": "3ba981dc233a4882209b4e350e1e02d5993a1e3c796bf91d059543086cfca79f"
+   },
+   {
+    "path": "dist/assets/AIMarketGateway-q3ok66l2.js",
+    "size": 550,
+    "sha256": "a03253ceef2b31356e3fdfc0cff1331537aeacbd53669b6f792a2ae77518086a"
+   },
+   {
+    "path": "dist/assets/AIMarketPane-CjfBXvlH.js",
+    "size": 11077,
+    "sha256": "5411628541fddc537699454cf7649b8711142a2de31d3aadd4752525a60fbcea"
+   },
+   {
+    "path": "dist/assets/AIMarketPane-DxyvE3jl.css",
+    "size": 2455,
+    "sha256": "ecb9ba30053e8759f943fc8abb4af7ccae2424b35dc414b380f6a9b7d6f93b36"
+   },
+   {
+    "path": "dist/assets/AvatarPanel-B9UOqkso.js",
+    "size": 5143,
+    "sha256": "91874ffd86c484fcca2be4ccb4c698d6432ff69c95909e0e6d7cd4b77b377e5c"
+   },
+   {
+    "path": "dist/assets/AvatarPanel-CKUNr5QZ.css",
+    "size": 6235,
+    "sha256": "0c416b3821da4f3b642d55fdfd565f9f9682e9bdabaf6bd49cedb9db3241b1d3"
+   },
+   {
+    "path": "dist/assets/CelestaoCheckout-WXVNORrf.js",
+    "size": 9131,
+    "sha256": "5992887db8568d2cdd1c80b7a569d6e5c30e005f719009ab2a48ec1e362ecc26"
+   },
+   {
+    "path": "dist/assets/CelestaoGateway-WcNQ2qm0.js",
+    "size": 4416,
+    "sha256": "27fc607e011c541af6c813e0de3050f6c5b1f77efe2364dd000d29d2bb2261d8"
+   },
+   {
+    "path": "dist/assets/EconomyPane-B-turrpf.css",
+    "size": 8766,
+    "sha256": "2354e6be97f20b98de0dca7a3583a9a0f4eea482b8704746e16b4b66efaba107"
+   },
+   {
+    "path": "dist/assets/EconomyPane-CR5nws24.js",
+    "size": 41860,
+    "sha256": "07c52c9bbff12cfec3988c56e47f06a2970ae3d283ac732b7eb60212176af7f7"
+   },
+   {
+    "path": "dist/assets/GamePane-fKgUkZs0.js",
+    "size": 2714,
+    "sha256": "bc3e60ab127f38637d86d18265af35fb24e924c9728ef00878e9fba44890b1e2"
+   },
+   {
+    "path": "dist/assets/GamePane-uWZRg5ns.css",
+    "size": 1392,
+    "sha256": "c245d082850fba4c1e2396f0f208fcdcc2e151f10c9185c5c2ac0ad456a8087c"
+   },
+   {
+    "path": "dist/assets/InteriorView-DV4wrakV.js",
+    "size": 95867,
+    "sha256": "bcc7ab884279709c556d7c616b5a1d8578547518bbf8ae1363a535139056e68b"
+   },
+   {
+    "path": "dist/assets/InventoryPane-CV1mgZXL.js",
+    "size": 7337,
+    "sha256": "4ac363029b974dfaead26c85babacb61b184a4a42470a54417be93ba59d068ee"
+   },
+   {
+    "path": "dist/assets/InventoryPane-ak96KE4m.css",
+    "size": 1564,
+    "sha256": "47021ea0589e95401835b1af9499f5b892607f3031f8cb76b96debaaa1cc912b"
+   },
+   {
+    "path": "dist/assets/PublicCabinetBlock-tFVeO98T.js",
+    "size": 1834,
+    "sha256": "41028094fe35250378e298d211f53269a39bd27e2506e1331d5633baa6428050"
+   },
+   {
+    "path": "dist/assets/SelfiePanel-6HfM2fqL.js",
+    "size": 6029,
+    "sha256": "535e70fe4bd99d2d271438182f5fb78cc463b76fa056475045d8e60e926d04a4"
+   },
+   {
+    "path": "dist/assets/SelfiePanel-BnFKbO-U.css",
+    "size": 2924,
+    "sha256": "9ad11c971c7e4335252f2df377d55eeab0b8d6b38a4f2017d4ad9eb4bb1bba8e"
+   },
+   {
+    "path": "dist/assets/StickEmberPane-B64uamHB.css",
+    "size": 1466,
+    "sha256": "140f33f4698286ff8eff53247291f671dec8b4ec49890fd177cb0c207e0b722b"
+   },
+   {
+    "path": "dist/assets/StickEmberPane-Dd3VawkH.js",
+    "size": 2831,
+    "sha256": "ba0217cff6fdc71ffab348e2ba46205515a0555d1e1f17829ce7f3e809500fcd"
+   },
+   {
+    "path": "dist/assets/WalletBalancesBlock-BUfF4a6S.js",
+    "size": 2226,
+    "sha256": "22ec0ea3cb61bf128a0b59e9b4c10130700b54bb13ad2f13ff0149405333d992"
+   },
+   {
+    "path": "dist/assets/WalletBalancesBlock-wCmlkmg2.css",
+    "size": 357,
+    "sha256": "4e97b03b72d2871f0410b46262461c5360388c113ec315771c3d5a80ec001b5a"
+   },
+   {
+    "path": "dist/assets/WalletPanel-w6EOj1ZQ.js",
+    "size": 132520,
+    "sha256": "88592106e943355c4b0d2144ef975fa413e6e38c17bcdbc8de3271afd8a00366"
+   },
+   {
+    "path": "dist/assets/WorldBootstrap-AvPal8Ko.css",
+    "size": 93635,
+    "sha256": "64332c97bfff1a533654424bc53696b570eb6dce3962f7a1302d475ab0f9deb8"
+   },
+   {
+    "path": "dist/assets/WorldBootstrap-Aw1vRhmA.js",
+    "size": 844109,
+    "sha256": "2fd26b88da3ff9cf12f330440eb8c8c742635741b2ddc8eb5aef14fdae7b5989"
+   },
+   {
+    "path": "dist/assets/WorldGoldPanel-Dp5sCSh3.js",
+    "size": 33166,
+    "sha256": "80c3c30fb2005d96b119de6b6bc028ab7d6dc10cb443a8dcbc080657289d68fd"
+   },
+   {
+    "path": "dist/assets/WorldMap-CtSh17ii.js",
+    "size": 13573,
+    "sha256": "70b7b241a32339cf8baacc3044271eb2679df94242726af00d1f624b1530d31c"
+   },
+   {
+    "path": "dist/assets/aimarketAdmin-DXszT2cC.js",
+    "size": 987,
+    "sha256": "d515f95d7ecb243f0d15c1f6b441dd3446a7b03452e3adf832b54fcf796181ca"
+   },
+   {
+    "path": "dist/assets/aimarketEntry-BapAPB8X.js",
+    "size": 845,
+    "sha256": "ad554839b0e25b05bfd094ded5deecb9158e10eedd87ba11444d49fad9893276"
+   },
+   {
+    "path": "dist/assets/cadence-ZfgxCiT0.js",
+    "size": 9994,
+    "sha256": "03271f0f21414d495f0eecc019230599ae4d734e933b9bf8e2431bb79556c685"
+   },
+   {
+    "path": "dist/assets/celestaoGateway-BgXS-NJS.css",
+    "size": 1696,
+    "sha256": "d4b1ef4806355444d8a38c3a80cd981ef0ecd8095ef7d83be6149075c8d77bd7"
+   },
+   {
+    "path": "dist/assets/cinzel-latin-400-normal-DnUIPmzd.woff2",
+    "size": 14128,
+    "sha256": "b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217"
+   },
+   {
+    "path": "dist/assets/cinzel-latin-600-normal-Dd5YO2UX.woff2",
+    "size": 15204,
+    "sha256": "61efc27ceb7d08bb841652fa8979c0b6833b92548b7f9544c07968a6c02f28e4"
+   },
+   {
+    "path": "dist/assets/city-panel-C_8GOmTo.js",
+    "size": 6607,
+    "sha256": "79c0b02c5a5bde34a2c2d9156b19464770cb6059b8fbfd979e4756f6972928ef"
+   },
+   {
+    "path": "dist/assets/city-panel-Rr9zqPiV.css",
+    "size": 1302,
+    "sha256": "ff088e81c2ec5581c689def42b84e0c5e5fc5ab909724d248b7f0136771aa937"
+   },
+   {
+    "path": "dist/assets/decor/pepe/flags.b9ba8791e7.webp",
+    "size": 41076,
+    "sha256": "b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669"
+   },
+   {
+    "path": "dist/assets/decor/pepe/murals.99dc8eaf72.webp",
+    "size": 215970,
+    "sha256": "99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3"
+   },
+   {
+    "path": "dist/assets/decor/pepe/posters.fa83db53c5.webp",
+    "size": 55390,
+    "sha256": "fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea"
+   },
+   {
+    "path": "dist/assets/economyClient-BU8kT4rD.js",
+    "size": 12738,
+    "sha256": "e91607495c9e5ce127345b55fd00c918e53f46ab70ab11dc059cffe41e46a86f"
+   },
+   {
+    "path": "dist/assets/economyWallet-BZsCUvu4.js",
+    "size": 19539,
+    "sha256": "a6bfe81798856e688b09346dffa7dc95c9b396cd834cb02f333e6fe4018f87b7"
+   },
+   {
+    "path": "dist/assets/emvo-64.771f691c33.png",
+    "size": 2713,
+    "sha256": "771f691c330cf00a0a9038b0aac718fd519000872f3cfb0532113739fccac4b4"
+   },
+   {
+    "path": "dist/assets/fortunePricing-BJRhnq9R.js",
+    "size": 626,
+    "sha256": "0235d287d35c65012b899ce708cf4aa12c28e5c0feb5e51f9509f8e505af8156"
+   },
+   {
+    "path": "dist/assets/freshness-cjMl3j5e.js",
+    "size": 376,
+    "sha256": "37f8ef18972c92903fe587af3873da7e20b7f21e64c6aae42543a49ed4c73e12"
+   },
+   {
+    "path": "dist/assets/hall-previews/dream.97047cd370b6.glb",
+    "size": 483984,
+    "sha256": "97047cd370b6000169aaca6828b9792ed13fbd1f70f3ddc15e610a59a5666a97"
+   },
+   {
+    "path": "dist/assets/hall-previews/ecosystem.60f56e314b8c.glb",
+    "size": 587000,
+    "sha256": "60f56e314b8c6dd8aef7ee059d72bad5af68c86bc6ff1f9f778a261c212a7d3b"
+   },
+   {
+    "path": "dist/assets/hall-previews/launchpad.83a71a9fb3cc.glb",
+    "size": 559744,
+    "sha256": "83a71a9fb3cc50dc1288a24f68798b84f189c4590d19d468f8774a9b269dee81"
+   },
+   {
+    "path": "dist/assets/hall-previews/mountain-cave.a55af71ffbde.glb",
+    "size": 349920,
+    "sha256": "a55af71ffbde49c0efa2c1bedabefeba37dd9a063e399309a25aa5461491a6b0"
+   },
+   {
+    "path": "dist/assets/hall-previews/radar.36bcfd9a9abb.glb",
+    "size": 434924,
+    "sha256": "36bcfd9a9abbc6eefa8ad55a17e57e00b749921cb2c9c4390b63751020bfdbbc"
+   },
+   {
+    "path": "dist/assets/hall-previews/stickember.d5a75ddd4a82.glb",
+    "size": 435840,
+    "sha256": "d5a75ddd4a8248ad27e72a9371e01a32596d58381c156548216fe80d0d4643e1"
+   },
+   {
+    "path": "dist/assets/halls/aimarket-preview.13fca1b47e97.glb",
+    "size": 1818760,
+    "sha256": "13fca1b47e97b368e8418ae9891b14332a180d5c657a4486ba190c406eab59a3"
+   },
+   {
+    "path": "dist/assets/halls/aimarket-preview.60f56e314b8c.glb",
+    "size": 587000,
+    "sha256": "60f56e314b8c6dd8aef7ee059d72bad5af68c86bc6ff1f9f778a261c212a7d3b"
+   },
+   {
+    "path": "dist/assets/halls/aimarket.77ef3ab05e5f.glb",
+    "size": 1913768,
+    "sha256": "77ef3ab05e5f441e7a3625ff37f6ae19cd3950095496bdf2f2320962963da433"
+   },
+   {
+    "path": "dist/assets/halls/aimarket.a798c55ec397.glb",
+    "size": 3416060,
+    "sha256": "a798c55ec3970f837b9b1c058eb3353bd406f58c93c63ebb7ca56a06ed9c3741"
+   },
+   {
+    "path": "dist/assets/halls/dream.67b60db9ea50.glb",
+    "size": 2091332,
+    "sha256": "67b60db9ea50f2d4ba42cbd68e32fabac27109d7ecd04d6b27a773d9db1a68be"
+   },
+   {
+    "path": "dist/assets/halls/ecosystem.77ef3ab05e5f.glb",
+    "size": 1913768,
+    "sha256": "77ef3ab05e5f441e7a3625ff37f6ae19cd3950095496bdf2f2320962963da433"
+   },
+   {
+    "path": "dist/assets/halls/fortune-preview.376777047c25.glb",
+    "size": 2002744,
+    "sha256": "376777047c256dcdbb0b5f8b5e278b14e9ebffd2f8ad0f4cbbd18e784101a44e"
+   },
+   {
+    "path": "dist/assets/halls/fortune.8ef5a36a8802.glb",
+    "size": 4025068,
+    "sha256": "8ef5a36a88020f640a618ab3d302ab99c96b783a36815f717f6a600f487adb75"
+   },
+   {
+    "path": "dist/assets/halls/hive-preview.24ca4c4cfa1f.glb",
+    "size": 1928644,
+    "sha256": "24ca4c4cfa1fa5305596da3cde9fab023e3ae84bb3c79f06f5c46bfcfb77e060"
+   },
+   {
+    "path": "dist/assets/halls/hive.3d2db657d4fa.glb",
+    "size": 4134684,
+    "sha256": "3d2db657d4fa472476c3568457a2b0fdb68f70b84755de475bdd202195e98d10"
+   },
+   {
+    "path": "dist/assets/halls/launchpad.adb3d16a06e8.glb",
+    "size": 3037844,
+    "sha256": "adb3d16a06e84e3bc2594e1a4e33cd59a234c2263547f72151dd93c532315cf9"
+   },
+   {
+    "path": "dist/assets/halls/mountain-cave.e7654faaecf3.glb",
+    "size": 2223672,
+    "sha256": "e7654faaecf3f2c1e0ab8a5d7ebfca87c25b686747399d92f8d9410a8524477e"
+   },
+   {
+    "path": "dist/assets/halls/newspaper-preview.9270abb127c3.glb",
+    "size": 883600,
+    "sha256": "9270abb127c3b1dc6cc3ef2f6ae9ac347b99a21dead53ca89ebb24d2d2b4ef2b"
+   },
+   {
+    "path": "dist/assets/halls/newspaper.215ab2aa5c02.glb",
+    "size": 3218016,
+    "sha256": "215ab2aa5c02a80d553d6ee950cf5f0b7f250ef50240f78278cd9d8f7bd51d9b"
+   },
+   {
+    "path": "dist/assets/halls/pepe2pepe-preview.8c9c6adc78df.glb",
+    "size": 1340480,
+    "sha256": "8c9c6adc78df3e47e32ef41436cb1aea5665febb3d5a8cfac9b5aa2cc0e1a7a4"
+   },
+   {
+    "path": "dist/assets/halls/pepe2pepe.6c14844d6cb3.glb",
+    "size": 2950628,
+    "sha256": "6c14844d6cb311b11f27befe7208fd5fa50282d53f6d6a7672197f95ad4b74db"
+   },
+   {
+    "path": "dist/assets/halls/radar.7e09811e2d93.glb",
+    "size": 1762368,
+    "sha256": "7e09811e2d93808f66511a08f20a0a977be63e940c2a93f1269b902ccfcde620"
+   },
+   {
+    "path": "dist/assets/halls/simd-preview.b37be74fd7ce.glb",
+    "size": 423884,
+    "sha256": "b37be74fd7ce614576b84e8a16ac7a7cc86bf2fd004ee8ac3017a9308fc08981"
+   },
+   {
+    "path": "dist/assets/halls/simd.b5fec9caa77e.glb",
+    "size": 1580724,
+    "sha256": "b5fec9caa77eb7883268878d42a57a3613a8dc6a6ce597132992aeac5c56f75b"
+   },
+   {
+    "path": "dist/assets/halls/staking-preview.639a746c462e.glb",
+    "size": 2068188,
+    "sha256": "639a746c462e02bdfc1f608e3a0f1769d1707bcbd027d937824c7e4bf0dc8056"
+   },
+   {
+    "path": "dist/assets/halls/staking.9e7db397d009.glb",
+    "size": 4068336,
+    "sha256": "9e7db397d0091c2d57c7a583b496d1d74bbd11dc69a30bfca7007db714117af7"
+   },
+   {
+    "path": "dist/assets/halls/stickember.55a3642735a5.glb",
+    "size": 1934072,
+    "sha256": "55a3642735a56875a920e2ae3775ac5a556e6a7fb1b1c0b1a099407f573df144"
+   },
+   {
+    "path": "dist/assets/index-9FS45hAG.css",
+    "size": 78517,
+    "sha256": "053caeeb1ac0c87f86aabb1be3f7d851cbebe84313402abf370787cdf54d2b42"
+   },
+   {
+    "path": "dist/assets/index-Br2AjNqT.js",
+    "size": 1715423,
+    "sha256": "0fbf3b8b9b7a74d764db2c8328485254996149707e0b8f323c8928c8f71ce6e3"
+   },
+   {
+    "path": "dist/assets/index-CrXn8RfP.js",
+    "size": 16940,
+    "sha256": "69b74057ef125467d65414ff6d713bf452b2ca060e889d9f6172bd7ee58f0bad"
+   },
+   {
+    "path": "dist/assets/inventory-CdylOfrT.js",
+    "size": 1252,
+    "sha256": "7601db32770f436603c69d011b978d8420876301fb41bfbff1a142c34b2cee89"
+   },
+   {
+    "path": "dist/assets/inventoryClient-1Wz0hGEe.js",
+    "size": 2573,
+    "sha256": "ec1eaf6ddd32cb6a3a81568385c4a35f37ada744a8d134c6975e45debeb62345"
+   },
+   {
+    "path": "dist/assets/libraries-Cxggwjes.js",
+    "size": 189518,
+    "sha256": "9746b879831bbef02db1e5da2cd423fc38c8f2ac2d2e7cb4db97088d147150c3"
+   },
+   {
+    "path": "dist/assets/links-YDElXjVH.js",
+    "size": 3113,
+    "sha256": "89517d7804e13d2784929b3f3cff6cb7249878c17cefb540efff8324527a6cd1"
+   },
+   {
+    "path": "dist/assets/miners/large.78072e38c148.webp",
+    "size": 55980,
+    "sha256": "78072e38c148c9de6534ff7fb25c2cfda2fadc3b2772c626e54ad3c090fc3576"
+   },
+   {
+    "path": "dist/assets/miners/large.d39e7c27da1a.glb",
+    "size": 1058384,
+    "sha256": "d39e7c27da1a11c35e105f7251c384386d498fa2fc93c1fe07c82fa4b4e0b0e0"
+   },
+   {
+    "path": "dist/assets/miners/large.dab5d616bcc7.mp4",
+    "size": 250802,
+    "sha256": "dab5d616bcc759cd21cad24126df1e21521848ab9e3b47157eaf2c2412127ffa"
+   },
+   {
+    "path": "dist/assets/miners/medium.578ec8003577.glb",
+    "size": 1045032,
+    "sha256": "578ec80035773a1c9fce15722300c26af8b89d82118b9afd1b42c3ac6cbbbe4c"
+   },
+   {
+    "path": "dist/assets/miners/medium.731033f99cb4.webp",
+    "size": 59486,
+    "sha256": "731033f99cb4b8e15b732e3483f286f1dcc89cd5c9b7fcee491191efe5075418"
+   },
+   {
+    "path": "dist/assets/miners/medium.76c19a0054b9.mp4",
+    "size": 273671,
+    "sha256": "76c19a0054b94d055322ffb177502d55938e12159ed2e4b6d013e45dc2ecb6bf"
+   },
+   {
+    "path": "dist/assets/miners/small.664b24c41f7f.webp",
+    "size": 58088,
+    "sha256": "664b24c41f7f317e13d10a76447a89c2048fe65d7c8e7a2ca898315b69d2ca8c"
+   },
+   {
+    "path": "dist/assets/miners/small.d79441a567f0.glb",
+    "size": 1054408,
+    "sha256": "d79441a567f0d45d96ce760c187a10621c28ab5aa96487a7ea2aacab73a4e24c"
+   },
+   {
+    "path": "dist/assets/miners/small.e94816cdd5d9.mp4",
+    "size": 278819,
+    "sha256": "e94816cdd5d98a0521589dade4f4b4721a29ba64315f63323973195b67c39ebd"
+   },
+   {
+    "path": "dist/assets/model-transfer/aimarket-preview.a851561d1677.glb.gz",
+    "size": 405996,
+    "sha256": "a851561d1677701fa18362bff97a4ee53ee92155142a8d3f3a131322d3d83964"
+   },
+   {
+    "path": "dist/assets/model-transfer/aimarket.ec8e203d0c34.glb.gz",
+    "size": 1527819,
+    "sha256": "ec8e203d0c34cbffee0822c876e65aaf4cb2ac52b1503d55243483436f80238a"
+   },
+   {
+    "path": "dist/assets/model-transfer/fortune-preview.dc1360754a11.glb.gz",
+    "size": 1467668,
+    "sha256": "dc1360754a11c4a2b0d8156ff6d6147a347316963061014c83faf66f10115552"
+   },
+   {
+    "path": "dist/assets/model-transfer/fortune.28aa83a660ab.glb.gz",
+    "size": 3485870,
+    "sha256": "28aa83a660ab44afc62b9f111e0e22c48aad74a8a5dd87e536c3f3959ab65fdb"
+   },
+   {
+    "path": "dist/assets/model-transfer/hive-preview.a83dbd61667d.glb.gz",
+    "size": 1437132,
+    "sha256": "a83dbd61667d6fb4f0bccf520171b140bccf1a8b9ddc109586e76fd6537dde6f"
+   },
+   {
+    "path": "dist/assets/model-transfer/hive.acd9fd1c2778.glb.gz",
+    "size": 3643725,
+    "sha256": "acd9fd1c27783ad3061e9a7718daf3e01af1bfa4a41ed4f1ee00f34ee6fd51fb"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-3d-crate-frame.d0dd53eb3d58.glb.gz",
+    "size": 471960,
+    "sha256": "d0dd53eb3d58cced99282cdb471e13501a67c006bf5d5aa398b4aff77aeca6b2"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-arcade-cabinet-3d-model.32a53e0e802f.glb.gz",
+    "size": 339556,
+    "sha256": "32a53e0e802f74d6333d33c8286f42c43d4fbbf3d374458a6e4a2c23352a8cff"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-arcane-pedestal-3d-model.1545adedec75.glb.gz",
+    "size": 360448,
+    "sha256": "1545adedec759b0dd43415b78f05ba0acd5ef543bc98e58e6d4abf866441f670"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-celestial-globe-3d-model.e12f3952c6d5.glb.gz",
+    "size": 361666,
+    "sha256": "e12f3952c6d54094a604f709378f785d244791d988d5017598d7b54a97d3bc84"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-colorful-toy-console-3d-model.4d6ef8b89ec7.glb.gz",
+    "size": 330388,
+    "sha256": "4d6ef8b89ec757e84e64ecee16e1b12f44033d385aada61953301be468e8f9fd"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-control-console-3d-model.008ad465a4a5.glb.gz",
+    "size": 353136,
+    "sha256": "008ad465a4a5e7cf7787ec6aa9cc42dd108285242577698fcd6a0bc48ef72571"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-curved-reception-desk-3d-model.ca9cd65dad14.glb.gz",
+    "size": 303221,
+    "sha256": "ca9cd65dad14456d8e89dd8cb30d7571afe0a18ce8fd2fb509bb04d54d57228a"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-decorative-reception-desk-3d-model.57b18037329a.glb.gz",
+    "size": 330239,
+    "sha256": "57b18037329adaec734613c30538d5025eb17e15bba37e9695767a861cdc6c3b"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-fantasy-archway-3d-model.69dbad34fda7.glb.gz",
+    "size": 373083,
+    "sha256": "69dbad34fda732e05e84eae9b147b9b52952163712850fda11fe21282f9d4c65"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-fantasy-wagon-3d-model.6db91b1e1be9.glb.gz",
+    "size": 370561,
+    "sha256": "6db91b1e1be9b416d55408fb450696b184548c9662d28f21d19dacda42b75f01"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-fantasy-wooden-counter-3d-model.e484b1619d3a.glb.gz",
+    "size": 330124,
+    "sha256": "e484b1619d3a21db7b4e479e62f12c0c410075a50b93724248ddf468fb76a728"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-futuristic-cargo-crate-3d-model.d424e9bf09ec.glb.gz",
+    "size": 440869,
+    "sha256": "d424e9bf09ec8c9df2168e72b860a240145da2458f58246c8d1733eaaec6962d"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-futuristic-desk-3d-model.50e902dc19a7.glb.gz",
+    "size": 313559,
+    "sha256": "50e902dc19a79324e183395d53835104855d481ea84ac47c57fe54df6c57230f"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-futuristic-reception-desk-3d-model.b56a7e4c439d.glb.gz",
+    "size": 322740,
+    "sha256": "b56a7e4c439d86621c2000c8d358538fa778493c3827451a85a420f577936d92"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-green-crystal-cluster-3d-model.d26c4d3d75e6.glb.gz",
+    "size": 315229,
+    "sha256": "d26c4d3d75e6d9f589f807161e4280d2447e25cec376389dad1ac6fcf264a439"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-industrial-machine-3d-model.7385a43ed315.glb.gz",
+    "size": 402858,
+    "sha256": "7385a43ed3151c75bfdfb3d6c4e7cddb0fefd7b8fe045f1aaf23741803a138b5"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-luxury-armchair-3d-model.af6f0daeb4cc.glb.gz",
+    "size": 298612,
+    "sha256": "af6f0daeb4cc568ccfaf847a224d578d87b4426eab69c3e058d90c7962778b5c"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-luxury-cash-desk-3d-model.711be09d0151.glb.gz",
+    "size": 240762,
+    "sha256": "711be09d015115dd35f7d5cec7d8f9ecd06ae97cadb0842d02831b4d45a085bc"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-luxury-office-desk-3d-model.6f2c51152e99.glb.gz",
+    "size": 246789,
+    "sha256": "6f2c51152e9955885bc9bee4abac6e727c4bd02c43a8dc9ebf6e12d4d7681570"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-luxury-sofa-3d-model.c12db349b5db.glb.gz",
+    "size": 333104,
+    "sha256": "c12db349b5dbeba60199cb9f1eba0b5d883f3e5d9a6b5c79e2e1887ac37f7a5f"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-medieval-gate-3d-model.1a657e1c2bd8.glb.gz",
+    "size": 341443,
+    "sha256": "1a657e1c2bd86bf129d45dd790667411d54b6d7c698b75b65c6f6fcd5d9ff719"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-bookshelf-3d-model.9ab8726e5c3e.glb.gz",
+    "size": 435486,
+    "sha256": "9ab8726e5c3ec46e1108979e2d8653751aa275639f722825557e05f034871b16"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-chalkboard-3d-model.1b86342ae34e.glb.gz",
+    "size": 407907,
+    "sha256": "1b86342ae34eb9a3c4726ff3685618ef939b5bad7fc927bc385bc851791fafcc"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-circular-table-3d-model.bf336591c5ef.glb.gz",
+    "size": 389645,
+    "sha256": "bf336591c5ef0b796a624a1e16cc69a1d93de92fb8bc4d91fe796dcef1208afd"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-desk-3d-model-1.8baa8b418b10.glb.gz",
+    "size": 349096,
+    "sha256": "8baa8b418b10b0eff5016aa7aa089965a9c238208b6b8efbb8d696d6e86533bb"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-desk-3d-model-2.c51e93f5d4c4.glb.gz",
+    "size": 360438,
+    "sha256": "c51e93f5d4c4ec02f87d4485b79db511c88ab1de62807200bfef980fd29151c4"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-desk-3d-model.5395c0d9d412.glb.gz",
+    "size": 334739,
+    "sha256": "5395c0d9d4125a108368ee74c3f74290b1c1bf337d00af12efb773fb27fd7ce7"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-drawer-cabinet-3d-model.f5c176ceda05.glb.gz",
+    "size": 427122,
+    "sha256": "f5c176ceda05cd2aad22ec0747cf331333de9d9e2c98bab28f4d2039f77f3cfd"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-folding-screen-3d-model.0479acd78acf.glb.gz",
+    "size": 476491,
+    "sha256": "0479acd78acf043fa3fddb433679ef6038658ebff6b097e4138130fad383e7f0"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-gate-3d-model.7f563f0514c9.glb.gz",
+    "size": 405579,
+    "sha256": "7f563f0514c994e7fd4b4dcf43acc4d32f36aae36186d908d6f2c38c7691468d"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-orrery-3d-model.83265213c685.glb.gz",
+    "size": 409372,
+    "sha256": "83265213c6856aa2928a665c790973d55b256febe9a58ffb33fda16faf0c9225"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-portal-frame-3d-model.db01c5b24c3b.glb.gz",
+    "size": 453141,
+    "sha256": "db01c5b24c3bed444f048b020d58819ebb8e727e629abd38e632095314158314"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-sofa-3d-model.9d8f06c76204.glb.gz",
+    "size": 316975,
+    "sha256": "9d8f06c76204daeab42326ea8b9683b47200e244c97e4f62ed959ff1fc3299f5"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-table-3d-model.6c1f7a99bc50.glb.gz",
+    "size": 376379,
+    "sha256": "6c1f7a99bc50297cec1d0790f6d61c95af9f874b909dc60894f51b373a015b2f"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-triptych-wall-panel-3d-model.b355641bcef5.glb.gz",
+    "size": 271760,
+    "sha256": "b355641bcef56875a0d578710d10f5c9edf62608131ec6f8e6419403ab4d0ed2"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-ornate-wall-panel-3d-model.ead43b7cbd5e.glb.gz",
+    "size": 445117,
+    "sha256": "ead43b7cbd5e0c6667975472619b339dfdcb1dd898e7bf8a584d4b67936adeb8"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-rock-arch-3d-model.654e4f38a95b.glb.gz",
+    "size": 334181,
+    "sha256": "654e4f38a95bb4bf1e0a9978e8310baf93808f2b31d56bd1981ba02c877e819d"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-steampunk-control-console-3d-model.53f58ad4fb2b.glb.gz",
+    "size": 383133,
+    "sha256": "53f58ad4fb2b2e2189880e46fc67f9272e23026989ae234052da8a2ba2208501"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-steampunk-desk-3d-model.022316db6fef.glb.gz",
+    "size": 422994,
+    "sha256": "022316db6fef181511ffc4a60116c7e05a8058a4f26bf7fae65d8f2ada14c664"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-stone-bench-3d-model.b01d3df551c7.glb.gz",
+    "size": 308224,
+    "sha256": "b01d3df551c72ed45778e4a960afb21e9109cf8013175c966e12921471641c5d"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-stone-fire-pit-3d-model.abb52f2ee763.glb.gz",
+    "size": 348721,
+    "sha256": "abb52f2ee763eeed1454c4e2279998b8ceb320036e7a1caceec6fadcad427e86"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-stylized-cannon-3d-model.b1cb21c5b800.glb.gz",
+    "size": 363389,
+    "sha256": "b1cb21c5b800ec2d7d0d31cc4e6dede5c02675d56cdea49145afeb55b7dd0504"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-stylized-oval-game-table-3d-model.c422404dcc2a.glb.gz",
+    "size": 324542,
+    "sha256": "c422404dcc2a289e81ae4df4235e289573a3e0a972080654bb4505ca3d97f368"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-three-panel-signboard-3d-model.aa83ca011441.glb.gz",
+    "size": 308609,
+    "sha256": "aa83ca0114413c536faa8998da628020ec456d4df76aab8a9a51fd4db6be0e7c"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-tiered-display-shelf-3d-model.fda25e0815b9.glb.gz",
+    "size": 263406,
+    "sha256": "fda25e0815b9e9c22e52057ee1ae1546cb65afb88542e065aade87b3787dbdd1"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-vault-door-3d-model.d32ce52f6352.glb.gz",
+    "size": 476808,
+    "sha256": "d32ce52f6352fff8afa34d7f95a5a85f8ae5a60baf51a34682332921f6457570"
+   },
+   {
+    "path": "dist/assets/model-transfer/interior-wooden-log-bench-3d-model.594fda048e84.glb.gz",
+    "size": 307712,
+    "sha256": "594fda048e84f1d8fbb73ed1b029ec8b02719bae19618e93f527d6c3d29f2f30"
+   },
+   {
+    "path": "dist/assets/model-transfer/launchpad-preview.68fd18e89370.glb.gz",
+    "size": 331623,
+    "sha256": "68fd18e8937015f21111c2c004c215c18433727b0a4c5daecabf2ef25e9ef953"
+   },
+   {
+    "path": "dist/assets/model-transfer/launchpad.9f390326416d.glb.gz",
+    "size": 2626515,
+    "sha256": "9f390326416d48a92deef726db4086073c7b8e8588071178cb092246e672386e"
+   },
+   {
+    "path": "dist/assets/model-transfer/newspaper-preview.d23534b9d618.glb.gz",
+    "size": 504365,
+    "sha256": "d23534b9d618dfbe68fa03403dcc28317113e0b52693baf40423c1891ca5fe76"
+   },
+   {
+    "path": "dist/assets/model-transfer/newspaper.921fa16fed3a.glb.gz",
+    "size": 2549041,
+    "sha256": "921fa16fed3a94e3708d0348e8c48baeb9ded7263e0b51d0513dff355050ba04"
+   },
+   {
+    "path": "dist/assets/model-transfer/pepe2pepe-preview.24481cd7ab81.glb.gz",
+    "size": 1026346,
+    "sha256": "24481cd7ab81a2da481d5cccf9ba99ec90c6e3e81715ae026e354c0cb0243384"
+   },
+   {
+    "path": "dist/assets/model-transfer/pepe2pepe.4edff1b1a563.glb.gz",
+    "size": 2620679,
+    "sha256": "4edff1b1a563fc65a62e1e345de4a933cc4b29022c721215c650d408de5b2cd9"
+   },
+   {
+    "path": "dist/assets/model-transfer/simd-preview.44eeb15a04cb.glb.gz",
+    "size": 303528,
+    "sha256": "44eeb15a04cb8be49603a536d7ff326139f4b32136a9c0bd6855afb561db14ac"
+   },
+   {
+    "path": "dist/assets/model-transfer/simd.d20853e9713e.glb.gz",
+    "size": 1266173,
+    "sha256": "d20853e9713ed85ee38b6fb727a0f98cf40ccf9df579c613135948151e6d3104"
+   },
+   {
+    "path": "dist/assets/model-transfer/staking-preview.16ce43f9992a.glb.gz",
+    "size": 1477124,
+    "sha256": "16ce43f9992a67568018cef85f29ac505e0b3531f41876cf69f7cac61e6d9a9c"
+   },
+   {
+    "path": "dist/assets/model-transfer/staking.82577b3be1c8.glb.gz",
+    "size": 3476096,
+    "sha256": "82577b3be1c8d19163dd7a557aaaac3aba455c54eee554278bbb0f6fb49d53f6"
+   },
+   {
+    "path": "dist/assets/modelTransfer-DjCALB-m.js",
+    "size": 4884,
+    "sha256": "a7899fe6cd6145582fda47cc5a33f3f7698a48ef2f9a7e77600cc06d25998a42"
+   },
+   {
+    "path": "dist/assets/models/houses/house_lisbon_l.3f1df81bff.glb",
+    "size": 408512,
+    "sha256": "3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3"
+   },
+   {
+    "path": "dist/assets/models/houses/house_lisbon_m.8d013b5cae.glb",
+    "size": 437756,
+    "sha256": "8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6"
+   },
+   {
+    "path": "dist/assets/models/houses/house_lisbon_ms.a65c7fca14.glb",
+    "size": 373904,
+    "sha256": "a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93"
+   },
+   {
+    "path": "dist/assets/models/houses/house_lisbon_s.0682a56bf7.glb",
+    "size": 279684,
+    "sha256": "0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6"
+   },
+   {
+    "path": "dist/assets/models/houses/house_lisbon_xl.1468c9bfb9.glb",
+    "size": 349400,
+    "sha256": "1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40"
+   },
+   {
+    "path": "dist/assets/models/houses/house_timber_l.4f2196f581.glb",
+    "size": 402080,
+    "sha256": "4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7"
+   },
+   {
+    "path": "dist/assets/models/houses/house_timber_m.24dfd9c6f2.glb",
+    "size": 355332,
+    "sha256": "24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8"
+   },
+   {
+    "path": "dist/assets/models/houses/house_timber_ms.861238fe59.glb",
+    "size": 342364,
+    "sha256": "861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee"
+   },
+   {
+    "path": "dist/assets/models/houses/house_timber_s.16322451a4.glb",
+    "size": 367040,
+    "sha256": "16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c"
+   },
+   {
+    "path": "dist/assets/models/houses/house_timber_xl.f4976ec185.glb",
+    "size": 414408,
+    "sha256": "f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_arch.23639ff57a.glb",
+    "size": 263160,
+    "sha256": "23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_archive.e9e8602c38.glb",
+    "size": 324604,
+    "sha256": "e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_bellspire.2c86b3ed8e.glb",
+    "size": 352944,
+    "sha256": "2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_chronicle.abf51338eb.glb",
+    "size": 278160,
+    "sha256": "abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_equestrian.044d32540e.glb",
+    "size": 263136,
+    "sha256": "044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_forge.5740310a11.glb",
+    "size": 326884,
+    "sha256": "5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_guardian.0ed4a14deb.glb",
+    "size": 269160,
+    "sha256": "0ed4a14deb5a0b297c206c52ec2b9a3c4f4836f8f79d69d0e3e0c1e5b6170765"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_heart.4433d434b3.glb",
+    "size": 350572,
+    "sha256": "4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_lift.a4634d273a.glb",
+    "size": 381044,
+    "sha256": "a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_longhouse.8ae47cca0f.glb",
+    "size": 399640,
+    "sha256": "8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_mill.a9a5afcd2b.glb",
+    "size": 319388,
+    "sha256": "a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_oracle.649809a666.glb",
+    "size": 382320,
+    "sha256": "649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5"
+   },
+   {
+    "path": "dist/assets/models/landmarks/landmark_pepe_statue.5b3f3acb36.glb",
+    "size": 584400,
+    "sha256": "5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b"
+   },
+   {
+    "path": "dist/assets/models/props/boat.c19d20ecc1.glb",
+    "size": 206196,
+    "sha256": "c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af"
+   },
+   {
+    "path": "dist/assets/models/props/boat_shelter.6b44d9d4d3.glb",
+    "size": 207588,
+    "sha256": "6b44d9d4d3ea6988f440e9cc6cb7051aca0b60e331360472cbc5bc86bdc78094"
+   },
+   {
+    "path": "dist/assets/opening/opening-540.878441a25175f3b8.mp4",
+    "size": 1390209,
+    "sha256": "878441a25175f3b83be011e326e1249473babb93d42c46deb0216c11da24abd7"
+   },
+   {
+    "path": "dist/assets/opening/opening-540.b1ed488c4225d7ab.mp4",
+    "size": 1289611,
+    "sha256": "b1ed488c4225d7ab2997f2e5b8c5cd5c85571a1f53139b64c90eec5e25cccabe"
+   },
+   {
+    "path": "dist/assets/opening/opening-540.c3d57b7df3017927.mp4",
+    "size": 1353848,
+    "sha256": "c3d57b7df3017927c2e39af0f355ec472edba7e8fa3eb79fbabe6cbb2860687d"
+   },
+   {
+    "path": "dist/assets/opening/opening-720.3c36e4992377603f.mp4",
+    "size": 2044229,
+    "sha256": "3c36e4992377603fd0f426cd145b20fb08bce482ca449d7381387cf80fe8f7e0"
+   },
+   {
+    "path": "dist/assets/opening/opening-720.a7b883661627006f.mp4",
+    "size": 2144827,
+    "sha256": "a7b883661627006f1a4a9049170fb12a2dc7e27996e341a22a3f066d59f70de4"
+   },
+   {
+    "path": "dist/assets/opening/opening-720.dd90d144aa94bbab.mp4",
+    "size": 2111191,
+    "sha256": "dd90d144aa94bbabcf5f445280343f304f9382d2fed18df6d05cee228f28549f"
+   },
+   {
+    "path": "dist/assets/opening/opening-poster.ed11cc82ba4cae9b.webp",
+    "size": 223140,
+    "sha256": "ed11cc82ba4cae9bcca5e225d5110a703159719a0214afb7841af14c983abbe5"
+   },
+   {
+    "path": "dist/assets/publicUrl-CZn1SOkF.js",
+    "size": 53046,
+    "sha256": "4c58a155cbdc9c921247f2a7b69bf4644703b1c0c35030133ecbaa7a23d5d671"
+   },
+   {
+    "path": "dist/assets/references/imd/pepe-idle.93e67adf9a.webp",
+    "size": 65974,
+    "sha256": "93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37"
+   },
+   {
+    "path": "dist/assets/researchPassCopy-CPdNN9ET.js",
+    "size": 1410,
+    "sha256": "a38ef15795ce39a79e8bccc960f62ee6b31b3e0b4d5d6ee1f0cfcabaf7214a9d"
+   },
+   {
+    "path": "dist/assets/roads/civic-208.35fab5cd4a56.bin",
+    "size": 1756978,
+    "sha256": "35fab5cd4a561ee5e1acb4d206d3c253d1289a85cd6a75c318f3d4157316056c"
+   },
+   {
+    "path": "dist/assets/roads/civic-320.79c75571f533.bin",
+    "size": 2140719,
+    "sha256": "79c75571f5333a1af9d0a157e4b6ad68e8a8a8c2b47ae12d33a564e66d846dcd"
+   },
+   {
+    "path": "dist/assets/rolldown-runtime-XKyaHtl9.js",
+    "size": 726,
+    "sha256": "548d1dbf321e7d2ae804fcc158b588706a7c52f8ca175de1490c6ccb4dbe55b7"
+   },
+   {
+    "path": "dist/assets/runtime-Cz7HUFx5.js",
+    "size": 98642,
+    "sha256": "fa8979068012b1528e4b29bd5505d9031b3f7c5d26c200f23a49c6edd00542ba"
+   },
+   {
+    "path": "dist/assets/runtime-D8gUbttN.css",
+    "size": 2786,
+    "sha256": "863cc4865b655f771575c5a4682cb45403dfff332dbaeafbcacb9d9c01caafc7"
+   },
+   {
+    "path": "dist/assets/terrain-phone.489f67dc47.bin",
+    "size": 698912,
+    "sha256": "489f67dc470887d0ead51ddaab0ff01a94f15e73701b410f9b73174bfe815748"
+   },
+   {
+    "path": "dist/assets/useMemberBalances-CMF23GUD.js",
+    "size": 3122,
+    "sha256": "c221e9d182d7fbb6d8c6bc3ff69993b88f2dbf0406456e567863ca1fec83e1b9"
+   },
+   {
+    "path": "dist/assets/world-engine-C1PjCzJJ.js",
+    "size": 663341,
+    "sha256": "ea34aa99732325245f2805e8cf08887681414c3238cc407f51ec97d78bab1287"
+   },
+   {
+    "path": "dist/assets/worldGold-2pozbY0K.css",
+    "size": 5805,
+    "sha256": "a0388f58a58a192210a9987ddfaa89b8afe353142e9744cc382d6d1e58e27037"
+   },
+   {
+    "path": "dist/audio/music/after_the_rain_a.5f942b7366.mp3",
+    "size": 2593017,
+    "sha256": "5f942b7366c84cec00e5915b387b2d5df66f160110f3d7e1b03ee33933f8e7cf"
+   },
+   {
+    "path": "dist/audio/music/ember_boats_a.a10b3caf55.mp3",
+    "size": 2797817,
+    "sha256": "a10b3caf5520f005c7a0c7ac9b6b93880739702879c674e015d9a6011c666e82"
+   },
+   {
+    "path": "dist/audio/music/frosthollow_lullaby_a.1e01e650cf.mp3",
+    "size": 2411205,
+    "sha256": "1e01e650cf2e32b2ea56a44d7e20b8e67df03bb368e129ee64d76268990399bf"
+   },
+   {
+    "path": "dist/audio/music/glass_glints.b8052094aa.mp3",
+    "size": 2850898,
+    "sha256": "b8052094aa22d8fa67479b6867a63a5c0cbfc545629a897ca5ca29e2b097b149"
+   },
+   {
+    "path": "dist/audio/music/glowing_window.bdccc2d0f2.mp3",
+    "size": 2859257,
+    "sha256": "bdccc2d0f2aa6814e84d8ea450877b1f1b2778c43ff7d55afde74f0ae0448e42"
+   },
+   {
+    "path": "dist/audio/music/good_morning_applause.2d6f477954.mp3",
+    "size": 1961481,
+    "sha256": "2d6f477954c4e7440b089b1a7565fc0201d8e6042246d0cc4bad583da04c6942"
+   },
+   {
+    "path": "dist/audio/music/light_remains_a.20c113d2a1.mp3",
+    "size": 2433775,
+    "sha256": "20c113d2a13f8ceb6695bf4cb9af8f27c350283544c7917281bbde59a8de9f38"
+   },
+   {
+    "path": "dist/audio/music/light_remains_b.3bc7aff7aa.mp3",
+    "size": 3008469,
+    "sha256": "3bc7aff7aacde3fe2a73caaafdf36aa90b2f3c384c91841c3905d5786186af61"
+   },
+   {
+    "path": "dist/audio/music/moonlit_canal_a.e30c7c37d0.mp3",
+    "size": 3408456,
+    "sha256": "e30c7c37d0b964a6888ba254a2c538d381500ed173057ca354d66a91a94b2634"
+   },
+   {
+    "path": "dist/audio/music/overcast_village.88dbd1f21a.mp3",
+    "size": 3011394,
+    "sha256": "88dbd1f21aea01c0bc146c47c90bca922d5324a91d8b26748dbb7200473a1f6d"
+   },
+   {
+    "path": "dist/audio/music/overcast_village_ii_a.24e3bb4b43.mp3",
+    "size": 3092061,
+    "sha256": "24e3bb4b432dedbcc51fe296071f5a9861f5aec54df41c47b7341423c766095d"
+   },
+   {
+    "path": "dist/audio/music/quiet_room.f47b8cbd0d.mp3",
+    "size": 1671417,
+    "sha256": "f47b8cbd0d1ff60efa61631232a3488837bde982edb9460dadb3cc65aefeffaf"
+   },
+   {
+    "path": "dist/audio/music/rain_window.1a05eeec3b.mp3",
+    "size": 3002617,
+    "sha256": "1a05eeec3b42691cfa6906bf23a27c8b8073dc79250c9bbfe9f296c47e30d69a"
+   },
+   {
+    "path": "dist/audio/music/riverside_morning.4132a9f094.mp3",
+    "size": 2920279,
+    "sha256": "4132a9f094b44ff0a256157c7d5d9df9f3748c046aa2b771f0ccba03f84e900c"
+   },
+   {
+    "path": "dist/audio/music/riverside_morning_ii_b.702e117f18.mp3",
+    "size": 2917354,
+    "sha256": "702e117f18a2c70b86eea1c8cd613d8bd2770596374d9576151b51ca20bd95a6"
+   },
+   {
+    "path": "dist/audio/music/storm_lantern.33e309f219.mp3",
+    "size": 3092061,
+    "sha256": "33e309f2192f5d66c265394ed510db52edab848730f2122e40df222e729acae0"
+   },
+   {
+    "path": "dist/audio/music/storm_lantern_ii_a.d627a6f8eb.mp3",
+    "size": 3085373,
+    "sha256": "d627a6f8eb2c105226fc3aed85284ae4d01d9b68ef05b7be644020cf8eb3e7c1"
+   },
+   {
+    "path": "dist/audio/music/the_spark.cc3a5958b2.mp3",
+    "size": 2319254,
+    "sha256": "cc3a5958b25fa5de4a4571321b35ae8c6787375cfc75620a7a8b49d89ff35bcb"
+   },
+   {
+    "path": "dist/audio/music/thunder_emberford_a.a221003eef.mp3",
+    "size": 2880573,
+    "sha256": "a221003eefc3010827d1ea97ce2de8b4b095335173c55d3d44ddc09f30d2f65a"
+   },
+   {
+    "path": "dist/audio/music/window_rain_ii_a.f59833d724.mp3",
+    "size": 3265096,
+    "sha256": "f59833d724f13b596eef2b882e3c9114054ff0cc9426214250eb8de7c770fc9d"
+   },
+   {
+    "path": "dist/audio/unlock.c726d333dd15.wav",
+    "size": 1644,
+    "sha256": "c726d333dd159a31423f3480dbb1c5c4a9dfcd30efe1f7e12ade390dc92e8908"
+   },
+   {
+    "path": "dist/decor/pepe/flags.webp",
+    "size": 41076,
+    "sha256": "b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669"
+   },
+   {
+    "path": "dist/decor/pepe/murals.webp",
+    "size": 215970,
+    "sha256": "99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3"
+   },
+   {
+    "path": "dist/decor/pepe/posters.webp",
+    "size": 55390,
+    "sha256": "fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea"
+   },
+   {
+    "path": "dist/favicon.svg",
+    "size": 513,
+    "sha256": "104dcbb66bf8987bec7e1b606d962a0adc409c23dd78496d1d4cb9b83560a909"
+   },
+   {
+    "path": "dist/hall-previews/dream.97047cd370b6.glb",
+    "size": 483984,
+    "sha256": "97047cd370b6000169aaca6828b9792ed13fbd1f70f3ddc15e610a59a5666a97"
+   },
+   {
+    "path": "dist/hall-previews/ecosystem.60f56e314b8c.glb",
+    "size": 587000,
+    "sha256": "60f56e314b8c6dd8aef7ee059d72bad5af68c86bc6ff1f9f778a261c212a7d3b"
+   },
+   {
+    "path": "dist/hall-previews/launchpad.83a71a9fb3cc.glb",
+    "size": 559744,
+    "sha256": "83a71a9fb3cc50dc1288a24f68798b84f189c4590d19d468f8774a9b269dee81"
+   },
+   {
+    "path": "dist/hall-previews/launchpad.b37be74fd7ce.glb",
+    "size": 423884,
+    "sha256": "b37be74fd7ce614576b84e8a16ac7a7cc86bf2fd004ee8ac3017a9308fc08981"
+   },
+   {
+    "path": "dist/hall-previews/mountain-cave.a55af71ffbde.glb",
+    "size": 349920,
+    "sha256": "a55af71ffbde49c0efa2c1bedabefeba37dd9a063e399309a25aa5461491a6b0"
+   },
+   {
+    "path": "dist/hall-previews/radar.36bcfd9a9abb.glb",
+    "size": 434924,
+    "sha256": "36bcfd9a9abbc6eefa8ad55a17e57e00b749921cb2c9c4390b63751020bfdbbc"
+   },
+   {
+    "path": "dist/hall-previews/stickember.d5a75ddd4a82.glb",
+    "size": 435840,
+    "sha256": "d5a75ddd4a8248ad27e72a9371e01a32596d58381c156548216fe80d0d4643e1"
+   },
+   {
+    "path": "dist/halls/dream.278909d3b08e.glb",
+    "size": 2683536,
+    "sha256": "278909d3b08edcdd2c3ef70a833826ef4ddcd625a525501a3d4f8945a77aaa5e"
+   },
+   {
+    "path": "dist/halls/dream.67b60db9ea50.glb",
+    "size": 2091332,
+    "sha256": "67b60db9ea50f2d4ba42cbd68e32fabac27109d7ecd04d6b27a773d9db1a68be"
+   },
+   {
+    "path": "dist/halls/ecosystem.77ef3ab05e5f.glb",
+    "size": 1913768,
+    "sha256": "77ef3ab05e5f441e7a3625ff37f6ae19cd3950095496bdf2f2320962963da433"
+   },
+   {
+    "path": "dist/halls/ecosystem.dd72970a09f0.glb",
+    "size": 2389860,
+    "sha256": "dd72970a09f0167727abdfd95f36a8f00923926538fc4684f38aa62fa96cc6e4"
+   },
+   {
+    "path": "dist/halls/launchpad.adb3d16a06e8.glb",
+    "size": 3037844,
+    "sha256": "adb3d16a06e84e3bc2594e1a4e33cd59a234c2263547f72151dd93c532315cf9"
+   },
+   {
+    "path": "dist/halls/launchpad.b5fec9caa77e.glb",
+    "size": 1580724,
+    "sha256": "b5fec9caa77eb7883268878d42a57a3613a8dc6a6ce597132992aeac5c56f75b"
+   },
+   {
+    "path": "dist/halls/mountain-cave.e7654faaecf3.glb",
+    "size": 2223672,
+    "sha256": "e7654faaecf3f2c1e0ab8a5d7ebfca87c25b686747399d92f8d9410a8524477e"
+   },
+   {
+    "path": "dist/halls/radar.00ffd221d092.glb",
+    "size": 2330640,
+    "sha256": "00ffd221d092c64c10af031ed3edef8d2ebec0ef96498a7d9c8c19cf1564a60f"
+   },
+   {
+    "path": "dist/halls/radar.7e09811e2d93.glb",
+    "size": 1762368,
+    "sha256": "7e09811e2d93808f66511a08f20a0a977be63e940c2a93f1269b902ccfcde620"
+   },
+   {
+    "path": "dist/halls/stickember.55a3642735a5.glb",
+    "size": 1934072,
+    "sha256": "55a3642735a56875a920e2ae3775ac5a556e6a7fb1b1c0b1a099407f573df144"
+   },
+   {
+    "path": "dist/halls/stickember.be0935397ffe.glb",
+    "size": 2526460,
+    "sha256": "be0935397ffe22f7dbf7ddae0b42e2c5a0f599419358471bd12ed344c5cdec97"
+   },
+   {
+    "path": "dist/index.html",
+    "size": 6023,
+    "sha256": "939841de9493b7120c6f0f6a8dd8b6349451f38ef15e893b61d5d95adace5109"
+   },
+   {
+    "path": "dist/licenses/cinzel-OFL.txt",
+    "size": 4475,
+    "sha256": "e7440e690fe3f0671e13dfc72980d0387e304e3e2673486be0369b4e65323c38"
+   },
+   {
+    "path": "dist/materials/bank/emerald-rough.jpg",
+    "size": 21090,
+    "sha256": "8dc3cc07925b2405d56615449c9a67344d73f98cab0583bb3fd60bdf9d0cedcf"
+   },
+   {
+    "path": "dist/materials/bank/emerald.jpg",
+    "size": 63568,
+    "sha256": "cbc1926ba77960c1fe4777c1feb00e89acfb36496e269c9fdc40cdae294c055c"
+   },
+   {
+    "path": "dist/materials/bank/ivory-rough.jpg",
+    "size": 21088,
+    "sha256": "1b1f6e0a90818ee6820b589b5eb6142c1ec29bd22b535aefd0fe5a21f901f80d"
+   },
+   {
+    "path": "dist/materials/bank/ivory.jpg",
+    "size": 49843,
+    "sha256": "e80097999b63ad193ba6024d77ce83f4b31de787a1c752adf5175f9701ebb02f"
+   },
+   {
+    "path": "dist/materials/bank/reflection-0.jpg",
+    "size": 3667,
+    "sha256": "b64acf173bad0d6189438d05c1254bd29d98d97815b6fad4e4ffc799322b3234"
+   },
+   {
+    "path": "dist/materials/bank/reflection-1.jpg",
+    "size": 3667,
+    "sha256": "b64acf173bad0d6189438d05c1254bd29d98d97815b6fad4e4ffc799322b3234"
+   },
+   {
+    "path": "dist/materials/bank/reflection-2.jpg",
+    "size": 3148,
+    "sha256": "a162d6834d1dc4d607c2bf504bc27e34e6ffb9cab01f84dcb6ffcf6c9099e6e2"
+   },
+   {
+    "path": "dist/materials/bank/reflection-3.jpg",
+    "size": 3150,
+    "sha256": "596eb28fedd8499e2547bf015406e66a9713acd7449236a7ff0f9756ca9b9823"
+   },
+   {
+    "path": "dist/materials/bank/reflection-4.jpg",
+    "size": 3100,
+    "sha256": "d5b23df95da3c469ba1db98175053f459d0f8c69182a2189d85e237e54d15941"
+   },
+   {
+    "path": "dist/materials/bank/reflection-5.jpg",
+    "size": 3100,
+    "sha256": "d5b23df95da3c469ba1db98175053f459d0f8c69182a2189d85e237e54d15941"
+   },
+   {
+    "path": "dist/materials/interiors/oak.jpg",
+    "size": 27150,
+    "sha256": "6ffc88f8503c1e062b149acdd58be4a2dcee3486930030a64ac5ee7ddec9a2cc"
+   },
+   {
+    "path": "dist/materials/interiors/stone.jpg",
+    "size": 14963,
+    "sha256": "dedcdf6c0b8eacfa21893013ed878d67430dd929a9126b3eaaed41d9e10752a3"
+   },
+   {
+    "path": "dist/models/houses/house_lisbon_l.glb",
+    "size": 408512,
+    "sha256": "3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3"
+   },
+   {
+    "path": "dist/models/houses/house_lisbon_m.glb",
+    "size": 437756,
+    "sha256": "8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6"
+   },
+   {
+    "path": "dist/models/houses/house_lisbon_ms.glb",
+    "size": 373904,
+    "sha256": "a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93"
+   },
+   {
+    "path": "dist/models/houses/house_lisbon_s.glb",
+    "size": 279684,
+    "sha256": "0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6"
+   },
+   {
+    "path": "dist/models/houses/house_lisbon_xl.glb",
+    "size": 349400,
+    "sha256": "1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40"
+   },
+   {
+    "path": "dist/models/houses/house_timber_l.glb",
+    "size": 402080,
+    "sha256": "4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7"
+   },
+   {
+    "path": "dist/models/houses/house_timber_m.glb",
+    "size": 355332,
+    "sha256": "24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8"
+   },
+   {
+    "path": "dist/models/houses/house_timber_ms.glb",
+    "size": 342364,
+    "sha256": "861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee"
+   },
+   {
+    "path": "dist/models/houses/house_timber_s.glb",
+    "size": 367040,
+    "sha256": "16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c"
+   },
+   {
+    "path": "dist/models/houses/house_timber_xl.glb",
+    "size": 414408,
+    "sha256": "f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad"
+   },
+   {
+    "path": "dist/models/interior/armchair.glb",
+    "size": 124100,
+    "sha256": "b6eb4e9f86035951fc60f88070ed4379191b4be274b9f88f13ed7c979a4ba7f4"
+   },
+   {
+    "path": "dist/models/interior/bookshelf.glb",
+    "size": 301888,
+    "sha256": "b67ada20a9c8df8e6ea58857473c006e89f5c584b9b01e4f448b7e39750a3538"
+   },
+   {
+    "path": "dist/models/interior/desk-chair.glb",
+    "size": 102728,
+    "sha256": "39727898a3e32e2f923cd217bd37ce1851918955851a0534f2abf0823a35dd4b"
+   },
+   {
+    "path": "dist/models/interior/dining-table.glb",
+    "size": 163384,
+    "sha256": "6d786c5ffd4491428a948c19eb55b75554908edc99885c4af4a0bf3afab62a76"
+   },
+   {
+    "path": "dist/models/interior/floor-lantern.glb",
+    "size": 115132,
+    "sha256": "d6b607f84df405f09a438a63c1ab8d94d22def6413c635220e66d715f4439df8"
+   },
+   {
+    "path": "dist/models/interior/hearth.glb",
+    "size": 192152,
+    "sha256": "a349fedd9cf74fd4f1aaeb9fe655dcd09295ed9bda602cf9affa757d5061555f"
+   },
+   {
+    "path": "dist/models/interior/lemon-tree.glb",
+    "size": 136548,
+    "sha256": "27c978105c0de11f1a5ba313e80f3d5a89156aaf2bc89a3fc26cd319c0826571"
+   },
+   {
+    "path": "dist/models/interior/pepe-cabinet.glb",
+    "size": 242212,
+    "sha256": "855d2a2843dfca8a9318f46c20e069c91f92ed5e57739c76c8773d55c646b49e"
+   },
+   {
+    "path": "dist/models/interior/sideboard.glb",
+    "size": 159280,
+    "sha256": "439ac1eda5db0fd19d4295c5e0118ec1ab63abbd158b64bd6db1fa2abffa7382"
+   },
+   {
+    "path": "dist/models/interior/wall-sconce.glb",
+    "size": 119780,
+    "sha256": "a74dffec89a59a48c5592c64b270d8fa952341e99c4829c000a01bf1cb254e43"
+   },
+   {
+    "path": "dist/models/interior/wardrobe.glb",
+    "size": 141496,
+    "sha256": "70b86640021e907f81f358f12176646cbf48f88bcc74db33fd484d728856e5ee"
+   },
+   {
+    "path": "dist/models/interior/writing-desk.glb",
+    "size": 154384,
+    "sha256": "1c4d03be8e5ffa9795e7fc8a0d4c90ed2902d65c669fd1be85fef8bbef9f8c33"
+   },
+   {
+    "path": "dist/models/interiors-delivered/3d-crate-frame.glb",
+    "size": 589980,
+    "sha256": "8d489afa6890432e660d9ab80a981127be1cd793d5a75b16a3589c90fd255cb1"
+   },
+   {
+    "path": "dist/models/interiors-delivered/arcade-cabinet-3d-model.glb",
+    "size": 454692,
+    "sha256": "9933878595317ec9623fe0b205bee75ca765f6b5de43e37ee1451255798e7a09"
+   },
+   {
+    "path": "dist/models/interiors-delivered/arcane-pedestal-3d-model.glb",
+    "size": 470752,
+    "sha256": "bc99bbf423ca897d9923014769674407724623794e0d653cdbc37d95cc7df081"
+   },
+   {
+    "path": "dist/models/interiors-delivered/celestial-globe-3d-model.glb",
+    "size": 435796,
+    "sha256": "98dd86c7735c48e9f860b15b076cfd5490edf89e141c63e41d95fe6289ed1d7e"
+   },
+   {
+    "path": "dist/models/interiors-delivered/colorful-toy-console-3d-model.glb",
+    "size": 425876,
+    "sha256": "300995155fbe16aa91e48f2f968f772cffe778ea1c8309c371d8200671368ebc"
+   },
+   {
+    "path": "dist/models/interiors-delivered/control-console-3d-model.glb",
+    "size": 446200,
+    "sha256": "3d30f0e2cd3146bbbf7399e9df03f980d7ee85527059ac23a097a83a454488d1"
+   },
+   {
+    "path": "dist/models/interiors-delivered/curved-reception-desk-3d-model.glb",
+    "size": 391328,
+    "sha256": "5e87d43604fe8e71f612ae0593350e64db4f4b7861b460ba141ba839a72a4165"
+   },
+   {
+    "path": "dist/models/interiors-delivered/decorative-reception-desk-3d-model.glb",
+    "size": 420068,
+    "sha256": "ccb5ab9ebbfbff17936b41ddaec84be39525813245ffc54c40fd73c692814eb9"
+   },
+   {
+    "path": "dist/models/interiors-delivered/fantasy-archway-3d-model.glb",
+    "size": 455356,
+    "sha256": "0f8a976e861fcf2e92b8881b90d61c494f3b37aeaf2d42eff167fdfa23ea79bd"
+   },
+   {
+    "path": "dist/models/interiors-delivered/fantasy-wagon-3d-model.glb",
+    "size": 463436,
+    "sha256": "1c24702df3995324f4864d29f37222e8ba1149823cf95aea781ec9d478f90869"
+   },
+   {
+    "path": "dist/models/interiors-delivered/fantasy-wooden-counter-3d-model.glb",
+    "size": 418668,
+    "sha256": "7a60dee18eed49f806f253ab014a647b582eb58919b070d01f6248ac2f79bbec"
+   },
+   {
+    "path": "dist/models/interiors-delivered/futuristic-cargo-crate-3d-model.glb",
+    "size": 548448,
+    "sha256": "79716c184eede072389f6c942efb36624ce4a2d3176178db820606d558194a4b"
+   },
+   {
+    "path": "dist/models/interiors-delivered/futuristic-desk-3d-model.glb",
+    "size": 405032,
+    "sha256": "ea7ab78f4935934b0b27beedac68ae3693d4438186d481e73c9cbfcb8279135e"
+   },
+   {
+    "path": "dist/models/interiors-delivered/futuristic-reception-desk-3d-model.glb",
+    "size": 429044,
+    "sha256": "0016bcf8e1e08f5156418c81456b0561d0256b2b34de6017179fc767fccbe7f5"
+   },
+   {
+    "path": "dist/models/interiors-delivered/green-crystal-cluster-3d-model.glb",
+    "size": 424660,
+    "sha256": "d3ae094e45de53454f2c41f7f1fd53b87c198caa4b8b04ee9da2bfcd34611cea"
+   },
+   {
+    "path": "dist/models/interiors-delivered/industrial-machine-3d-model.glb",
+    "size": 503340,
+    "sha256": "ce6dca86d8c244559fa0e6cadc4341353f3139545cd15612a6999122c93d417b"
+   },
+   {
+    "path": "dist/models/interiors-delivered/luxury-armchair-3d-model.glb",
+    "size": 393352,
+    "sha256": "3f9cf0ff3be9ee26c7098cc6d729e96423caa0416f5bd423978d69f6999bd9c7"
+   },
+   {
+    "path": "dist/models/interiors-delivered/luxury-cash-desk-3d-model.glb",
+    "size": 280972,
+    "sha256": "6494ed0b4a9b0ca220010c5b619539cb3feeb81c10a71529481231a00c596bdb"
+   },
+   {
+    "path": "dist/models/interiors-delivered/luxury-office-desk-3d-model.glb",
+    "size": 286188,
+    "sha256": "393429b9a5ca31df06975af5973c5a85ea73479a70f6f9c1ca859a926f8ddc35"
+   },
+   {
+    "path": "dist/models/interiors-delivered/luxury-sofa-3d-model.glb",
+    "size": 419396,
+    "sha256": "3e8b0fff84c68228573d78d518839e10a2f3396e5ee949ed29c8a5c36dd729a9"
+   },
+   {
+    "path": "dist/models/interiors-delivered/medieval-gate-3d-model.glb",
+    "size": 428632,
+    "sha256": "6d7353fe0c2bbfc24023fa0d156e720f3ea8c620714e2b4256558d9ae8980410"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-bookshelf-3d-model.glb",
+    "size": 543344,
+    "sha256": "ccee72371c2fd799a4d9b03a8e1d392ee94d41012091c813b1f067e9b3d39458"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-chalkboard-3d-model.glb",
+    "size": 504348,
+    "sha256": "774e0ee04ec5ccc13653d7c76870b140a709a28019de87e0136c00818f14a150"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-circular-table-3d-model.glb",
+    "size": 470572,
+    "sha256": "ff05111978ac10c585268edc3d11a9c2fa1fdf0c09df785bcd8c2f160cfb40a6"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-desk-3d-model-1.glb",
+    "size": 421900,
+    "sha256": "c682498854da5686bcb85607cefb304a8b8195802de51fbb9de0347351606797"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-desk-3d-model-2.glb",
+    "size": 461952,
+    "sha256": "da5e1a14a0effe7b8683902c10574a01bf23aecc188c733705d23c9718e8166a"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-desk-3d-model.glb",
+    "size": 430000,
+    "sha256": "ba48b6453e8f5d4f54daeb4828ca7a781ff58dc98178a9ed70a1577eedc4ed3d"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-drawer-cabinet-3d-model.glb",
+    "size": 537048,
+    "sha256": "081351384665a0df5bd57d973f982d475ab0aa5674f0f8d99359bac213c5240a"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-folding-screen-3d-model.glb",
+    "size": 579404,
+    "sha256": "f21aea8b921b42b0a22feedf15a01c3bbd53126066e8d22cc8dd3a5f8e373d5e"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-gate-3d-model.glb",
+    "size": 487144,
+    "sha256": "188471edd8a367925e85e3ece584365dfe51dbf861629a34d0bb958c3906c310"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-orrery-3d-model.glb",
+    "size": 484816,
+    "sha256": "b3e8e61bd227b4f3726616f54df8bad9b3c79d7c4f10e2963e1c8dc25cc35477"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-portal-frame-3d-model.glb",
+    "size": 568372,
+    "sha256": "f22519fbf16f87407bdfa9c74f493622b3bb823a51bec46eba7a1866822b645b"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-sofa-3d-model.glb",
+    "size": 416924,
+    "sha256": "78ac0101e167317fe53997c079f24a5bdbcfaa4266d33171c0d6d5cff84ddf44"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-table-3d-model.glb",
+    "size": 460104,
+    "sha256": "bd2a847766bd2bc438fb8ed63bf4b86a4963518a8d4fa0feb60765a6f792cc6a"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-triptych-wall-panel-3d-model.glb",
+    "size": 317124,
+    "sha256": "e597f8d59512b3d8cec3917a5307750ec310b034da765e26e0b96361c73d998d"
+   },
+   {
+    "path": "dist/models/interiors-delivered/ornate-wall-panel-3d-model.glb",
+    "size": 550984,
+    "sha256": "c31126d28dc90335ebc9146920e988437adf555ca07be1c02a0264a1d20cb796"
+   },
+   {
+    "path": "dist/models/interiors-delivered/rock-arch-3d-model.glb",
+    "size": 413360,
+    "sha256": "fc98250911c3a226373cd540cbb2431ef1300097576462ced90a23497d96b0a5"
+   },
+   {
+    "path": "dist/models/interiors-delivered/steampunk-control-console-3d-model.glb",
+    "size": 478424,
+    "sha256": "dd43b6462bdec637f4bb0653c48b6aaacbe6f8ea3486bff34a7f7f37f31bac76"
+   },
+   {
+    "path": "dist/models/interiors-delivered/steampunk-desk-3d-model.glb",
+    "size": 529552,
+    "sha256": "7df7ecb750c6cf543cde3f63ac9e10f4b0ba3b76d1a996930d6a1824816eb38d"
+   },
+   {
+    "path": "dist/models/interiors-delivered/stone-bench-3d-model.glb",
+    "size": 396728,
+    "sha256": "f312cb76dbf7a8ab38695ed5e5c2d814dc42f84f95011c753f7f9915ac03481d"
+   },
+   {
+    "path": "dist/models/interiors-delivered/stone-fire-pit-3d-model.glb",
+    "size": 444104,
+    "sha256": "f2d972fdcc24402c16cd47f249aae59629eade71a848bbfa7f943ca7226e9161"
+   },
+   {
+    "path": "dist/models/interiors-delivered/stylized-cannon-3d-model.glb",
+    "size": 439596,
+    "sha256": "515cc892dba193cc85495f314b6855e4e28e969b1bbcdea5b7e92bae8b19f2cb"
+   },
+   {
+    "path": "dist/models/interiors-delivered/stylized-oval-game-table-3d-model.glb",
+    "size": 417324,
+    "sha256": "a7c62ad5e6ec22bc1412bdfbdd153e02c8732ae3b726579595176fd8b0300d80"
+   },
+   {
+    "path": "dist/models/interiors-delivered/three-panel-signboard-3d-model.glb",
+    "size": 406076,
+    "sha256": "97f9d810df692b648e6a9bae18878ac9e3c5c9b0205b596f05c887736ae7044c"
+   },
+   {
+    "path": "dist/models/interiors-delivered/tiered-display-shelf-3d-model.glb",
+    "size": 307556,
+    "sha256": "97bc8e5e4a0a02603aea1a51f3314f5e881717a870b8a0819662e2357574449c"
+   },
+   {
+    "path": "dist/models/interiors-delivered/vault-door-3d-model.glb",
+    "size": 588264,
+    "sha256": "59fdfb07d69ddb7491a5e849de67a942c353ed7de9483b70c8ffcc07bcbb4193"
+   },
+   {
+    "path": "dist/models/interiors-delivered/wooden-log-bench-3d-model.glb",
+    "size": 386588,
+    "sha256": "cb8afe64dbca290fff0da6c9f4e25bc631abe51ab3d6f31b4340f07198ea6842"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_arch.glb",
+    "size": 263160,
+    "sha256": "23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_archive.glb",
+    "size": 324604,
+    "sha256": "e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_bellspire.glb",
+    "size": 352944,
+    "sha256": "2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_chronicle.glb",
+    "size": 278160,
+    "sha256": "abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_equestrian.glb",
+    "size": 263136,
+    "sha256": "044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_forge.glb",
+    "size": 326884,
+    "sha256": "5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_guardian.glb",
+    "size": 269160,
+    "sha256": "0ed4a14deb5a0b297c206c52ec2b9a3c4f4836f8f79d69d0e3e0c1e5b6170765"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_heart.glb",
+    "size": 350572,
+    "sha256": "4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_lift.glb",
+    "size": 381044,
+    "sha256": "a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_longhouse.glb",
+    "size": 399640,
+    "sha256": "8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_mill.glb",
+    "size": 319388,
+    "sha256": "a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_oracle.glb",
+    "size": 382320,
+    "sha256": "649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5"
+   },
+   {
+    "path": "dist/models/landmarks/landmark_pepe_statue.glb",
+    "size": 584400,
+    "sha256": "5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b"
+   },
+   {
+    "path": "dist/models/props/boat.glb",
+    "size": 206196,
+    "sha256": "c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af"
+   },
+   {
+    "path": "dist/models/props/boat_shelter.glb",
+    "size": 207588,
+    "sha256": "6b44d9d4d3ea6988f440e9cc6cb7051aca0b60e331360472cbc5bc86bdc78094"
+   },
+   {
+    "path": "dist/opening-entry.js",
+    "size": 10798,
+    "sha256": "257d377eb2bfec5e8e48c3fb1154048adc39ef6e42c0fa8522f7527d5a45b19a"
+   },
+   {
+    "path": "dist/references/imd/pepe-idle.webp",
+    "size": 65974,
+    "sha256": "93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37"
+   },
+   {
+    "path": "dist/references/imd/pepe.webp",
+    "size": 394498,
+    "sha256": "e142d6d788cb5f80ad2dbbbee6c010c420fd247e19d7b6b5c561c7d84f03d856"
+   },
+   {
+    "path": "dist/safe-world/assets/InteriorView-B3pQIC0k.js",
+    "size": 93279,
+    "sha256": "cc5ead4f326d90b752497852b81f23e2765e227db25c3d6e16c4a14aa9ba8143"
+   },
+   {
+    "path": "dist/safe-world/assets/InteriorView-C_uTZWPS.js",
+    "size": 93290,
+    "sha256": "1b09f6bc9438db5ff0e57ce82a273936ba34e34925fb9c5edc65ad450db0035a"
+   },
+   {
+    "path": "dist/safe-world/assets/cinzel-latin-400-normal-DnUIPmzd.woff2",
+    "size": 14128,
+    "sha256": "b873cdd90d6bd9ca4793c805b4175abfae00b3611ee8afccf63067133dcf1217"
+   },
+   {
+    "path": "dist/safe-world/assets/cinzel-latin-600-normal-Dd5YO2UX.woff2",
+    "size": 15204,
+    "sha256": "61efc27ceb7d08bb841652fa8979c0b6833b92548b7f9544c07968a6c02f28e4"
+   },
+   {
+    "path": "dist/safe-world/assets/decor/pepe/flags.b9ba8791e7.webp",
+    "size": 41076,
+    "sha256": "b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669"
+   },
+   {
+    "path": "dist/safe-world/assets/decor/pepe/murals.99dc8eaf72.webp",
+    "size": 215970,
+    "sha256": "99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3"
+   },
+   {
+    "path": "dist/safe-world/assets/decor/pepe/posters.fa83db53c5.webp",
+    "size": 55390,
+    "sha256": "fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea"
+   },
+   {
+    "path": "dist/safe-world/assets/emvo-64.771f691c33.png",
+    "size": 2713,
+    "sha256": "771f691c330cf00a0a9038b0aac718fd519000872f3cfb0532113739fccac4b4"
+   },
+   {
+    "path": "dist/safe-world/assets/halls/dream.67b60db9ea50.glb",
+    "size": 2091332,
+    "sha256": "67b60db9ea50f2d4ba42cbd68e32fabac27109d7ecd04d6b27a773d9db1a68be"
+   },
+   {
+    "path": "dist/safe-world/assets/halls/ecosystem.77ef3ab05e5f.glb",
+    "size": 1913768,
+    "sha256": "77ef3ab05e5f441e7a3625ff37f6ae19cd3950095496bdf2f2320962963da433"
+   },
+   {
+    "path": "dist/safe-world/assets/halls/radar.7e09811e2d93.glb",
+    "size": 1762368,
+    "sha256": "7e09811e2d93808f66511a08f20a0a977be63e940c2a93f1269b902ccfcde620"
+   },
+   {
+    "path": "dist/safe-world/assets/halls/stickember.55a3642735a5.glb",
+    "size": 1934072,
+    "sha256": "55a3642735a56875a920e2ae3775ac5a556e6a7fb1b1c0b1a099407f573df144"
+   },
+   {
+    "path": "dist/safe-world/assets/index-lWzu9Icb.css",
+    "size": 78539,
+    "sha256": "a04835347f8cc02facde154260af71ceb7bb833b4f06c3f718c03ad207492081"
+   },
+   {
+    "path": "dist/safe-world/assets/index-syw7L6QQ.js",
+    "size": 1715456,
+    "sha256": "fd48826245a815324128c615fe04b9d6f7a0f220820fff6978f99db19347b4d0"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_lisbon_l.3f1df81bff.glb",
+    "size": 408512,
+    "sha256": "3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_lisbon_m.8d013b5cae.glb",
+    "size": 437756,
+    "sha256": "8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_lisbon_ms.a65c7fca14.glb",
+    "size": 373904,
+    "sha256": "a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_lisbon_s.0682a56bf7.glb",
+    "size": 279684,
+    "sha256": "0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_lisbon_xl.1468c9bfb9.glb",
+    "size": 349400,
+    "sha256": "1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_timber_l.4f2196f581.glb",
+    "size": 402080,
+    "sha256": "4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_timber_m.24dfd9c6f2.glb",
+    "size": 355332,
+    "sha256": "24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_timber_ms.861238fe59.glb",
+    "size": 342364,
+    "sha256": "861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_timber_s.16322451a4.glb",
+    "size": 367040,
+    "sha256": "16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c"
+   },
+   {
+    "path": "dist/safe-world/assets/models/houses/house_timber_xl.f4976ec185.glb",
+    "size": 414408,
+    "sha256": "f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_arch.23639ff57a.glb",
+    "size": 263160,
+    "sha256": "23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_archive.e9e8602c38.glb",
+    "size": 324604,
+    "sha256": "e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_bellspire.2c86b3ed8e.glb",
+    "size": 352944,
+    "sha256": "2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_chronicle.abf51338eb.glb",
+    "size": 278160,
+    "sha256": "abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_equestrian.044d32540e.glb",
+    "size": 263136,
+    "sha256": "044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_forge.5740310a11.glb",
+    "size": 326884,
+    "sha256": "5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_guardian.0ed4a14deb.glb",
+    "size": 269160,
+    "sha256": "0ed4a14deb5a0b297c206c52ec2b9a3c4f4836f8f79d69d0e3e0c1e5b6170765"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_heart.4433d434b3.glb",
+    "size": 350572,
+    "sha256": "4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_lift.a4634d273a.glb",
+    "size": 381044,
+    "sha256": "a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_longhouse.8ae47cca0f.glb",
+    "size": 399640,
+    "sha256": "8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_mill.a9a5afcd2b.glb",
+    "size": 319388,
+    "sha256": "a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_oracle.649809a666.glb",
+    "size": 382320,
+    "sha256": "649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5"
+   },
+   {
+    "path": "dist/safe-world/assets/models/landmarks/landmark_pepe_statue.5b3f3acb36.glb",
+    "size": 584400,
+    "sha256": "5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b"
+   },
+   {
+    "path": "dist/safe-world/assets/models/props/boat.c19d20ecc1.glb",
+    "size": 206196,
+    "sha256": "c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af"
+   },
+   {
+    "path": "dist/safe-world/assets/models/props/boat_shelter.6b44d9d4d3.glb",
+    "size": 207588,
+    "sha256": "6b44d9d4d3ea6988f440e9cc6cb7051aca0b60e331360472cbc5bc86bdc78094"
+   },
+   {
+    "path": "dist/safe-world/assets/references/imd/pepe-idle.93e67adf9a.webp",
+    "size": 65974,
+    "sha256": "93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37"
+   },
+   {
+    "path": "dist/safe-world/assets/terrain-phone.489f67dc47.bin",
+    "size": 698912,
+    "sha256": "489f67dc470887d0ead51ddaab0ff01a94f15e73701b410f9b73174bfe815748"
+   },
+   {
+    "path": "dist/safe-world/audio/music/after_the_rain_a.5f942b7366.mp3",
+    "size": 2593017,
+    "sha256": "5f942b7366c84cec00e5915b387b2d5df66f160110f3d7e1b03ee33933f8e7cf"
+   },
+   {
+    "path": "dist/safe-world/audio/music/ember_boats_a.a10b3caf55.mp3",
+    "size": 2797817,
+    "sha256": "a10b3caf5520f005c7a0c7ac9b6b93880739702879c674e015d9a6011c666e82"
+   },
+   {
+    "path": "dist/safe-world/audio/music/frosthollow_lullaby_a.1e01e650cf.mp3",
+    "size": 2411205,
+    "sha256": "1e01e650cf2e32b2ea56a44d7e20b8e67df03bb368e129ee64d76268990399bf"
+   },
+   {
+    "path": "dist/safe-world/audio/music/glass_glints.b8052094aa.mp3",
+    "size": 2850898,
+    "sha256": "b8052094aa22d8fa67479b6867a63a5c0cbfc545629a897ca5ca29e2b097b149"
+   },
+   {
+    "path": "dist/safe-world/audio/music/glowing_window.bdccc2d0f2.mp3",
+    "size": 2859257,
+    "sha256": "bdccc2d0f2aa6814e84d8ea450877b1f1b2778c43ff7d55afde74f0ae0448e42"
+   },
+   {
+    "path": "dist/safe-world/audio/music/good_morning_applause.2d6f477954.mp3",
+    "size": 1961481,
+    "sha256": "2d6f477954c4e7440b089b1a7565fc0201d8e6042246d0cc4bad583da04c6942"
+   },
+   {
+    "path": "dist/safe-world/audio/music/light_remains_a.20c113d2a1.mp3",
+    "size": 2433775,
+    "sha256": "20c113d2a13f8ceb6695bf4cb9af8f27c350283544c7917281bbde59a8de9f38"
+   },
+   {
+    "path": "dist/safe-world/audio/music/light_remains_b.3bc7aff7aa.mp3",
+    "size": 3008469,
+    "sha256": "3bc7aff7aacde3fe2a73caaafdf36aa90b2f3c384c91841c3905d5786186af61"
+   },
+   {
+    "path": "dist/safe-world/audio/music/moonlit_canal_a.e30c7c37d0.mp3",
+    "size": 3408456,
+    "sha256": "e30c7c37d0b964a6888ba254a2c538d381500ed173057ca354d66a91a94b2634"
+   },
+   {
+    "path": "dist/safe-world/audio/music/overcast_village.88dbd1f21a.mp3",
+    "size": 3011394,
+    "sha256": "88dbd1f21aea01c0bc146c47c90bca922d5324a91d8b26748dbb7200473a1f6d"
+   },
+   {
+    "path": "dist/safe-world/audio/music/overcast_village_ii_a.24e3bb4b43.mp3",
+    "size": 3092061,
+    "sha256": "24e3bb4b432dedbcc51fe296071f5a9861f5aec54df41c47b7341423c766095d"
+   },
+   {
+    "path": "dist/safe-world/audio/music/quiet_room.f47b8cbd0d.mp3",
+    "size": 1671417,
+    "sha256": "f47b8cbd0d1ff60efa61631232a3488837bde982edb9460dadb3cc65aefeffaf"
+   },
+   {
+    "path": "dist/safe-world/audio/music/rain_window.1a05eeec3b.mp3",
+    "size": 3002617,
+    "sha256": "1a05eeec3b42691cfa6906bf23a27c8b8073dc79250c9bbfe9f296c47e30d69a"
+   },
+   {
+    "path": "dist/safe-world/audio/music/riverside_morning.4132a9f094.mp3",
+    "size": 2920279,
+    "sha256": "4132a9f094b44ff0a256157c7d5d9df9f3748c046aa2b771f0ccba03f84e900c"
+   },
+   {
+    "path": "dist/safe-world/audio/music/riverside_morning_ii_b.702e117f18.mp3",
+    "size": 2917354,
+    "sha256": "702e117f18a2c70b86eea1c8cd613d8bd2770596374d9576151b51ca20bd95a6"
+   },
+   {
+    "path": "dist/safe-world/audio/music/storm_lantern.33e309f219.mp3",
+    "size": 3092061,
+    "sha256": "33e309f2192f5d66c265394ed510db52edab848730f2122e40df222e729acae0"
+   },
+   {
+    "path": "dist/safe-world/audio/music/storm_lantern_ii_a.d627a6f8eb.mp3",
+    "size": 3085373,
+    "sha256": "d627a6f8eb2c105226fc3aed85284ae4d01d9b68ef05b7be644020cf8eb3e7c1"
+   },
+   {
+    "path": "dist/safe-world/audio/music/the_spark.cc3a5958b2.mp3",
+    "size": 2319254,
+    "sha256": "cc3a5958b25fa5de4a4571321b35ae8c6787375cfc75620a7a8b49d89ff35bcb"
+   },
+   {
+    "path": "dist/safe-world/audio/music/thunder_emberford_a.a221003eef.mp3",
+    "size": 2880573,
+    "sha256": "a221003eefc3010827d1ea97ce2de8b4b095335173c55d3d44ddc09f30d2f65a"
+   },
+   {
+    "path": "dist/safe-world/audio/music/window_rain_ii_a.f59833d724.mp3",
+    "size": 3265096,
+    "sha256": "f59833d724f13b596eef2b882e3c9114054ff0cc9426214250eb8de7c770fc9d"
+   },
+   {
+    "path": "dist/safe-world/audio/unlock.c726d333dd15.wav",
+    "size": 1644,
+    "sha256": "c726d333dd159a31423f3480dbb1c5c4a9dfcd30efe1f7e12ade390dc92e8908"
+   },
+   {
+    "path": "dist/safe-world/decor/pepe/flags.webp",
+    "size": 41076,
+    "sha256": "b9ba8791e7bab619483935297109cadb549a34e1ddff2253d8e7a6d0c5626669"
+   },
+   {
+    "path": "dist/safe-world/decor/pepe/murals.webp",
+    "size": 215970,
+    "sha256": "99dc8eaf725793437d2a1a2172d545e05aad8d171b333263e9d9f4cdc0d464b3"
+   },
+   {
+    "path": "dist/safe-world/decor/pepe/posters.webp",
+    "size": 55390,
+    "sha256": "fa83db53c5bb3ec2184cb5a0d5301d9fa3cf9b8836ea96ca44755607b03fddea"
+   },
+   {
+    "path": "dist/safe-world/favicon.svg",
+    "size": 513,
+    "sha256": "104dcbb66bf8987bec7e1b606d962a0adc409c23dd78496d1d4cb9b83560a909"
+   },
+   {
+    "path": "dist/safe-world/halls/dream.278909d3b08e.glb",
+    "size": 2683536,
+    "sha256": "278909d3b08edcdd2c3ef70a833826ef4ddcd625a525501a3d4f8945a77aaa5e"
+   },
+   {
+    "path": "dist/safe-world/halls/dream.67b60db9ea50.glb",
+    "size": 2091332,
+    "sha256": "67b60db9ea50f2d4ba42cbd68e32fabac27109d7ecd04d6b27a773d9db1a68be"
+   },
+   {
+    "path": "dist/safe-world/halls/ecosystem.77ef3ab05e5f.glb",
+    "size": 1913768,
+    "sha256": "77ef3ab05e5f441e7a3625ff37f6ae19cd3950095496bdf2f2320962963da433"
+   },
+   {
+    "path": "dist/safe-world/halls/ecosystem.dd72970a09f0.glb",
+    "size": 2389860,
+    "sha256": "dd72970a09f0167727abdfd95f36a8f00923926538fc4684f38aa62fa96cc6e4"
+   },
+   {
+    "path": "dist/safe-world/halls/radar.00ffd221d092.glb",
+    "size": 2330640,
+    "sha256": "00ffd221d092c64c10af031ed3edef8d2ebec0ef96498a7d9c8c19cf1564a60f"
+   },
+   {
+    "path": "dist/safe-world/halls/radar.7e09811e2d93.glb",
+    "size": 1762368,
+    "sha256": "7e09811e2d93808f66511a08f20a0a977be63e940c2a93f1269b902ccfcde620"
+   },
+   {
+    "path": "dist/safe-world/halls/stickember.55a3642735a5.glb",
+    "size": 1934072,
+    "sha256": "55a3642735a56875a920e2ae3775ac5a556e6a7fb1b1c0b1a099407f573df144"
+   },
+   {
+    "path": "dist/safe-world/halls/stickember.be0935397ffe.glb",
+    "size": 2526460,
+    "sha256": "be0935397ffe22f7dbf7ddae0b42e2c5a0f599419358471bd12ed344c5cdec97"
+   },
+   {
+    "path": "dist/safe-world/index.html",
+    "size": 2669,
+    "sha256": "002b077175808865afedb26d03d5d91bfe0f8677a96b4529f502d3cfa68e3cac"
+   },
+   {
+    "path": "dist/safe-world/licenses/cinzel-OFL.txt",
+    "size": 4475,
+    "sha256": "e7440e690fe3f0671e13dfc72980d0387e304e3e2673486be0369b4e65323c38"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_lisbon_l.glb",
+    "size": 408512,
+    "sha256": "3f1df81bffd7ea6bb7b2fb0d6b7f3784931b2a02c0225d817c6a8ef9ee8bfab3"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_lisbon_m.glb",
+    "size": 437756,
+    "sha256": "8d013b5cae2665ee9ec00e28f73fb7200fb92e7e81220544d53f969d94271ff6"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_lisbon_ms.glb",
+    "size": 373904,
+    "sha256": "a65c7fca14a0ad4f880263f1ff970d9a77e0615a84781ada4f240ead54ac3a93"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_lisbon_s.glb",
+    "size": 279684,
+    "sha256": "0682a56bf7d65df663623014a4e48ef3567af44b82c093de86defef0838f11a6"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_lisbon_xl.glb",
+    "size": 349400,
+    "sha256": "1468c9bfb94da5e54e3767a4e5005b18d4280f0566b6d360588325212e4e1f40"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_timber_l.glb",
+    "size": 402080,
+    "sha256": "4f2196f581e7d8b6bf099cc50b7685257596acbfd191ff5a19f75fdda88ae1c7"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_timber_m.glb",
+    "size": 355332,
+    "sha256": "24dfd9c6f204ce53b7cc8a9aa9499f875546cff42396227fbfbd742b1d6e39e8"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_timber_ms.glb",
+    "size": 342364,
+    "sha256": "861238fe59b505bede3d430e7ce8960d6e304b5752a1500ea205de354c604dee"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_timber_s.glb",
+    "size": 367040,
+    "sha256": "16322451a42bbf0bd70749e46b37586201ce35c5ed0ce772149cff54a780701c"
+   },
+   {
+    "path": "dist/safe-world/models/houses/house_timber_xl.glb",
+    "size": 414408,
+    "sha256": "f4976ec18562fdc6d8fadb4113183eb34fe989053c0be7b30477366c7be501ad"
+   },
+   {
+    "path": "dist/safe-world/models/interior/armchair.glb",
+    "size": 124100,
+    "sha256": "b6eb4e9f86035951fc60f88070ed4379191b4be274b9f88f13ed7c979a4ba7f4"
+   },
+   {
+    "path": "dist/safe-world/models/interior/bookshelf.glb",
+    "size": 301888,
+    "sha256": "b67ada20a9c8df8e6ea58857473c006e89f5c584b9b01e4f448b7e39750a3538"
+   },
+   {
+    "path": "dist/safe-world/models/interior/desk-chair.glb",
+    "size": 102728,
+    "sha256": "39727898a3e32e2f923cd217bd37ce1851918955851a0534f2abf0823a35dd4b"
+   },
+   {
+    "path": "dist/safe-world/models/interior/dining-table.glb",
+    "size": 163384,
+    "sha256": "6d786c5ffd4491428a948c19eb55b75554908edc99885c4af4a0bf3afab62a76"
+   },
+   {
+    "path": "dist/safe-world/models/interior/floor-lantern.glb",
+    "size": 115132,
+    "sha256": "d6b607f84df405f09a438a63c1ab8d94d22def6413c635220e66d715f4439df8"
+   },
+   {
+    "path": "dist/safe-world/models/interior/hearth.glb",
+    "size": 192152,
+    "sha256": "a349fedd9cf74fd4f1aaeb9fe655dcd09295ed9bda602cf9affa757d5061555f"
+   },
+   {
+    "path": "dist/safe-world/models/interior/lemon-tree.glb",
+    "size": 136548,
+    "sha256": "27c978105c0de11f1a5ba313e80f3d5a89156aaf2bc89a3fc26cd319c0826571"
+   },
+   {
+    "path": "dist/safe-world/models/interior/pepe-cabinet.glb",
+    "size": 242212,
+    "sha256": "855d2a2843dfca8a9318f46c20e069c91f92ed5e57739c76c8773d55c646b49e"
+   },
+   {
+    "path": "dist/safe-world/models/interior/sideboard.glb",
+    "size": 159280,
+    "sha256": "439ac1eda5db0fd19d4295c5e0118ec1ab63abbd158b64bd6db1fa2abffa7382"
+   },
+   {
+    "path": "dist/safe-world/models/interior/wall-sconce.glb",
+    "size": 119780,
+    "sha256": "a74dffec89a59a48c5592c64b270d8fa952341e99c4829c000a01bf1cb254e43"
+   },
+   {
+    "path": "dist/safe-world/models/interior/wardrobe.glb",
+    "size": 141496,
+    "sha256": "70b86640021e907f81f358f12176646cbf48f88bcc74db33fd484d728856e5ee"
+   },
+   {
+    "path": "dist/safe-world/models/interior/writing-desk.glb",
+    "size": 154384,
+    "sha256": "1c4d03be8e5ffa9795e7fc8a0d4c90ed2902d65c669fd1be85fef8bbef9f8c33"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_arch.glb",
+    "size": 263160,
+    "sha256": "23639ff57a08038d463b5f7241e705160b060a7b3f1f68275e73e55f3acb746c"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_archive.glb",
+    "size": 324604,
+    "sha256": "e9e8602c3893df81a527591b77a8d0781a5e500d24d46bcfb019fcbf7af31a91"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_bellspire.glb",
+    "size": 352944,
+    "sha256": "2c86b3ed8e8c042bf166195d105b55bb07138558c12c9f5f60a0ba81ac36d6c2"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_chronicle.glb",
+    "size": 278160,
+    "sha256": "abf51338eb92078a9338e4c617003af8a0534440106c189f5f5cd39ebabc1197"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_equestrian.glb",
+    "size": 263136,
+    "sha256": "044d32540ec76a65961cabf31e287032c243ddd28db97289e2f033e5ddb2cb89"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_forge.glb",
+    "size": 326884,
+    "sha256": "5740310a11907aa65ca672d4dff531ba242af435241830c360d356b5a6e7ef07"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_guardian.glb",
+    "size": 269160,
+    "sha256": "0ed4a14deb5a0b297c206c52ec2b9a3c4f4836f8f79d69d0e3e0c1e5b6170765"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_heart.glb",
+    "size": 350572,
+    "sha256": "4433d434b3b27cd25e3fdcbcfb0c5ddbc0e8851e6a651989e9f9b8cc10619213"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_lift.glb",
+    "size": 381044,
+    "sha256": "a4634d273aa2980a177af5ffbfa96d49685f1d7428f899cb37c16b32d63471f6"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_longhouse.glb",
+    "size": 399640,
+    "sha256": "8ae47cca0f0e3d4a15b0f77c960ef4655011b675cd696d49eca3f1e6404bc385"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_mill.glb",
+    "size": 319388,
+    "sha256": "a9a5afcd2baef60dd57ee0abe836a61e933e5e1bfc28b67fa2e0353815b7e995"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_oracle.glb",
+    "size": 382320,
+    "sha256": "649809a66643b7d807fcc8fd02c177e281672107878a99a3595a23bcd82acab5"
+   },
+   {
+    "path": "dist/safe-world/models/landmarks/landmark_pepe_statue.glb",
+    "size": 584400,
+    "sha256": "5b3f3acb360a6a9cf2d6433938e077fde0a067ff44c69fcbd0c8e067b3784c6b"
+   },
+   {
+    "path": "dist/safe-world/models/props/boat.glb",
+    "size": 206196,
+    "sha256": "c19d20ecc14807856e656824c726b8d29525eb3be86d080141a2cf7bd3b217af"
+   },
+   {
+    "path": "dist/safe-world/models/props/boat_shelter.glb",
+    "size": 207588,
+    "sha256": "6b44d9d4d3ea6988f440e9cc6cb7051aca0b60e331360472cbc5bc86bdc78094"
+   },
+   {
+    "path": "dist/safe-world/references/imd/pepe-idle.webp",
+    "size": 65974,
+    "sha256": "93e67adf9aab22270304604567f92d60b644c2756053cbd18d48971297c72d37"
+   },
+   {
+    "path": "dist/safe-world/references/imd/pepe.webp",
+    "size": 394498,
+    "sha256": "e142d6d788cb5f80ad2dbbbee6c010c420fd247e19d7b6b5c561c7d84f03d856"
+   },
+   {
+    "path": "dist/safe-world/third-party-licenses.txt",
+    "size": 4636,
+    "sha256": "bd9bde2689856d1d3f8249e1c5816d7204bd6fdf1a1cfe9a2f25e6430f7e375b"
+   },
+   {
+    "path": "dist/safe-world/token/emvo/index.html",
+    "size": 5106,
+    "sha256": "32084cf0255347464671c4faa7dc11c72f7d573d61c638d1e9d77167939e9746"
+   },
+   {
+    "path": "dist/third-party-licenses.txt",
+    "size": 4537,
+    "sha256": "55ae744d250b53fe9de705688a62072224628bd8b00785dad642ebce276f8b63"
+   },
+   {
+    "path": "dist/token/emvo/index.html",
+    "size": 5106,
+    "sha256": "32084cf0255347464671c4faa7dc11c72f7d573d61c638d1e9d77167939e9746"
+   },
+   {
+    "path": "dist/world-safe.html",
+    "size": 2669,
+    "sha256": "002b077175808865afedb26d03d5d91bfe0f8677a96b4529f502d3cfa68e3cac"
+   }
+  ],
+  "unchangedDuringDeploy": true
+ },
+ "worker": {
+  "main": {
+   "path": "worker/index.js",
+   "size": 546821,
+   "sha256": "df3dba9db9c5f807b577b0016bcf1eda8cb08c9bcf5d4fb46f66665ef406283e"
+  },
+  "sha256": "4981da3102968071425598981d503f472c0592ededc0ffadd18a192e04ea2007",
+  "files": [
+   {
+    "path": "worker/README.md",
+    "size": 110,
+    "sha256": "8d6cf0b3c5ac156376c8c46649f840a266cdee8506c4a6d365edb397fe1e0c90"
+   },
+   {
+    "path": "worker/index.js",
+    "size": 546821,
+    "sha256": "df3dba9db9c5f807b577b0016bcf1eda8cb08c9bcf5d4fb46f66665ef406283e"
+   },
+   {
+    "path": "worker/index.js.map",
+    "size": 1344542,
+    "sha256": "e31d740b9c9b677148b6202766bd67c7dc3e1213b938b3315d654c138ca4a9c8"
+   }
+  ]
+ }
+}

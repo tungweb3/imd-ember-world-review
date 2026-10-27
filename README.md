@@ -1,8 +1,8 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission16](Submission16/README.md) — remediation of audit 351b0573: GOLD panel recovery, renumbered nonce, crediting note margins, deploy checks · DEPLOYED (Worker `eb8f9da9`, source `38a21a3`; server code unchanged) · EXTERNAL REVIEW NOT YET DONE**
+**Current: [Submission17](Submission17/README.md) — remediation of audit 1ac5269f: renumbered nonce both ways, learned nonce, crediting note, deploy target checks · DEPLOYED (Worker `7dfe57a1`, source `be7d3b0`; server code unchanged) · PUBLISHED FOR THE RECORD, NO FURTHER EXTERNAL REVIEW REQUESTED**
 
-Read [Submission16/AUDIT_REQUEST.md](Submission16/AUDIT_REQUEST.md) first. [Submission15](Submission15/README.md) (crediting note endings, deploy tool checks, source `fe8bc4b`) was reviewed in job `351b0573`; [Submission14](Submission14/README.md) (GOLD fast credit retired, source `64396ae`) in job `12e0525d`; [Submission13](Submission13/README.md) (wallet, GOLD fast credit and staking, source `ae1f640`) in job `e4a57f91`. They and the Submission12 text below are kept as history.
+Read [Submission17/REMEDIATION.md](Submission17/REMEDIATION.md) first. [Submission16](Submission16/README.md) (GOLD panel recovery, renumbered nonce, source `38a21a3`) was reviewed in job `1ac5269f`; [Submission15](Submission15/README.md) (crediting note endings, deploy tool checks, source `fe8bc4b`) was reviewed in job `351b0573`; [Submission14](Submission14/README.md) (GOLD fast credit retired, source `64396ae`) in job `12e0525d`; [Submission13](Submission13/README.md) (wallet, GOLD fast credit and staking, source `ae1f640`) in job `e4a57f91`. They and the Submission12 text below are kept as history.
 
 **Submission12: TEAM SOURCE EVIDENCE PASS BOUNDED · EXTERNAL AUDIT12 UNKNOWN · RELEASE-READINESS UNKNOWN · NOT DEPLOYED**
 

@@ -1,0 +1,427 @@
+diff --git a/scripts/deploy.mjs b/scripts/deploy.mjs
+index e53f4cd..966d2ad 100644
+--- a/scripts/deploy.mjs
++++ b/scripts/deploy.mjs
+@@ -10,7 +10,8 @@
+ // A real deploy refuses a dirty working tree, at the start and again after the build just before upload (HEAD must not have
+ // moved either), and reads it a third time after wrangler (which bundles the Worker from the tree while uploading): a change
+ // then cannot be undone, so the record says dirty and the outcome fails. It refuses any .env file Vite would load into the
+-// build, any VITE_* variable of the shell, CLOUDFLARE_ENV / WRANGLER_BUILD_* / a code-preloading NODE_OPTIONS, and a
++// build, any VITE_* variable of the shell, CLOUDFLARE_ENV / WRANGLER_BUILD_* / an API host or Worker name override / a
++// NODE_OPTIONS beyond a few harmless options, and a
+ // node_modules that does not match package-lock.json, at the start and again after the build (all gitignored or outside
+ // git, so the commit would not say what shipped); a dry run lists them in the manifest. Nothing here reads
+ // .dev.vars, .env, variable values or credentials (only names are listed); wrangler uses its own login.
+@@ -53,16 +54,27 @@ export const envFiles=dir=>readdirSync(dir).filter(n=>VITE_ENV_FILE.test(n)&&sta
+ export function envRefusal(names,dryRun){return names.length&&!dryRun?'env files would change the build but are not in git ('+names.join(', ')+'); move the setting into the commit or remove them':null;}
+ /** VITE_* variables of the deploy shell reach the client bundle (import.meta.env) ahead of any .env file, and nothing in
+  *  git names them: a real deploy refuses them, a dry run lists their names (Swarm audit 12e0525d L-5). */
+-/** Vite matches the prefix with case; only Windows, whose variable names have none, needs the broad match (Swarm audit
+- *  351b0573, finding 11: a lower-case vite_ name was refused on Linux although the build ignores it). */
+-export const viteEnvNames=(env,platform=process.platform)=>Object.keys(env).filter(k=>(platform==='win32'?/^VITE_/i:/^VITE_/).test(k)).sort();
++/** Vite's loadEnv walks the variable names as they were created and matches the prefix with case, on Windows too (where
++ *  only a lookup by name ignores case): a lower-case vite_ name never reaches the build and is not refused (Swarm audit
++ *  351b0573, finding 11; 1ac5269f, finding 9). */
++export const viteEnvNames=env=>Object.keys(env).filter(k=>/^VITE_/.test(k)).sort();
+ export function viteEnvRefusal(names,dryRun){return names.length&&!dryRun?'VITE_* environment variables would change the build but are not in git ('+names.join(', ')+'); unset them':null;}
+ /** Other shell variables that change what is built or where it goes, and that no commit names: CLOUDFLARE_ENV picks
+- *  another Worker environment for the upload, WRANGLER_BUILD_* change how wrangler bundles the Worker, and a NODE_OPTIONS
+- *  that preloads code runs it inside vite and wrangler (Swarm audit 351b0573, finding 8). Names only, like VITE_*. */
+-const PRELOAD=/(^|\s)(--import|--require|-r|--loader|--experimental-loader)(=|\s|$)/;
++ *  another Worker environment for the upload, WRANGLER_BUILD_* change how wrangler bundles the Worker (Swarm audit
++ *  351b0573, finding 8); CLOUDFLARE_API_BASE_URL (CF_API_BASE_URL), CLOUDFLARE_COMPLIANCE_REGION and
++ *  WRANGLER_API_ENVIRONMENT send every API request elsewhere, and WRANGLER_CI_OVERRIDE_NAME uploads under another Worker
++ *  name (Swarm audit 1ac5269f, finding 8). NODE_OPTIONS runs inside every step: a blocklist of preloading flags missed
++ *  quoted flags, --snapshot-blob and --openssl-config (finding 7), so it is accepted only when every option is one of a
++ *  few that change no code. Names only, like VITE_*. */
++const BUILD_ENV='^(CLOUDFLARE_ENV|WRANGLER_ENV|WRANGLER_BUILD_.+|CLOUDFLARE_API_BASE_URL|CF_API_BASE_URL|CLOUDFLARE_COMPLIANCE_REGION|WRANGLER_API_ENVIRONMENT|WRANGLER_CI_OVERRIDE_NAME)$';
++const SAFE_NODE_OPTION=/^(--max[-_]old[-_]space[-_]size=\d+|--enable-source-maps|--no-warnings|--no-deprecation)$/;
++const safeNodeOptions=value=>String(value).replace(/"/g,' ').split(/\s+/).filter(Boolean).every(o=>SAFE_NODE_OPTION.test(o));
+ export const buildEnvNames=(env,platform=process.platform)=>{const i=platform==='win32'?'i':'';
+-  return Object.keys(env).filter(k=>env[k]!==undefined&&env[k]!==''&&(new RegExp('^(CLOUDFLARE_ENV|WRANGLER_ENV|WRANGLER_BUILD_.+)$',i).test(k)||new RegExp('^NODE_OPTIONS$',i).test(k)&&PRELOAD.test(String(env[k])))).sort();};
++  return Object.keys(env).filter(k=>env[k]!==undefined&&env[k]!==''&&(new RegExp(BUILD_ENV,i).test(k)||new RegExp('^NODE_OPTIONS$',i).test(k)&&!safeNodeOptions(env[k]))).sort();};
++/** The account the upload goes to, when the shell chooses it (wrangler otherwise uses its login's): recorded by name only,
++ *  so the record says the target came from the shell; the value (an account id) is not recorded (finding 8). */
++export const targetEnvNames=(env,platform=process.platform)=>{const i=platform==='win32'?'i':'';
++  return Object.keys(env).filter(k=>env[k]!==undefined&&env[k]!==''&&new RegExp('^(CLOUDFLARE_ACCOUNT_ID|CF_ACCOUNT_ID)$',i).test(k)).sort();};
+ export function buildEnvRefusal(names,dryRun){return names.length&&!dryRun?'environment variables would change the build or its target but are not in git ('+names.join(', ')+'); unset them':null;}
+ /** NODE_ENV other than production makes vite build a development bundle (React's development build, for one). */
+ export function nodeEnvRefusal(value,dryRun){return value!==undefined&&value!==''&&value!=='production'&&!dryRun?'NODE_ENV='+value+' would build a non-production bundle; unset it':null;}
+@@ -214,7 +226,7 @@ function main(){
+   const file=p=>({path:p,sha256:sha256(readFileSync(join(ROOT,p)))});
+   const manifest={
+     kind:'imd-world deploy record',mode:dryRun?'dry-run':'deploy',startedAt:started.toISOString(),finishedAt:new Date().toISOString(),
+-    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()||!sourceUnchanged),envFiles:env,viteEnv,buildEnv,nodeEnv:process.env.NODE_ENV??null,dependencies:{mismatches:dependencies},
++    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()||!sourceUnchanged),envFiles:env,viteEnv,buildEnv,targetEnv:targetEnvNames(process.env),nodeEnv:process.env.NODE_ENV??null,dependencies:{mismatches:dependencies},
+     source:{unchangedDuringUpload:sourceUnchanged,...sourceUnchanged?{}:{headAfter:commitAfter,porcelainAfter,envFilesAfter:envAfter,dependenciesAfter}},tests:skipTests?'skipped (dry run)':'passed',
+     tools:{node:process.version,wrangler:pkgVersion('wrangler'),vite:pkgVersion('vite'),typescript:pkgVersion('typescript')},
+     config:[file('wrangler.jsonc'),file('package-lock.json'),file('public/_headers')],
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index a53a9b8..4b25677 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -12,7 +12,7 @@ import {RESEARCH_PASS_PRODUCT} from './researchPassCopy.ts';
+ import {goldPurchaseError} from './goldPurchaseRules.ts';
+ import {wallets} from './wallet.ts';
+ import './worldGold.css';
+-const EMPTY:EconomyWalletState={phase:'idle',busy:false,hash:null,sentHash:null,error:null,plan:null,step:null,legacyPending:false};
++const EMPTY:EconomyWalletState={phase:'idle',busy:false,hash:null,sentHash:null,paidOrder:null,error:null,plan:null,step:null,legacyPending:false};
+ const message=(e:unknown)=>e instanceof EconomyClientError?e.code:e instanceof Error?e.message:'UNAVAILABLE';
+ function useGold(state:AuthState){
+  const auth=useRef(state);auth.current=state;const client=useRef<WorldGoldClient|null>(null);if(!client.current)client.current=new WorldGoldClient({auth:()=>auth.current});
+@@ -77,7 +77,9 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  // the ledger books it at finality, about 15 minutes later, also after this panel closes or the page reloads.
+  // Only the payment's own hash (pendingGoldCredit.ts paymentHash); the order is read from this same book, not from
+  // `selected`, which follows it one render later. A reverted or replaced payment's note goes at once.
+- const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=paymentHash(wallet),failed=paymentFailed(wallet);
++ // After a reload the restored transaction has no plan; once its payment is confirmed (a pasted hash, say) the controller
++ // names the order it paid (Swarm audit 1ac5269f, finding 6).
++ const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:wallet.paidOrder??null,payingHash=paymentHash(wallet),failed=paymentFailed(wallet);
+  // Once per payment and phase: this effect re-runs on every ledger refresh, and re-adding a note that aged out made a
+  // fresh one, so the 2 h cap never ended it while the panel stayed open (Swarm audit 351b0573, finding 6). The phase is
+  // in the key so a payment confirmed late (after its unmined note was dropped) still gets one note, ended by its own cap.
+@@ -91,7 +93,9 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  const sent=wallet.sentHash??wallet.hash;
+  useEffect(()=>{if(!data||!failed)return;if(payingOrder)dropPendingCredit(data.wallet,payingOrder);if(sent)dropPendingCreditByHash(data.wallet,sent);},[data,payingOrder,failed,sent]);
+  const mined=wallet.step==='execute'&&wallet.phase==='confirmed';
+- useEffect(()=>{if(data&&mined&&sent)markPendingCreditMined(data.wallet,sent);},[data,mined,sent]);
++ // Both hashes: a note made after a pasted replacement was confirmed holds that hash (wallet.hash), not the sent one, and
++ // left unmarked it was dropped at once by the after-expiry rule (Swarm audit 1ac5269f, finding 5).
++ useEffect(()=>{if(!data||!mined)return;if(sent)markPendingCreditMined(data.wallet,sent);if(wallet.hash&&wallet.hash!==sent)markPendingCreditMined(data.wallet,wallet.hash);},[data,mined,sent,wallet.hash]);
+  // Once booked, the top bar's balances refresh too (the event also makes this panel read once more).
+  useEffect(()=>{if(data&&settlePendingCredits(data.wallet,data.orders))window.dispatchEvent(new Event('world:gold-changed'));},[data]);
+  const pending=JSON.parse(useSyncExternalStore(subscribePendingCredit,()=>JSON.stringify(pendingCredit(data?.wallet,selected?.id)),()=>'null')) as PendingCredit|null;
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index a58f9b8..7c8359e 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -21,7 +21,11 @@ export type EconomyPlan={kind:'stake';shares:string}|{kind:'withdraw';positionId
+ export type EconomyWalletPhase='idle'|'checking'|'reset-required'|'approve-required'|'confirm'|'sending'|'pending'|'unknown'|'confirmed'|'replaced'|'rejected'|'error'|'context-changed';
+ export type EconomyWalletState={phase:EconomyWalletPhase;busy:boolean;plan:EconomyPlan|null;hash:string|null;step:'reset'|'approve'|'execute'|null;error:string|null;legacyPending:boolean;
+  /** Once a receipt is judged: the hash this intent originally sent (`hash` is the receipt's, a pasted replacement's too). */
+- sentHash?:string|null};
++ sentHash?:string|null;
++ /** Once a payment is judged done: its order id, read from the intent's own pay calldata. After a reload the restored
++  *  transaction has no plan, so this is the only way the panel knows which order a confirmed payment paid (Swarm audit
++  *  1ac5269f, finding 6). */
++ paidOrder?:string|null};
+ type Pending={version?:2;nonce?:Hex;chainId:1;from:string;to:string;data:Hex;hash:Hex|null;step:'reset'|'approve'|'execute';intentId:string;createdMs:number};
+ export type EconomyPendingStore={get(key:string):unknown;set(key:string,value:Pending|null):void};
+ export type EconomyLock={run<T>(key:string,fn:()=>Promise<T>):Promise<T>};
+@@ -32,7 +36,7 @@ type Deps={config:EconomyConfig;auth:()=>AuthState;provider:()=>Provider|null;on
+ const HASH=/^0x[0-9a-fA-F]{64}$/,HEX=/^0x[0-9a-fA-F]*$/;
+ const quantity=(v:unknown):v is Hex=>typeof v==='string'&&/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(v)&&v.length<=66;
+ const nonce=(v:unknown):v is Hex=>quantity(v)&&BigInt(v)<(1n<<64n);
+-const initial=():EconomyWalletState=>({phase:'idle',busy:false,plan:null,hash:null,sentHash:null,step:null,error:null,legacyPending:false});
++const initial=():EconomyWalletState=>({phase:'idle',busy:false,plan:null,hash:null,sentHash:null,paidOrder:null,step:null,error:null,legacyPending:false});
+ /** keccak256 of the event signatures that prove an intended call ran (tests compare them with viem). */
+ export const ECONOMY_EFFECT_TOPICS=Object.freeze({
+  approval:'0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925',  // Approval(address,address,uint256)
+@@ -216,11 +220,26 @@ export class EconomyWalletController{
+   const attempts=Math.min(60,Math.max(1,this.deps.receiptAttempts??40));
+   for(let i=0;i<attempts;i++){
+    this.guard();const receipt=await this.rpc('eth_getTransactionReceipt',[candidate]);
++   if(receipt===null&&i===0)await this.learnNonce(candidate);
+    if(receipt!==null&&await this.finishReceipt(receipt,candidate))return;
+    if(i+1<attempts){await (this.deps.delay??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(3000);this.guard();}
+   }
+   this.set({phase:'unknown',busy:false,error:'PENDING_TRANSACTION'});
+  }
++ /** The wallet's own pending copy of the hash it returned names the nonce the wallet really used. When the wallet
++  *  numbered this send higher, a speed-up or cancellation in the wallet keeps that nonce, and a pasted replacement was
++  *  checked against the stored one it never used: locked for good (Swarm audit 1ac5269f, finding 2). The stored intent
++  *  learns that higher nonce. Only the wallet's own hash, only from its pending copy (no block), only upward, like the
++  *  renumbered exception below. Best effort: a failed read or a busy lock leaves the intent as it was. */
++ private async learnNonce(candidate:Hex,seen?:{hash?:string;from?:string;nonce?:string;blockHash?:string|null;blockNumber?:string|null}|null){
++  const tx=this.transaction;if(!tx||tx.version!==2||!nonce(tx.nonce)||tx.hash?.toLowerCase()!==candidate.toLowerCase())return;
++  try{
++   const record=seen!==undefined?seen:await this.rpc('eth_getTransactionByHash',[candidate]) as typeof seen;
++   if(!record||record.hash?.toLowerCase()!==candidate.toLowerCase()||record.blockHash!=null||record.blockNumber!=null||record.from?.toLowerCase()!==tx.from||!nonce(record.nonce)||BigInt(record.nonce)<=BigInt(tx.nonce))return;
++   const learned={...tx,nonce:record.nonce};
++   await this.exclusive(tx.from,async()=>{if(this.transaction===tx&&this.savePending(learned,tx.intentId))this.transaction=learned;});
++  }catch{/* the intent keeps the nonce it had */}
++ }
+  /** False while the wallet still lists the transaction as pending: poll again rather than judge it. */
+  private async finishReceipt(receipt:unknown,candidate:Hex):Promise<boolean>{
+   const tx=this.transaction!,r=receipt as {transactionHash?:unknown;status?:unknown;from?:unknown;to?:unknown;blockHash?:unknown;blockNumber?:unknown};
+@@ -229,24 +248,32 @@ export class EconomyWalletController{
+   const record=await this.rpc('eth_getTransactionByHash',[candidate]) as {hash?:string;from?:string;to?:string|null;input?:string;value?:string;chainId?:string;nonce?:string;blockHash?:string|null;blockNumber?:string|null}|null;
+   // MetaMask answers this from its own copy (no block, no chain ID) while it still lists the transaction as pending,
+   // even after the network has the receipt: wallet lag, not another transaction (the 2026-10-26 TRANSACTION_MISMATCH).
+-  if(record&&record.hash?.toLowerCase()===candidate.toLowerCase()&&record.blockHash==null&&record.blockNumber==null)return false;
++  if(record&&record.hash?.toLowerCase()===candidate.toLowerCase()&&record.blockHash==null&&record.blockNumber==null){await this.learnNonce(candidate,record);return false;}
+   if(!record||record.hash?.toLowerCase()!==candidate.toLowerCase()||record.from?.toLowerCase()!==tx.from||record.chainId!=='0x1'||record.blockHash?.toLowerCase()!==r.blockHash.toLowerCase()||record.blockNumber!==r.blockNumber||(record.to?.toLowerCase()??null)!==(typeof r.to==='string'?r.to.toLowerCase():null)||typeof record.input!=='string'||!HEX.test(record.input)||!quantity(record.value))throw new EconomyClientError('TRANSACTION_MISMATCH');
+   const same=record.to?.toLowerCase()===tx.to&&record.input.toLowerCase()===tx.data.toLowerCase()&&record.value==='0x0';
+   if(tx.version!==2&&!same)throw new EconomyClientError('TRANSACTION_MISMATCH');
+-  // The wallet's own returned hash, routed through a smart account, counts as this call when its receipt proves the
+-  // exact intended effect (see intendedEffect). A pasted hash never gets this shortcut. When that same hash reverted
+-  // (status 0x0), it consumed this intent's nonce and did nothing: it is judged now as the reverted send it is, like
+-  // a direct one (`same`), not held for finality and then called a replacement (Swarm audit 12e0525d, L-1).
++  // A transaction routed through a smart account counts as this call when its receipt proves the exact intended effect
++  // (see intendedEffect). The wallet's own returned hash is judged at once; a pasted one, a speed-up of a routed payment
++  // for one, only after the finality check below: computing the effect for the own hash alone called that speed-up
++  // "replaced" although it paid (Swarm audit 1ac5269f, finding 4). When the own hash reverted (status 0x0), it consumed
++  // this intent's nonce and did nothing: it is judged now as the reverted send it is, like a direct one (`same`), not
++  // held for finality and then called a replacement (Swarm audit 12e0525d, L-1).
+   const own=tx.version===2&&tx.hash?.toLowerCase()===candidate.toLowerCase();
+-  const effect=own&&r.status==='0x1'&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
+-  // A version-2 record must hold the intent's nonce. The one exception: the wallet's own hash under a HIGHER nonce,
+-  // carrying this call's exact data or exact effect, or reverted. MetaMask numbers a send itself, so another send
+-  // confirmed between the count and this prompt moves this one up; that hash is still this call, and refusing it locked
+-  // the address for good (Swarm audit 351b0573, finding 3). Renumbering only moves up: a lower or missing nonce is an
+-  // older transaction (a stale hash), never this one. A pasted hash never gets this exception.
+-  const renumbered=own&&nonce(record.nonce)&&nonce(tx.nonce)&&BigInt(record.nonce)>BigInt(tx.nonce)&&(same||effect||r.status==='0x0');
++  const effect=r.status==='0x1'&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
++  // A version-2 record must hold the intent's nonce. The exception is the wallet's own hash under another nonce: the
++  // wallet numbers a send itself (another send confirmed between the count and this prompt moves it up; a customised
++  // nonce or a dropped transaction moves it down), and refusing that hash locked the address for good (Swarm audit
++  // 351b0573, finding 3; 1ac5269f, finding 1). Under a higher nonce it cannot be an older transaction: it is judged by
++  // the rules below, ending as a replacement after finality when it is not this call (1ac5269f, finding 3). Under a lower
++  // one it may be a stale hash of an older transaction, so only a payment with this call's exact data or effect is
++  // accepted: its order id is used once, and the contract refuses a second payment of it. A lower-nonce revert, stake,
++  // withdrawal or approval proves nothing about which send it was and stays refused (review of this fix). A pasted hash
++  // never gets this exception.
++  const lowerPayment=(same||effect)&&tx.step==='execute'&&tx.to===this.config.paymentContract;
++  const renumbered=own&&nonce(record.nonce)&&nonce(tx.nonce)&&(BigInt(record.nonce)>BigInt(tx.nonce)||lowerPayment);
+   if(tx.version===2&&record.nonce!==tx.nonce&&!renumbered)throw new EconomyClientError('TRANSACTION_MISMATCH');
+   const done=same||own&&r.status==='0x0'||effect;
++  const paidOrder=done&&r.status==='0x1'&&tx.step==='execute'&&tx.to===this.config.paymentContract&&/^0xd0ee4de0[0-9a-fA-F]{128}$/.test(tx.data)?'0x'+tx.data.slice(10,74).toLowerCase():null;
+   // The wallet-returned original hash retains its normal mined confirmation.
+   // A manually supplied/replacement hash needs irreversible nonce consumption
+   // before it can release an unrelated original send intent.
+@@ -260,10 +287,11 @@ export class EconomyWalletController{
+    this.guard();const stored=this.deps.pending?.get(this.key(tx.from)) as Partial<Pending>|null;
+    // Another tab may already have reconciled this same nonce and removed its
+    // record. Its absence does not invalidate the receipt proof. A newer intent
+-   // must instead remain protected and become this pane's current review.
+-   if(stored&&stored.intentId!==tx.intentId){this.adoptPending(stored,tx.from);throw new EconomyClientError('PENDING_CHANGED');}
++   // must instead remain protected and become this pane's current review. So must the same intent once another tab
++   // learned its real nonce (learnNonce): this tab's copy would judge a transaction at the old one (review of this fix).
++   if(stored&&(stored.intentId!==tx.intentId||stored.nonce!==tx.nonce)){this.adoptPending(stored,tx.from);throw new EconomyClientError('PENDING_CHANGED');}
+    if(stored&&!this.savePending(null,tx.intentId))throw new EconomyClientError('PENDING_CHANGED');
+-   this.transaction=null;this.sendAttempted=false;this.set({busy:false,phase:!done?'replaced':r.status==='0x1'?'confirmed':'error',hash:candidate,sentHash:tx.hash??null,legacyPending:false,error:!done?'TRANSACTION_REPLACED':r.status==='0x1'?null:'TRANSACTION_REVERTED'});
++   this.transaction=null;this.sendAttempted=false;this.set({busy:false,phase:!done?'replaced':r.status==='0x1'?'confirmed':'error',hash:candidate,sentHash:tx.hash??null,paidOrder,legacyPending:false,error:!done?'TRANSACTION_REPLACED':r.status==='0x1'?null:'TRANSACTION_REVERTED'});
+   });
+   if(done&&r.status==='0x1'&&tx.step!=='execute'&&this.s.plan){this.set({phase:'checking',busy:true});await this.inspect();}
+   return true;
+diff --git a/tests/deploy.test.mjs b/tests/deploy.test.mjs
+index e010a9e..fff8407 100644
+--- a/tests/deploy.test.mjs
++++ b/tests/deploy.test.mjs
+@@ -6,7 +6,7 @@ import {join,basename} from 'node:path';
+ import {spawnSync} from 'node:child_process';
+ import {pathToFileURL} from 'node:url';
+ import {hashTree,sumsText,treeDigest,parseVersionId,recordName,dirtyRefusal,envFiles,envRefusal,isEntry,RECORDS_DIR,ROOT,
+-  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal,viteEnvNames,viteEnvRefusal,buildEnvNames,buildEnvRefusal,nodeEnvRefusal,dependencyMismatches,dependencyRefusal} from '../scripts/deploy.mjs';
++  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal,viteEnvNames,viteEnvRefusal,buildEnvNames,buildEnvRefusal,targetEnvNames,nodeEnvRefusal,dependencyMismatches,dependencyRefusal} from '../scripts/deploy.mjs';
+ // scripts/deploy.mjs's provenance helpers, run on real files. Hashes are checked against the published SHA-256 test
+ // vectors ("abc", ""), never recomputed here. Importing the script must not deploy anything (it runs only as main).
+ const ABC='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',EMPTY='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+@@ -74,14 +74,20 @@ test('env files Vite would load are refused on a real deploy and listed by name
+   }finally{rmSync(dir,{recursive:true,force:true});}
+ });
+ test('Swarm audit 12e0525d L-5: VITE_* shell variables and a node_modules that differs from package-lock.json are refused',()=>{
+-  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',NODE_ENV:'production'},'win32'),['VITE_API','vite_debug']);
+-  // Swarm audit 351b0573, finding 11: Vite's prefix match has case; only Windows variable names do not.
+-  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',Vite_Mode:'dev'},'linux'),['VITE_API']);
++  // Swarm audit 351b0573, finding 11 and 1ac5269f, finding 9: Vite's prefix match has case, on Windows too.
++  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',Vite_Mode:'dev',NODE_ENV:'production'}),['VITE_API']);
+   // Finding 8: names only; NODE_OPTIONS only when it preloads code.
+   assert.deepEqual(buildEnvNames({PATH:'x',CLOUDFLARE_ENV:'staging',WRANGLER_BUILD_CONDITIONS:'node',WRANGLER_BUILD_PLATFORM:'node',CLOUDFLARE_ACCOUNT_ID:'id',WRANGLER_SEND_METRICS:'false',NODE_OPTIONS:'--import ./x.mjs'}),
+     ['CLOUDFLARE_ENV','NODE_OPTIONS','WRANGLER_BUILD_CONDITIONS','WRANGLER_BUILD_PLATFORM']);
+-  for(const value of ['--require=x','-r x','--loader x','--experimental-loader=x','--max-old-space-size=4096 --import x'])assert.deepEqual(buildEnvNames({NODE_OPTIONS:value}),['NODE_OPTIONS'],value);
+-  for(const value of ['--max-old-space-size=4096','--enable-source-maps','--inspect',''])assert.deepEqual(buildEnvNames({NODE_OPTIONS:value}),[],value);
++  // 1ac5269f, finding 8: the API host and the Worker name are the upload's target too; the account is recorded by name.
++  for(const name of ['CLOUDFLARE_API_BASE_URL','CF_API_BASE_URL','CLOUDFLARE_COMPLIANCE_REGION','WRANGLER_API_ENVIRONMENT','WRANGLER_CI_OVERRIDE_NAME'])
++    assert.deepEqual(buildEnvNames({PATH:'x',[name]:'other'},'linux'),[name],name);
++  assert.deepEqual(targetEnvNames({PATH:'x',CLOUDFLARE_ACCOUNT_ID:'id',CF_ACCOUNT_ID:'id2',CLOUDFLARE_API_TOKEN:'t'},'linux'),['CF_ACCOUNT_ID','CLOUDFLARE_ACCOUNT_ID']);
++  assert.deepEqual(targetEnvNames({cloudflare_account_id:'id'},'win32'),['cloudflare_account_id']);assert.deepEqual(targetEnvNames({CLOUDFLARE_ACCOUNT_ID:''},'linux'),[]);
++  // 1ac5269f, finding 7: NODE_OPTIONS passes only with harmless options; quoted flags, a snapshot or an OpenSSL config are refused.
++  for(const value of ['--require=x','-r x','--loader x','--experimental-loader=x','--max-old-space-size=4096 --import x','"--require" /tmp/pre.cjs','"--import" ./x.mjs',
++    '--max-old-space-size=4096 "-r" ./x.cjs','--snapshot-blob=/tmp/snap.blob','--openssl-config=/tmp/x.cnf','--inspect','--conditions=dev'])assert.deepEqual(buildEnvNames({NODE_OPTIONS:value}),['NODE_OPTIONS'],value);
++  for(const value of ['--max-old-space-size=4096','--max_old_space_size=4096','--enable-source-maps','--max-old-space-size=8192 --no-warnings','"--enable-source-maps"',''])assert.deepEqual(buildEnvNames({NODE_OPTIONS:value}),[],value);
+   // Like VITE_*: names have case outside Windows, and an empty variable selects nothing (review of this fix).
+   assert.deepEqual(buildEnvNames({Wrangler_Build_X:'1',cloudflare_env:'x',CLOUDFLARE_ENV:'',node_options:'--import x'},'linux'),[]);
+   assert.deepEqual(buildEnvNames({Wrangler_Build_X:'1'},'win32'),['Wrangler_Build_X']);
+@@ -347,7 +353,7 @@ for(const variant of ['clean','edited','head-moved','env-added','edited-while-up
+   try{
+     mkdirSync(join(dir,'scripts'));copyFileSync(join(ROOT,'scripts/deploy.mjs'),join(dir,'scripts/deploy.mjs'));
+     git('init','-q');git('add','-A');git('commit','-q','-m','synthetic deploy fixture');const start=git('rev-parse','HEAD');
+-    const shell=variant==='vite-env'?{VITE_X:'injected'}:variant==='cloudflare-env'?{CLOUDFLARE_ENV:'staging'}:{};
++    const shell=variant==='vite-env'?{VITE_X:'injected'}:variant==='cloudflare-env'?{CLOUDFLARE_ENV:'staging'}:variant==='clean'?{CLOUDFLARE_ACCOUNT_ID:'account-value-not-recorded'}:{};
+     const r=spawnSync(process.execPath,['scripts/deploy.mjs'],{cwd:dir,encoding:'utf8',timeout:60000,env:{...process.env,...shell}}),out=r.stdout+r.stderr;
+     if(variant==='vite-env'){
+       assert.equal(r.status,1,out);assert.match(out,/VITE_\* environment variables would change the build but are not in git \(VITE_X\)/);
+@@ -376,6 +382,8 @@ for(const variant of ['clean','edited','head-moved','env-added','edited-while-up
+       const manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
+       assert.equal(manifest.mode,'deploy');assert.equal(manifest.commit,start);assert.equal(manifest.dirty,false);
+       assert.equal(manifest.source.unchangedDuringUpload,true);assert.deepEqual(manifest.viteEnv,[]);assert.deepEqual(manifest.buildEnv,[]);assert.deepEqual(manifest.dependencies.mismatches,[]);
++      assert.ok(manifest.targetEnv.includes('CLOUDFLARE_ACCOUNT_ID'),'the shell-chosen account, by name');
++      assert.doesNotMatch(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'),/account-value-not-recorded/,'never its value');
+       return;
+     }
+     assert.equal(r.status,1,out);assert.doesNotMatch(out,/> wrangler deploy|synthetic local upload/,'nothing was uploaded');
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 0f0cd51..2f2afb6 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -97,12 +97,21 @@ test('a routed transaction without exactly the intended effect is never taken as
+  {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=false;
+   f.candidate(routed([effect.paid(OID,1000n)],{status:'0x0',hash:OTHER}));await f.controller.checkReceipt(OTHER);
+   assert.equal(f.controller.state.error,'TRANSACTION_NOT_FINALIZED','a pasted hash that reverted still waits for finality');f.controller.dispose();}
+- // and a pasted hash of another routed transaction never gets the shortcut, even with a matching effect
++ // A pasted hash of another routed transaction at the intent's nonce (a speed-up of a routed payment) with exactly the
++ // intended effect paid this order: confirmed, but only after finality, never by the own-hash shortcut (Swarm audit
++ // 1ac5269f, finding 4: it used to be called "replaced" and its crediting note dropped).
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=false;
++  f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER}));await f.controller.checkReceipt(OTHER);
++  assert.deepEqual({error:f.controller.state.error,store:f.store.size},{error:'TRANSACTION_NOT_FINALIZED',store:1});f.controller.dispose();}
+  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+  f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER}));await f.controller.checkReceipt(OTHER);
+- assert.notEqual(f.controller.state.phase,'confirmed');
++ assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,step:f.controller.state.step,store:f.store.size},{phase:'confirmed',error:null,step:'execute',store:0});
+  // The crediting note is found by the hash the payment was sent with, not by the pasted one (review of 2aeac71).
+- assert.equal(f.controller.state.hash,OTHER);assert.equal(f.controller.state.sentHash,HASH);f.controller.dispose();
++ assert.equal(f.controller.state.hash,OTHER);assert.equal(f.controller.state.sentHash,HASH);assert.equal(f.controller.state.paidOrder,OID);f.controller.dispose();
++ // Without the effect, the same pasted routed hash is still a replacement.
++ const g=fixture();await g.controller.prepare(payPlan());await g.controller.confirm();
++ g.candidate(routed([],{hash:OTHER}));await g.controller.checkReceipt(OTHER);
++ assert.deepEqual({phase:g.controller.state.phase,error:g.controller.state.error},{phase:'replaced',error:'TRANSACTION_REPLACED'});g.controller.dispose();
+ });
+ test('a delegated batch that also did something else of the same kind for this sender is not "exactly" the intended effect',async()=>{
+  // Swarm audit e4a57f91 I-8: one matching log among others used to be enough.
+@@ -286,7 +295,7 @@ test('withdrawal remains possible when indexing halts during pending nonce await
+ });
+ // Swarm audit 351b0573, finding 3: MetaMask numbers a send itself; another send confirmed between the count and the
+ // prompt moves this one to the next nonce. The wallet's own hash is still this call with its exact data or effect.
+-test('the wallet\'s own hash mined under another nonce is judged by its exact data or effect; nothing else gets that exception',async()=>{
++test('the wallet\'s own hash mined under another nonce is this call when the receipt says so; nothing else gets that exception',async()=>{
+  {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+   f.candidate(routed([effect.paid(OID,1000n)],{nonce:'0x9'}));await f.controller.checkReceipt();
+   assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'confirmed',error:null,store:0},'routed with the exact effect');f.controller.dispose();}
+@@ -299,16 +308,37 @@ test('the wallet\'s own hash mined under another nonce is judged by its exact da
+  {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+   f.candidate(routed([],{nonce:'0x9',status:'0x0'}));await f.controller.checkReceipt();
+   assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'error',error:'TRANSACTION_REVERTED',store:0},'routed, reverted');f.controller.dispose();}
+- // Without the exact data or effect, or under a lower or missing nonce (an older transaction: a stale hash from the
+- // wallet, e.g. an earlier identical payment), the intent stays locked as before (review of this fix).
++ // Swarm audit 1ac5269f, finding 1: under a LOWER nonce too (a customised nonce, a dropped transaction), the wallet's own
++ // hash with this call's exact data or effect, or reverted, is this call; refusing it locked the address for good.
+  const sentPay=encodeEconomyCall('pay',[OID,1000n]);
+- for(const [name,candidate] of [['routed without the effect',routed([],{nonce:'0x9'})],['another call',{hash:HASH,to:PAY,input:encodeEconomyCall('pay',['0x'+'8'.repeat(64),1000n]),nonce:'0x9'}],
+-  ['an older identical payment',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5'}],['an older identical payment, reverted',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5',status:'0x0'}],
+-  ['an older routed payment',routed([effect.paid(OID,1000n)],{nonce:'0x5'})],['no nonce',{hash:HASH,to:PAY,input:sentPay,nonce:undefined}]]){
++ for(const [name,candidate,want] of [['lower, identical payment',{hash:HASH,to:PAY,input:sentPay,nonce:'0x7'},{phase:'confirmed',error:null}],
++  ['lower, identical payment, reverted',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5',status:'0x0'},{phase:'error',error:'TRANSACTION_REVERTED'}],
++  ['lower, routed with the effect',routed([effect.paid(OID,1000n)],{nonce:'0x5'}),{phase:'confirmed',error:null}],
++  // Finding 3: under a HIGHER nonce it cannot be an older transaction; without the proof it ends as a replacement
++  // after finality, like the same case at the intent's nonce, instead of locked.
++  ['higher, routed without the effect',routed([],{nonce:'0x9'}),{phase:'replaced',error:'TRANSACTION_REPLACED'}],
++  ['higher, another call',{hash:HASH,to:PAY,input:encodeEconomyCall('pay',['0x'+'8'.repeat(64),1000n]),nonce:'0x9'},{phase:'replaced',error:'TRANSACTION_REPLACED'}]]){
+   const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+   f.candidate(candidate);await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{...want,store:0},name);f.controller.dispose();
++ }
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=false;
++  f.candidate(routed([],{nonce:'0x9'}));await f.controller.checkReceipt();
++  assert.deepEqual({error:f.controller.state.error,store:f.store.size},{error:'TRANSACTION_NOT_FINALIZED',store:1},'higher without proof waits for finality');f.controller.dispose();}
++ // Under a lower nonce without that proof (possibly a stale hash of an older transaction), or with no nonce, the
++ // intent stays locked as before.
++ for(const [name,candidate] of [['lower, routed without the effect',routed([],{nonce:'0x5'})],['lower, another call',{hash:HASH,to:PAY,input:encodeEconomyCall('pay',['0x'+'8'.repeat(64),1000n]),nonce:'0x5'}],
++  ['lower, a revert of another call',{hash:HASH,to:A,input:'0x',nonce:'0x5',status:'0x0'}],['no nonce',{hash:HASH,to:PAY,input:sentPay,nonce:undefined}]]){
++  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=false;
++  f.candidate(candidate);await f.controller.checkReceipt();
+   assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'unknown',error:'TRANSACTION_MISMATCH',store:1},name);f.controller.dispose();
+  }
++ // Only a payment's calldata is one-time: an identical stake under a lower nonce may be an earlier one (review of this fix).
++ {const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});await f.controller.confirm();f.finalized=false;
++  f.candidate({hash:HASH,to:VAULT,input:encodeEconomyCall('deposit',[1n]),nonce:'0x3'});await f.controller.checkReceipt();
++  assert.deepEqual({error:f.controller.state.error,store:f.store.size},{error:'TRANSACTION_MISMATCH',store:1},'lower, identical stake');
++  f.candidate({hash:HASH,to:VAULT,input:encodeEconomyCall('deposit',[1n]),nonce:'0x9'});await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,store:f.store.size},{phase:'confirmed',store:0},'higher, identical stake');f.controller.dispose();}
+  // A pasted hash under another nonce is refused even with the exact effect.
+  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+  f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER,nonce:'0x9'}));await f.controller.checkReceipt(OTHER);
+@@ -328,6 +358,54 @@ test('a payment prompt that fails after an approval shows no stale hash and can
+  await f.controller.clearUnknownAfterWalletCheck();assert.deepEqual({phase:f.controller.state.phase,store:f.store.size},{phase:'idle',store:0});
+  prompt=false;await f.controller.prepare(payPlan());assert.equal(f.controller.state.phase,'confirm','a new payment can be prepared');f.controller.dispose();
+ });
++// Swarm audit 1ac5269f, finding 2: the wallet renumbered the send (0x9 for the stored 0x8), then the player sped it up or
++// cancelled it in the wallet. The replacement keeps 0x9; the intent learns it from the wallet's pending copy of its own hash.
++test('a renumbered send that is sped up or cancelled can be resolved with the replacement\'s hash',async()=>{
++ const pendingCopy=(patch={})=>a=>a.method==='eth_getTransactionByHash'&&a.params[0]===HASH?{hash:HASH,from:A,to:PAY,input:encodeEconomyCall('pay',[OID,1000n]),value:'0x0',nonce:'0x9',blockHash:null,blockNumber:null,...patch}:undefined;
++ for(const [name,replacement,want] of [['speed-up',{to:PAY,input:encodeEconomyCall('pay',[OID,1000n])},'confirmed'],['cancellation',{to:A,input:'0x'},'replaced']]){
++  const f=fixture();await f.controller.prepare(payPlan());f.intercept(pendingCopy());await f.controller.confirm();
++  assert.deepEqual({phase:f.controller.state.phase,nonce:[...f.store.values()][0].nonce,hash:[...f.store.values()][0].hash},{phase:'unknown',nonce:'0x9',hash:HASH},name+': learned while pending');
++  f.intercept(null);f.candidate({hash:OTHER,...replacement,nonce:'0x9'});await f.controller.checkReceipt(OTHER);
++  assert.deepEqual({phase:f.controller.state.phase,store:f.store.size},{phase:want,store:0},name);f.controller.dispose();
++ }
++ // Once learned, a transaction at the stored nonce the send never used no longer releases it.
++ {const f=fixture();await f.controller.prepare(payPlan());f.intercept(pendingCopy());await f.controller.confirm();f.intercept(null);
++  f.candidate({hash:OTHER,to:A,input:'0x',nonce:'0x8'});await f.controller.checkReceipt(OTHER);
++  assert.deepEqual({error:f.controller.state.error,store:f.store.size},{error:'TRANSACTION_MISMATCH',store:1});f.controller.dispose();}
++ // Another tab that adopted the intent before the nonce was learned cannot judge a transaction at the old nonce: it
++ // takes the stored intent over instead (review of this fix).
++ {const store=new Map(),lock=mutex(),f=fixture({store,lock}),g=fixture({store,lock});
++  await f.controller.prepare(payPlan());await f.controller.confirm();g.controller.restorePending();
++  f.intercept(pendingCopy());await f.controller.checkReceipt();assert.equal([...store.values()][0].nonce,'0x9');
++  g.candidate({hash:OTHER,to:A,input:'0x',nonce:'0x8'});await g.controller.checkReceipt(OTHER);
++  assert.deepEqual({error:g.controller.state.error,store:store.size},{error:'PENDING_CHANGED',store:1},'the stale tab does not release it');
++  await g.controller.checkReceipt(OTHER);assert.deepEqual({error:g.controller.state.error,store:store.size},{error:'TRANSACTION_MISMATCH',store:1},'and now judges by the learned nonce');
++  f.controller.dispose();g.controller.dispose();}
++ // Learned also when the receipt exists but the wallet still lists its copy as pending.
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();const sent=f.sent[0];
++  f.candidate({hash:HASH,to:sent.to,input:sent.data,nonce:'0x9',patch:walletCopy});await f.controller.checkReceipt();
++  assert.deepEqual({error:f.controller.state.error,nonce:[...f.store.values()][0].nonce},{error:'PENDING_TRANSACTION',nonce:'0x9'});f.controller.dispose();}
++ // Never learned: a lower nonce, another sender, a mined record, another hash, a malformed nonce.
++ for(const [name,patch] of [['lower',{nonce:'0x7'}],['same',{nonce:'0x8'}],['another sender',{from:'0x'+'b'.repeat(40)}],['mined',{blockHash:BLOCK,blockNumber:'0x20'}],['another hash',{hash:OTHER}],['malformed',{nonce:'0x09'}]]){
++  const f=fixture();await f.controller.prepare(payPlan());f.intercept(pendingCopy(patch));await f.controller.confirm();
++  assert.equal([...f.store.values()][0].nonce,'0x8',name);f.controller.dispose();
++ }
++ // A failing lookup leaves the intent and the wait as they were.
++ {const f=fixture();await f.controller.prepare(payPlan());f.intercept(a=>{if(a.method==='eth_getTransactionByHash')throw Error('rpc down');});await f.controller.confirm();
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,nonce:[...f.store.values()][0].nonce},{phase:'unknown',error:'PENDING_TRANSACTION',nonce:'0x8'});f.controller.dispose();}
++});
++// Finding 6: after a reload the restored transaction has no plan; a payment confirmed through a pasted hash names its order.
++test('a payment confirmed after a reload names the order it paid; other steps name none',async()=>{
++ const store=new Map(),f=fixture({lost:true,store});await f.controller.prepare(payPlan());await f.controller.confirm();assert.equal([...store.values()][0].hash,null);f.controller.dispose();
++ const g=fixture({store});g.controller.restorePending();assert.deepEqual({phase:g.controller.state.phase,plan:g.controller.state.plan},{phase:'unknown',plan:null});
++ g.candidate({hash:OTHER,to:PAY,input:encodeEconomyCall('pay',[OID,1000n]),nonce:'0x8'});await g.controller.checkReceipt(OTHER);
++ assert.deepEqual({phase:g.controller.state.phase,step:g.controller.state.step,paidOrder:g.controller.state.paidOrder,store:store.size},{phase:'confirmed',step:'execute',paidOrder:OID,store:0});g.controller.dispose();
++ {const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});await f.controller.confirm();
++  f.candidate({hash:HASH,to:VAULT,input:encodeEconomyCall('deposit',[1n]),nonce:'0x8'});await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,paidOrder:f.controller.state.paidOrder},{phase:'confirmed',paidOrder:null});f.controller.dispose();}
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.candidate({hash:OTHER,to:A,input:'0x',nonce:'0x8'});await f.controller.checkReceipt(OTHER);
++  assert.deepEqual({phase:f.controller.state.phase,paidOrder:f.controller.state.paidOrder},{phase:'replaced',paidOrder:null},'a replaced payment paid nothing');f.controller.dispose();}
++});
+ // Finding 10: a judged hash of the previous intent does not survive into the next one.
+ test('a new intent starts without the previous sent hash',async()=>{
+  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+diff --git a/tests/pending-gold-credit.test.mjs b/tests/pending-gold-credit.test.mjs
+index 3f769f8..3fe03f4 100644
+--- a/tests/pending-gold-credit.test.mjs
++++ b/tests/pending-gold-credit.test.mjs
+@@ -63,7 +63,22 @@ test('a payment the wallet saw mined keeps its note past the after-expiry margin
+   settlePendingCredits(W,[quote],late);assert.equal(pendingGold(W,late),1000n,'mined late or a slow indexer: still on its way');
+   assert.equal(pendingGold(W,NOW+PENDING_CREDIT_MAX_MS),0n);
+   const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
+-  assert.match(src,/const mined=wallet\.step==='execute'&&wallet\.phase==='confirmed';/);assert.match(src,/if\(data&&mined&&sent\)markPendingCreditMined\(data\.wallet,sent\)/);
++  assert.match(src,/const mined=wallet\.step==='execute'&&wallet\.phase==='confirmed';/);assert.match(src,/if\(!data\|\|!mined\)return;if\(sent\)markPendingCreditMined\(data\.wallet,sent\);/);
++});
++test('Swarm audit 1ac5269f finding 5: a note made after a pasted replacement was confirmed is marked mined and kept',()=>{store.clear();
++  // The panel's effects in order (track, mark, settle). Expiry E; the original note (H1) aged out at E+61 min; the pasted
++  // speed-up H2 is confirmed at E+62 min, so the panel tracks a fresh note under H2 while sentHash is still H1.
++  const E=NOW+900000,quote=order({expires_ms:E}),H1=TX,H2='0x'+'5'.repeat(64),at=E+62*60_000;
++  const effects=marked=>{trackPendingCredit(W,ID,H2,'1000',at);for(const h of marked)markPendingCreditMined(W,h,at);settlePendingCredits(W,[quote],at);return pendingGold(W,at);};
++  assert.equal(effects([H1]),0n,'marking the sent hash alone: dropped at once (the finding)');
++  store.clear();assert.equal(effects([H1,H2]),1000n,'marking both: kept until the ledger credits or the 2 h cap');
++  assert.equal(pendingGold(W,at+PENDING_CREDIT_MAX_MS),0n);
++  const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.match(src,/if\(wallet\.hash&&wallet\.hash!==sent\)markPendingCreditMined\(data\.wallet,wallet\.hash\);\},\[data,mined,sent,wallet\.hash\]\);/);
++});
++test('Swarm audit 1ac5269f finding 6: after a reload the confirmed payment\'s order comes from the controller',()=>{
++  const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.match(src,/const payingOrder=wallet\.plan\?\.kind==='pay'\?wallet\.plan\.payment\.orderId:wallet\.paidOrder\?\?null,/);
+ });
+ test('Swarm audit 351b0573 finding 1: a payment that mined late but unseen by this browser keeps its note until it can be final',()=>{store.clear();
+   assert.equal(PENDING_CREDIT_AFTER_EXPIRY_MS,60*60_000);

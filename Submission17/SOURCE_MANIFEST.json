@@ -1,0 +1,58 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 17,
+ "privateBase": "38a21a3",
+ "privateSource": "be7d3b0c2a8086a9e6c1884481b62dedbe91de2e",
+ "files": [
+  {
+   "path": "scripts/deploy.mjs",
+   "status": "M",
+   "bytes": 23563,
+   "sha256": "bc6e1ff3b9f38597e5c1542c3fa21d30418f8d7adba3f612d3e691d6e93014ab",
+   "blob": "966d2ad5f932ce682b5d7518a687e195ad2dfe61",
+   "privateBlob": "966d2ad5f932ce682b5d7518a687e195ad2dfe61"
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "M",
+   "bytes": 28161,
+   "sha256": "21226305b65dc2879cca80566ee92405a17583a14ab6190a225a859a88c0d3af",
+   "blob": "4b25677d282da14e2f16d08a09914d55fe396374",
+   "privateBlob": "4b25677d282da14e2f16d08a09914d55fe396374"
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "status": "M",
+   "bytes": 36654,
+   "sha256": "0bca7cf53c20d59092b5411dc4c8d7aa0445b34bbc0c76cc0af9096c79aa0446",
+   "blob": "7c8359e2f35ff9a0f734d1679a6c8f5c5f8fae4c",
+   "privateBlob": "7c8359e2f35ff9a0f734d1679a6c8f5c5f8fae4c"
+  },
+  {
+   "path": "tests/deploy.test.mjs",
+   "status": "M",
+   "bytes": 37884,
+   "sha256": "b7e5a5bdcdd9354035402baf4cf6126a3cb12aaa44a9b48ef3202e957952d9a2",
+   "blob": "fff840786dad134349eb9795dfa55d7e6faa2739",
+   "privateBlob": "fff840786dad134349eb9795dfa55d7e6faa2739"
+  },
+  {
+   "path": "tests/economy-wallet-recovery.test.mjs",
+   "status": "M",
+   "bytes": 43739,
+   "sha256": "ab8e01acf222ed017e69934ee09599510245c15c062b9c4742255fb084710b07",
+   "blob": "2f2afb6268b864ba8d5172c2ca2ed9f5434b61e2",
+   "privateBlob": "2f2afb6268b864ba8d5172c2ca2ed9f5434b61e2"
+  },
+  {
+   "path": "tests/pending-gold-credit.test.mjs",
+   "status": "M",
+   "bytes": 17296,
+   "sha256": "5a2096b69139aaa35a05e3846d388d38d3d0ffc6f0fbbaebca4e00c332be4857",
+   "blob": "3fe03f4808f31512428b147b4579eee7146e9315",
+   "privateBlob": "3fe03f4808f31512428b147b4579eee7146e9315"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission16": "files not listed here are unchanged since Submission16/source (World 38a21a3), Submission15/source (World fe8bc4b), Submission14/source (World 64396ae) or Submission13/source (World ae1f640)"
+}
