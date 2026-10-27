@@ -1,0 +1,149 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 14,
+ "privateBase": "ae1f640",
+ "privateSource": "64396ae3ababf19e537f07df55ec244de82dd246",
+ "files": [
+  {
+   "path": "scripts/deploy.mjs",
+   "status": "M",
+   "bytes": 16068,
+   "sha256": "0912eefbe7af56d8ac1e7c8ae340d02a7fa6d575323ee70b6b131303025e4e8c",
+   "blob": "fd60c189fb595299c4f3c5d319e884ac23711e1a",
+   "privateBlob": "fd60c189fb595299c4f3c5d319e884ac23711e1a"
+  },
+  {
+   "path": "server/world-gold-api.ts",
+   "status": "M",
+   "bytes": 10127,
+   "sha256": "646c5e45bda4023d0ad0b94ba493f9c9c74176d49d1d5be027a8e7ee3cfb0296",
+   "blob": "f1e94c1df254a6c28510a71e49f1079e9a50d5bc",
+   "privateBlob": "f1e94c1df254a6c28510a71e49f1079e9a50d5bc"
+  },
+  {
+   "path": "src/world/GoldPurchase.tsx",
+   "status": "M",
+   "bytes": 9916,
+   "sha256": "8da0d599883f66c26b7b6f16712865ef417429b63345debead8fd317b66a8d6e",
+   "blob": "46a46ed3fb67f60f427d218842d4f0682d422601",
+   "privateBlob": "46a46ed3fb67f60f427d218842d4f0682d422601"
+  },
+  {
+   "path": "src/world/WalletBalanceHud.tsx",
+   "status": "M",
+   "bytes": 5895,
+   "sha256": "cdf898e298e289255874e573155a0975d9738b38766abd9440a0146944132c7c",
+   "blob": "593f5f715cc4f19cd2213399f5fc83c984f9b01d",
+   "privateBlob": "593f5f715cc4f19cd2213399f5fc83c984f9b01d"
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "M",
+   "bytes": 26376,
+   "sha256": "11ad1a1a775b459d10ceebdd8ed999fcb219c26d7f6d153487b91a6c74cf8deb",
+   "blob": "92f430fbd2a3acecf3032cb0e6bf2293dc930680",
+   "privateBlob": "92f430fbd2a3acecf3032cb0e6bf2293dc930680"
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "status": "M",
+   "bytes": 32199,
+   "sha256": "3a2d137c7358f2c540598b34d2d68fe2ecd245b515ccf7e27ed5c478297f1b2c",
+   "blob": "61230b189b5d92cd50ce68c702cb31f4f274df96",
+   "privateBlob": "61230b189b5d92cd50ce68c702cb31f4f274df96"
+  },
+  {
+   "path": "src/world/goldPurchasePreview.tsx",
+   "status": "M",
+   "bytes": 3758,
+   "sha256": "9c538853b6345cf4d2a6eaf64aefb7649994fcc8e63c7a1ad7c4c3088a4c4012",
+   "blob": "40f50430b48db07e7ece2ed81503099287a9af28",
+   "privateBlob": "40f50430b48db07e7ece2ed81503099287a9af28"
+  },
+  {
+   "path": "src/world/goldPurchaseRules.ts",
+   "status": "M",
+   "bytes": 6451,
+   "sha256": "965518675450240d8fd3a76fadd153876d89010c33cd51c12dfcecb154089ac5",
+   "blob": "e9d9af0d46de9c4da7a44d08a12fdc4cd93716aa",
+   "privateBlob": "e9d9af0d46de9c4da7a44d08a12fdc4cd93716aa"
+  },
+  {
+   "path": "src/world/pendingGoldCredit.ts",
+   "status": "A",
+   "bytes": 4586,
+   "sha256": "5c62603be94349acd6453eaab93a6f41166c06928a19e6c653ef882b1919aa8b",
+   "blob": "892731c03da9105e25b48c5073cba5120c8c7c54",
+   "privateBlob": "892731c03da9105e25b48c5073cba5120c8c7c54"
+  },
+  {
+   "path": "src/world/walletBalanceHud.css",
+   "status": "M",
+   "bytes": 8858,
+   "sha256": "2e0ac2008cae9108e5b8c4dbf3d3c9c993db49a356b2eb3c8c8b336aabac91e4",
+   "blob": "fa222c3a35c5fc103a8331129f326ca1b06d274e",
+   "privateBlob": "fa222c3a35c5fc103a8331129f326ca1b06d274e"
+  },
+  {
+   "path": "src/world/worldGold.css",
+   "status": "M",
+   "bytes": 5950,
+   "sha256": "2fae3d215624f00fc507cf09d8f195787aa0c06996a7ba1e233cb5e256a50347",
+   "blob": "79c039baae375e72305eeea794e6a4db37e95d88",
+   "privateBlob": "79c039baae375e72305eeea794e6a4db37e95d88"
+  },
+  {
+   "path": "src/world/worldGoldClient.ts",
+   "status": "M",
+   "bytes": 4026,
+   "sha256": "9a668e1988f2a487aac661464f167544be2b1ab4bf25c882e78aff843923c642",
+   "blob": "6e6a25ee9894d8aad49b9984f4275a1f5414ccaf",
+   "privateBlob": "6e6a25ee9894d8aad49b9984f4275a1f5414ccaf"
+  },
+  {
+   "path": "tests/deploy.test.mjs",
+   "status": "M",
+   "bytes": 27335,
+   "sha256": "91e013cfee2b1eb3a40adf6f358236396220fc79d8885a36bc62b652f188c708",
+   "blob": "0fdfe2235a68bedcbf7409f22c9d6f8d957b3e18",
+   "privateBlob": "0fdfe2235a68bedcbf7409f22c9d6f8d957b3e18"
+  },
+  {
+   "path": "tests/economy-wallet-recovery.test.mjs",
+   "status": "M",
+   "bytes": 27522,
+   "sha256": "77fccc21df80ae30eb29cec0a2746a4ab692c450c76d3d168e3f6d07bfea8ae6",
+   "blob": "4571b42258987674da772e8f794fbb6169887ae1",
+   "privateBlob": "4571b42258987674da772e8f794fbb6169887ae1"
+  },
+  {
+   "path": "tests/pending-gold-credit.test.mjs",
+   "status": "A",
+   "bytes": 9775,
+   "sha256": "7de444bdb267ae1114d2c7afeb2dc30e20d41e3f6dda09055623d6a51ce2aaa7",
+   "blob": "15043ee09e9372dea58fd80c7618ac0e4067e68e",
+   "privateBlob": "15043ee09e9372dea58fd80c7618ac0e4067e68e"
+  },
+  {
+   "path": "tests/world-gold-fast.test.mjs",
+   "status": "M",
+   "bytes": 18034,
+   "sha256": "cdbed29408b5cd00bc9a35a0d8f7ab0ecb9e4fe1df417c2d13604b77625c0589",
+   "blob": "2744e3b5ec89e03cf148bb4219cc434f2c0b7ee6",
+   "privateBlob": "2744e3b5ec89e03cf148bb4219cc434f2c0b7ee6"
+  },
+  {
+   "path": "worker/app.ts",
+   "status": "M",
+   "bytes": 23673,
+   "sha256": "8cd81ce0259e5f1a612109a84c834caf7eee803fea34e89804f2609cb2a0c09a",
+   "blob": "84f8a8e7457f44daeb0c85c69a7e0f45b3d51797",
+   "privateBlob": "84f8a8e7457f44daeb0c85c69a7e0f45b3d51797"
+  }
+ ],
+ "removed": [
+  "src/world/fastGoldCredit.ts",
+  "tests/fast-gold-client.test.mjs"
+ ],
+ "unchangedSinceSubmission13": "every other file named in AUDIT_REQUEST.md is byte-identical to Submission13/source (World ae1f640)"
+}

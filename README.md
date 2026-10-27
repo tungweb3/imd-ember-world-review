@@ -1,8 +1,8 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission13](Submission13/README.md) — wallet, GOLD fast credit and staking changes of 2026-10-26/27 · DEPLOYED (Worker `a718a392`, source `ae1f640`) · EXTERNAL REVIEW NOT YET DONE**
+**Current: [Submission14](Submission14/README.md) — remediation of audit e4a57f91: GOLD fast credit retired (credit at finality only), I-8 fixed · DEPLOYED (Worker `40c6477f`, source `64396ae`) · EXTERNAL REVIEW NOT YET DONE**
 
-Read [Submission13/AUDIT_REQUEST.md](Submission13/AUDIT_REQUEST.md) first. The Submission12 text below is the previous review and is kept as history.
+Read [Submission14/AUDIT_REQUEST.md](Submission14/AUDIT_REQUEST.md) first. [Submission13](Submission13/README.md) (wallet, GOLD fast credit and staking, source `ae1f640`) was reviewed in job `e4a57f91`; it and the Submission12 text below are kept as history.
 
 **Submission12: TEAM SOURCE EVIDENCE PASS BOUNDED · EXTERNAL AUDIT12 UNKNOWN · RELEASE-READINESS UNKNOWN · NOT DEPLOYED**
 

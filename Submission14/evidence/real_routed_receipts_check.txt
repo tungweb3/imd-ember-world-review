@@ -1,0 +1,7 @@
+intendedEffect (src/world/economyWallet.ts at 64396ae) over the owner's real mainnet receipts, all routed through the MetaMask Delegation Manager 0xdb9b...7db3; logs: token = EMBEO, payment = payment contract, staking = vault.
+payment 0x9c62b82028 to=0xdb9b1e94 routed=true logs=[token,payment,0xdb9b1e] accepted=true
+payment 0xdaba9b08f2 to=0xdb9b1e94 routed=true logs=[token,payment,0xdb9b1e] accepted=true
+payment 0xec38fd54d5 to=0xdb9b1e94 routed=true logs=[token,payment,0xdb9b1e] accepted=true
+payment 0x7ce2e92bcd to=0xdb9b1e94 routed=true logs=[token,payment,0xdb9b1e] accepted=true
+payment 0xb7b047cf8b to=0xdb9b1e94 routed=true logs=[token,payment,0xdb9b1e] accepted=true
+stake 0x80eda22e43 to=0xdb9b1e94 routed=true logs=[token,staking,0xdb9b1e] accepted=true

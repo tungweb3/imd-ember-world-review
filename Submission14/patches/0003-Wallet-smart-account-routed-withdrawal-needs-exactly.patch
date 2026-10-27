@@ -1,0 +1,39 @@
+From 325f04008a755679d02f484612da59faf0be212a Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 11:05:22 +0800
+Subject: [PATCH 3/4] Wallet: smart-account routed withdrawal needs exactly its
+ Withdrawn event
+
+Covers the withdraw branch of intendedEffect (position, shares, sender, one event), checked
+against EmbeoStakingVault's event; the owner's six real routed receipts are still accepted.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ tests/economy-wallet-recovery.test.mjs | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 2915ed3..4571b42 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -108,6 +108,17 @@ test('a delegated batch that also did something else of the same kind for this s
+  g.candidate(routed([effect.paid(OID,1000n),{...effect.paid('0x'+'8'.repeat(64),5n),topics:[T.paid,'0x'+'8'.repeat(64),pad('0x'+'4'.repeat(40)),pad(ECONOMY_TOKEN)]}]));await g.controller.checkReceipt();
+  assert.equal(g.controller.state.phase,'confirmed');g.controller.dispose();
+ });
++test('a smart-account routed withdrawal counts as done only with exactly its Withdrawn event (position, shares, sender)',async()=>{
++ // EmbeoStakingVault: Withdrawn(address indexed player, uint256 indexed positionId, uint256 shares, uint256 amount).
++ const withdrawn=(pos,shares,player=A)=>({address:VAULT,topics:[T.withdrawn,pad(player),word(pos)],data:word(shares)+word(shares*SHARE_WEI).slice(2)});
++ const run=async logs=>{const f=fixture();await f.controller.prepare({kind:'withdraw',positionId:'1',shares:'1'});await f.controller.confirm();
++  f.candidate(routed(logs));await f.controller.checkReceipt();const s={phase:f.controller.state.phase,error:f.controller.state.error};f.controller.dispose();return s;};
++ assert.deepEqual(await run([{address:ECONOMY_TOKEN,topics:['0x'+'e'.repeat(64)],data:'0x'},withdrawn(1n,1n)]),{phase:'confirmed',error:null});
++ for(const [name,logs] of [['other position',[withdrawn(2n,1n)]],['other shares',[withdrawn(1n,2n)]],['other player',[withdrawn(1n,1n,'0x'+'4'.repeat(40))]],
++  ['two withdrawals',[withdrawn(1n,1n),withdrawn(2n,1n)]],['stake instead',[effect.staked(1n)]],['nothing',[]]]){
++  const s=await run(logs);assert.notEqual(s.phase,'confirmed',name);assert.equal(s.error,'TRANSACTION_REPLACED',name);
++ }
++});
+ test('a new sign-in while the wallet prompt is open still shows the broadcast hash and offers the check',async()=>{
+  const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});
+  f.intercept(a=>{if(a.method!=='eth_sendTransaction')return undefined;const s=f.deps.auth();s.session={...s.session,expiresAt:s.session.expiresAt+1};f.sent.push(a.params[0]);return HASH;});
+-- 
+2.55.0.windows.5
+

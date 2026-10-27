@@ -1,0 +1,382 @@
+From 64396ae3ababf19e537f07df55ec244de82dd246 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 11:32:32 +0800
+Subject: [PATCH 4/4] GOLD: retire the fast-credit route and tick; pending note
+ fixes from an independent review
+
+Fast credit is removed from every entry point, not just switched off: POST
+/api/gold/orders/{id}/fast-credit is an unknown route again (404 before any budget, session or
+chain read), and the Worker no longer binds it, keeps the GOLD_FAST_CREDIT flag or runs the
+fast-credit minute tick (Swarm audit e4a57f91 M-1, L-2..L-6 had no remaining path; L-7 is closed
+by crediting only at finality). Production held one fast credit, settled, and no debt.
+
+Independent review of 8cb7d66 (2026-10-27):
+- the note took the approval hash still in wallet state while the payment was checked/sent, so
+  "+N crediting" appeared before the wallet prompt and stayed after a rejected one: only a hash
+  returned with phase pending/confirmed of the payment step starts it (paymentHash);
+- a reverted or replaced payment now drops its note at once (paymentFailed, dropPendingCredit);
+- other tabs follow note changes (storage event); the top bar checks once at once and when the
+  page is shown again; the order is read from the same book as the note, not one render behind;
+- deploy.mjs also re-checks gitignored .env* files after the build.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ scripts/deploy.mjs                 |  3 ++-
+ server/world-gold-api.ts           | 29 +++++++++--------------------
+ src/world/WalletBalanceHud.tsx     |  5 +++--
+ src/world/WorldGoldPanel.tsx       | 14 ++++++++------
+ src/world/pendingGoldCredit.ts     | 17 ++++++++++++++++-
+ tests/deploy.test.mjs              | 10 ++++++----
+ tests/pending-gold-credit.test.mjs | 24 +++++++++++++++++++++++-
+ tests/world-gold-fast.test.mjs     | 27 ++++++++++-----------------
+ worker/app.ts                      | 24 +++++-------------------
+ 9 files changed, 82 insertions(+), 71 deletions(-)
+
+diff --git a/scripts/deploy.mjs b/scripts/deploy.mjs
+index 884a08f..fd60c18 100644
+--- a/scripts/deploy.mjs
++++ b/scripts/deploy.mjs
+@@ -145,7 +145,8 @@ function main(){
+     console.log('> '+label);if(!runStep(args)){console.error(label+' failed; nothing was built or deployed');process.exit(1);}
+   }
+   const commitNow=git('rev-parse','HEAD'),porcelainNow=git('status','--porcelain','--untracked-files=normal');
+-  const changed=changedRefusal(commit,commitNow,porcelainNow,dryRun,commitNow===commit?'':git('diff','--name-only',commit,commitNow));
++  // A gitignored .env* that appeared during the run is invisible to --porcelain yet read by the build: check it again too.
++  const changed=changedRefusal(commit,commitNow,porcelainNow,dryRun,commitNow===commit?'':git('diff','--name-only',commit,commitNow))??envRefusal(envFiles(ROOT),dryRun);
+   if(changed){console.error(changed);process.exit(1);}
+   validateRecordRoot(ROOT);
+   try{validateRecordRoot(join(ROOT,RECORDS_DIR));}catch(error){if(error.code!=='ENOENT')throw error;mkdirSync(join(ROOT,RECORDS_DIR));}
+diff --git a/server/world-gold-api.ts b/server/world-gold-api.ts
+index 55d887c..f1e94c1 100644
+--- a/server/world-gold-api.ts
++++ b/server/world-gold-api.ts
+@@ -6,12 +6,9 @@ import type {EconomyConfig} from './economy-config.ts';
+ import {AIMARKET_ACTIVITY_ADMIN_WALLETS} from './aimarket-admin.ts';
+ import {goldProducts,worldGoldSnapshot,goldQuote,goldCampaign,goldAdminCommand,reconcileWorldGold} from './world-gold.ts';
+ import {requireWorldGoldSchema} from './world-gold-schema.ts';
+-import type {FastCreditOutcome} from './world-gold-fast.ts';
+-/** GOLD fast credit (server/world-gold-fast.ts), bound by the Worker to its rate-limited chain RPC; absent = off. */
+-type FastCredit=(args:{wallet:string;orderId:string;transactionHash:string;nowMs:number})=>Promise<FastCreditOutcome>;
+-type Deps={db?:D1Database;config?:EconomyConfig|null;now?:()=>number;allow?:(key:string)=>boolean|Promise<boolean>;client?:string;serviceReady?:boolean;serviceProducts?:readonly string[];fastCredit?:FastCredit};
+-/** A fast-credit request whose transaction is not exactly this pending quote's payment: the finalized path decides. */
+-const FAST_REFUSALS=['NOT_A_TOPUP','ORDER_NOT_PENDING','PAYMENT_DOES_NOT_MATCH_ORDER','NO_PAYMENT_FOR_ORDER','TRANSACTION_FAILED','DUPLICATE_ORDER_PAYMENT','PAYMENT_ALREADY_USED'];
++// POST /api/gold/orders/{id}/fast-credit was retired on 2026-10-27 (owner decision after Swarm audit e4a57f91): a top-up
++// is credited only once its payment is final. The path is now an unknown route (404) like any other.
++type Deps={db?:D1Database;config?:EconomyConfig|null;now?:()=>number;allow?:(key:string)=>boolean|Promise<boolean>;client?:string;serviceReady?:boolean;serviceProducts?:readonly string[]};
+ const reply=(status:number,value:unknown)=>new Response(JSON.stringify(value),{status,headers:API_HEADERS});
+ const bad=(status:number,error:string)=>reply(status,{error});
+ const address=/^0x[0-9a-fA-F]{40}$/;
+@@ -29,23 +26,20 @@ function command(o:unknown){
+  return c as Parameters<typeof goldAdminCommand>[1]['command'];
+ }
+ /** Same World cookie and identity; spending continues through the existing
+- * explicit GOLD-payment signature. No client receipt or amount can add GOLD:
+- * fast-credit takes only a transaction hash, whose receipt the server fetches and verifies itself. */
++ * explicit GOLD-payment signature. No client receipt or amount can add GOLD. */
+ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<Response|null>{
+- const u=new URL(request.url),me=u.pathname==='/api/me/gold',trial=u.pathname==='/api/me/aimarket-trial',base=u.pathname==='/api/gold/state',quote=u.pathname==='/api/gold/quote',admin=u.pathname==='/api/gold/admin',retry=/^\/api\/gold\/orders\/(0x[0-9a-f]{64})\/reconcile$/.exec(u.pathname),fast=/^\/api\/gold\/orders\/(0x[0-9a-f]{64})\/fast-credit$/.exec(u.pathname);
++ const u=new URL(request.url),me=u.pathname==='/api/me/gold',trial=u.pathname==='/api/me/aimarket-trial',base=u.pathname==='/api/gold/state',quote=u.pathname==='/api/gold/quote',admin=u.pathname==='/api/gold/admin',retry=/^\/api\/gold\/orders\/(0x[0-9a-f]{64})\/reconcile$/.exec(u.pathname);
+  if(!me&&!trial&&!u.pathname.startsWith('/api/gold/'))return null;
+  const local=u.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(u.hostname),origin=request.headers.get('origin'),site=request.headers.get('sec-fetch-site');
+  if((u.origin!=='https://imdember.com'&&!local)||(origin!==null&&origin!==u.origin)||(site!==null&&!['same-origin','none'].includes(site)))return bad(403,'FORBIDDEN_ORIGIN');
+- if(!me&&!trial&&!base&&!quote&&!admin&&!retry&&!fast)return bad(404,'NOT_FOUND');
+- const write=request.method==='POST';if((!['GET','POST'].includes(request.method))||((me||trial||base)&&write)||((quote||retry||fast)&&!write))return bad(405,'METHOD_NOT_ALLOWED');
++ if(!me&&!trial&&!base&&!quote&&!admin&&!retry)return bad(404,'NOT_FOUND');
++ const write=request.method==='POST';if((!['GET','POST'].includes(request.method))||((me||trial||base)&&write)||((quote||retry)&&!write))return bad(405,'METHOD_NOT_ALLOWED');
+  if(write&&(origin!==u.origin||u.search))return bad(403,'FORBIDDEN_ORIGIN');
+  if(!deps.db||!deps.allow)return bad(503,'GOLD_NOT_CONFIGURED');
+  let checkSession:(()=>Promise<boolean>)|undefined;
+  try{
+   const clock=economySessionClock(deps.now??Date.now),started=clock();
+-  // Fast credit polls for about 90 s right after a payment, while the panel is also refreshing: its own budget key,
+-  // so neither starves the other (2026-10-26: a shared budget ran out and the credit fell back to finality).
+-  if(!await deps.allow((fast?'world-gold-fast:':'world-gold:')+(deps.client??'unknown')))return bad(429,'RATE_LIMITED');
++  if(!await deps.allow('world-gold:'+(deps.client??'unknown')))return bad(429,'RATE_LIMITED');
+   const b=write?await body(request):null,expected=b?.expectedAddress??u.searchParams.get('expected_address');
+   const lookup=admin?u.searchParams.get('order_id'):null;
+   if(typeof expected!=='string'||!address.test(expected)||(!write&&(u.searchParams.size!==(lookup?2:1)||u.search.length>256))||(lookup!==null&&!/^0x[0-9a-f]{64}$/.test(lookup)))return bad(400,'BAD_REQUEST');
+@@ -78,15 +72,10 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+    const cmd=command(b!.command),ready=serviceable(cmd.action==='product'&&cmd.kind==='service'?cmd.product:undefined);
+    if(!deps.config&&cmd.action!=='repair-topup'&&cmd.action!=='refund-service')return await authReply({error:'GOLD_NOT_CONFIGURED'},503);
+    const result=await goldAdminCommand(deps.db,{wallet,requestId:b!.requestId,command:cmd,reason:b!.reason,nowMs:clock(),now:clock,authorization:auth,serviceReady:ready});return await authReply({ok:true,result});}
+-  if(fast){
+-   if(!exact(b!,['expectedAddress','transactionHash'])||typeof b!.transactionHash!=='string'||!/^0x[0-9a-fA-F]{64}$/.test(b!.transactionHash))return await authReply({error:'BAD_REQUEST'},400);
+-   if(!deps.config||!deps.fastCredit)return await authReply({error:'FAST_CREDIT_UNAVAILABLE'},503);
+-   const outcome=await deps.fastCredit({wallet,orderId:fast[1],transactionHash:b!.transactionHash.toLowerCase(),nowMs:clock()});return await authReply(outcome);
+-  }
+   if(!exact(b!,['expectedAddress']))return await authReply({error:'BAD_REQUEST'},400);
+   if(!await deps.db.prepare('SELECT id FROM economy_orders WHERE id=? AND wallet=?').bind(retry![1],wallet).first())return await authReply({error:'ORDER_NOT_FOUND'},404);
+   // Reconciliation repairs already-owed rights, also run by cron. A concurrent
+   // logout cannot undo an owed credit; it must refuse success to this request.
+   const result=await reconcileWorldGold(deps.db,clock(),retry![1]);return result.failures.length?await authReply({ok:false,error:result.failures[0].code},409):await authReply({ok:true});
+- }catch(e){e=await economySessionFailure(e,checkSession);const code=e instanceof Error?e.message:'GOLD_UNAVAILABLE';return bad(code==='AUTH_REQUIRED'?401:code==='ORDER_NOT_FOUND'?404:FAST_REFUSALS.includes(code)?409:code==='INVALID_CLOCK'||code==='INVALID_SETTLEMENT_CLOCK'?503:code==='BAD_REQUEST'||code==='INVALID_PRODUCT'||code==='INVALID_REQUEST_ID'?400:code==='ADMIN_REQUIRED'?403:code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='ORDER_EXPIRED'||code==='VERSION_CONFLICT'||code.endsWith('_NOT_ENTITLED')||code==='ECONOMY_HALTED'||code==='ECONOMY_CONFIG_REPLACED'||code==='IDEMPOTENCY_CONFLICT'||code==='FEATURE_PAUSED'||code==='PRODUCT_UNAVAILABLE'||code==='PASS_ALREADY_ACTIVE'||code==='PASS_ORDER_PENDING'?409:503,/^[A-Z][A-Z0-9_]{1,80}$/.test(code)?code:'GOLD_UNAVAILABLE');}
++ }catch(e){e=await economySessionFailure(e,checkSession);const code=e instanceof Error?e.message:'GOLD_UNAVAILABLE';return bad(code==='AUTH_REQUIRED'?401:code==='ORDER_NOT_FOUND'?404:code==='INVALID_CLOCK'||code==='INVALID_SETTLEMENT_CLOCK'?503:code==='BAD_REQUEST'||code==='INVALID_PRODUCT'||code==='INVALID_REQUEST_ID'?400:code==='ADMIN_REQUIRED'?403:code.startsWith('INVALID_')||code.endsWith('_REQUIRED')||code==='ORDER_EXPIRED'||code==='VERSION_CONFLICT'||code.endsWith('_NOT_ENTITLED')||code==='ECONOMY_HALTED'||code==='ECONOMY_CONFIG_REPLACED'||code==='IDEMPOTENCY_CONFLICT'||code==='FEATURE_PAUSED'||code==='PRODUCT_UNAVAILABLE'||code==='PASS_ALREADY_ACTIVE'||code==='PASS_ORDER_PENDING'?409:503,/^[A-Z][A-Z0-9_]{1,80}$/.test(code)?code:'GOLD_UNAVAILABLE');}
+ }
+diff --git a/src/world/WalletBalanceHud.tsx b/src/world/WalletBalanceHud.tsx
+index 281331b..593f5f7 100644
+--- a/src/world/WalletBalanceHud.tsx
++++ b/src/world/WalletBalanceHud.tsx
+@@ -21,8 +21,9 @@ function usePendingGold(state:AuthState,signedIn:boolean){
+  const read=()=>String(pendingGold(address)),gold=useSyncExternalStore(subscribePendingCredit,read,read);
+  useEffect(()=>{if(!address||gold==='0')return;let active=true;const client=new WorldGoldClient({auth:()=>auth.current});
+   const check=async()=>{try{const s=await client.state();if(active&&settlePendingCredits(address,s.orders))window.dispatchEvent(new Event('world:gold-changed'));}catch{/* the next check tries again */}};
+-  const timer=setInterval(()=>{if(!document.hidden)void check();},PENDING_CREDIT_POLL_MS);
+-  return()=>{active=false;clearInterval(timer);};},[address,gold]);
++  // Also once at once (a reload during the wait) and when the page comes back into view.
++  const visible=()=>{if(!document.hidden)void check();},timer=setInterval(visible,PENDING_CREDIT_POLL_MS);visible();document.addEventListener('visibilitychange',visible);
++  return()=>{active=false;clearInterval(timer);document.removeEventListener('visibilitychange',visible);};},[address,gold]);
+  return gold;
+ }
+ export function WalletBalanceHud({state,read,zh,onOpen}:{state:AuthState;read:MemberBalancesRead;zh:boolean;onOpen:()=>void}){
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 369d016..92f430f 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -5,7 +5,7 @@ import {WorldGoldClient,goldPriceInputAtomic,type GoldState,type GoldOrder} from
+ import {EconomyClient,economyRequestId,economySession,economyTokenAmount,EconomyClientError,type EconomyConfig,type EconomyOrder} from './economyClient.ts';
+ import {EconomyWalletController,localEconomyPending,type EconomyWalletState} from './economyWallet.ts';
+ import {GoldPurchase} from './GoldPurchase.tsx';
+-import {pendingCredit,settlePendingCredits,subscribePendingCredit,trackPendingCredit,type PendingCredit} from './pendingGoldCredit.ts';
++import {dropPendingCredit,paymentFailed,paymentHash,pendingCredit,settlePendingCredits,subscribePendingCredit,trackPendingCredit,type PendingCredit} from './pendingGoldCredit.ts';
+ import {ResearchPassCard} from './ResearchPassCard.tsx';
+ import {ResearchPassConfirm} from './ResearchPassConfirm.tsx';
+ import {RESEARCH_PASS_PRODUCT} from './researchPassCopy.ts';
+@@ -75,11 +75,13 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  useEffect(()=>{setController(null);configRef.current=null;setConfigFailed(false);if(!identity)return;let active=true,c:EconomyWalletController|undefined;const registry=wallets();void new EconomyClient({auth:()=>auth.current}).config().then(config=>{if(!active||!config.enabled)return;configRef.current=config;c=new EconomyWalletController({config,auth:()=>auth.current,provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(fn),pending:localEconomyPending});c.restorePending();setController(c);}).catch(()=>{if(active)setConfigFailed(true);});return()=>{active=false;c?.dispose();};},[identity,configTry]);
+  // The wallet's hash of this top-up's payment: the top bar shows the GOLD as being credited (pendingGoldCredit.ts) until
+  // the ledger books it at finality, about 15 minutes later, also after this panel closes or the page reloads.
+- // Only the payment's hash: during the allowance step wallet.hash is the approval transaction, which pays nothing, and
+- // it is still that hash while the payment is being sent (phase 'sending', step already 'execute').
+- const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=wallet.step==='execute'&&wallet.phase!=='sending'?wallet.hash:null;
+- useEffect(()=>{const o=selected;if(!o||!data||o.kind!=='topup'||o.id!==payingOrder||!payingHash||o.status==='paid')return;
+-  trackPendingCredit(data.wallet,o.id,payingHash,o.gold);},[selected,payingOrder,payingHash,data]);
++ // Only the payment's own hash (pendingGoldCredit.ts paymentHash); the order is read from this same book, not from
++ // `selected`, which follows it one render later. A reverted or replaced payment's note goes at once.
++ const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=paymentHash(wallet),failed=paymentFailed(wallet);
++ useEffect(()=>{const o=payingOrder?data?.orders.find(o=>o.id===payingOrder):null;if(!data||!o||o.kind!=='topup'||!payingHash||o.status==='paid')return;
++  trackPendingCredit(data.wallet,o.id,payingHash,o.gold);},[payingOrder,payingHash,data]);
++ useEffect(()=>{if(data&&payingOrder&&failed)dropPendingCredit(data.wallet,payingOrder);},[data,payingOrder,failed]);
++ // Once booked, the top bar's balances refresh too (the event also makes this panel read once more).
+  useEffect(()=>{if(data&&settlePendingCredits(data.wallet,data.orders))window.dispatchEvent(new Event('world:gold-changed'));},[data]);
+  const pending=JSON.parse(useSyncExternalStore(subscribePendingCredit,()=>JSON.stringify(pendingCredit(data?.wallet,selected?.id)),()=>'null')) as PendingCredit|null;
+  // Errors from ordering or signing are written to the status line at the end of the panel; bring it into view.
+diff --git a/src/world/pendingGoldCredit.ts b/src/world/pendingGoldCredit.ts
+index b796463..892731c 100644
+--- a/src/world/pendingGoldCredit.ts
++++ b/src/world/pendingGoldCredit.ts
+@@ -10,7 +10,12 @@ export type PendingCredit={orderId:string;gold:string;hash:string;atMs:number};
+ export const PENDING_CREDIT_ETA_MS=15*60_000,PENDING_CREDIT_MAX_MS=2*60*60_000;
+ const key=(address:string)=>'ember-pending-gold-v1:'+address.toLowerCase();
+ const listeners=new Set<()=>void>();
+-export function subscribePendingCredit(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};}
++/** Also told when another tab of this site changes a note (the `storage` event), so every tab shows the same. */
++export function subscribePendingCredit(fn:()=>void){
++ const other=(e:StorageEvent)=>{if(e.key===null||e.key.startsWith('ember-pending-gold-v1:'))fn();};
++ listeners.add(fn);if(typeof window!=='undefined')window.addEventListener('storage',other);
++ return()=>{listeners.delete(fn);if(typeof window!=='undefined')window.removeEventListener('storage',other);};
++}
+ function stored(address:string):unknown[]{try{const v=JSON.parse(localStorage.getItem(key(address))??'[]');return Array.isArray(v)?v:[];}catch{return [];}}
+ function save(address:string,list:PendingCredit[]){try{if(list.length)localStorage.setItem(key(address),JSON.stringify(list));else localStorage.removeItem(key(address));}catch{/* display only */}for(const fn of listeners)fn();}
+ export function readPendingCredits(address:string,now=Date.now()):PendingCredit[]{
+@@ -24,6 +29,16 @@ export function trackPendingCredit(address:string,orderId:string,hash:string,gol
+  const list=readPendingCredits(address,now);if(list.some(p=>p.orderId===orderId)||!/^[1-9][0-9]*$/.test(gold))return;
+  save(address,[...list,{orderId,gold,hash,atMs:now}]);
+ }
++/** The hash of this top-up's payment, once the wallet has returned it (economyWallet.ts send sets it with phase
++ *  'pending'). Before that wallet.hash is still the approval's: through 'checking' and 'sending' of the payment step,
++ *  and after a wallet that answered nothing usable ('unknown'). A note made then would say "crediting" for no payment. */
++export function paymentHash(wallet:{phase:string;step:string|null;hash:string|null}){return wallet.step==='execute'&&(wallet.phase==='pending'||wallet.phase==='confirmed')?wallet.hash:null;}
++/** A payment reverted on chain or replaced by another transaction sends no GOLD. */
++export function paymentFailed(wallet:{phase:string;step:string|null;error:string|null}){return wallet.step==='execute'&&(wallet.phase==='replaced'||wallet.phase==='error'&&wallet.error==='TRANSACTION_REVERTED');}
++/** The payment did not go through (reverted on chain, or replaced by another transaction): no GOLD is on its way. */
++export function dropPendingCredit(address:string,orderId:string,now=Date.now()){
++ const list=readPendingCredits(address,now);if(list.some(p=>p.orderId===orderId))save(address,list.filter(p=>p.orderId!==orderId));
++}
+ /** Drop what the ledger has credited (and anything past the display window). True when a pending top-up was credited. */
+ export function settlePendingCredits(address:string,orders:readonly GoldOrder[],now=Date.now()){
+  const list=readPendingCredits(address,now),keep=list.filter(p=>{const o=orders.find(o=>o.id===p.orderId);return !(o&&orderCredited(o));});
+diff --git a/tests/deploy.test.mjs b/tests/deploy.test.mjs
+index b608f4b..0fdfe22 100644
+--- a/tests/deploy.test.mjs
++++ b/tests/deploy.test.mjs
+@@ -282,13 +282,15 @@ for(const variant of ['good','upload-failed','dist-changed','record-locked'])tes
+ 
+ // 2026-10-26: an edit to src/world/publicHalls/runtime.ts made while the suite ran was built and uploaded uncommitted (deploy of
+ // 40e97f4). A real (not dry-run) deploy over the same synthetic local programs: the fake build edits or commits a tracked file.
+-for(const variant of ['clean','edited','head-moved'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
++// 'env-added': a gitignored .env.production that appears during the run is invisible to git status but read by vite.
++for(const variant of ['clean','edited','head-moved','env-added'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
+   const id=['-c','user.name=t','-c','user.email=t@example.invalid','-c','commit.gpgsign=false'];
+   const build="import {mkdirSync,writeFileSync} from 'node:fs';import {spawnSync} from 'node:child_process';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','abc');"+
+-    (variant==='edited'?"writeFileSync('src/runtime.ts','edited during the run');":variant==='head-moved'?"writeFileSync('src/runtime.ts','committed during the run');spawnSync('git',"+JSON.stringify([...id,'commit','-qam','during the run'])+");":'');
++    (variant==='edited'?"writeFileSync('src/runtime.ts','edited during the run');":variant==='head-moved'?"writeFileSync('src/runtime.ts','committed during the run');spawnSync('git',"+JSON.stringify([...id,'commit','-qam','during the run'])+");":
++     variant==='env-added'?"writeFileSync('.env.production','VITE_X=1');":'');
+   const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local upload, no network');";
+   const dir=tree({'package.json':JSON.stringify({type:'module',scripts:{test:'node --test tests/*.test.mjs'}}),'tests/a.test.mjs':"import test from 'node:test';test('ok',()=>{});",
+-    'src/runtime.ts':'committed','.gitignore':'deploy-records/\nnode_modules/\ndist/\n','package-lock.json':'{}','wrangler.jsonc':'{}','public/_headers':'/*\n',
++    'src/runtime.ts':'committed','.gitignore':'deploy-records/\nnode_modules/\ndist/\n.env*\n','package-lock.json':'{}','wrangler.jsonc':'{}','public/_headers':'/*\n',
+     'node_modules/typescript/package.json':'{"version":"1.0.0"}','node_modules/typescript/bin/tsc':'',
+     'node_modules/vite/package.json':'{"version":"1.0.0"}','node_modules/vite/bin/vite.js':build,
+     'node_modules/wrangler/package.json':'{"version":"1.0.0"}','node_modules/wrangler/bin/wrangler.js':upload});
+@@ -307,7 +309,7 @@ for(const variant of ['clean','edited','head-moved'])test('a real deploy re-chec
+       return;
+     }
+     assert.equal(r.status,1,out);assert.doesNotMatch(out,/> wrangler deploy|synthetic local upload/,'nothing was uploaded');
+-    assert.match(out,variant==='edited'?/working tree changed during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/:/HEAD moved during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/);
++    assert.match(out,variant==='edited'?/working tree changed during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/:variant==='env-added'?/env files would change the build but are not in git \(\.env\.production\)/:/HEAD moved during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/);
+     assert.equal(existsSync(join(dir,RECORDS_DIR)),false,'no record claims a deploy');
+     if(variant==='head-moved')assert.notEqual(git('rev-parse','HEAD'),start,'the fake build did commit');
+   }finally{rmSync(dir,{recursive:true,force:true});}
+diff --git a/tests/pending-gold-credit.test.mjs b/tests/pending-gold-credit.test.mjs
+index 8f523bd..15043ee 100644
+--- a/tests/pending-gold-credit.test.mjs
++++ b/tests/pending-gold-credit.test.mjs
+@@ -7,7 +7,7 @@ import ts from 'typescript';
+ import {createElement as h} from 'react';
+ import {renderToStaticMarkup} from 'react-dom/server';
+ import {PACKAGES} from '../scripts/gold-topup-release.mjs';
+-import {PENDING_CREDIT_ETA_MS,PENDING_CREDIT_MAX_MS,pendingCredit,pendingGold,readPendingCredits,settlePendingCredits,subscribePendingCredit,trackPendingCredit} from '../src/world/pendingGoldCredit.ts';
++import {PENDING_CREDIT_ETA_MS,PENDING_CREDIT_MAX_MS,dropPendingCredit,paymentFailed,paymentHash,pendingCredit,pendingGold,readPendingCredits,settlePendingCredits,subscribePendingCredit,trackPendingCredit} from '../src/world/pendingGoldCredit.ts';
+ import {purchaseStage} from '../src/world/goldPurchaseRules.ts';
+ registerHooks({load(url,context,next){if(url.endsWith('.css'))return {format:'module',source:'export {};',shortCircuit:true};if(!url.startsWith('file:')||!url.endsWith('.tsx'))return next(url,context);const file=fileURLToPath(url);return {format:'module',shortCircuit:true,source:ts.transpileModule(readFileSync(file,'utf8'),{fileName:file,compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText};}});
+ const {GoldPurchase}=await import('../src/world/GoldPurchase.tsx');
+@@ -36,6 +36,28 @@ test('the note never outlives the display window and holds no entitlement',()=>{
+   store.set('ember-pending-gold-v1:'+W,JSON.stringify([{orderId:'x',gold:'5',hash:TX,atMs:NOW},{orderId:ID,gold:'-1',hash:TX,atMs:NOW}]));assert.equal(pendingGold(W,NOW),0n,'malformed entries are ignored');
+   assert.equal(PENDING_CREDIT_ETA_MS,15*60_000);
+ });
++test('only the payment\'s own hash starts a note: never the approval hash still shown while the payment is checked or sent',()=>{
++  // Independent review 2026-10-27: approve, then "confirm payment" set step 'execute' with the approval hash still in
++  // state ('checking'), so "+N crediting" appeared before the wallet asked, and stayed after a rejected prompt.
++  const APPROVAL='0x'+'a1'.repeat(32),PAY='0x'+'b2'.repeat(32);
++  for(const phase of ['checking','sending','unknown','confirm','error','rejected'])assert.equal(paymentHash({phase,step:'execute',hash:APPROVAL}),null,phase);
++  assert.equal(paymentHash({phase:'confirmed',step:'approve',hash:APPROVAL}),null,'the confirmed approval itself');
++  assert.equal(paymentHash({phase:'pending',step:'execute',hash:PAY}),PAY);assert.equal(paymentHash({phase:'confirmed',step:'execute',hash:PAY}),PAY);
++});
++test('a reverted or replaced payment drops its note at once; a rejected prompt never made one',()=>{store.clear();
++  assert.equal(paymentFailed({phase:'error',step:'execute',error:'TRANSACTION_REVERTED'}),true);assert.equal(paymentFailed({phase:'replaced',step:'execute',error:'TRANSACTION_REPLACED'}),true);
++  for(const w of [{phase:'error',step:'execute',error:'USER_REJECTED'},{phase:'replaced',step:'approve',error:'TRANSACTION_REPLACED'},{phase:'pending',step:'execute',error:null}])assert.equal(paymentFailed(w),false,JSON.stringify(w));
++  trackPendingCredit(W,ID,TX,'1000',NOW);trackPendingCredit(W,ID2,TX,'100',NOW);dropPendingCredit(W,ID,NOW);
++  assert.equal(pendingGold(W,NOW),100n);assert.equal(pendingCredit(W,ID,NOW),null);dropPendingCredit(W,ID,NOW);assert.equal(pendingGold(W,NOW),100n,'idempotent');
++});
++test('another tab changing a note reaches this tab (storage event), and only for these notes',()=>{
++  const prior=globalThis.window;globalThis.window=new EventTarget();try{
++   let n=0;const off=subscribePendingCredit(()=>n++);
++   const fire=key=>window.dispatchEvent(Object.assign(new Event('storage'),{key}));
++   fire('ember-pending-gold-v1:'+W);fire('ember-world-language');fire(null);assert.equal(n,2,'its own key and a cleared storage');
++   off();fire('ember-pending-gold-v1:'+W);assert.equal(n,2,'unsubscribed');
++  }finally{globalThis.window=prior;}
++});
+ test('only the ledger completes a purchase: a mined receipt or a pending note never does',()=>{
+   const plan={kind:'pay',payment:{orderId:ID}},w={phase:'confirmed',step:'execute',plan};
+   assert.equal(purchaseStage(order(),w,NOW),'awaiting-credit');
+diff --git a/tests/world-gold-fast.test.mjs b/tests/world-gold-fast.test.mjs
+index c8bf650..2744e3b 100644
+--- a/tests/world-gold-fast.test.mjs
++++ b/tests/world-gold-fast.test.mjs
+@@ -1,6 +1,7 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import {openD1} from './d1-sqlite.mjs';
++import {readFileSync} from 'node:fs';
+ import {keccak256,stringToHex} from 'viem';
+ import {privateKeyToAccount,generatePrivateKey} from 'viem/accounts';
+ import {defineEconomyConfig,ECONOMY_TOKEN,ECONOMY_TREASURY} from '../server/economy-config.ts';
+@@ -186,23 +187,15 @@ test('the SQL guards refuse forged fast entries and illegal transitions',async()
+ 
+ const ROOT='https://imdember.com',TOKEN='f'.repeat(43);
+ const post=(path,wallet,body)=>new Request(ROOT+path,{method:'POST',headers:{origin:ROOT,cookie:SESSION_COOKIE+'='+TOKEN,'content-type':'application/json'},body:JSON.stringify({expectedAddress:wallet,...body})});
+-test('POST /api/gold/orders/{id}/fast-credit: signed-in owner only, exact body, off unless the Worker binds it',async()=>{const f=await setup();try{
++test('the fast-credit route is retired (2026-10-27): a signed-in owner with a real payment gets 404 and no GOLD before finality',async()=>{const f=await setup();try{
+   f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,1,?,?,?,?,?)').run(await sha256(TOKEN),W,NOW-1,NOW+3600000,'fast-credit-api','EOA','ECDSA');
+   const id=await f.quote(),tx=hash(0xaf);f.c.pay(tx,150,{orderId:id,amount:f.order(id).amount});
+-  const keys=[],base={db:f.db,config:f.config,now:()=>NOW+10,client:'ip-a',allow:async k=>{keys.push(k);return true;}},path='/api/gold/orders/'+id+'/fast-credit';
+-  const bound={...base,fastCredit:args=>fastCreditTopup(f.db,f.config,f.c.rpc,args)};
+-  let r=await handleWorldGoldApi(post(path,W,{transactionHash:tx}),base);assert.equal(r.status,503);assert.equal((await r.json()).error,'FAST_CREDIT_UNAVAILABLE');
+-  r=await handleWorldGoldApi(new Request(ROOT+path+'?expected_address='+W,{headers:{cookie:SESSION_COOKIE+'='+TOKEN}}),bound);assert.equal(r.status,405);
+-  for(const body of [{transactionHash:'0x12'},{transactionHash:tx,amount:'999'},{}]){r=await handleWorldGoldApi(post(path,W,body),bound);assert.equal(r.status,400,JSON.stringify(body));}
+-  r=await handleWorldGoldApi(post('/api/gold/orders/'+hash(0xdead)+'/fast-credit',W,{transactionHash:tx}),bound);assert.equal(r.status,404);
+-  const wrong=hash(0xbad);f.c.pay(wrong,151,{orderId:id,amount:'1'});
+-  r=await handleWorldGoldApi(post(path,W,{transactionHash:wrong}),bound);assert.equal(r.status,409);assert.equal((await r.json()).error,'PAYMENT_DOES_NOT_MATCH_ORDER');
+-  r=await handleWorldGoldApi(post(path,W,{transactionHash:tx.toUpperCase().replace('0X','0x')}),bound);assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'credited',gold:'10'});
+-  assert.equal((await f.snapshot()).book,'10');f.balanced();
+-  // Its own rate-limit budget: the panel's ledger refreshes cannot use up the fast-credit polls (and vice versa).
+-  assert.ok(keys.length>0&&keys.every(k=>k==='world-gold-fast:ip-a'),JSON.stringify([...new Set(keys)]));
+-  keys.length=0;await handleWorldGoldApi(new Request(ROOT+'/api/gold/state?expected_address='+W,{headers:{cookie:SESSION_COOKIE+'='+TOKEN}}),bound);
+-  assert.deepEqual(keys,['world-gold:ip-a']);
+-  const limited=await handleWorldGoldApi(post(path,W,{transactionHash:tx}),{...bound,allow:async k=>k!=='world-gold-fast:ip-a'});
+-  assert.equal(limited.status,429);assert.equal((await limited.json()).error,'RATE_LIMITED');
++  const keys=[],deps={db:f.db,config:f.config,now:()=>NOW+10,client:'ip-a',allow:async k=>{keys.push(k);return true;},fastCredit:()=>assert.fail('no route may reach a fast credit')};
++  for(const method of ['POST','GET']){
++   const r=await handleWorldGoldApi(method==='POST'?post('/api/gold/orders/'+id+'/fast-credit',W,{transactionHash:tx}):new Request(ROOT+'/api/gold/orders/'+id+'/fast-credit?expected_address='+W,{headers:{cookie:SESSION_COOKIE+'='+TOKEN}}),deps);
++   assert.equal(r.status,404,method);assert.equal((await r.json()).error,'NOT_FOUND');
++  }
++  assert.deepEqual(keys,[],'refused before any budget, session or chain read');assert.equal(credit(f).length,0);assert.equal((await f.snapshot()).book,'0');f.balanced();
++  const src=readFileSync(new URL('../worker/app.ts',import.meta.url),'utf8');
++  assert.doesNotMatch(src,/fastCreditTopup|maintainFastGold|GOLD_FAST_CREDIT|economy:fast/,'the Worker neither binds nor maintains fast credit');
+ }finally{f.close();}});
+diff --git a/worker/app.ts b/worker/app.ts
+index cd4283b..84f8a8e 100644
+--- a/worker/app.ts
++++ b/worker/app.ts
+@@ -21,7 +21,6 @@ import {createCelestaoDelivery} from '../server/celestao-delivery.ts';
+ import {handleCelestaoCheckout} from '../server/celestao-checkout.ts';
+ import {handleWorldGoldReport} from '../server/world-gold-report.ts';
+ import {createEconomyRpc,syncEconomyChain,EconomyRpcError,ECONOMY_PROVIDER_LOG_BLOCK_RANGE,type EconomyRpc} from '../server/economy-rpc.ts';
+-import {fastCreditTopup,maintainFastGold} from '../server/world-gold-fast.ts';
+ import type {EconomyConfig} from '../server/economy-config.ts';
+ import {Ownership,type ChainAccess} from '../server/ownership.ts';
+ import {recordPresence} from '../server/presence.ts';
+@@ -39,9 +38,7 @@ type RateLimit={limit(options:{key:string}):Promise<{success:boolean}>};
+  *  chain reads; never sent to clients. AIMARKET_BRIDGE_SECRET: separate backend-only random SSO credential, never an
+  *  owner key; absent means bridge disabled. DB: D1 for sign-in and presence. CHAIN_MOCK_OWNERS: local E2E only (loopback). */
+ export type Env={ASSETS:AssetsBinding;API_LIMITER?:RateLimit;SEAT_LIMITER?:RateLimit;AUTH_LIMITER?:RateLimit;CHAIN_LIMITER?:RateLimit;ALCHEMY_API_KEY?:string;
+-  DB?:D1Database;CHAIN_MOCK_OWNERS?:string;AIMARKET_BRIDGE_SECRET?:string;CELESTAO_BRIDGE_SECRET?:string;CELESTAO_DELIVERY_SECRET?:string;CELESTAO_PAID_ENABLED?:string;ECONOMY_LIMITER?:RateLimit;ECONOMY_CHAIN_LIMITER?:RateLimit;BRIDGE_LIMITER?:RateLimit;
+-  /** "1" accepts new GOLD fast credits (migrations/0021). Unset stops only new ones; existing ones still settle or revert. */
+-  GOLD_FAST_CREDIT?:string};
++  DB?:D1Database;CHAIN_MOCK_OWNERS?:string;AIMARKET_BRIDGE_SECRET?:string;CELESTAO_BRIDGE_SECRET?:string;CELESTAO_DELIVERY_SECRET?:string;CELESTAO_PAID_ENABLED?:string;ECONOMY_LIMITER?:RateLimit;ECONOMY_CHAIN_LIMITER?:RateLimit;BRIDGE_LIMITER?:RateLimit};
+ export type Context={waitUntil(promise:Promise<unknown>):void};
+ /** The research server's per-read session checks ('aimarket:session:*') get their own, larger budget (wrangler.jsonc
+  *  BRIDGE_LIMITER) when it is bound; every other bridge key, and local runs without it, keep AUTH_LIMITER. */
+@@ -161,8 +158,8 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+   edgeCache:()=>EdgeCache|undefined=defaultCache,economy:EconomyWorkerDeps={config:reviewedEconomyConfig}) {
+   const ownership=new Ownership(gateway,collections),noCode=new Map<string,number>();   // per isolate (server/auth.ts NoCodeCache)
+   const deliveryFor=(env:Env)=>economy.delivery??combineGoldProviders(createAIMarketDelivery(env.AIMARKET_BRIDGE_SECRET,chainFetch,now),createCelestaoDelivery(env.DB,env.CELESTAO_DELIVERY_SECRET,chainFetch,now),createResearchPassDelivery());
+-  /** The economy RPC under ECONOMY_CHAIN_LIMITER. Fast credit has its own key so player requests never starve the indexer. */
+-  const economyRpc=(env:Env,key:'economy:rpc'|'economy:fast'):EconomyRpc=>{
++  /** The economy RPC under ECONOMY_CHAIN_LIMITER (the finalized indexer's key). */
++  const economyRpc=(env:Env,key:'economy:rpc'):EconomyRpc=>{
+     const base=economy.rpc?.(env)??createEconomyRpc({key:env.ALCHEMY_API_KEY||undefined,fetch:chainFetch});
+     return async(method,params)=>{
+       if(!(await env.ECONOMY_CHAIN_LIMITER!.limit({key})).success)throw Error('ECONOMY_RPC_RATE_LIMITED');
+@@ -180,12 +177,7 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+     if(!await worldGoldSchemaReady(env.DB)){console.log('gold_maintenance',JSON.stringify({status:'deferred',code:'SCHEMA_INCOMPLETE'}));return;}
+     const result=await reconcileWorldGold(env.DB,at);if(result.failures.length)console.log('gold_reconcile',JSON.stringify(result.failures));
+     if(result.rewards.some(r=>r.status!=='credited'))console.log('gold_rewards',JSON.stringify(result.rewards));
+-    // Fast credits are followed whether or not new ones are accepted (GOLD_FAST_CREDIT), so none is left unsettled.
+-    const config=await economy.config().catch(()=>null);
+-    if(config&&env.ECONOMY_CHAIN_LIMITER){
+-      const fast=await maintainFastGold(env.DB,config,economyRpc(env,'economy:fast'),at);
+-      if(fast.reverted||fast.moved||fast.failures.length)console.log('gold_fast',JSON.stringify(fast));
+-    }
++    // GOLD fast credit was retired on 2026-10-27 with every fast credit settled, so no credit is left to follow.
+     const delivery=deliveryFor(env);
+     if(hasGoldDeliveryProvider(delivery))await runGoldServiceJobs(env.DB,delivery,now);
+   };
+@@ -221,13 +213,7 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+       if(path==='/api/me/economy'||path.startsWith('/api/economy/')||path==='/api/me/gold'||path==='/api/me/aimarket-trial'||path.startsWith('/api/gold/')){
+         let config:EconomyConfig|null=null;try{config=await economy.config();}catch{/* A failed release gate remains closed. */}
+         const delivery=deliveryFor(env);
+-        const db=env.DB,fastConfig=config;
+-        const fastCredit=env.GOLD_FAST_CREDIT==='1'&&db&&fastConfig&&env.ECONOMY_CHAIN_LIMITER?
+-          // Each outcome is logged (status or refusal code only) so a live tail shows why a credit waited or fell back.
+-          (args:Parameters<typeof fastCreditTopup>[3])=>fastCreditTopup(db,fastConfig,economyRpc(env,'economy:fast'),args).then(
+-            r=>{console.log('gold_fast_credit',JSON.stringify({status:r.status}));return r;},
+-            e=>{console.log('gold_fast_credit',JSON.stringify({code:e instanceof Error?e.message:'UNKNOWN'}));throw e;}):undefined;
+-        const deps={db:env.DB,config,now,serviceReady:hasGoldDeliveryProvider(delivery),serviceProducts:delivery?.products,client:rateLimitKey(ip),fastCredit,allow:async(key:string)=>{
++        const deps={db:env.DB,config,now,serviceReady:hasGoldDeliveryProvider(delivery),serviceProducts:delivery?.products,client:rateLimitKey(ip),allow:async(key:string)=>{
+           if(!env.ECONOMY_LIMITER)throw new LimiterMissing('ECONOMY_LIMITER');
+           return (await env.ECONOMY_LIMITER.limit({key})).success;
+         }};
+-- 
+2.55.0.windows.5
+

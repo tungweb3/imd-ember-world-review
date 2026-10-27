@@ -1,0 +1,142 @@
+From 81615658cd98aef79cca9d80124258e1b4b402de Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 09:18:09 +0800
+Subject: [PATCH 1/4] deploy: re-check the tree and HEAD after the build,
+ before upload
+
+The clean-tree check and the recorded HEAD were taken only at the start; the
+full suite, tsc and the vite build then ran for minutes, and on 2026-10-26 an
+edit to src/world/publicHalls/runtime.ts made during the test phase was built
+and uploaded uncommitted (deploy of 40e97f4).
+
+main now re-reads git status and HEAD after the build. A moved HEAD is refused
+in any mode (listing the files the new commits changed); a tree dirtied during
+the run is refused on a real deploy (same rule as the start check). The refusal
+names the files and exits before any record is created or wrangler runs.
+
+Tests: unit cases for changedRefusal, and the real script on a throwaway repo
+with synthetic local build/upload programs (file edited during the build, HEAD
+moved during the build, clean). Mutation-checked: disabling the re-check fails
+the edited and head-moved cases; always refusing fails the clean case.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ scripts/deploy.mjs    | 15 +++++++++++++--
+ tests/deploy.test.mjs | 43 ++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 55 insertions(+), 3 deletions(-)
+
+diff --git a/scripts/deploy.mjs b/scripts/deploy.mjs
+index e54727c..884a08f 100644
+--- a/scripts/deploy.mjs
++++ b/scripts/deploy.mjs
+@@ -7,7 +7,8 @@
+ //   SHA256SUMS     the same hashes in `sha256sum -c` form (paths relative to the repo root: dist/…, worker/…)
+ //   worker/        the uploaded Worker bundle (wrangler's --outdir)
+ //   wrangler.log   wrangler's own output (bindings and IDs; secrets are never printed by wrangler)
+-// A real deploy refuses a dirty working tree, so the record's commit is exactly what shipped, and refuses any .env file
++// A real deploy refuses a dirty working tree, at the start and again after the build just before upload (HEAD must not have
++// moved either), so the record's commit is exactly what shipped, and refuses any .env file
+ // Vite would load into the build (gitignored, so the commit would not say what shipped); a dry run lists their names in
+ // the manifest. Nothing here reads .dev.vars, .env or credentials (only file names are listed); wrangler uses its own login.
+ import {spawnSync} from 'node:child_process';
+@@ -35,6 +36,13 @@ export function parseVersionId(text){return /Current Version ID:\s*([0-9a-f-]{36
+ export function recordName(date,commit,dryRun){return date.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z')+'-'+commit.slice(0,7)+(dryRun?'-dry-run':'');}
+ /** The build and upload are refused unless the working tree is clean (a dry run only notes it). */
+ export function dirtyRefusal(porcelain,dryRun){return porcelain.trim()&&!dryRun?'working tree is not clean; commit or stash first so the record names what ships:\n'+porcelain:null;}
++/** Checked again after the build, just before upload: the tests and build take minutes, and an edit or commit made meanwhile
++ *  would ship under the start commit's name. HEAD must not move (any mode); the tree must stay clean (same rule as the start).
++ *  `moved` lists the files that differ between the two commits. */
++export function changedRefusal(commit,commitNow,porcelainNow,dryRun,moved=''){
++  if(commitNow!==commit)return 'HEAD moved during the deploy run ('+commit.slice(0,7)+' -> '+commitNow.slice(0,7)+'); nothing was uploaded. Files changed by the new commit(s):\n'+moved+(porcelainNow.trim()?'\nuncommitted:\n'+porcelainNow:'');
++  return porcelainNow.trim()&&!dryRun?'working tree changed during the deploy run (tests/build); nothing was uploaded. Changed files:\n'+porcelainNow:null;
++}
+ /** The env files `vite build` (mode production) loads from the repo root, by name only; their contents are never read. */
+ export const VITE_ENV_FILE=/^\.env(?:\.local|\.production|\.production\.local)?$/;
+ export const envFiles=dir=>readdirSync(dir).filter(n=>VITE_ENV_FILE.test(n)&&statSync(join(dir,n)).isFile()).sort();
+@@ -136,6 +144,9 @@ function main(){
+   for(const [label,args] of buildSteps(ROOT,skipTests)){
+     console.log('> '+label);if(!runStep(args)){console.error(label+' failed; nothing was built or deployed');process.exit(1);}
+   }
++  const commitNow=git('rev-parse','HEAD'),porcelainNow=git('status','--porcelain','--untracked-files=normal');
++  const changed=changedRefusal(commit,commitNow,porcelainNow,dryRun,commitNow===commit?'':git('diff','--name-only',commit,commitNow));
++  if(changed){console.error(changed);process.exit(1);}
+   validateRecordRoot(ROOT);
+   try{validateRecordRoot(join(ROOT,RECORDS_DIR));}catch(error){if(error.code!=='ENOENT')throw error;mkdirSync(join(ROOT,RECORDS_DIR));}
+   validateRecordRoot(join(ROOT,RECORDS_DIR));
+@@ -152,7 +163,7 @@ function main(){
+   const file=p=>({path:p,sha256:sha256(readFileSync(join(ROOT,p)))});
+   const manifest={
+     kind:'imd-world deploy record',mode:dryRun?'dry-run':'deploy',startedAt:started.toISOString(),finishedAt:new Date().toISOString(),
+-    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()),envFiles:env,tests:skipTests?'skipped (dry run)':'passed',
++    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()),envFiles:env,tests:skipTests?'skipped (dry run)':'passed',
+     tools:{node:process.version,wrangler:pkgVersion('wrangler'),vite:pkgVersion('vite'),typescript:pkgVersion('typescript')},
+     config:[file('wrangler.jsonc'),file('package-lock.json'),file('public/_headers')],
+     wrangler:{exitCode:w.status,versionId:parseVersionId(log)},
+diff --git a/tests/deploy.test.mjs b/tests/deploy.test.mjs
+index 9865ec8..b608f4b 100644
+--- a/tests/deploy.test.mjs
++++ b/tests/deploy.test.mjs
+@@ -6,7 +6,7 @@ import {join,basename} from 'node:path';
+ import {spawnSync} from 'node:child_process';
+ import {pathToFileURL} from 'node:url';
+ import {hashTree,sumsText,treeDigest,parseVersionId,recordName,dirtyRefusal,envFiles,envRefusal,isEntry,RECORDS_DIR,ROOT,
+-  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome} from '../scripts/deploy.mjs';
++  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal} from '../scripts/deploy.mjs';
+ // scripts/deploy.mjs's provenance helpers, run on real files. Hashes are checked against the published SHA-256 test
+ // vectors ("abc", ""), never recomputed here. Importing the script must not deploy anything (it runs only as main).
+ const ABC='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',EMPTY='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+@@ -41,6 +41,14 @@ test('a real deploy refuses a dirty tree; a dry run only records it',()=>{
+   assert.equal(dirtyRefusal(' M server/auth.ts\n',true),null);
+ });
+ 
++test('just before upload, a moved HEAD is refused in any mode and a tree dirtied during the run on a real deploy',()=>{
++  const a='a'.repeat(40),b='b'.repeat(40);
++  assert.equal(changedRefusal(a,a,'',false),null);assert.equal(changedRefusal(a,a,' M src/x.ts',true),null,'a dry run only records it');
++  assert.match(changedRefusal(a,a,' M src/world/publicHalls/runtime.ts',false),/changed during the deploy run[\s\S]*nothing was uploaded[\s\S]*runtime\.ts/);
++  for(const dryRun of [false,true])assert.match(changedRefusal(a,b,'',dryRun,'src/x.ts'),/HEAD moved[\s\S]*aaaaaaa -> bbbbbbb[\s\S]*src\/x\.ts/);
++  assert.match(changedRefusal(a,b,'?? new.ts',false,'src/x.ts'),/src\/x\.ts[\s\S]*uncommitted:\n\?\? new\.ts/);
++});
++
+ test('record names sort by UTC time and carry the short commit and the mode; the Version ID is read from wrangler',()=>{
+   const at=new Date(Date.UTC(2026,8,28,13,8,5,123)),sha='6f288e4'+'0'.repeat(33);
+   assert.equal(recordName(at,sha,false),'20260928T130805Z-6f288e4');assert.equal(recordName(at,sha,true),'20260928T130805Z-6f288e4-dry-run');
+@@ -271,3 +279,36 @@ for(const variant of ['good','upload-failed','dist-changed','record-locked'])tes
+     }
+   }finally{rmSync(dir,{recursive:true,force:true});}
+ });
++
++// 2026-10-26: an edit to src/world/publicHalls/runtime.ts made while the suite ran was built and uploaded uncommitted (deploy of
++// 40e97f4). A real (not dry-run) deploy over the same synthetic local programs: the fake build edits or commits a tracked file.
++for(const variant of ['clean','edited','head-moved'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
++  const id=['-c','user.name=t','-c','user.email=t@example.invalid','-c','commit.gpgsign=false'];
++  const build="import {mkdirSync,writeFileSync} from 'node:fs';import {spawnSync} from 'node:child_process';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','abc');"+
++    (variant==='edited'?"writeFileSync('src/runtime.ts','edited during the run');":variant==='head-moved'?"writeFileSync('src/runtime.ts','committed during the run');spawnSync('git',"+JSON.stringify([...id,'commit','-qam','during the run'])+");":'');
++  const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local upload, no network');";
++  const dir=tree({'package.json':JSON.stringify({type:'module',scripts:{test:'node --test tests/*.test.mjs'}}),'tests/a.test.mjs':"import test from 'node:test';test('ok',()=>{});",
++    'src/runtime.ts':'committed','.gitignore':'deploy-records/\nnode_modules/\ndist/\n','package-lock.json':'{}','wrangler.jsonc':'{}','public/_headers':'/*\n',
++    'node_modules/typescript/package.json':'{"version":"1.0.0"}','node_modules/typescript/bin/tsc':'',
++    'node_modules/vite/package.json':'{"version":"1.0.0"}','node_modules/vite/bin/vite.js':build,
++    'node_modules/wrangler/package.json':'{"version":"1.0.0"}','node_modules/wrangler/bin/wrangler.js':upload});
++  const git=(...args)=>{const r=spawnSync('git',[...id,...args],{cwd:dir,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
++  try{
++    mkdirSync(join(dir,'scripts'));copyFileSync(join(ROOT,'scripts/deploy.mjs'),join(dir,'scripts/deploy.mjs'));
++    git('init','-q');git('add','-A');git('commit','-q','-m','synthetic deploy fixture');const start=git('rev-parse','HEAD');
++    const r=spawnSync(process.execPath,['scripts/deploy.mjs'],{cwd:dir,encoding:'utf8',timeout:60000}),out=r.stdout+r.stderr;
++    assert.match(out,/> npm test[\s\S]*> tsc[\s\S]*> vite build/);
++    if(variant==='clean'){
++      assert.equal(r.status,0,out);assert.match(out,/> wrangler deploy[\s\S]*synthetic local upload/);
++      const outcome=r.stdout.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(line)).find(row=>row.kind==='imd-world deploy outcome');
++      assert.equal(outcome.deployment,'uploaded');const names=readdirSync(join(dir,RECORDS_DIR));assert.equal(names.length,1);
++      const manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
++      assert.equal(manifest.mode,'deploy');assert.equal(manifest.commit,start);assert.equal(manifest.dirty,false);
++      return;
++    }
++    assert.equal(r.status,1,out);assert.doesNotMatch(out,/> wrangler deploy|synthetic local upload/,'nothing was uploaded');
++    assert.match(out,variant==='edited'?/working tree changed during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/:/HEAD moved during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/);
++    assert.equal(existsSync(join(dir,RECORDS_DIR)),false,'no record claims a deploy');
++    if(variant==='head-moved')assert.notEqual(git('rev-parse','HEAD'),start,'the fake build did commit');
++  }finally{rmSync(dir,{recursive:true,force:true});}
++});
+-- 
+2.55.0.windows.5
+
