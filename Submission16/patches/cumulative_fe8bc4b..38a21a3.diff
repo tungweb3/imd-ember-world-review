@@ -1,0 +1,452 @@
+diff --git a/scripts/deploy.mjs b/scripts/deploy.mjs
+index 3759745..e53f4cd 100644
+--- a/scripts/deploy.mjs
++++ b/scripts/deploy.mjs
+@@ -10,8 +10,9 @@
+ // A real deploy refuses a dirty working tree, at the start and again after the build just before upload (HEAD must not have
+ // moved either), and reads it a third time after wrangler (which bundles the Worker from the tree while uploading): a change
+ // then cannot be undone, so the record says dirty and the outcome fails. It refuses any .env file Vite would load into the
+-// build, any VITE_* variable of the shell, and a node_modules that does not match package-lock.json (all gitignored or
+-// outside git, so the commit would not say what shipped); a dry run lists them in the manifest. Nothing here reads
++// build, any VITE_* variable of the shell, CLOUDFLARE_ENV / WRANGLER_BUILD_* / a code-preloading NODE_OPTIONS, and a
++// node_modules that does not match package-lock.json, at the start and again after the build (all gitignored or outside
++// git, so the commit would not say what shipped); a dry run lists them in the manifest. Nothing here reads
+ // .dev.vars, .env, variable values or credentials (only names are listed); wrangler uses its own login.
+ import {spawnSync} from 'node:child_process';
+ import {createHash} from 'node:crypto';
+@@ -52,8 +53,17 @@ export const envFiles=dir=>readdirSync(dir).filter(n=>VITE_ENV_FILE.test(n)&&sta
+ export function envRefusal(names,dryRun){return names.length&&!dryRun?'env files would change the build but are not in git ('+names.join(', ')+'); move the setting into the commit or remove them':null;}
+ /** VITE_* variables of the deploy shell reach the client bundle (import.meta.env) ahead of any .env file, and nothing in
+  *  git names them: a real deploy refuses them, a dry run lists their names (Swarm audit 12e0525d L-5). */
+-export const viteEnvNames=env=>Object.keys(env).filter(k=>/^VITE_/i.test(k)).sort();
++/** Vite matches the prefix with case; only Windows, whose variable names have none, needs the broad match (Swarm audit
++ *  351b0573, finding 11: a lower-case vite_ name was refused on Linux although the build ignores it). */
++export const viteEnvNames=(env,platform=process.platform)=>Object.keys(env).filter(k=>(platform==='win32'?/^VITE_/i:/^VITE_/).test(k)).sort();
+ export function viteEnvRefusal(names,dryRun){return names.length&&!dryRun?'VITE_* environment variables would change the build but are not in git ('+names.join(', ')+'); unset them':null;}
++/** Other shell variables that change what is built or where it goes, and that no commit names: CLOUDFLARE_ENV picks
++ *  another Worker environment for the upload, WRANGLER_BUILD_* change how wrangler bundles the Worker, and a NODE_OPTIONS
++ *  that preloads code runs it inside vite and wrangler (Swarm audit 351b0573, finding 8). Names only, like VITE_*. */
++const PRELOAD=/(^|\s)(--import|--require|-r|--loader|--experimental-loader)(=|\s|$)/;
++export const buildEnvNames=(env,platform=process.platform)=>{const i=platform==='win32'?'i':'';
++  return Object.keys(env).filter(k=>env[k]!==undefined&&env[k]!==''&&(new RegExp('^(CLOUDFLARE_ENV|WRANGLER_ENV|WRANGLER_BUILD_.+)$',i).test(k)||new RegExp('^NODE_OPTIONS$',i).test(k)&&PRELOAD.test(String(env[k])))).sort();};
++export function buildEnvRefusal(names,dryRun){return names.length&&!dryRun?'environment variables would change the build or its target but are not in git ('+names.join(', ')+'); unset them':null;}
+ /** NODE_ENV other than production makes vite build a development bundle (React's development build, for one). */
+ export function nodeEnvRefusal(value,dryRun){return value!==undefined&&value!==''&&value!=='production'&&!dryRun?'NODE_ENV='+value+' would build a non-production bundle; unset it':null;}
+ /** node_modules is gitignored, yet tsc, vite and wrangler run from it and bundle it. package-lock.json must be a v2+
+@@ -69,6 +79,8 @@ export function dependencyMismatches(root=ROOT){
+   if(!hidden?.packages)return ['node_modules/.package-lock.json is missing: node_modules was not installed by npm ci'];
+   const locked=Object.entries(lock.packages).filter(([k])=>k.startsWith('node_modules/')),out=[];
+   for(const [k,v] of locked){
++    // A file:/workspace link carries no version of its own (Swarm audit 351b0573, finding 12); there is none today.
++    if(v.link)continue;
+     const installed=read(k+'/package.json'),record=hidden.packages[k];
+     if(!installed){if(!v.optional&&!v.devOptional)out.push('missing '+k);continue;}
+     if(installed.version!==v.version)out.push(k+' '+installed.version+' installed, '+v.version+' locked');
+@@ -169,16 +181,17 @@ const pkgVersion=name=>JSON.parse(readFileSync(join(ROOT,'node_modules',name,'pa
+ function main(){
+   const dryRun=process.argv.includes('--dry-run'),skipTests=process.argv.includes('--skip-tests');
+   const commit=git('rev-parse','HEAD'),porcelain=git('status','--porcelain','--untracked-files=normal');
+-  const env=envFiles(ROOT),viteEnv=viteEnvNames(process.env),dependencies=dependencyMismatches(ROOT);
+-  const refused=skipRefusal(skipTests,dryRun)??dirtyRefusal(porcelain,dryRun)??envRefusal(env,dryRun)??viteEnvRefusal(viteEnv,dryRun)??nodeEnvRefusal(process.env.NODE_ENV,dryRun)??dependencyRefusal(dependencies,dryRun);if(refused){console.error(refused);process.exit(1);}
++  const env=envFiles(ROOT),viteEnv=viteEnvNames(process.env),buildEnv=buildEnvNames(process.env),dependencies=dependencyMismatches(ROOT);
++  const refused=skipRefusal(skipTests,dryRun)??dirtyRefusal(porcelain,dryRun)??envRefusal(env,dryRun)??viteEnvRefusal(viteEnv,dryRun)??buildEnvRefusal(buildEnv,dryRun)??nodeEnvRefusal(process.env.NODE_ENV,dryRun)??dependencyRefusal(dependencies,dryRun);if(refused){console.error(refused);process.exit(1);}
+   const started=new Date(),name=recordName(started,commit,dryRun),rec=join(ROOT,RECORDS_DIR,name),tmp=rec+'.partial';
+   if(skipTests)console.log('> npm test skipped (--dry-run --skip-tests)');
+   for(const [label,args] of buildSteps(ROOT,skipTests)){
+     console.log('> '+label);if(!runStep(args)){console.error(label+' failed; nothing was built or deployed');process.exit(1);}
+   }
+   const commitNow=git('rev-parse','HEAD'),porcelainNow=git('status','--porcelain','--untracked-files=normal');
+-  // A gitignored .env* that appeared during the run is invisible to --porcelain yet read by the build: check it again too.
+-  const changed=changedRefusal(commit,commitNow,porcelainNow,dryRun,commitNow===commit?'':git('diff','--name-only',commit,commitNow))??envRefusal(envFiles(ROOT),dryRun);
++  // A gitignored .env* or node_modules change made during the run is invisible to --porcelain yet read by the build: check
++  // them again too (node_modules: Swarm audit 351b0573, finding 7).
++  const changed=changedRefusal(commit,commitNow,porcelainNow,dryRun,commitNow===commit?'':git('diff','--name-only',commit,commitNow))??envRefusal(envFiles(ROOT),dryRun)??dependencyRefusal(dependencyMismatches(ROOT),dryRun);
+   if(changed){console.error(changed);process.exit(1);}
+   validateRecordRoot(ROOT);
+   try{validateRecordRoot(join(ROOT,RECORDS_DIR));}catch(error){if(error.code!=='ENOENT')throw error;mkdirSync(join(ROOT,RECORDS_DIR));}
+@@ -193,16 +206,16 @@ function main(){
+   const log=(w.stdout??'')+(w.stderr??'');process.stdout.write(log);
+   // wrangler bundles the Worker from the working tree while it uploads, after the check above: read the tree a third time.
+   // An upload cannot be undone, so a change seen now marks the record dirty and the outcome failed (Swarm audit 12e0525d L-4).
+-  const commitAfter=git('rev-parse','HEAD'),porcelainAfter=git('status','--porcelain','--untracked-files=normal'),envAfter=envFiles(ROOT);
+-  const sourceUnchanged=commitAfter===commit&&porcelainAfter===porcelainNow&&envAfter.join('\n')===env.join('\n');
+-  if(!sourceUnchanged)console.error('the working tree, HEAD or .env files changed while wrangler bundled and uploaded the Worker; the record is marked dirty:\n'+porcelainAfter);
++  const commitAfter=git('rev-parse','HEAD'),porcelainAfter=git('status','--porcelain','--untracked-files=normal'),envAfter=envFiles(ROOT),dependenciesAfter=dependencyMismatches(ROOT);
++  const sourceUnchanged=commitAfter===commit&&porcelainAfter===porcelainNow&&envAfter.join('\n')===env.join('\n')&&dependenciesAfter.join('\n')===dependencies.join('\n');
++  if(!sourceUnchanged)console.error('the working tree, HEAD, .env files or node_modules changed while wrangler bundled and uploaded the Worker; the record is marked dirty:\n'+[porcelainAfter,...dependenciesAfter].filter(Boolean).join('\n'));
+   const distAfter=hashTree(join(ROOT,'dist'),ROOT);
+   const worker=existsSync(join(tmp,'worker'))?hashTree(join(tmp,'worker'),tmp):[];
+   const file=p=>({path:p,sha256:sha256(readFileSync(join(ROOT,p)))});
+   const manifest={
+     kind:'imd-world deploy record',mode:dryRun?'dry-run':'deploy',startedAt:started.toISOString(),finishedAt:new Date().toISOString(),
+-    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()||!sourceUnchanged),envFiles:env,viteEnv,nodeEnv:process.env.NODE_ENV??null,dependencies:{mismatches:dependencies},
+-    source:{unchangedDuringUpload:sourceUnchanged,...sourceUnchanged?{}:{headAfter:commitAfter,porcelainAfter,envFilesAfter:envAfter}},tests:skipTests?'skipped (dry run)':'passed',
++    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()||!sourceUnchanged),envFiles:env,viteEnv,buildEnv,nodeEnv:process.env.NODE_ENV??null,dependencies:{mismatches:dependencies},
++    source:{unchangedDuringUpload:sourceUnchanged,...sourceUnchanged?{}:{headAfter:commitAfter,porcelainAfter,envFilesAfter:envAfter,dependenciesAfter}},tests:skipTests?'skipped (dry run)':'passed',
+     tools:{node:process.version,wrangler:pkgVersion('wrangler'),vite:pkgVersion('vite'),typescript:pkgVersion('typescript')},
+     config:[file('wrangler.jsonc'),file('package-lock.json'),file('public/_headers')],
+     wrangler:{exitCode:w.status,versionId:parseVersionId(log)},
+diff --git a/src/world/GoldPurchase.tsx b/src/world/GoldPurchase.tsx
+index 46a46ed..d8c3dba 100644
+--- a/src/world/GoldPurchase.tsx
++++ b/src/world/GoldPurchase.tsx
+@@ -7,11 +7,12 @@ import {balanceNumber} from './WalletBalanceHud.tsx';
+ import {purchaseStage,topupProducts,goldPurchaseError} from './goldPurchaseRules.ts';
+ import {PENDING_CREDIT_ETA_MS,type PendingCredit} from './pendingGoldCredit.ts';
+ 
+-type Props={data:GoldState;selected:GoldOrder|null;wallet:EconomyWalletState;config:EconomyConfig|null;busy:boolean;zh:boolean;pending?:PendingCredit|null;quote:(product:string)=>void;prepare:()=>void;approve:()=>void;confirm:()=>void;check:()=>void;reconcile:()=>void;clear:()=>void};
++type Props={data:GoldState;selected:GoldOrder|null;wallet:EconomyWalletState;config:EconomyConfig|null;busy:boolean;zh:boolean;pending?:PendingCredit|null;quote:(product:string)=>void;prepare:()=>void;approve:()=>void;confirm:()=>void;check:(hash?:string)=>void;clearUnknown?:()=>void;reconcile:()=>void;clear:()=>void};
+ /** All prices and credited amounts come from authenticated server snapshots.
+  * Selecting a package/quote never requests a signature or sends a transaction. */
+-export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,prepare,approve,confirm,check,reconcile,clear}:Props){
++export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,prepare,approve,confirm,check,clearUnknown,reconcile,clear}:Props){
+  const say=(a:string,b:string)=>zh?a:b,products=topupProducts(data.products),[product,setProduct]=useState(''),[ack,setAck]=useState(false),[now,setNow]=useState(Date.now);
++ const [otherHash,setOtherHash]=useState(''),[checkedWallet,setCheckedWallet]=useState(false);
+  const order=selected?.kind==='topup'?selected:null,chosen=products.find(p=>p.product===product)??products.find(p=>p.gold==='1000')??products[0];
+  useEffect(()=>{setAck(false);},[order?.id,data.wallet]);
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
+@@ -39,7 +40,7 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,
+    {order&&stage==='review'&&<button className="gold-primary" disabled={locked||!ack||!config||unresolved} onClick={prepare}>{say('下一步：檢查授權額度','Next: check allowance')}</button>}
+    {order&&stage==='approve'&&<button className="gold-primary" disabled={locked||!ack} onClick={approve}>{wallet.phase==='reset-required'?say('先將原授權歸零','Reset existing allowance'):say('授權本筆指定額度','Approve exact purchase amount')}</button>}
+    {order&&stage==='confirm'&&<button className="gold-primary" disabled={locked||!ack} onClick={confirm}>{say('確認 EMBEO 付款','Confirm EMBEO payment')}</button>}
+-   {['pending','unknown'].includes(wallet.phase)&&wallet.hash&&<button className="gold-primary" disabled={locked} onClick={check}>{say('查詢原交易','Check original transaction')}</button>}
++   {['pending','unknown'].includes(wallet.phase)&&wallet.hash&&<button className="gold-primary" disabled={locked} onClick={()=>check()}>{say('查詢原交易','Check original transaction')}</button>}
+    {order&&(stage==='awaiting-credit'||order.status==='paid')&&stage!=='credited'&&<button className="gold-primary" disabled={locked} onClick={reconcile}>{say('查詢原單入帳','Check original credit')}</button>}
+    {order&&(stage==='credited'||stage==='expired'||!prepared&&!unresolved&&stage==='review')&&<button disabled={locked} onClick={clear}>{stage==='credited'?say('完成','Done'):stage==='expired'?say('重新選擇方案','Choose a new package'):say('修改方案','Change package')}</button>}
+   </div>
+@@ -51,6 +52,16 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,
+   {stage==='credited'&&<p role="status">{say('已核對帳本入帳；右上角資產餘額會同步更新。','Ledger credit verified. Your asset balance will refresh.')}</p>}
+   {wallet.error&&<p role="alert">{goldPurchaseError(wallet.error,zh)}</p>}
+   {wallet.phase==='unknown'&&!wallet.hash&&<p role="alert">{say('錢包回覆不明，已暫停新付款。請先在錢包核對原交易，勿重複付款。','Wallet response is uncertain. New payments are blocked. Check the original transaction in your wallet; do not pay again.')}</p>}
++  {/* The same recovery the staking pane offers (EconomyPane.tsx): a payment cancelled or sped up in the wallet has a new
++      hash only the player can supply, and a prompt that never returned a hash needs the player's acknowledgement.
++      Without these the GOLD panel blocked every later purchase (Swarm audit 351b0573, findings 4 and 5). */}
++  {wallet.phase==='unknown'&&<div className="gold-recovery">
++   <p>{say('可從錢包貼入原交易、取消或加速交易的雜湊；系統會核對是否對應同一筆交易，完成最終確認後才解除防重。貼錯不會改寫原紀錄。','Paste the original transaction, cancellation or speed-up hash from your wallet. The record is cleared only after verifying the transaction and finality. An incorrect hash does not change the original record.')}</p>
++   <label>{say('原交易或替代交易雜湊','Original or replacement transaction hash')}<input value={otherHash} onChange={e=>setOtherHash(e.target.value.trim().slice(0,66))}/></label>
++   <button disabled={locked||!/^0x[0-9a-fA-F]{64}$/.test(otherHash)} onClick={()=>check(otherHash)}>{say('只核對這筆交易','Check this transaction only')}</button>
++   {clearUnknown&&(wallet.legacyPending||!wallet.hash)&&<><label className="gold-purchase-ack"><input type="checkbox" checked={checkedWallet} onChange={e=>setCheckedWallet(e.target.checked)}/><span>{wallet.legacyPending?say('我已核對原交易及替代交易，確認原交易不會再執行；若判斷錯誤，再送出可能重複扣款。','I checked the original and replacement transactions and confirmed the original cannot execute again. A mistaken confirmation could result in a duplicate charge.'):say('我已核對錢包紀錄，確認原交易沒有送出；若判斷錯誤，再送出可能重複扣款。','I checked the wallet history and confirmed the original transaction was not broadcast. A mistaken confirmation could result in a duplicate charge.')}</span></label>
++   <button disabled={locked||!checkedWallet} onClick={()=>{setCheckedWallet(false);clearUnknown();}}>{wallet.legacyPending?say('人工確認並解除舊版防重','Manually confirm and clear older record'):say('確認未送出，解除防重','Confirm not broadcast and clear record')}</button></>}
++  </div>}
+   {order&&stage==='expired'&&<p>{say('報價已到期；如已送出交易，仍會依原訂單核對入帳。','The quote expired. Any payment already sent will still be reconciled against the original order.')}</p>}
+  </section>;
+ }
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 02a1151..a53a9b8 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -12,7 +12,7 @@ import {RESEARCH_PASS_PRODUCT} from './researchPassCopy.ts';
+ import {goldPurchaseError} from './goldPurchaseRules.ts';
+ import {wallets} from './wallet.ts';
+ import './worldGold.css';
+-const EMPTY:EconomyWalletState={phase:'idle',busy:false,hash:null,error:null,plan:null,step:null,legacyPending:false};
++const EMPTY:EconomyWalletState={phase:'idle',busy:false,hash:null,sentHash:null,error:null,plan:null,step:null,legacyPending:false};
+ const message=(e:unknown)=>e instanceof EconomyClientError?e.code:e instanceof Error?e.message:'UNAVAILABLE';
+ function useGold(state:AuthState){
+  const auth=useRef(state);auth.current=state;const client=useRef<WorldGoldClient|null>(null);if(!client.current)client.current=new WorldGoldClient({auth:()=>auth.current});
+@@ -78,8 +78,13 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  // Only the payment's own hash (pendingGoldCredit.ts paymentHash); the order is read from this same book, not from
+  // `selected`, which follows it one render later. A reverted or replaced payment's note goes at once.
+  const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=paymentHash(wallet),failed=paymentFailed(wallet);
++ // Once per payment and phase: this effect re-runs on every ledger refresh, and re-adding a note that aged out made a
++ // fresh one, so the 2 h cap never ended it while the panel stayed open (Swarm audit 351b0573, finding 6). The phase is
++ // in the key so a payment confirmed late (after its unmined note was dropped) still gets one note, ended by its own cap.
++ const tracked=useRef(new Set<string>());
+  useEffect(()=>{const o=payingOrder?data?.orders.find(o=>o.id===payingOrder):null;if(!data||!o||o.kind!=='topup'||!payingHash||o.status==='paid')return;
+-  trackPendingCredit(data.wallet,o.id,payingHash,o.gold);},[payingOrder,payingHash,data]);
++  const once=o.id+':'+payingHash.toLowerCase()+':'+wallet.phase;if(tracked.current.has(once))return;tracked.current.add(once);
++  trackPendingCredit(data.wallet,o.id,payingHash,o.gold);},[payingOrder,payingHash,wallet.phase,data]);
+  // By order while the plan is known, and by hash after a reload, where the restored transaction has no plan.
+  // The note holds the hash the payment was sent with: wallet.sentHash, which differs from wallet.hash when the
+  // receipt came through a pasted replacement hash.
+@@ -108,7 +113,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  {data?<><div className="gold-balance"><strong>{data.available} GOLD</strong><span>{zh?'帳面':'Book'} {data.book}</span><span>{zh?'保留':'Reserved'} {data.reserved}</span><small>{new Date(data.asOf).toISOString()}</small></div>
+  {error&&<p role="status" className="gold-stale">{zh?`最新帳本暫時讀不到（代碼：${error}），以下是上次讀到的資料。`:`Could not refresh the ledger (code: ${error}); showing the last data read.`}</p>}
+  {configFailed&&<p role="alert">{zh?'錢包付款設定讀取失敗，請按下方「更新餘額與狀態」重試。':'Payment settings could not be read. Press "Refresh ledger" below to retry.'}</p>}
+- <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} pending={pending} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={()=>void run(()=>controller!.checkReceipt())} reconcile={()=>selected&&void run(()=>client.reconcile(selected.id))} clear={()=>setSelected(null)}/>
++ <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} pending={pending} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={hash=>void run(()=>controller!.checkReceipt(hash))} clearUnknown={()=>void run(()=>controller!.clearUnknownAfterWalletCheck())} reconcile={()=>selected&&void run(()=>client.reconcile(selected.id))} clear={()=>setSelected(null)}/>
+  <details className="gold-ledger-details"><summary>{zh?'帳本、訂單與其他館內服務':'Ledger, orders and hall services'}</summary>
+  {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購點不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product===RESEARCH_PASS_PRODUCT&&<ResearchPassConfirm order={selected} zh={zh} acknowledged={passAck===selected.id} busy={busy||wallet.busy} onAcknowledge={checked=>setPassAck(checked?selected.id:null)} onSign={()=>void run(()=>pay(selected))}/>}
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 657746c..a58f9b8 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -32,7 +32,7 @@ type Deps={config:EconomyConfig;auth:()=>AuthState;provider:()=>Provider|null;on
+ const HASH=/^0x[0-9a-fA-F]{64}$/,HEX=/^0x[0-9a-fA-F]*$/;
+ const quantity=(v:unknown):v is Hex=>typeof v==='string'&&/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(v)&&v.length<=66;
+ const nonce=(v:unknown):v is Hex=>quantity(v)&&BigInt(v)<(1n<<64n);
+-const initial=():EconomyWalletState=>({phase:'idle',busy:false,plan:null,hash:null,step:null,error:null,legacyPending:false});
++const initial=():EconomyWalletState=>({phase:'idle',busy:false,plan:null,hash:null,sentHash:null,step:null,error:null,legacyPending:false});
+ /** keccak256 of the event signatures that prove an intended call ran (tests compare them with viem). */
+ export const ECONOMY_EFFECT_TOPICS=Object.freeze({
+  approval:'0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925',  // Approval(address,address,uint256)
+@@ -180,7 +180,9 @@ export class EconomyWalletController{
+  });}
+  private async send(to:string,data:Hex,step:Pending['step']){
+   const address=this.context!.address;
+-  this.set({phase:'checking',busy:true,step,error:null});
++  // The previous step's hash (the approval's) is not this send's: left on screen, a failed payment prompt showed it as
++  // "the transaction" and hid the uncertain-response notice (Swarm audit 351b0573, finding 4).
++  this.set({phase:'checking',busy:true,step,hash:null,sentHash:null,error:null});
+   await this.exclusive(address,async()=>{
+   await this.verify();this.guard();this.validatePlan(this.s.plan!);this.set({phase:'sending',busy:true,step,error:null});
+   // A wallet may broadcast even if its response arrives after unmount/context change.
+@@ -228,7 +230,7 @@ export class EconomyWalletController{
+   // MetaMask answers this from its own copy (no block, no chain ID) while it still lists the transaction as pending,
+   // even after the network has the receipt: wallet lag, not another transaction (the 2026-10-26 TRANSACTION_MISMATCH).
+   if(record&&record.hash?.toLowerCase()===candidate.toLowerCase()&&record.blockHash==null&&record.blockNumber==null)return false;
+-  if(!record||record.hash?.toLowerCase()!==candidate.toLowerCase()||record.from?.toLowerCase()!==tx.from||record.chainId!=='0x1'||record.blockHash?.toLowerCase()!==r.blockHash.toLowerCase()||record.blockNumber!==r.blockNumber||(record.to?.toLowerCase()??null)!==(typeof r.to==='string'?r.to.toLowerCase():null)||typeof record.input!=='string'||!HEX.test(record.input)||!quantity(record.value)||(tx.version===2&&record.nonce!==tx.nonce))throw new EconomyClientError('TRANSACTION_MISMATCH');
++  if(!record||record.hash?.toLowerCase()!==candidate.toLowerCase()||record.from?.toLowerCase()!==tx.from||record.chainId!=='0x1'||record.blockHash?.toLowerCase()!==r.blockHash.toLowerCase()||record.blockNumber!==r.blockNumber||(record.to?.toLowerCase()??null)!==(typeof r.to==='string'?r.to.toLowerCase():null)||typeof record.input!=='string'||!HEX.test(record.input)||!quantity(record.value))throw new EconomyClientError('TRANSACTION_MISMATCH');
+   const same=record.to?.toLowerCase()===tx.to&&record.input.toLowerCase()===tx.data.toLowerCase()&&record.value==='0x0';
+   if(tx.version!==2&&!same)throw new EconomyClientError('TRANSACTION_MISMATCH');
+   // The wallet's own returned hash, routed through a smart account, counts as this call when its receipt proves the
+@@ -236,7 +238,15 @@ export class EconomyWalletController{
+   // (status 0x0), it consumed this intent's nonce and did nothing: it is judged now as the reverted send it is, like
+   // a direct one (`same`), not held for finality and then called a replacement (Swarm audit 12e0525d, L-1).
+   const own=tx.version===2&&tx.hash?.toLowerCase()===candidate.toLowerCase();
+-  const done=same||own&&r.status==='0x0'||own&&r.status==='0x1'&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
++  const effect=own&&r.status==='0x1'&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
++  // A version-2 record must hold the intent's nonce. The one exception: the wallet's own hash under a HIGHER nonce,
++  // carrying this call's exact data or exact effect, or reverted. MetaMask numbers a send itself, so another send
++  // confirmed between the count and this prompt moves this one up; that hash is still this call, and refusing it locked
++  // the address for good (Swarm audit 351b0573, finding 3). Renumbering only moves up: a lower or missing nonce is an
++  // older transaction (a stale hash), never this one. A pasted hash never gets this exception.
++  const renumbered=own&&nonce(record.nonce)&&nonce(tx.nonce)&&BigInt(record.nonce)>BigInt(tx.nonce)&&(same||effect||r.status==='0x0');
++  if(tx.version===2&&record.nonce!==tx.nonce&&!renumbered)throw new EconomyClientError('TRANSACTION_MISMATCH');
++  const done=same||own&&r.status==='0x0'||effect;
+   // The wallet-returned original hash retains its normal mined confirmation.
+   // A manually supplied/replacement hash needs irreversible nonce consumption
+   // before it can release an unrelated original send intent.
+diff --git a/src/world/pendingGoldCredit.ts b/src/world/pendingGoldCredit.ts
+index 823bdb8..9d4169b 100644
+--- a/src/world/pendingGoldCredit.ts
++++ b/src/world/pendingGoldCredit.ts
+@@ -9,10 +9,12 @@ export type PendingCredit={orderId:string;gold:string;hash:string;atMs:number;
+  /** The wallet saw this payment mined with its effect: the after-expiry rule no longer applies, only the 2 h cap. */
+  mined?:boolean};
+ /** Finality takes about 13 minutes and the minute cron books it after; past 2 hours the entry is dropped. A note for an
+- *  order still unpaid 30 minutes after its quote expired goes too: a payment cancelled or sped up in the wallet never
+- *  mines, so nothing else would end it (Swarm audit 12e0525d L-3). An entry dated more than 5 minutes ahead of this
+- *  clock (a clock corrected backwards, a damaged entry) is ignored rather than kept for ever (I-6). */
+-export const PENDING_CREDIT_ETA_MS=15*60_000,PENDING_CREDIT_MAX_MS=2*60*60_000,PENDING_CREDIT_AFTER_EXPIRY_MS=30*60_000,PENDING_CREDIT_SKEW_MS=5*60_000;
++ *  order still unpaid 60 minutes after its quote expired goes too: a payment cancelled or sped up in the wallet never
++ *  mines, so nothing else would end it (Swarm audit 12e0525d L-3). The margin was 30 minutes; a payment sent near the
++ *  end of its quote that mined some 25 minutes later lost its note before it was final (Swarm audit 351b0573, finding 1),
++ *  so it now covers a late inclusion plus finality. An entry dated more than 5 minutes ahead of this clock (a clock
++ *  corrected backwards, a damaged entry) is ignored rather than kept for ever (I-6). */
++export const PENDING_CREDIT_ETA_MS=15*60_000,PENDING_CREDIT_MAX_MS=2*60*60_000,PENDING_CREDIT_AFTER_EXPIRY_MS=60*60_000,PENDING_CREDIT_SKEW_MS=5*60_000;
+ const key=(address:string)=>'ember-pending-gold-v1:'+address.toLowerCase();
+ const listeners=new Set<()=>void>();
+ /** Also told when another tab of this site changes a note (the `storage` event), so every tab shows the same. */
+diff --git a/tests/deploy.test.mjs b/tests/deploy.test.mjs
+index e8a35ab..e010a9e 100644
+--- a/tests/deploy.test.mjs
++++ b/tests/deploy.test.mjs
+@@ -6,7 +6,7 @@ import {join,basename} from 'node:path';
+ import {spawnSync} from 'node:child_process';
+ import {pathToFileURL} from 'node:url';
+ import {hashTree,sumsText,treeDigest,parseVersionId,recordName,dirtyRefusal,envFiles,envRefusal,isEntry,RECORDS_DIR,ROOT,
+-  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal,viteEnvNames,viteEnvRefusal,nodeEnvRefusal,dependencyMismatches,dependencyRefusal} from '../scripts/deploy.mjs';
++  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal,viteEnvNames,viteEnvRefusal,buildEnvNames,buildEnvRefusal,nodeEnvRefusal,dependencyMismatches,dependencyRefusal} from '../scripts/deploy.mjs';
+ // scripts/deploy.mjs's provenance helpers, run on real files. Hashes are checked against the published SHA-256 test
+ // vectors ("abc", ""), never recomputed here. Importing the script must not deploy anything (it runs only as main).
+ const ABC='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',EMPTY='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+@@ -74,7 +74,18 @@ test('env files Vite would load are refused on a real deploy and listed by name
+   }finally{rmSync(dir,{recursive:true,force:true});}
+ });
+ test('Swarm audit 12e0525d L-5: VITE_* shell variables and a node_modules that differs from package-lock.json are refused',()=>{
+-  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',NODE_ENV:'production'}),['VITE_API','vite_debug']);
++  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',NODE_ENV:'production'},'win32'),['VITE_API','vite_debug']);
++  // Swarm audit 351b0573, finding 11: Vite's prefix match has case; only Windows variable names do not.
++  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',Vite_Mode:'dev'},'linux'),['VITE_API']);
++  // Finding 8: names only; NODE_OPTIONS only when it preloads code.
++  assert.deepEqual(buildEnvNames({PATH:'x',CLOUDFLARE_ENV:'staging',WRANGLER_BUILD_CONDITIONS:'node',WRANGLER_BUILD_PLATFORM:'node',CLOUDFLARE_ACCOUNT_ID:'id',WRANGLER_SEND_METRICS:'false',NODE_OPTIONS:'--import ./x.mjs'}),
++    ['CLOUDFLARE_ENV','NODE_OPTIONS','WRANGLER_BUILD_CONDITIONS','WRANGLER_BUILD_PLATFORM']);
++  for(const value of ['--require=x','-r x','--loader x','--experimental-loader=x','--max-old-space-size=4096 --import x'])assert.deepEqual(buildEnvNames({NODE_OPTIONS:value}),['NODE_OPTIONS'],value);
++  for(const value of ['--max-old-space-size=4096','--enable-source-maps','--inspect',''])assert.deepEqual(buildEnvNames({NODE_OPTIONS:value}),[],value);
++  // Like VITE_*: names have case outside Windows, and an empty variable selects nothing (review of this fix).
++  assert.deepEqual(buildEnvNames({Wrangler_Build_X:'1',cloudflare_env:'x',CLOUDFLARE_ENV:'',node_options:'--import x'},'linux'),[]);
++  assert.deepEqual(buildEnvNames({Wrangler_Build_X:'1'},'win32'),['Wrangler_Build_X']);
++  assert.match(buildEnvRefusal(['CLOUDFLARE_ENV'],false),/\(CLOUDFLARE_ENV\)/);assert.equal(buildEnvRefusal(['CLOUDFLARE_ENV'],true),null);assert.equal(buildEnvRefusal([],false),null);
+   assert.match(viteEnvRefusal(['VITE_API'],false),/\(VITE_API\)/);assert.doesNotMatch(viteEnvRefusal(['VITE_API'],false),/secret-value/);
+   assert.equal(viteEnvRefusal(['VITE_API'],true),null,'a dry run only records the names');assert.equal(viteEnvRefusal([],false),null);
+   const lock=packages=>JSON.stringify({lockfileVersion:3,packages:{'':{name:'x'},...packages}});
+@@ -95,10 +106,13 @@ test('Swarm audit 12e0525d L-5: VITE_* shell variables and a node_modules that d
+     'not installed by npm ci':{'package-lock.json':lock({})},
+     'another source':{'package-lock.json':lock({'node_modules/a':{version:'1.0.0',resolved:'https://registry.npmjs.org/a/-/a-1.0.0.tgz',integrity:'sha512-locked'}}),
+       'node_modules/a/package.json':'{"version":"1.0.0"}','node_modules/.package-lock.json':lock({'node_modules/a':{version:'1.0.0',resolved:'file:../a-1.0.0.tgz',integrity:'sha512-other'}})},
+-    'devOptional absent':{'package-lock.json':lock({'node_modules/fsevents':{version:'2.3.3',devOptional:true}}),'node_modules/.package-lock.json':lock({})}};
++    'devOptional absent':{'package-lock.json':lock({'node_modules/fsevents':{version:'2.3.3',devOptional:true}}),'node_modules/.package-lock.json':lock({})},
++    // Swarm audit 351b0573, finding 12: a file:/workspace link has no version of its own.
++    'link':{'package-lock.json':lock({'node_modules/foo':{resolved:'pkgs/foo',link:true},'pkgs/foo':{name:'foo',version:'1.0.0'}}),'pkgs/foo/package.json':'{"version":"1.0.0"}',
++      'node_modules/foo/package.json':'{"version":"1.0.0"}','node_modules/.package-lock.json':lock({'node_modules/foo':{resolved:'pkgs/foo',link:true}})}};
+   const seen={};for(const [name,files] of Object.entries(cases)){const d=tree({'x':'',...files});try{seen[name]=dependencyMismatches(d);}finally{rmSync(d,{recursive:true,force:true});}}
+   assert.deepEqual(seen,{'no lockfile':['package-lock.json is missing, unreadable or older than lockfile v2'],'lockfile v1':['package-lock.json is missing, unreadable or older than lockfile v2'],
+-    'not installed by npm ci':['node_modules/.package-lock.json is missing: node_modules was not installed by npm ci'],'another source':['node_modules/a installed from another source than locked'],'devOptional absent':[]});
++    'not installed by npm ci':['node_modules/.package-lock.json is missing: node_modules was not installed by npm ci'],'another source':['node_modules/a installed from another source than locked'],'devOptional absent':[],'link':[]});
+   assert.match(nodeEnvRefusal('development',false),/NODE_ENV=development would build a non-production bundle/);
+   for(const v of [undefined,'','production'])assert.equal(nodeEnvRefusal(v,false),null,String(v));assert.equal(nodeEnvRefusal('development',true),null,'a dry run only records it');
+ });
+@@ -314,12 +328,15 @@ for(const variant of ['good','upload-failed','dist-changed','record-locked'])tes
+ // 'env-added': a gitignored .env.production that appears during the run is invisible to git status but read by vite.
+ // 'edited-while-uploading': wrangler bundles the Worker from the tree while it uploads, after the re-check (Swarm audit 12e0525d L-4).
+ // 'vite-env': a VITE_* variable of the deploy shell reaches the client bundle (L-5).
+-for(const variant of ['clean','edited','head-moved','env-added','edited-while-uploading','vite-env'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
++// 'deps-added' / 'deps-while-uploading': a package installed (npm install --no-save) during the build or the upload
++// (Swarm audit 351b0573, finding 7). 'cloudflare-env': CLOUDFLARE_ENV picks another Worker environment (finding 8).
++const ADDED_PACKAGE="writeFileSync('node_modules/.package-lock.json',JSON.stringify({lockfileVersion:3,packages:{'':{},'node_modules/evil':{version:'9.9.9'}}}));";
++for(const variant of ['clean','edited','head-moved','env-added','edited-while-uploading','vite-env','deps-added','deps-while-uploading','cloudflare-env'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
+   const id=['-c','user.name=t','-c','user.email=t@example.invalid','-c','commit.gpgsign=false'];
+   const build="import {mkdirSync,writeFileSync} from 'node:fs';import {spawnSync} from 'node:child_process';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','abc');"+
+     (variant==='edited'?"writeFileSync('src/runtime.ts','edited during the run');":variant==='head-moved'?"writeFileSync('src/runtime.ts','committed during the run');spawnSync('git',"+JSON.stringify([...id,'commit','-qam','during the run'])+");":
+-     variant==='env-added'?"writeFileSync('.env.production','VITE_X=1');":'');
+-  const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';"+(variant==='edited-while-uploading'?"writeFileSync('src/runtime.ts','edited while uploading');":'')+"const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local upload, no network');";
++     variant==='env-added'?"writeFileSync('.env.production','VITE_X=1');":variant==='deps-added'?ADDED_PACKAGE:'');
++  const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';"+(variant==='edited-while-uploading'?"writeFileSync('src/runtime.ts','edited while uploading');":variant==='deps-while-uploading'?ADDED_PACKAGE:'')+"const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local upload, no network');";
+   const dir=tree({'package.json':JSON.stringify({type:'module',scripts:{test:'node --test tests/*.test.mjs'}}),'tests/a.test.mjs':"import test from 'node:test';test('ok',()=>{});",
+     'src/runtime.ts':'committed','.gitignore':'deploy-records/\nnode_modules/\ndist/\n.env*\n','package-lock.json':'{"lockfileVersion":3,"packages":{"":{}}}','wrangler.jsonc':'{}','public/_headers':'/*\n',
+     'node_modules/.package-lock.json':'{"lockfileVersion":3,"packages":{"":{}}}',
+@@ -330,19 +347,26 @@ for(const variant of ['clean','edited','head-moved','env-added','edited-while-up
+   try{
+     mkdirSync(join(dir,'scripts'));copyFileSync(join(ROOT,'scripts/deploy.mjs'),join(dir,'scripts/deploy.mjs'));
+     git('init','-q');git('add','-A');git('commit','-q','-m','synthetic deploy fixture');const start=git('rev-parse','HEAD');
+-    const r=spawnSync(process.execPath,['scripts/deploy.mjs'],{cwd:dir,encoding:'utf8',timeout:60000,env:{...process.env,...variant==='vite-env'?{VITE_X:'injected'}:{}}}),out=r.stdout+r.stderr;
++    const shell=variant==='vite-env'?{VITE_X:'injected'}:variant==='cloudflare-env'?{CLOUDFLARE_ENV:'staging'}:{};
++    const r=spawnSync(process.execPath,['scripts/deploy.mjs'],{cwd:dir,encoding:'utf8',timeout:60000,env:{...process.env,...shell}}),out=r.stdout+r.stderr;
+     if(variant==='vite-env'){
+       assert.equal(r.status,1,out);assert.match(out,/VITE_\* environment variables would change the build but are not in git \(VITE_X\)/);
+       assert.doesNotMatch(out,/> npm test|> wrangler/);assert.doesNotMatch(out,/injected/,'only the name is printed');return;
+     }
++    if(variant==='cloudflare-env'){
++      assert.equal(r.status,1,out);assert.match(out,/would change the build or its target but are not in git \(CLOUDFLARE_ENV\)/);
++      assert.doesNotMatch(out,/> npm test|> wrangler/);assert.doesNotMatch(out,/staging/,'only the name is printed');return;
++    }
+     assert.match(out,/> npm test[\s\S]*> tsc[\s\S]*> vite build/);
+-    if(variant==='edited-while-uploading'){
++    if(variant==='edited-while-uploading'||variant==='deps-while-uploading'){
+       // The upload already happened and cannot be undone: the record must say so instead of claiming a clean commit.
+-      assert.equal(r.status,1,out);assert.match(out,/changed while wrangler bundled and uploaded the Worker[\s\S]*src\/runtime\.ts/);
++      assert.equal(r.status,1,out);assert.match(out,variant==='edited-while-uploading'?/changed while wrangler bundled and uploaded the Worker[\s\S]*src\/runtime\.ts/:/changed while wrangler bundled and uploaded the Worker[\s\S]*not in package-lock\.json: node_modules\/evil/);
+       const outcome=r.stdout.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(line)).find(row=>row.kind==='imd-world deploy outcome');
+       assert.deepEqual([outcome.deployment,outcome.verification,outcome.exitCode],['uploaded','failed',1]);
+       const names=readdirSync(join(dir,RECORDS_DIR)),manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
+-      assert.equal(manifest.dirty,true);assert.equal(manifest.source.unchangedDuringUpload,false);assert.match(manifest.source.porcelainAfter,/src\/runtime\.ts/);
++      assert.equal(manifest.dirty,true);assert.equal(manifest.source.unchangedDuringUpload,false);
++      if(variant==='edited-while-uploading')assert.match(manifest.source.porcelainAfter,/src\/runtime\.ts/);
++      else assert.deepEqual(manifest.source.dependenciesAfter,['not in package-lock.json: node_modules/evil']);
+       return;
+     }
+     if(variant==='clean'){
+@@ -351,11 +375,12 @@ for(const variant of ['clean','edited','head-moved','env-added','edited-while-up
+       assert.equal(outcome.deployment,'uploaded');const names=readdirSync(join(dir,RECORDS_DIR));assert.equal(names.length,1);
+       const manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
+       assert.equal(manifest.mode,'deploy');assert.equal(manifest.commit,start);assert.equal(manifest.dirty,false);
+-      assert.equal(manifest.source.unchangedDuringUpload,true);assert.deepEqual(manifest.viteEnv,[]);assert.deepEqual(manifest.dependencies.mismatches,[]);
++      assert.equal(manifest.source.unchangedDuringUpload,true);assert.deepEqual(manifest.viteEnv,[]);assert.deepEqual(manifest.buildEnv,[]);assert.deepEqual(manifest.dependencies.mismatches,[]);
+       return;
+     }
+     assert.equal(r.status,1,out);assert.doesNotMatch(out,/> wrangler deploy|synthetic local upload/,'nothing was uploaded');
+-    assert.match(out,variant==='edited'?/working tree changed during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/:variant==='env-added'?/env files would change the build but are not in git \(\.env\.production\)/:/HEAD moved during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/);
++    assert.match(out,variant==='edited'?/working tree changed during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/:variant==='env-added'?/env files would change the build but are not in git \(\.env\.production\)/:
++      variant==='deps-added'?/node_modules does not match package-lock\.json \(run npm ci\):[\s\S]*not in package-lock\.json: node_modules\/evil/:/HEAD moved during the deploy run[\s\S]*nothing was uploaded[\s\S]*src\/runtime\.ts/);
+     assert.equal(existsSync(join(dir,RECORDS_DIR)),false,'no record claims a deploy');
+     if(variant==='head-moved')assert.notEqual(git('rev-parse','HEAD'),start,'the fake build did commit');
+   }finally{rmSync(dir,{recursive:true,force:true});}
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index a87f483..0f0cd51 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -284,3 +284,54 @@ test('withdrawal remains possible when indexing halts during pending nonce await
+  const f=fixture();let allowed=true;f.deps.canSpend=()=>allowed;
+  try{await f.controller.prepare({kind:'withdraw',positionId:'1',shares:'1'});const h=await heldNonce(f,()=>f.controller.confirm());allowed=false;h.release();await h.pending;assert.equal(f.sent.length,1);assert.equal(f.sent[0].to,VAULT);}finally{f.controller.dispose();}
+ });
++// Swarm audit 351b0573, finding 3: MetaMask numbers a send itself; another send confirmed between the count and the
++// prompt moves this one to the next nonce. The wallet's own hash is still this call with its exact data or effect.
++test('the wallet\'s own hash mined under another nonce is judged by its exact data or effect; nothing else gets that exception',async()=>{
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++  f.candidate(routed([effect.paid(OID,1000n)],{nonce:'0x9'}));await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'confirmed',error:null,store:0},'routed with the exact effect');f.controller.dispose();}
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();const sent=f.sent[0];
++  f.candidate({hash:HASH,to:sent.to,input:sent.data,nonce:'0x9'});await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,store:f.store.size},{phase:'confirmed',store:0},'direct with the exact data');f.controller.dispose();}
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();const sent=f.sent[0];
++  f.candidate({hash:HASH,to:sent.to,input:sent.data,nonce:'0x9',status:'0x0'});await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'error',error:'TRANSACTION_REVERTED',store:0},'direct, reverted');f.controller.dispose();}
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++  f.candidate(routed([],{nonce:'0x9',status:'0x0'}));await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'error',error:'TRANSACTION_REVERTED',store:0},'routed, reverted');f.controller.dispose();}
++ // Without the exact data or effect, or under a lower or missing nonce (an older transaction: a stale hash from the
++ // wallet, e.g. an earlier identical payment), the intent stays locked as before (review of this fix).
++ const sentPay=encodeEconomyCall('pay',[OID,1000n]);
++ for(const [name,candidate] of [['routed without the effect',routed([],{nonce:'0x9'})],['another call',{hash:HASH,to:PAY,input:encodeEconomyCall('pay',['0x'+'8'.repeat(64),1000n]),nonce:'0x9'}],
++  ['an older identical payment',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5'}],['an older identical payment, reverted',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5',status:'0x0'}],
++  ['an older routed payment',routed([effect.paid(OID,1000n)],{nonce:'0x5'})],['no nonce',{hash:HASH,to:PAY,input:sentPay,nonce:undefined}]]){
++  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++  f.candidate(candidate);await f.controller.checkReceipt();
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'unknown',error:'TRANSACTION_MISMATCH',store:1},name);f.controller.dispose();
++ }
++ // A pasted hash under another nonce is refused even with the exact effect.
++ const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++ f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER,nonce:'0x9'}));await f.controller.checkReceipt(OTHER);
++ assert.deepEqual({error:f.controller.state.error,store:f.store.size},{error:'TRANSACTION_MISMATCH',store:1});f.controller.dispose();
++});
++// Finding 4: after a confirmed approval, a payment prompt that failed (not a rejection) kept the approval's hash on screen.
++test('a payment prompt that fails after an approval shows no stale hash and can be acknowledged',async()=>{
++ const f=fixture();let allowance=0n,prompt=false;
++ f.intercept(a=>{if(a.method==='eth_call'&&a.params[0].data.slice(2,10)==='dd62ed3e')return word(allowance);if(a.method==='eth_sendTransaction'&&prompt)throw Object.assign(Error('request already pending'),{code:-32002});});
++ await f.controller.prepare(payPlan());assert.equal(f.controller.state.phase,'approve-required');await f.controller.approve();
++ f.candidate(routed([effect.approval(PAY,1000n)]));allowance=1000n;await f.controller.checkReceipt();
++ assert.deepEqual({phase:f.controller.state.phase,hash:f.controller.state.hash},{phase:'confirm',hash:HASH});
++ prompt=true;await f.controller.confirm();
++ assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,hash:f.controller.state.hash,sentHash:f.controller.state.sentHash,step:f.controller.state.step,store:f.store.size},
++  {phase:'unknown',error:'REQUEST_FAILED',hash:null,sentHash:null,step:'execute',store:1});
++ assert.equal([...f.store.values()][0].hash,null,'the stored intent has no hash either');
++ await f.controller.clearUnknownAfterWalletCheck();assert.deepEqual({phase:f.controller.state.phase,store:f.store.size},{phase:'idle',store:0});
++ prompt=false;await f.controller.prepare(payPlan());assert.equal(f.controller.state.phase,'confirm','a new payment can be prepared');f.controller.dispose();
++});
++// Finding 10: a judged hash of the previous intent does not survive into the next one.
++test('a new intent starts without the previous sent hash',async()=>{
++ const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++ f.candidate(routed([effect.paid(OID,1000n)]));await f.controller.checkReceipt();assert.equal(f.controller.state.sentHash,HASH);
++ await f.controller.prepare({kind:'stake',shares:'1'});assert.deepEqual({phase:f.controller.state.phase,hash:f.controller.state.hash,sentHash:f.controller.state.sentHash},{phase:'confirm',hash:null,sentHash:null});
++ f.controller.dispose();
++});
+diff --git a/tests/pending-gold-credit.test.mjs b/tests/pending-gold-credit.test.mjs
+index 293197c..3f769f8 100644
+--- a/tests/pending-gold-credit.test.mjs
++++ b/tests/pending-gold-credit.test.mjs
+@@ -65,7 +65,32 @@ test('a payment the wallet saw mined keeps its note past the after-expiry margin
+   const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
+   assert.match(src,/const mined=wallet\.step==='execute'&&wallet\.phase==='confirmed';/);assert.match(src,/if\(data&&mined&&sent\)markPendingCreditMined\(data\.wallet,sent\)/);
+ });
+-test('Swarm audit 12e0525d: a payment that never mines (cancelled or sped up in the wallet) ends 30 minutes after its quote expired (L-3)',()=>{store.clear();
++test('Swarm audit 351b0573 finding 1: a payment that mined late but unseen by this browser keeps its note until it can be final',()=>{store.clear();
++  assert.equal(PENDING_CREDIT_AFTER_EXPIRY_MS,60*60_000);
++  // Expiry E; sent just before E, mined at E+25 min after the wallet stopped polling, final about E+38 min.
++  const E=NOW+900000,quote=order({expires_ms:E});trackPendingCredit(W,ID,TX,'1000',E-60000);
++  for(const at of [E+30*60_000+1,E+39*60_000])assert.equal((settlePendingCredits(W,[quote],at),pendingGold(W,at)),1000n,'kept at E+'+(at-E)/60000+' min');
++  assert.equal(settlePendingCredits(W,[order({expires_ms:E,status:'paid',creditedGold:'1000'})],E+40*60_000),true,'booked: the top bar refreshes');
++});
++test('Swarm audit 351b0573 finding 6: the panel makes one note per payment, so the 2 h cap ends it while the panel stays open',()=>{
++  const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.match(src,/const once=o\.id\+':'\+payingHash\.toLowerCase\(\)\+':'\+wallet\.phase;if\(tracked\.current\.has\(once\)\)return;tracked\.current\.add\(once\);\s*trackPendingCredit\(/);
++  assert.match(src,/\},\[payingOrder,payingHash,wallet\.phase,data\]\);/,'a late confirmation still gets its one note');
++});
++test('Swarm audit 351b0573 findings 4 and 5: the GOLD panel offers the staking pane\'s recovery for an unresolved payment',()=>{
++  const unknown={...idle,phase:'unknown',step:'execute',error:'PENDING_TRANSACTION'};
++  let s=html({wallet:{...unknown,hash:TX},clearUnknown(){}});
++  assert.ok(s.includes('原交易或替代交易雜湊')&&s.includes('只核對這筆交易'),'a cancelled or sped-up payment: paste its new hash');
++  assert.ok(s.includes('查詢原交易'));assert.ok(!s.includes('確認未送出，解除防重'),'a sent hash is never cleared by hand');
++  s=html({wallet:{...unknown,hash:null},clearUnknown(){}});
++  assert.ok(s.includes('錢包回覆不明')&&s.includes('確認原交易沒有送出')&&s.includes('確認未送出，解除防重'),'a prompt that returned no hash: acknowledge');
++  assert.ok(!html({wallet:{...unknown,hash:null}}).includes('確認未送出，解除防重'),'only where the panel wires the acknowledgement');
++  assert.ok(!html().includes('只核對這筆交易'),'nothing of this while no payment is unresolved');
++  const panel=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8'),page=readFileSync(new URL('../src/world/GoldPurchase.tsx',import.meta.url),'utf8');
++  assert.match(panel,/check=\{hash=>void run\(\(\)=>controller!\.checkReceipt\(hash\)\)\} clearUnknown=\{\(\)=>void run\(\(\)=>controller!\.clearUnknownAfterWalletCheck\(\)\)\}/);
++  assert.match(page,/onClick=\{\(\)=>check\(\)\}>\{say\('查詢原交易'/,'the original-transaction button passes no click event as a hash');
++});
++test('Swarm audit 12e0525d: a payment that never mines (cancelled or sped up in the wallet) ends 60 minutes after its quote expired (L-3)',()=>{store.clear();
+   const quote=order({expires_ms:NOW+900000});trackPendingCredit(W,ID,TX,'1000',NOW);
+   assert.equal(settlePendingCredits(W,[quote],NOW+900000+PENDING_CREDIT_AFTER_EXPIRY_MS),false);assert.equal(pendingGold(W,NOW+900000+PENDING_CREDIT_AFTER_EXPIRY_MS),1000n,'still within the margin');
+   assert.equal(settlePendingCredits(W,[quote],NOW+900001+PENDING_CREDIT_AFTER_EXPIRY_MS),false,'dropped, not credited: no balance refresh');
