@@ -1,0 +1,170 @@
+From 96858bf8bfed00b8ef22b2caf49c8c8754f54624 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Wed, 28 Oct 2026 02:11:32 +0800
+Subject: [PATCH 2/2] =?UTF-8?q?Wording:=20=E8=B3=BC=E9=BB=9E=20->=20?=
+ =?UTF-8?q?=E8=B3=BC=E8=B2=B7=E9=BB=9E=E6=95=B8=20in=20the=20GOLD=20purcha?=
+ =?UTF-8?q?se=20text=20(owner=20request,=20easier=20to=20read)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Only user-visible Chinese strings change (GOLD panel, purchase page, error texts, research
+pass card, Celestao checkout, local preview) and the two test assertions that read them.
+Full suite 3,635 tests, 3,630 pass, 5 skipped, 0 fail.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/CelestaoCheckout.tsx    |  2 +-
+ src/world/GoldPurchase.tsx        | 12 ++++++------
+ src/world/ResearchPassCard.tsx    |  2 +-
+ src/world/WorldGoldPanel.tsx      |  6 +++---
+ src/world/goldPurchasePreview.tsx |  2 +-
+ src/world/goldPurchaseRules.ts    |  4 ++--
+ tests/gold-purchase-ui.test.mjs   |  4 ++--
+ 7 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/src/world/CelestaoCheckout.tsx b/src/world/CelestaoCheckout.tsx
+index 134b133..30db865 100644
+--- a/src/world/CelestaoCheckout.tsx
++++ b/src/world/CelestaoCheckout.tsx
+@@ -6,7 +6,7 @@ import {EconomyClient,economyRequestId,economySession} from './economyClient.ts'
+ import {EconomyWalletController,localEconomyPending} from './economyWallet.ts';
+ import {CelestaoCheckoutClient,type CelestaoCheckoutState} from './celestaoCheckoutClient.ts';
+ import './celestaoGateway.css';
+-const ERRORS:Record<string,[string,string]>={AUTH_REQUIRED:['請重新登入 World 錢包。','Sign in to World again.'],ACCOUNT_MISMATCH:['這筆解讀屬於另一個錢包，請切換至原錢包。','Switch to the wallet that started this reading.'],NOT_FOUND:['這個錢包沒有這筆解讀，請回玄曜重新選擇。','This reading does not belong to this wallet. Return to Celestial Atlas.'],FEATURE_PAUSED:['館內付費服務尚未開放。','Paid hall services are not open.'],INSUFFICIENT_GOLD:['GOLD 餘額不足，請先返回 World 資產區購點。','Insufficient GOLD. Purchase points in World first.'],CONTEXT_CHANGED:['錢包狀態已改變，請重新確認原訂單。','Wallet context changed. Check the original order again.'],ORDER_EXPIRED:['這張未付款訂單已過期，請返回玄曜重新開始。','This unpaid quote expired. Return to Celestial Atlas to start again.']};
++const ERRORS:Record<string,[string,string]>={AUTH_REQUIRED:['請重新登入 World 錢包。','Sign in to World again.'],ACCOUNT_MISMATCH:['這筆解讀屬於另一個錢包，請切換至原錢包。','Switch to the wallet that started this reading.'],NOT_FOUND:['這個錢包沒有這筆解讀，請回玄曜重新選擇。','This reading does not belong to this wallet. Return to Celestial Atlas.'],FEATURE_PAUSED:['館內付費服務尚未開放。','Paid hall services are not open.'],INSUFFICIENT_GOLD:['GOLD 餘額不足，請先返回 World 資產區購買點數。','Insufficient GOLD. Purchase points in World first.'],CONTEXT_CHANGED:['錢包狀態已改變，請重新確認原訂單。','Wallet context changed. Check the original order again.'],ORDER_EXPIRED:['這張未付款訂單已過期，請返回玄曜重新開始。','This unpaid quote expired. Return to Celestial Atlas to start again.']};
+ export default function CelestaoCheckout(){
+  const query=new URLSearchParams(location.search),run=query.get('run')??'',zh=query.get('lang')!=='en',t=(a:string,b:string)=>zh?a:b;
+  const valid=/^[A-Za-z0-9_-]{43}$/.test(run);
+diff --git a/src/world/GoldPurchase.tsx b/src/world/GoldPurchase.tsx
+index d8c3dba..d8705ee 100644
+--- a/src/world/GoldPurchase.tsx
++++ b/src/world/GoldPurchase.tsx
+@@ -21,10 +21,10 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,
+  const amount=order?.amount??chosen?.embeo,gold=order?.gold??chosen?.gold;
+  const clock=(ms:number)=>new Date(ms).toLocaleTimeString(zh?'zh-TW':'en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  return <section className="gold-purchase" aria-labelledby="gold-purchase-title" data-purchase-stage={stage}>
+-  <div className="gold-purchase-heading"><h2 id="gold-purchase-title">{say('購買 GOLD','Buy GOLD')}</h2><span>{say('單向購點','One-way purchase')}</span></div>
++  <div className="gold-purchase-heading"><h2 id="gold-purchase-title">{say('購買 GOLD','Buy GOLD')}</h2><span>{say('單向購買點數','One-way purchase')}</span></div>
+   {sameRate&&<p className="gold-purchase-rate">100 EMBEO <span aria-hidden="true">→</span> 1 GOLD</p>}
+-  {!order?<><div className="gold-quick-plans" role="group" aria-label={say('選擇購點方案','Choose a package')}>{products.map(p=><button key={p.id} aria-pressed={chosen?.id===p.id} disabled={locked||unresolved||prepared&&wallet.phase!=='confirmed'} onClick={()=>setProduct(p.product)}><strong>{balanceNumber(p.gold)} GOLD</strong><span>{balanceNumber(economyTokenAmount(p.embeo!))} EMBEO</span></button>)}</div>{!products.length&&<p role="status">{say('購點方案尚未開放。','Purchase packages are not available yet.')}</p>}</>:<>
+-   <h3>{stage==='credited'?say('GOLD 已入帳','GOLD credited'):stage==='expired'?say('此報價已到期','Quote expired'):stage==='awaiting-credit'?say('正在核對入帳','Confirming GOLD credit'):say('核對購點內容','Review purchase')}</h3>
++  {!order?<><div className="gold-quick-plans" role="group" aria-label={say('選擇購買點數方案','Choose a package')}>{products.map(p=><button key={p.id} aria-pressed={chosen?.id===p.id} disabled={locked||unresolved||prepared&&wallet.phase!=='confirmed'} onClick={()=>setProduct(p.product)}><strong>{balanceNumber(p.gold)} GOLD</strong><span>{balanceNumber(economyTokenAmount(p.embeo!))} EMBEO</span></button>)}</div>{!products.length&&<p role="status">{say('購買點數方案尚未開放。','Purchase packages are not available yet.')}</p>}</>:<>
++   <h3>{stage==='credited'?say('GOLD 已入帳','GOLD credited'):stage==='expired'?say('此報價已到期','Quote expired'):stage==='awaiting-credit'?say('正在核對入帳','Confirming GOLD credit'):say('核對購買點數內容','Review purchase')}</h3>
+    <p className="gold-order-reference">{say('原始訂單','Original order')}<code>{order.id}</code></p>
+   </>}
+   {amount&&gold&&<dl className="gold-purchase-total"><div><dt>{say('獲得','Receive')}</dt><dd>{balanceNumber(gold)} GOLD</dd></div><div><dt>{say('需支付','Pay')}</dt><dd>{balanceNumber(economyTokenAmount(amount))} EMBEO</dd></div></dl>}
+@@ -32,11 +32,11 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,
+   <p className="gold-purchase-timing"><strong>{say('付款完成後約 15 分鐘入帳。','Credited about 15 minutes after payment.')}</strong>{say('以太坊的付款要等到最終確認（約 13–15 分鐘）才會入帳，這樣交易被撤銷時也不會記錯帳。等待期間，右上角會用金色字顯示「+數量 入帳中」；你可以先返回世界，請勿重複付款。',' Ethereum payments are credited once they are final (about 13–15 minutes), so a reverted transaction never leaves a wrong balance. Meanwhile the top bar shows "+amount crediting" in gold; you can go back to the World. Do not pay again.')}</p>
+   <div className="gold-receiving-wallet"><span>{say('GOLD 入帳錢包','Receiving wallet')}</span><code>{data.wallet}</code></div>
+   <p className="gold-purchase-terms">{say('GOLD 綁定此錢包、跨館共用。不可轉讓、不可賣出，也不能兌回 EMBEO。','GOLD is wallet-bound and shared across World. It cannot be transferred, sold or redeemed for EMBEO.')}</p>
+-  {order&&stage!=='credited'&&stage!=='awaiting-credit'&&stage!=='expired'&&<label className="gold-purchase-ack"><input type="checkbox" checked={ack} disabled={locked||unresolved} onChange={e=>setAck(e.target.checked)}/><span>{say('我已核對入帳錢包，並了解這是單向購點。','I checked the receiving wallet and understand this is a one-way purchase.')}</span></label>}
++  {order&&stage!=='credited'&&stage!=='awaiting-credit'&&stage!=='expired'&&<label className="gold-purchase-ack"><input type="checkbox" checked={ack} disabled={locked||unresolved} onChange={e=>setAck(e.target.checked)}/><span>{say('我已核對入帳錢包，並了解這是單向購買點數。','I checked the receiving wallet and understand this is a one-way purchase.')}</span></label>}
+   {config&&order&&<details className="gold-contract-details"><summary>{say('查看付款合約與收款地址','Payment contract and treasury')}</summary><p>EMBEO<code>{config.token}</code></p><p>{say('付款合約','Payment contract')}<code>{config.paymentContract}</code></p><p>{say('EMBEO 收款地址','EMBEO treasury')}<code>{config.treasury}</code></p></details>}
+   {wallet.hash&&<p className="gold-transaction-reference">{say('交易雜湊','Transaction hash')}<a href={'https://etherscan.io/tx/'+wallet.hash} target="_blank" rel="noopener noreferrer">{wallet.hash}</a></p>}
+   <div className="gold-purchase-buttons">
+-   {!order&&<button className="gold-primary" disabled={!chosen||!canStart||locked||prepared&&wallet.phase!=='confirmed'} onClick={()=>chosen&&quote(chosen.product)}>{say('核對購點內容','Review purchase')}</button>}
++   {!order&&<button className="gold-primary" disabled={!chosen||!canStart||locked||prepared&&wallet.phase!=='confirmed'} onClick={()=>chosen&&quote(chosen.product)}>{say('核對購買點數內容','Review purchase')}</button>}
+    {order&&stage==='review'&&<button className="gold-primary" disabled={locked||!ack||!config||unresolved} onClick={prepare}>{say('下一步：檢查授權額度','Next: check allowance')}</button>}
+    {order&&stage==='approve'&&<button className="gold-primary" disabled={locked||!ack} onClick={approve}>{wallet.phase==='reset-required'?say('先將原授權歸零','Reset existing allowance'):say('授權本筆指定額度','Approve exact purchase amount')}</button>}
+    {order&&stage==='confirm'&&<button className="gold-primary" disabled={locked||!ack} onClick={confirm}>{say('確認 EMBEO 付款','Confirm EMBEO payment')}</button>}
+@@ -44,7 +44,7 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,pending,quote,
+    {order&&(stage==='awaiting-credit'||order.status==='paid')&&stage!=='credited'&&<button className="gold-primary" disabled={locked} onClick={reconcile}>{say('查詢原單入帳','Check original credit')}</button>}
+    {order&&(stage==='credited'||stage==='expired'||!prepared&&!unresolved&&stage==='review')&&<button disabled={locked} onClick={clear}>{stage==='credited'?say('完成','Done'):stage==='expired'?say('重新選擇方案','Choose a new package'):say('修改方案','Change package')}</button>}
+   </div>
+-  {!canStart&&!order&&products.length>0&&<p role="status">{say('目前暫停新購點訂單，原交易仍可查詢。','New purchases are paused. Existing transactions can still be checked.')}</p>}
++  {!canStart&&!order&&products.length>0&&<p role="status">{say('目前暫停新的購買點數訂單，原交易仍可查詢。','New purchases are paused. Existing transactions can still be checked.')}</p>}
+   {stage==='approve'&&<p role="status">{say('授權不等於付款。請確認錢包中的額度，完成授權後還需確認付款。','Approval is separate from payment. Check the allowance in your wallet, then confirm payment.')}</p>}
+   {(stage==='pending'||stage==='awaiting-credit')&&pending&&<p role="status" className="gold-credit-pending">{say(`入帳中：+${balanceNumber(pending.gold)} GOLD，預計 ${clock(pending.atMs+PENDING_CREDIT_ETA_MS)} 前入帳（約 15 分鐘）。`,`Crediting: +${balanceNumber(pending.gold)} GOLD, expected by ${clock(pending.atMs+PENDING_CREDIT_ETA_MS)} (about 15 minutes).`)}<small>{say('GOLD 到帳後右上角會自動更新，你可以先返回世界；請勿重複付款。','The top bar updates by itself when the GOLD arrives, so you can go back to the World. Do not pay again.')}</small></p>}
+   {stage==='pending'&&!pending&&<p role="status">{say('交易確認中，請勿重複付款。','Transaction pending. Do not pay again.')}</p>}
+diff --git a/src/world/ResearchPassCard.tsx b/src/world/ResearchPassCard.tsx
+index 6e6dd3e..4814e6a 100644
+--- a/src/world/ResearchPassCard.tsx
++++ b/src/world/ResearchPassCard.tsx
+@@ -8,6 +8,6 @@ export function ResearchPassCard({product,pass,zh,busy,disabled,insufficient=fal
+   <small className="gold-pass-terms" style={{display:'block',margin:'8px 0 12px'}}>{researchPassTerms(zh,product.gold)}</small>
+   {active&&pass&&<p role="status">{zh?'通行證有效至 ':'Pass active until '}{utcMinute(pass.endsMs)}{zh?'；到期後才能再次購買。':'. You can buy another after it ends.'}</p>}
+   {product.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}
+-  {insufficient&&!active&&<p role="status">{zh?`GOLD 不足：需要 ${product.gold} GOLD，請先在上方購點，再購買通行證。`:`Not enough GOLD: ${product.gold} GOLD is needed. Buy GOLD above first, then the pass.`}</p>}
++  {insufficient&&!active&&<p role="status">{zh?`GOLD 不足：需要 ${product.gold} GOLD，請先在上方購買點數，再購買通行證。`:`Not enough GOLD: ${product.gold} GOLD is needed. Buy GOLD above first, then the pass.`}</p>}
+   <button disabled={busy||disabled||active||product.serviceable===false} onClick={onCreate}>{active?(zh?'通行證有效中':'Pass active'):(zh?'建立訂單':'Create order')}</button></article>;
+ }
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 4b25677..d8efa72 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -60,7 +60,7 @@ function Admin({client,data,refresh,zh}:{client:WorldGoldClient;data:GoldState;r
+  <button disabled={newExists||!/^[a-z][a-z0-9-]{0,63}$/.test(newProduct)||!newTitle.trim()||!/^[1-9][0-9]*$/.test(newGold)} onClick={()=>void run({action:'product',product:newProduct,kind:'service',title:newTitle.trim(),gold:newGold,enabled:newOn,version:1})}>{newExists?(zh?'此方案已存在':'Product already exists'):(zh?'建立第一版':'Create version 1')}</button></fieldset>
+  <fieldset disabled={busy||reason.trim().length<3}><legend>{zh?'分功能暫停':'Feature controls'}</legend>{data.controls.map(c=><button key={c.feature} onClick={()=>void run({action:'control',feature:c.feature,enabled:!c.enabled,version:c.version})}>{c.feature} · {c.enabled?(zh?'暫停新單':'Pause new orders'):zh?'恢復新單':'Resume new orders'}</button>)}</fieldset>
+  <fieldset disabled={busy}><legend>{zh?'異常查單與修復':'Order reconciliation'}</legend><label>{zh?'原始訂單 ID':'Original order ID'}<input value={orderId} onChange={e=>{setOrderId(e.target.value);setCaseData(null);}}/></label><button onClick={()=>void load()}>{zh?'查單':'Look up'}</button>{caseData!==null&&<pre>{JSON.stringify(caseData,null,2)}</pre>}
+- <button disabled={!caseData||reason.trim().length<3} onClick={()=>void run({action:'repair-topup',orderId})}>{zh?'補足原購點差額':'Repair original topup'}</button><button disabled={!caseData||reason.trim().length<3} onClick={()=>void run({action:'refund-service',orderId})}>{zh?'依原單退回 GOLD':'Refund original GOLD'}</button></fieldset><p role="status">{notice}</p></details>;
++ <button disabled={!caseData||reason.trim().length<3} onClick={()=>void run({action:'repair-topup',orderId})}>{zh?'補足原購買點數差額':'Repair original topup'}</button><button disabled={!caseData||reason.trim().length<3} onClick={()=>void run({action:'refund-service',orderId})}>{zh?'依原單退回 GOLD':'Refund original GOLD'}</button></fieldset><p role="status">{notice}</p></details>;
+ }
+ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthState;language:'zh'|'en';onClose:()=>void;onSignIn:()=>void}){
+  const zh=language==='zh',{client,data,error,reading,identity,refresh,auth}=useGold(state),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[controller,setController]=useState<EconomyWalletController|null>(null),configRef=useRef<EconomyConfig|null>(null),[selected,setSelected]=useState<GoldOrder|null>(null),[passAck,setPassAck]=useState<string|null>(null),host=useRef<HTMLElement>(null),operation=useRef<symbol|null>(null);
+@@ -113,13 +113,13 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  };
+  return <section ref={host} role="dialog" aria-modal="true" aria-labelledby="world-gold-title" className="world-gold-panel"><header><h1 id="world-gold-title">GOLD · {zh?'購買與紀錄':'Buy & history'}</h1><button className="gold-return" onClick={onClose}>{zh?'返回世界':'Back to World'}</button></header>
+ 
+- {!identity?<><p className="gold-test-note">{zh?'100 EMBEO → 1 GOLD，單向購點。GOLD 綁定錢包，不可轉讓、不可賣出，也不能兌回 EMBEO。':'100 EMBEO → 1 GOLD, one-way purchase. GOLD is wallet-bound and cannot be transferred, sold or redeemed for EMBEO.'}</p><button onClick={onSignIn}>{zh?'沿用 World 錢包登入':'Sign in with World wallet'}</button></>:<>
++ {!identity?<><p className="gold-test-note">{zh?'100 EMBEO → 1 GOLD，單向購買點數。GOLD 綁定錢包，不可轉讓、不可賣出，也不能兌回 EMBEO。':'100 EMBEO → 1 GOLD, one-way purchase. GOLD is wallet-bound and cannot be transferred, sold or redeemed for EMBEO.'}</p><button onClick={onSignIn}>{zh?'沿用 World 錢包登入':'Sign in with World wallet'}</button></>:<>
+  {data?<><div className="gold-balance"><strong>{data.available} GOLD</strong><span>{zh?'帳面':'Book'} {data.book}</span><span>{zh?'保留':'Reserved'} {data.reserved}</span><small>{new Date(data.asOf).toISOString()}</small></div>
+  {error&&<p role="status" className="gold-stale">{zh?`最新帳本暫時讀不到（代碼：${error}），以下是上次讀到的資料。`:`Could not refresh the ledger (code: ${error}); showing the last data read.`}</p>}
+  {configFailed&&<p role="alert">{zh?'錢包付款設定讀取失敗，請按下方「更新餘額與狀態」重試。':'Payment settings could not be read. Press "Refresh ledger" below to retry.'}</p>}
+  <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} pending={pending} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={hash=>void run(()=>controller!.checkReceipt(hash))} clearUnknown={()=>void run(()=>controller!.clearUnknownAfterWalletCheck())} reconcile={()=>selected&&void run(()=>client.reconcile(selected.id))} clear={()=>setSelected(null)}/>
+  <details className="gold-ledger-details"><summary>{zh?'帳本、訂單與其他館內服務':'Ledger, orders and hall services'}</summary>
+- {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購點不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
++ {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購買點數不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product===RESEARCH_PASS_PRODUCT&&<ResearchPassConfirm order={selected} zh={zh} acknowledged={passAck===selected.id} busy={busy||wallet.busy} onAcknowledge={checked=>setPassAck(checked?selected.id:null)} onSign={()=>void run(()=>pay(selected))}/>}
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product!==RESEARCH_PASS_PRODUCT&&<section className="gold-confirm"><h2>{zh?'核對原始訂單':'Review original order'}</h2><code>{selected.id}</code><p>{selected.amount} GOLD · {zh?'此筆服務費用':'Service payment'}</p><button disabled={busy||wallet.busy} onClick={()=>void run(()=>pay(selected))}>{zh?'簽名確認扣點':'Sign GOLD payment'}</button></section>}
+  {selected?.kind==='service'&&<div className="gold-actions">{['approve-required','reset-required'].includes(wallet.phase)&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.approve())}>{zh?'確認指定額度授權':'Approve exact amount'}</button>}{wallet.phase==='confirm'&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.confirm())}>{zh?'確認 EMBEO 付款':'Confirm EMBEO payment'}</button>}{wallet.hash&&<code>{wallet.hash}</code>}{['unknown','pending'].includes(wallet.phase)&&<button onClick={()=>void run(()=>controller!.checkReceipt())}>{zh?'查詢原交易':'Check original transaction'}</button>}</div>}
+diff --git a/src/world/goldPurchasePreview.tsx b/src/world/goldPurchasePreview.tsx
+index 40f5043..d934675 100644
+--- a/src/world/goldPurchasePreview.tsx
++++ b/src/world/goldPurchasePreview.tsx
+@@ -15,6 +15,6 @@ function Preview(){
+  const [state,setState]=useState<AuthState>(INITIAL),[narrow,setNarrow]=useState(false),[id,setId]=useState('A'),[reject,setReject]=useState(false),[wrongChain,setWrongChain]=useState(false),[open,setOpen]=useState(true);
+  const choose=async(next:string,r=reject,c=wrongChain)=>{const value=await post('session',{id:next,reject:r,wrongChain:c});for(const fn of listeners.get('accountsChanged')??[])fn([value.session.address]);setState({...INITIAL,account:value.session.address,session:value.session,sessionKnown:true,restored:true});setId(next);announce();};
+  useEffect(()=>{void choose('A');},[]);
+- return <main style={{font:'14px system-ui',color:'#f3e9c8',padding:12}}><style>{`.world-gold-panel{top:135px;bottom:12px}${narrow?'.world-gold-panel{width:360px;max-width:calc(100vw - 16px);padding:12px;box-sizing:border-box}.gold-purchase{padding:16px}.gold-quick-plans strong{font-size:17px}.gold-quick-plans button{padding:12px}.world-gold-panel h1{font-size:18px}':''}`}</style><nav style={{display:'flex',gap:12,flexWrap:'wrap'}}><button onClick={()=>void choose('A')}>測試錢包 A</button><button onClick={()=>void choose('B')}>測試錢包 B</button><button onClick={()=>{setNarrow(!narrow);}}>手機寬度 360</button><label><input type="checkbox" checked={reject} onChange={e=>{setReject(e.target.checked);void choose(id,e.target.checked);}}/>模擬拒簽</label><label><input type="checkbox" checked={wrongChain} onChange={e=>{setWrongChain(e.target.checked);void choose(id,reject,e.target.checked);}}/>錯誤網路</label><button onClick={()=>void post('finalize',{}).then(()=>window.dispatchEvent(new Event('world:gold-changed')))}>模擬最終確認與入帳</button><button onClick={()=>setOpen(true)}>開啟購點</button></nav><p>隔離驗收：合成錢包、模擬鏈上收據與本機 SQLite。沒有使用真錢包或廣播交易。</p><div style={{width:narrow?340:480,marginLeft:'auto'}}><WalletBalanceHud state={state} read={hudRead} zh onOpen={()=>setOpen(true)}/></div>{open&&<WorldGoldPanel state={state} language="zh" onClose={()=>setOpen(false)} onSignIn={()=>void choose('A')}/>}</main>;
++ return <main style={{font:'14px system-ui',color:'#f3e9c8',padding:12}}><style>{`.world-gold-panel{top:135px;bottom:12px}${narrow?'.world-gold-panel{width:360px;max-width:calc(100vw - 16px);padding:12px;box-sizing:border-box}.gold-purchase{padding:16px}.gold-quick-plans strong{font-size:17px}.gold-quick-plans button{padding:12px}.world-gold-panel h1{font-size:18px}':''}`}</style><nav style={{display:'flex',gap:12,flexWrap:'wrap'}}><button onClick={()=>void choose('A')}>測試錢包 A</button><button onClick={()=>void choose('B')}>測試錢包 B</button><button onClick={()=>{setNarrow(!narrow);}}>手機寬度 360</button><label><input type="checkbox" checked={reject} onChange={e=>{setReject(e.target.checked);void choose(id,e.target.checked);}}/>模擬拒簽</label><label><input type="checkbox" checked={wrongChain} onChange={e=>{setWrongChain(e.target.checked);void choose(id,reject,e.target.checked);}}/>錯誤網路</label><button onClick={()=>void post('finalize',{}).then(()=>window.dispatchEvent(new Event('world:gold-changed')))}>模擬最終確認與入帳</button><button onClick={()=>setOpen(true)}>開啟購買點數</button></nav><p>隔離驗收：合成錢包、模擬鏈上收據與本機 SQLite。沒有使用真錢包或廣播交易。</p><div style={{width:narrow?340:480,marginLeft:'auto'}}><WalletBalanceHud state={state} read={hudRead} zh onOpen={()=>setOpen(true)}/></div>{open&&<WorldGoldPanel state={state} language="zh" onClose={()=>setOpen(false)} onSignIn={()=>void choose('A')}/>}</main>;
+ }
+ createRoot(document.getElementById('root')!).render(<Preview/>);
+diff --git a/src/world/goldPurchaseRules.ts b/src/world/goldPurchaseRules.ts
+index a325d12..64f5804 100644
+--- a/src/world/goldPurchaseRules.ts
++++ b/src/world/goldPurchaseRules.ts
+@@ -32,7 +32,7 @@ export function goldPurchaseError(code:string,zh:boolean){
+   PENDING_TRANSACTION:['原交易仍待確認，請查詢原交易，不要重複付款。','An original transaction is unresolved. Check it; do not pay again.'],
+   ORDER_ALREADY_PAID:['鏈上顯示原單已付款，請查詢原單入帳。','The original order is already paid on chain. Check its ledger credit.'],
+   ORDER_EXPIRED:['報價已到期；若已送出交易，請查詢原單。','Quote expired. If a transaction was sent, check the original order.'],
+-  FEATURE_PAUSED:['目前暫停新購點，原交易仍會核對入帳。','New purchases are paused. Original payments are still reconciled.'],
++  FEATURE_PAUSED:['目前暫停新的購買點數，原交易仍會核對入帳。','New purchases are paused. Original payments are still reconciled.'],
+   TERMS_REQUIRED:['請先閱讀並勾選同意通行證條款，再簽名確認。','Read and accept the pass terms before signing.'],
+   PASS_ALREADY_ACTIVE:['每日通行證仍在有效期間，到期後才能再次購買。','Your day pass is still active. You can buy another after it ends.'],
+   PASS_ORDER_PENDING:['已有一筆待付款的通行證訂單，請先完成，或等它到期（約 15 分鐘）再重新下單。','You already have a pending pass order. Finish it, or wait for it to expire (about 15 minutes) before ordering again.'],
+@@ -42,7 +42,7 @@ export function goldPurchaseError(code:string,zh:boolean){
+   // Codes that used to fall through to the generic "reference code" line.
+   INVALID_GOLD_CHALLENGE:['付款確認訊息的時間和這台裝置的時鐘對不上。請把電腦或手機的時間設為自動同步，再重新核對原單。','The payment message time does not match this device clock. Set your device time to sync automatically, then review the order again.'],
+   CHALLENGE_EXPIRED:['付款確認已逾時（5 分鐘），請重新按簽名確認。尚未扣點。','The payment confirmation expired (5 minutes). Sign again; nothing was charged.'],
+-  INSUFFICIENT_GOLD:['GOLD 不足，請先購點再付款。','Not enough GOLD. Buy GOLD first, then pay.'],
++  INSUFFICIENT_GOLD:['GOLD 不足，請先購買點數再付款。','Not enough GOLD. Buy GOLD first, then pay.'],
+   ECONOMY_HALTED:['帳本暫停中，暫時不能付款；已付款項目不受影響。','The ledger is paused; payments are not possible right now. Completed payments are unaffected.'],
+   NOT_CONFIGURED:['錢包付款設定尚未載入，請按「更新餘額與狀態」後再試。','Payment settings are not loaded yet. Press "Refresh ledger", then try again.'],
+   INVALID_CHAIN_RESPONSE:['錢包回傳的資料格式不正確，尚未送出交易。請重新整理頁面後再試；若一再出現，請告訴站方。','The wallet returned data in an unexpected format; nothing was sent. Reload the page and try again; tell us if it keeps happening.'],
+diff --git a/tests/gold-purchase-ui.test.mjs b/tests/gold-purchase-ui.test.mjs
+index eda69fa..4889ea9 100644
+--- a/tests/gold-purchase-ui.test.mjs
++++ b/tests/gold-purchase-ui.test.mjs
+@@ -14,6 +14,6 @@ const data={wallet:W,products:PACKAGES,paymentsReady:true,controls:[{feature:'to
+ const html=patch=>renderToStaticMarkup(h(GoldPurchase,{data,wallet,selected:null,config:{token:W,paymentContract:W,treasury:W},busy:false,zh:true,quote(){throw Error('SSR must not quote');},prepare(){throw Error('SSR must not prepare');},approve(){throw Error('SSR must not send');},confirm(){throw Error('SSR must not send');},check(){},reconcile(){},clear(){},...patch}));
+ test('actual quick-plan UI shows precise server prices and mandatory one-way wallet-bound unsellable terms',()=>{const s=html();for(const text of ['100 GOLD','1,000 GOLD','1,200 GOLD','10,000','100,000','120,000',W,'不可轉讓','不可賣出','不能兌回 EMBEO'])assert.ok(s.includes(text),text);assert.ok(!s.includes('年化'));assert.ok(!s.includes('36.5%'));assert.match(s,/aria-pressed="true"[^>]*><strong>1,000 GOLD/);});
+ test('review keeps the full original wallet/order and cannot prepare before a fresh acknowledgement',()=>{const s=html({selected:order});assert.ok(s.includes(W));assert.ok(s.includes(id));assert.match(s,/<input type="checkbox"\/>/);assert.match(s,/<button class="gold-primary" disabled="">下一步：檢查授權額度/);});
+-test('closed admission, unavailable configuration and busy wallet disable new purchase requests',()=>{for(const patch of [{data:{...data,paymentsReady:false}},{data:{...data,controls:[]}},{busy:true},{wallet:{...wallet,busy:true,phase:'pending'}}])assert.match(html(patch),/<button class="gold-primary" disabled="">核對購點內容/);});
++test('closed admission, unavailable configuration and busy wallet disable new purchase requests',()=>{for(const patch of [{data:{...data,paymentsReady:false}},{data:{...data,controls:[]}},{busy:true},{wallet:{...wallet,busy:true,phase:'pending'}}])assert.match(html(patch),/<button class="gold-primary" disabled="">核對購買點數內容/);});
+ test('paid without actual credited amount stays pending; genuine credit is the only completion condition',()=>{let s=html({selected:{...order,status:'paid'}});assert.ok(s.includes('GOLD 尚未入帳'));assert.ok(!s.includes('GOLD 已入帳'));assert.ok(!s.includes('下一步：檢查授權額度'));s=html({selected:{...order,status:'paid',creditedGold:'1000'}});assert.ok(s.includes('GOLD 已入帳'));assert.ok(!s.includes('下一步：檢查授權額度'));});
+-test('restored unresolved send blocks new orders and offers original-transaction recovery without new payment',()=>{const s=html({wallet:{...wallet,phase:'unknown',hash:'0x'+'2'.repeat(64),error:'PENDING_TRANSACTION'}});assert.ok(s.includes('查詢原交易'));assert.match(s,/<button class="gold-primary" disabled="">核對購點內容/);assert.ok(s.includes('不要重複付款'));});
++test('restored unresolved send blocks new orders and offers original-transaction recovery without new payment',()=>{const s=html({wallet:{...wallet,phase:'unknown',hash:'0x'+'2'.repeat(64),error:'PENDING_TRANSACTION'}});assert.ok(s.includes('查詢原交易'));assert.match(s,/<button class="gold-primary" disabled="">核對購買點數內容/);assert.ok(s.includes('不要重複付款'));});
+-- 
+2.55.0.windows.5
+

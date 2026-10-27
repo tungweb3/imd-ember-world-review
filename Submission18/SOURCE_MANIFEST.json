@@ -1,0 +1,106 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 18,
+ "privateBase": "38a21a3",
+ "privateSource": "96858bf8bfed00b8ef22b2caf49c8c8754f54624",
+ "files": [
+  {
+   "path": "scripts/deploy.mjs",
+   "status": "M",
+   "bytes": 23563,
+   "sha256": "bc6e1ff3b9f38597e5c1542c3fa21d30418f8d7adba3f612d3e691d6e93014ab",
+   "blob": "966d2ad5f932ce682b5d7518a687e195ad2dfe61",
+   "privateBlob": "966d2ad5f932ce682b5d7518a687e195ad2dfe61"
+  },
+  {
+   "path": "src/world/CelestaoCheckout.tsx",
+   "status": "M",
+   "bytes": 8146,
+   "sha256": "815920a6b6340e4b72df596bde8fd972d6956fa10783424b4e2cb404e56a50e8",
+   "blob": "30db86556e69ad5f25d59879adb72457384d39f4",
+   "privateBlob": "30db86556e69ad5f25d59879adb72457384d39f4"
+  },
+  {
+   "path": "src/world/GoldPurchase.tsx",
+   "status": "M",
+   "bytes": 12382,
+   "sha256": "8de249a391ccf84c3508f6d2e1ce189529210e6f27bb8aa2fa4fe3e351492b2c",
+   "blob": "d8705ee4fc12cb9835028ce0b17d96f17ca648f4",
+   "privateBlob": "d8705ee4fc12cb9835028ce0b17d96f17ca648f4"
+  },
+  {
+   "path": "src/world/ResearchPassCard.tsx",
+   "status": "M",
+   "bytes": 1794,
+   "sha256": "1630b20a47e52f17f2fc895e1cf0722715544b7296736ff53828581a556bd144",
+   "blob": "4814e6a4a2d3f6035f635cc2bf9d9f40d21509aa",
+   "privateBlob": "4814e6a4a2d3f6035f635cc2bf9d9f40d21509aa"
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "M",
+   "bytes": 28179,
+   "sha256": "492da2ad59885c1025f4e332c0adea8b31129e331a9532c8c8394223d82e48ae",
+   "blob": "d8efa72b46880edac64581d23d965b7de1794982",
+   "privateBlob": "d8efa72b46880edac64581d23d965b7de1794982"
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "status": "M",
+   "bytes": 36654,
+   "sha256": "0bca7cf53c20d59092b5411dc4c8d7aa0445b34bbc0c76cc0af9096c79aa0446",
+   "blob": "7c8359e2f35ff9a0f734d1679a6c8f5c5f8fae4c",
+   "privateBlob": "7c8359e2f35ff9a0f734d1679a6c8f5c5f8fae4c"
+  },
+  {
+   "path": "src/world/goldPurchasePreview.tsx",
+   "status": "M",
+   "bytes": 3764,
+   "sha256": "b9b5a474510276f1a92c8b5a931226d873f084aa1fad81b67cc9e50263dd13a9",
+   "blob": "d934675d3c216e25dffe4cb7abb3a915cd1371d5",
+   "privateBlob": "d934675d3c216e25dffe4cb7abb3a915cd1371d5"
+  },
+  {
+   "path": "src/world/goldPurchaseRules.ts",
+   "status": "M",
+   "bytes": 6935,
+   "sha256": "aa3eb14a23fba144c335d969b3368b993a7c2f486618d9478625eeaa38a1f64c",
+   "blob": "64f5804f292fd8c0b65ee89a488e2bb1bf3039ab",
+   "privateBlob": "64f5804f292fd8c0b65ee89a488e2bb1bf3039ab"
+  },
+  {
+   "path": "tests/deploy.test.mjs",
+   "status": "M",
+   "bytes": 37884,
+   "sha256": "b7e5a5bdcdd9354035402baf4cf6126a3cb12aaa44a9b48ef3202e957952d9a2",
+   "blob": "fff840786dad134349eb9795dfa55d7e6faa2739",
+   "privateBlob": "fff840786dad134349eb9795dfa55d7e6faa2739"
+  },
+  {
+   "path": "tests/economy-wallet-recovery.test.mjs",
+   "status": "M",
+   "bytes": 43739,
+   "sha256": "ab8e01acf222ed017e69934ee09599510245c15c062b9c4742255fb084710b07",
+   "blob": "2f2afb6268b864ba8d5172c2ca2ed9f5434b61e2",
+   "privateBlob": "2f2afb6268b864ba8d5172c2ca2ed9f5434b61e2"
+  },
+  {
+   "path": "tests/gold-purchase-ui.test.mjs",
+   "status": "M",
+   "bytes": 3615,
+   "sha256": "2979850728b995cfc443cabb8f19e84ccfbeffd27053f5d9c81c4b80eb928509",
+   "blob": "4889ea9a5d63456a8040b2dfb71fe97666c10ad3",
+   "privateBlob": "4889ea9a5d63456a8040b2dfb71fe97666c10ad3"
+  },
+  {
+   "path": "tests/pending-gold-credit.test.mjs",
+   "status": "M",
+   "bytes": 17296,
+   "sha256": "5a2096b69139aaa35a05e3846d388d38d3d0ffc6f0fbbaebca4e00c332be4857",
+   "blob": "3fe03f4808f31512428b147b4579eee7146e9315",
+   "privateBlob": "3fe03f4808f31512428b147b4579eee7146e9315"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission16": "files not listed here are unchanged since Submission16/source (World 38a21a3), Submission15/source (World fe8bc4b), Submission14/source (World 64396ae) or Submission13/source (World ae1f640)"
+}
