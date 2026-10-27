@@ -1,0 +1,109 @@
+From 60b9872cc31d86b8b6ca56f3d55713c588c8c0c6 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 01:59:10 +0800
+Subject: [PATCH 12/18] GOLD wording in plain words and a one-tap Buy button in
+ the top bar
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Owner request 2026-10-27: 'GOLD & ledger' read as jargon; the buttons now say 'Buy GOLD / history' and the panel 'GOLD · Buy & history' (zh: 購買 GOLD／查看紀錄, GOLD · 購買與紀錄); the Celestao and staking notes point to the same name. The top bar gets a visible Buy button next to the GOLD balance that opens the purchase panel (the 'GOLD ＋' label alone was not recognised as a button).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/CelestaoCheckout.tsx    | 2 +-
+ src/world/EconomyPane.tsx         | 2 +-
+ src/world/WalletBalanceHud.tsx    | 4 +++-
+ src/world/WalletBalancesBlock.tsx | 2 +-
+ src/world/WorldGoldPanel.tsx      | 4 ++--
+ src/world/walletBalanceHud.css    | 3 +++
+ 6 files changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/src/world/CelestaoCheckout.tsx b/src/world/CelestaoCheckout.tsx
+index af8b560..134b133 100644
+--- a/src/world/CelestaoCheckout.tsx
++++ b/src/world/CelestaoCheckout.tsx
+@@ -35,7 +35,7 @@ export default function CelestaoCheckout(){
+    {!identity&&<>{options.options.length>1&&<fieldset><legend>{t('選擇錢包','Choose a wallet')}</legend>{options.options.map((o,i)=><button type="button" key={i} aria-pressed={options.chosen===o} onClick={()=>registry.choose(o)}>{o.info.name}</button>)}</fieldset>}<button className="celestao-gateway-primary" disabled={!auth.sessionKnown||auth.phase!=='idle'||options.needsChoice} onClick={()=>void authClient.signIn()}>{t('登入原本的 World 錢包','Sign in to the original World wallet')}</button></>}
+    {auth.notice&&<p role="status">{noticeText(auth.notice,t)}</p>}
+    {data&&<><p className="celestao-gateway-address">{data.wallet}</p><h2>{zh?data.product.nameZh:data.product.nameEn}</h2>{data.product.listGold!==data.product.gold&&<p>{t('四項合計','Four systems combined')} <s>3,400 GOLD／{t('次','reading')}</s></p>}<p className="celestao-checkout-price">{data.product.listGold!==data.product.gold?t('特價','Special price')+' ':''}{Number(data.product.gold).toLocaleString('en-US')} GOLD／{t('次','reading')}</p>
+-    {data.order?<><p className="celestao-gateway-note">{t('原始訂單','Original order')}<br/><code>{data.order.id}</code></p>{data.order.status==='paid'?<p role="status">{data.order.delivery==='delivered'?t('報告已保存到錢包收藏。','Your report is saved to your wallet collection.'):['failed','refunded'].includes(data.order.delivery??'')?t('此筆解讀未完成，請至 World 帳本確認原單退款。','This reading did not complete. Check the original refund in the World ledger.'):t('已付款，正在產生報告；請保留原單，不需再次付款。','Paid. Your report is being prepared; keep this original order and do not pay again.')}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready||data.order.expiresMs<=Date.now()} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.product.gold+' GOLD'}</button>}</>:<button className="celestao-gateway-primary" disabled={busy||!data.ready||data.expiresMs<=Date.now()} onClick={()=>void operate()}>{t('建立此筆 GOLD 訂單','Create this GOLD order')}</button>}
++    {data.order?<><p className="celestao-gateway-note">{t('原始訂單','Original order')}<br/><code>{data.order.id}</code></p>{data.order.status==='paid'?<p role="status">{data.order.delivery==='delivered'?t('報告已保存到錢包收藏。','Your report is saved to your wallet collection.'):['failed','refunded'].includes(data.order.delivery??'')?t('此筆解讀未完成，請至 World 的「購買 GOLD／查看紀錄」確認退款。','This reading did not complete. Check the original refund in the World ledger.'):t('已付款，正在產生報告；請保留原單，不需再次付款。','Paid. Your report is being prepared; keep this original order and do not pay again.')}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready||data.order.expiresMs<=Date.now()} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.product.gold+' GOLD'}</button>}</>:<button className="celestao-gateway-primary" disabled={busy||!data.ready||data.expiresMs<=Date.now()} onClick={()=>void operate()}>{t('建立此筆 GOLD 訂單','Create this GOLD order')}</button>}
+     <p className="celestao-gateway-note">{t('已收藏報告的重看及 PDF 匯出不另扣 GOLD。','Reopening saved reports and PDF export cost no additional GOLD.')}</p></>}
+    {error&&<p role="alert">{ERRORS[error]?.[zh?0:1]??t('暫時無法確認，請稍後查詢原訂單。','Unable to confirm. Check the original order again shortly.')} <small>({error})</small></p>}
+    {identity&&<button type="button" disabled={busy} onClick={()=>void refresh()}>{t('查詢原訂單','Check original order')}</button>}
+diff --git a/src/world/EconomyPane.tsx b/src/world/EconomyPane.tsx
+index 5402b55..50b7d1c 100644
+--- a/src/world/EconomyPane.tsx
++++ b/src/world/EconomyPane.tsx
+@@ -71,7 +71,7 @@ export function EconomyPane({language,state,onSignIn,onClose}:EconomyPaneProps){
+    {enabled&&session&&<>
+     <div className="economy-account"><span>{say('目前登入錢包','Signed-in wallet')}</span><code>{session.address}</code><button disabled={loading} onClick={()=>void readAccount()}>{say('更新帳本','Refresh ledger')}</button></div>
+     <section className="economy-ledger" aria-labelledby="economy-gold-title"><div><h2 id="economy-gold-title">{say('我的 GOLD','My GOLD')}</h2><strong>{visibleSnapshot?.gold??'—'} <small>GOLD</small></strong><p>{say('已確認的可用 GOLD，已扣除處理中保留','Confirmed available GOLD, excluding reservations')}</p></div><dl><dt>{say('鏈上資料同步至','Chain data through')}</dt><dd>{visibleSnapshot?economyUtc(visibleSnapshot.chain.throughMs):'—'}</dd><dt>{say('獎勵計算至','Rewards calculated through')}</dt><dd>{visibleSnapshot?economyUtc(visibleSnapshot.settledThroughMs):'—'}</dd></dl></section>
+-    {visibleSnapshot?.pendingRewardCount&&visibleSnapshot.pendingRewardCount!=='0'&&<p className="economy-notice" role="status">{say('仍有待補發質押獎勵，尚未計入可用 GOLD。可至購點與世界帳本核對原始權益。','Some staking rewards are pending and are not included in spendable GOLD. Review their original entitlements in the World GOLD ledger.')}</p>}
++    {visibleSnapshot?.pendingRewardCount&&visibleSnapshot.pendingRewardCount!=='0'&&<p className="economy-notice" role="status">{say('仍有待補發質押獎勵，尚未計入可用 GOLD。可在「購買 GOLD／查看紀錄」核對。','Some staking rewards are pending and are not included in spendable GOLD. Review their original entitlements in the World GOLD ledger.')}</p>}
+     {visibleSnapshot?.chain.throughMs===0&&<p className="economy-muted">{say('鏈上資料尚未同步，不能視為沒有持倉；請稍後更新帳本。','Chain data has not synced. This does not mean you have no positions. Refresh the ledger later.')}</p>}
+     {halted&&<p className="economy-notice" role="status">{say('鏈上索引核對暫停，此設定的新增質押與付款已停止；帳本餘額保留，仍可核對並取回本金。','Chain indexing is paused for this configuration. Its new stakes and payments are stopped; balances are retained and principal withdrawal remains available.')}</p>}
+     <section className="economy-section"><h2>{say('新增質押','Stake EMBEO')}</h2><div className="economy-form"><label htmlFor="economy-shares">{say('質押份數','Shares to stake')}</label><input id="economy-shares" inputMode="numeric" pattern="[0-9]*" value={shares} onChange={event=>setShares(event.target.value.replace(/[^0-9]/g,'').slice(0,54))}/><span>{/^[1-9][0-9]*$/.test(shares)?String(BigInt(shares)*100000n):'—'} EMBEO</span><button disabled={!canSpend||!/^[1-9][0-9]*$/.test(shares)} onClick={()=>prepare({kind:'stake',shares})}>{say('核對質押','Review stake')}</button></div><p className="economy-muted">{config.mining?say('新增質押會合併到同一台礦機；各筆本金仍保留獨立紀錄，方便取回。日中存入從下一個完整 UTC 日開始計算，以實際上鏈時間為準。','New deposits join the same miner. Principal lots remain individually recorded for withdrawal. Deposits during the day count from the next complete UTC day, based on actual chain time.'):say('每次新增質押會建立獨立持倉。日中存入從下一個 UTC 日開始計算，以實際上鏈時間為準。','Every deposit creates a separate position. A deposit during the day starts counting on the next UTC day, based on its actual on-chain time.')}</p></section>
+diff --git a/src/world/WalletBalanceHud.tsx b/src/world/WalletBalanceHud.tsx
+index 9f20cf3..70ebc26 100644
+--- a/src/world/WalletBalanceHud.tsx
++++ b/src/world/WalletBalanceHud.tsx
+@@ -24,7 +24,9 @@ export function WalletBalanceHud({state,read,zh,onOpen}:{state:AuthState;read:Me
+   <dl>
+    <div><dt title={say('錢包 EMBEO','Wallet EMBEO')} aria-label={say('錢包 EMBEO','Wallet EMBEO')}><span className="balance-label-long">{say('錢包 EMBEO','Wallet EMBEO')}</span><span className="balance-label-short" aria-hidden="true">{say('EMBEO','EMBEO')}</span></dt><dd title={token(data?.embeo)}>{token(data?.embeo)}</dd></div>
+    <div><dt title={say('質押 EMBEO','Staked EMBEO')} aria-label={say('質押 EMBEO','Staked EMBEO')}><span className="balance-label-long">{say('質押 EMBEO','Staked EMBEO')}</span><span className="balance-label-short" aria-hidden="true">{say('質押','Staked')}</span></dt><dd title={token(data?.staked)}>{token(data?.staked)}</dd></div>
+-   <div className="balance-gold"><dt><button type="button" className="balance-gold-purchase" onClick={()=>window.dispatchEvent(new Event('world:gold-open'))} aria-label={say('購買 GOLD 與查看帳本','Buy GOLD and view ledger')}>GOLD <span aria-hidden="true">＋</span></button></dt><dd title={gold}>{gold}{crediting!=='0'&&<span className="balance-gold-crediting" role="status"> +{balanceNumber(crediting)} {say('入帳中','crediting')}</span>}</dd></div>
++   <div className="balance-gold"><dt><button type="button" className="balance-gold-purchase" onClick={()=>window.dispatchEvent(new Event('world:gold-open'))} aria-label={say('購買 GOLD 與查看帳本','Buy GOLD and view ledger')}>GOLD <span aria-hidden="true">＋</span></button></dt><dd title={gold}>{gold}{crediting!=='0'&&<span className="balance-gold-crediting" role="status"> +{balanceNumber(crediting)} {say('入帳中','crediting')}</span>}</dd>
++    {/* A visible, one-tap way to buy GOLD (the "GOLD ＋" label alone was not recognised as a button). */}
++    <button type="button" className="balance-gold-buy" onClick={()=>window.dispatchEvent(new Event('world:gold-open'))}>{say('購買','Buy')}</button></div>
+   </dl>
+   <footer><small role="status" title={note}>{note}</small>{identity&&<button type="button" aria-label={say('更新餘額','Refresh balances')} title={say('更新餘額','Refresh balances')} disabled={refreshing} onClick={()=>void refresh()}><span aria-hidden="true">↻</span></button>}</footer>
+  </section>;
+diff --git a/src/world/WalletBalancesBlock.tsx b/src/world/WalletBalancesBlock.tsx
+index 97bb892..10a457a 100644
+--- a/src/world/WalletBalancesBlock.tsx
++++ b/src/world/WalletBalancesBlock.tsx
+@@ -18,5 +18,5 @@ function WalletBalancesView({read,zh}:{read:MemberBalancesRead;zh:boolean}){
+   <div><dt>{zh?'錢包內 EMBEO':'EMBEO in wallet'}</dt><dd>{token(data?.embeo)}</dd></div>
+   <div><dt>{zh?'已質押 EMBEO':'Staked EMBEO'}</dt><dd>{token(data?.staked)}</dd>{data?.staked.status==='ok'&&<small>{zh?'已確認至':'Confirmed through'} {new Date(data.staked.throughMs!).toLocaleString()}</small>}</div>
+   <div><dt>GOLD</dt><dd>{data?.gold.status==='ok'?data.gold.available+' GOLD':data?.gold?unavailable(data.gold.status):failed?(zh?'讀取失敗，請更新':'Unable to read. Refresh.'):(zh?'讀取中…':'Loading…')}</dd>{data?.gold.status==='ok'&&<small>{zh?'帳面':'Book'} {data.gold.book} · {zh?'處理中保留':'Reserved'} {data.gold.reserved}</small>}</div>
+- </dl>{data&&<small>{zh?'更新時間':'Updated'} {new Date(data.asOf).toLocaleTimeString()}</small>}<div><button onClick={()=>window.dispatchEvent(new Event('world:gold-open'))}>{zh?'購點與帳本':'GOLD & ledger'}</button><button onClick={()=>void refresh()}>{zh?'更新餘額':'Refresh balances'}</button></div></section>;
++ </dl>{data&&<small>{zh?'更新時間':'Updated'} {new Date(data.asOf).toLocaleTimeString()}</small>}<div><button onClick={()=>window.dispatchEvent(new Event('world:gold-open'))}>{zh?'購買 GOLD／查看紀錄':'Buy GOLD / history'}</button><button onClick={()=>void refresh()}>{zh?'更新餘額':'Refresh balances'}</button></div></section>;
+ }
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 3cc779c..f60363a 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -33,7 +33,7 @@ function useGold(state:AuthState){
+ export function GoldWalletBlock({state,zh=true}:{state:AuthState;zh?:boolean}){
+  const {data,error,identity,refresh}=useGold(state);if(!identity)return null;
+  return <section className="gold-wallet-block"><h3>GOLD</h3>{data?<><strong>{data.available} GOLD</strong><p>{zh?'帳面':'Book'} {data.book} · {zh?'處理中保留':'Reserved'} {data.reserved}</p><small>{zh?'更新時間':'Updated'} {new Date(data.asOf).toLocaleTimeString()}</small></>:<p role="status">{error?(zh?'餘額暫時無法取得，請重試。':'Balance unavailable. Try again.'):(zh?'讀取餘額…':'Reading balance…')}</p>}
+- <div><button onClick={()=>window.dispatchEvent(new Event('world:gold-open'))}>{zh?'購點與帳本':'GOLD & ledger'}</button><button onClick={()=>void refresh()}>{zh?'更新':'Refresh'}</button></div></section>;
++ <div><button onClick={()=>window.dispatchEvent(new Event('world:gold-open'))}>{zh?'購買 GOLD／查看紀錄':'Buy GOLD / history'}</button><button onClick={()=>void refresh()}>{zh?'更新':'Refresh'}</button></div></section>;
+ }
+ function Admin({client,data,refresh,zh}:{client:WorldGoldClient;data:GoldState;refresh:()=>Promise<void>;zh:boolean}){
+  const [reason,setReason]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[product,setProduct]=useState(data.products[0]?.product??''),[gold,setGold]=useState(data.products[0]?.gold??'1'),[embeo,setEmbeo]=useState(data.products[0]?.embeo?economyTokenAmount(data.products[0].embeo!):'1'),[orderId,setOrderId]=useState(''),[caseData,setCaseData]=useState<unknown>(null);
+@@ -96,7 +96,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+   if(o.currency==='EMBEO')await controller.prepare({kind:'pay',payment:{chainId:config.chainId,contract:config.paymentContract,token:config.token,receiver:config.treasury,orderId:o.id,amount:o.amount},expiresMs:o.expires_ms,serviceTitle:o.product});
+   else{const r=economyRequestId(),ch=await new EconomyClient({auth:()=>auth.current}).goldChallenge(order,r,location.origin);await controller.payGold(order,r,ch);await client.reconcile(o.id);}
+  };
+- return <section ref={host} role="dialog" aria-modal="true" aria-labelledby="world-gold-title" className="world-gold-panel"><header><h1 id="world-gold-title">GOLD · {zh?'購點與世界帳本':'World ledger'}</h1><button className="gold-return" onClick={onClose}>{zh?'返回世界':'Back to World'}</button></header>
++ return <section ref={host} role="dialog" aria-modal="true" aria-labelledby="world-gold-title" className="world-gold-panel"><header><h1 id="world-gold-title">GOLD · {zh?'購買與紀錄':'Buy & history'}</h1><button className="gold-return" onClick={onClose}>{zh?'返回世界':'Back to World'}</button></header>
+ 
+  {!identity?<><p className="gold-test-note">{zh?'100 EMBEO → 1 GOLD，單向購點。GOLD 綁定錢包，不可轉讓、不可賣出，也不能兌回 EMBEO。':'100 EMBEO → 1 GOLD, one-way purchase. GOLD is wallet-bound and cannot be transferred, sold or redeemed for EMBEO.'}</p><button onClick={onSignIn}>{zh?'沿用 World 錢包登入':'Sign in with World wallet'}</button></>:<>
+  {data?<><div className="gold-balance"><strong>{data.available} GOLD</strong><span>{zh?'帳面':'Book'} {data.book}</span><span>{zh?'保留':'Reserved'} {data.reserved}</span><small>{new Date(data.asOf).toISOString()}</small></div>
+diff --git a/src/world/walletBalanceHud.css b/src/world/walletBalanceHud.css
+index b75e00d..1df721d 100644
+--- a/src/world/walletBalanceHud.css
++++ b/src/world/walletBalanceHud.css
+@@ -72,3 +72,6 @@
+ @media(min-width:701px) and (min-height:501px){.world-explore-tools .explore-list{max-height:min(400px,calc(100dvh - 310px))}}
+ @media(min-width:701px) and (max-height:500px){.world-explore-tools .explore-list{position:fixed;top:16px;bottom:16px;left:auto;right:76px;max-height:none}}
+ .wallet-balance-hud button.balance-gold-purchase{position:static;display:inline-flex;gap:3px;align-items:center;width:auto;height:auto;min-height:24px;padding:0;margin:0;border:0;border-radius:3px;background:none;color:#eacb7c;font:inherit;cursor:pointer}.wallet-balance-hud button.balance-gold-purchase:focus-visible{outline:2px solid #eacb7c;outline-offset:3px}
++.wallet-balance-hud button.balance-gold-buy{position:static;flex-shrink:0;width:auto;height:auto;min-height:24px;padding:2px 9px;margin:0 0 0 2px;border:1px solid #e2c47a;border-radius:12px;background:#e2c47a;color:#1b323b;font:600 10px/16px "Microsoft JhengHei","PingFang TC",sans-serif;cursor:pointer}
++.wallet-balance-hud button.balance-gold-buy:hover{background:#f0d48c}
++.wallet-balance-hud button.balance-gold-buy:focus-visible{outline:2px solid #f6efdc;outline-offset:2px}
+-- 
+2.55.0.windows.5
+

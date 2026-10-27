@@ -1,0 +1,64 @@
+From a3d5594f07a1899f3bfdfa48f186dc7b93b73e92 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 17:19:04 +0800
+Subject: [PATCH 01/18] Wallet: accept MetaMask's numeric pending nonce so
+ approve/pay/stake reach the wallet prompt
+
+MetaMask answers eth_getTransactionCount(address, 'pending') with a JSON number (45) instead of a hex
+quantity ('latest' stays a hex string). The send path rejected it as INVALID_CHAIN_RESPONSE before ever
+prompting, so no EMBEO approve, payment or staking could start from MetaMask. A non-negative safe integer
+is now converted to its canonical quantity; every other shape is still refused before any prompt.
+Found during the owner's first real GOLD top-up on 2026-10-26.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/economyWallet.ts             |  5 ++++-
+ tests/economy-wallet-recovery.test.mjs | 16 ++++++++++++++++
+ 2 files changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 38da9a2..537c56a 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -149,7 +149,10 @@ export class EconomyWalletController{
+   // Keep the returned hash as a reconciliation hint before checking UI ownership.
+   const c=this.context!,stored=this.deps.pending?.get(this.key(c.address));
+   if(stored){this.adoptPending(stored,c.address);throw new EconomyClientError('PENDING_TRANSACTION');}
+-  const nextNonce=await this.rpc('eth_getTransactionCount',[c.address,'pending']);if(!nonce(nextNonce))throw new EconomyClientError('INVALID_CHAIN_RESPONSE');
++  // MetaMask answers the 'pending' count from its own nonce tracker as a JSON number (seen 2026-10-26; 'latest' stays a
++  // hex string). Accept only a non-negative safe integer there and use its canonical quantity form from then on.
++  const counted=await this.rpc('eth_getTransactionCount',[c.address,'pending']);
++  const nextNonce=typeof counted==='number'&&Number.isSafeInteger(counted)&&counted>=0?'0x'+counted.toString(16):counted;if(!nonce(nextNonce))throw new EconomyClientError('INVALID_CHAIN_RESPONSE');
+   // The nonce read may outlive a quote or observe an indexing halt. Recheck
+   // spend authority at the final boundary before persisting or prompting.
+   this.guard();this.validatePlan(this.s.plan!);
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 24fd4c8..716cba6 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -42,6 +42,22 @@ test('new sends bind and persist a pending nonce plus chain ID before the wallet
+  assert.equal([...f.store.values()][0].nonce,'0x8');assert.equal([...f.store.values()][0].version,2);
+  assert.deepEqual(f.calls.find(c=>c.method==='eth_getTransactionCount').params,[A,'pending']);f.controller.dispose();
+ });
++test('MetaMask pending count as a JSON number (45) still reaches the wallet prompt, as quantity 0x2d, for approve and pay alike',async()=>{
++ for(const step of ['approve','execute']){
++  const f=fixture();f.intercept(args=>args.method==='eth_getTransactionCount'?45:args.method==='eth_call'&&args.params[0].data.slice(2,10)==='dd62ed3e'&&step==='approve'?word(0):undefined);
++  await f.controller.prepare({kind:'stake',shares:'1'});
++  if(step==='approve'){assert.equal(f.controller.state.phase,'approve-required');await f.controller.approve();}else await f.controller.confirm();
++  assert.equal(f.sent.length,1,step);assert.equal(f.sent[0].nonce,'0x2d',step);assert.equal([...f.store.values()][0].nonce,'0x2d',step);
++  assert.notEqual(f.controller.state.error,'INVALID_CHAIN_RESPONSE',step);f.controller.dispose();
++ }
++});
++test('a malformed numeric pending count is refused before any wallet prompt and leaves no send intent',async()=>{
++ for(const bad of [-1,1.5,Number.NaN,Number.MAX_SAFE_INTEGER+2,2**64,'45','0x08','0X2D',null]){
++  const f=fixture();f.intercept(args=>args.method==='eth_getTransactionCount'?bad:undefined);
++  await f.controller.prepare({kind:'stake',shares:'1'});await f.controller.confirm();
++  assert.equal(f.sent.length,0,String(bad));assert.equal(f.store.size,0,String(bad));assert.equal(f.controller.state.error,'INVALID_CHAIN_RESPONSE',String(bad));f.controller.dispose();
++ }
++});
+ test('a finalized same-nonce cancellation resolves the old intent without claiming the stake succeeded and restores withdrawal',async()=>{
+  const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});await f.controller.confirm();
+  f.candidate({hash:OTHER,to:A,input:'0x',nonce:'0x8'});await f.controller.checkReceipt(OTHER);
+-- 
+2.55.0.windows.5
+

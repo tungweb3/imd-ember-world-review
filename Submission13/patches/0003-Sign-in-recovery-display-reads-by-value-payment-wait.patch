@@ -1,0 +1,425 @@
+From bcda915fe0a18f1ac8182c65351dd5fc1e54e2b5 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 17:19:05 +0800
+Subject: [PATCH 03/18] Sign-in recovery, display reads by value, payment
+ waits, shell fixes from the full-site review
+
+- auth: an idle client whose session became unknown (wallet pick, account switch, 401 house check, failed or
+  rate-limited session read) re-reads it itself with backoff; buttons no longer stay disabled until a reload.
+  A locally expired session (W-1) stays quiet as designed. Reverts the earlier "keep the session object" change,
+  which conflicted with the rule that a fresh read stays distinguishable.
+- Display readers (GOLD ledger, wallet balances, Celestao order state) compare the session by wallet and expiry
+  (sameSession); transaction and debit authority keep the strict identity check (tests require it).
+- Payments: wait about 2 minutes for a receipt instead of 12 s; awaiting-credit text says it usually takes ~15 minutes;
+  AUTH_REQUIRED wording covers a locked or unconnected wallet.
+- HUD and GOLD panel: focus + visibilitychange make one read; HUD polls every 60 s.
+- Shell: the interior no longer goes blank after closing Inventory opened inside the house; Esc closes the Map;
+  closing GOLD/Economy drops ?portal=; Esc in the GOLD panel no longer also cancels a ride boarding.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/GoldPurchase.tsx          |  2 +-
+ src/world/WorldApp.tsx              | 13 +++++++----
+ src/world/WorldGoldPanel.tsx        |  5 ++--
+ src/world/auth.ts                   | 27 +++++++++++++++++-----
+ src/world/celestaoCheckoutClient.ts |  4 ++--
+ src/world/economyClient.ts          |  9 ++++++++
+ src/world/economyWallet.ts          |  6 +++--
+ src/world/goldPurchaseRules.ts      |  2 +-
+ src/world/memberBalancesClient.ts   |  4 ++--
+ src/world/useMemberBalances.ts      |  9 +++++---
+ src/world/worldGoldClient.ts        |  4 ++--
+ tests/session-compare.test.mjs      | 36 +++++++++++++++++++++++++++++
+ tests/wallet-client.test.mjs        | 20 ++++++++++------
+ tests/world-library-cover.test.mjs  | 11 ++++++++-
+ 14 files changed, 119 insertions(+), 33 deletions(-)
+ create mode 100644 tests/session-compare.test.mjs
+
+diff --git a/src/world/GoldPurchase.tsx b/src/world/GoldPurchase.tsx
+index 32b1369..30e7ad8 100644
+--- a/src/world/GoldPurchase.tsx
++++ b/src/world/GoldPurchase.tsx
+@@ -43,7 +43,7 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,quote,prepare,
+   {!canStart&&!order&&products.length>0&&<p role="status">{say('目前暫停新購點訂單，原交易仍可查詢。','New purchases are paused. Existing transactions can still be checked.')}</p>}
+   {stage==='approve'&&<p role="status">{say('授權不等於付款。請確認錢包中的額度，完成授權後還需確認付款。','Approval is separate from payment. Check the allowance in your wallet, then confirm payment.')}</p>}
+   {stage==='pending'&&<p role="status">{say('交易確認中，請勿重複付款。','Transaction pending. Do not pay again.')}</p>}
+-  {stage==='awaiting-credit'&&<p role="status">{say('付款與帳本分別核對，需等待鏈上最終確認。GOLD 尚未入帳，請查詢原單，不需再次付款。','Waiting for finalized chain verification and ledger credit. GOLD is not credited yet. Check the original order; do not pay again.')}</p>}
++  {stage==='awaiting-credit'&&<p role="status">{say('付款與帳本分別核對，需等待鏈上最終確認（通常約 15 分鐘）。GOLD 尚未入帳，請稍後按「查詢原單入帳」，不需再次付款。','Waiting for finalized chain verification and ledger credit (usually about 15 minutes). GOLD is not credited yet. Press "Check original credit" later; do not pay again.')}</p>}
+   {stage==='credited'&&<p role="status">{say('已核對帳本入帳；右上角資產餘額會同步更新。','Ledger credit verified. Your asset balance will refresh.')}</p>}
+   {wallet.error&&<p role="alert">{goldPurchaseError(wallet.error,zh)}</p>}
+   {wallet.phase==='unknown'&&!wallet.hash&&<p role="alert">{say('錢包回覆不明，已暫停新付款。請先在錢包核對原交易，勿重複付款。','Wallet response is uncertain. New payments are blocked. Check the original transaction in your wallet; do not pay again.')}</p>}
+diff --git a/src/world/WorldApp.tsx b/src/world/WorldApp.tsx
+index 806c731..e754d2f 100644
+--- a/src/world/WorldApp.tsx
++++ b/src/world/WorldApp.tsx
+@@ -130,7 +130,9 @@ function WorldContent(){
+   useEffect(()=>{const open=()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);setGame(false);setEconomy(false);setGold(false);setInventory(true);};window.addEventListener('world:inventory-open',open);return()=>window.removeEventListener('world:inventory-open',open);},[]);
+   const [economy,setEconomy]=useState(()=>new URLSearchParams(location.search).get('portal')==='economy');
+   useEffect(()=>{const open=()=>{setInventory(false);setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);setGame(false);setEconomy(false);setGold(true);};window.addEventListener('world:gold-open',open);return()=>window.removeEventListener('world:gold-open',open);},[]);
+-  const closeGold=useCallback(()=>setGold(false),[]),closeEconomy=useCallback(()=>setEconomy(false),[]);
++  // Like the library and the game: closing drops ?portal=gold|economy, so a reload or a language switch does not reopen it.
++  const dropPortal=(name:string)=>{const url=new URL(location.href);if(url.searchParams.get('portal')===name){url.searchParams.delete('portal');history.replaceState(null,'',url);}};
++  const closeGold=useCallback(()=>{setGold(false);dropPortal('gold');},[]),closeEconomy=useCallback(()=>{setEconomy(false);dropPortal('economy');},[]);
+   const portalOpen=research||library||game||gold||economy||inventory,audioCovered=library||game||gold||economy||inventory||opening,audioCoveredNow=useRef(audioCovered);audioCoveredNow.current=audioCovered;
+   const sceneCovered=portalOpen||(opening&&sceneReady);
+   const libraryAudio=useRef<ReturnType<typeof librarySoundHost>|null>(null);
+@@ -281,11 +283,14 @@ function WorldContent(){
+     return ()=>{stopped=true;controller.abort();poll.stop();};
+   },[bridge,mode,celebrate,followLink]);
+   useEffect(()=>{scene.current?.setPaused(drawer!==null||selfie||avatar||portalOpen||opening);if(drawer===null)scene.current?.clearSelection();},[drawer,selfie,avatar,portalOpen,opening]);
+-  // Keep background loading, then stop hidden 3D frames while the movie finishes.
+-  useEffect(()=>{if(!sceneCovered)return;scene.current?.suspend();return()=>{scene.current?.resume();};},[sceneCovered]);
+   useEffect(()=>{if(sceneError)worldOpeningReady(true);else if(sceneReady&&!firstLoad)worldOpeningReady();},[sceneReady,sceneError,firstLoad]);
+   // Inside the owner's house (HomeDoor.tsx): the world is covered like a drawer covers it.
+   const [inside,setInside]=useState<{home:Home|null;size:HouseSize;style:'lisbon'|'timber';preview:number|null;leave:DoorNotice}|null>(null);
++  // Keep background loading, then stop hidden 3D frames while the movie finishes. Inside the house the interior owns the
++  // suspended world (InteriorView): a pane opened from there (Inventory) must not resume it on close, which moved the
++  // shared canvas back to the hidden world and left the room blank.
++  const insideOpen=inside!==null;
++  useEffect(()=>{if(!sceneCovered||insideOpen)return;scene.current?.suspend();return()=>{scene.current?.resume();};},[sceneCovered,insideOpen]);
+   // What covers the world (afterRead.ts worldCover), read once: the hundred, seven of seven and the brilliant sky's
+   // fireworks (skyShow.ts) all wait for the tab to be visible and nothing over the world.
+   const cover=worldCover({visible:pageVisible&&!opening,strip,drawer:selfie||avatar||portalOpen?{kind:'help'}:drawer,inside,lots}),uncovered=worldUncovered(cover);
+@@ -326,7 +331,7 @@ function WorldContent(){
+   },[selectedId,bridge]);
+   // Esc: the ride (boarding.ts) unless it closes a drawer, the Map, the Explore list or the world-time panel (which has
+   // already closed by now when the Esc came from inside it).
+-  useEffect(()=>{const esc=(e:KeyboardEvent)=>{if(e.key==='Escape'){if(insideNow.current){if(drawerNow.current!==null){setDrawer(null);e.preventDefault();}return;}/* the room's own Esc waits for the card over it */if(drawerNow.current===null&&!miniNow.current&&!document.querySelector('#explore-list,.world-time.open')&&!e.composedPath().some(n=>n instanceof Element&&n.classList.contains('world-time-panel')))scene.current?.rideEsc();setDrawer(null);collapse();}};window.addEventListener('keydown',esc);return()=>window.removeEventListener('keydown',esc);},[collapse]);
++  useEffect(()=>{const esc=(e:KeyboardEvent)=>{if(e.key==='Escape'){if(insideNow.current){if(drawerNow.current!==null){setDrawer(null);e.preventDefault();}return;}/* the room's own Esc waits for the card over it */if(drawerNow.current===null&&!miniNow.current&&!document.querySelector('#explore-list,.world-time.open')&&!e.composedPath().some(n=>n instanceof Element&&n.classList.contains('world-time-panel')))scene.current?.rideEsc();if(miniNow.current)setMini(false);/* the Map closes on Esc, as the comment above says */setDrawer(null);collapse();}};window.addEventListener('keydown',esc);return()=>window.removeEventListener('keydown',esc);},[collapse]);
+   // The strip folds on anything outside it: a click, tap or drag in the world, a tag, a tool, a card, the minimap, the
+   // wheel, a key that walks, zooms or inspects (never on its own buttons or the language toggle: read it in the other
+   // language first), and by itself after 12 s untouched while the page is in view (held while the pointer or focus is on it).
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 619b3b7..d439c69 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -25,7 +25,8 @@ function useGold(state:AuthState){
+   finally{if(inflight.current===abort)setReading(false);}
+  },[]);
+  useEffect(()=>{setRead(null);setError(null);if(identity)void refresh();return()=>inflight.current?.abort();},[identity,refresh]);
+- useEffect(()=>{const changed=()=>{setClock(Date.now());if(!document.hidden)void refresh();};const timer=setInterval(changed,12000);window.addEventListener('focus',changed);window.addEventListener('world:gold-changed',changed);document.addEventListener('visibilitychange',changed);return()=>{clearInterval(timer);window.removeEventListener('focus',changed);window.removeEventListener('world:gold-changed',changed);document.removeEventListener('visibilitychange',changed);};},[refresh]);
++ // focus + visibilitychange on return make one read, not two that abort each other; a GOLD change always reads.
++ useEffect(()=>{let last=0;const changed=()=>{setClock(Date.now());if(!document.hidden)void refresh();},passive=()=>{const t=Date.now();if(t-last<2000)return;last=t;changed();};const timer=setInterval(changed,12000);window.addEventListener('focus',passive);window.addEventListener('world:gold-changed',changed);document.addEventListener('visibilitychange',passive);return()=>{clearInterval(timer);window.removeEventListener('focus',passive);window.removeEventListener('world:gold-changed',changed);document.removeEventListener('visibilitychange',passive);};},[refresh]);
+  return {client:client.current,auth,identity,data:identity&&read?.identity===identity?read.value:null,error,reading,refresh};
+ }
+ export function GoldWalletBlock({state,zh=true}:{state:AuthState;zh?:boolean}){
+@@ -75,7 +76,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  useEffect(()=>{if(notice)statusLine.current?.scrollIntoView?.({block:'nearest'});},[notice]);
+  const refreshAll=()=>{if(!controller)setConfigTry(n=>n+1);void refresh();};
+  const lacks=(gold:unknown)=>{try{return !!data&&BigInt(data.available)<BigInt(String(gold));}catch{return false;}};
+- useEffect(()=>{const prior=document.activeElement as HTMLElement|null;host.current?.querySelector<HTMLButtonElement>('.gold-return')?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onClose();}if(e.key!=='Tab')return;const list=[...(host.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),summary,a[href]')??[])].filter(e=>e.offsetWidth),first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}};document.addEventListener('keydown',key);return()=>{document.removeEventListener('keydown',key);if(prior?.isConnected)prior.focus();};},[onClose]);
++ useEffect(()=>{const prior=document.activeElement as HTMLElement|null;host.current?.querySelector<HTMLButtonElement>('.gold-return')?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();/* like every other pane: the World's own Esc (ride boarding) must not run too */onClose();}if(e.key!=='Tab')return;const list=[...(host.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),summary,a[href]')??[])].filter(e=>e.offsetWidth),first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}};document.addEventListener('keydown',key);return()=>{document.removeEventListener('keydown',key);if(prior?.isConnected)prior.focus();};},[onClose]);
+  const run=async(fn:()=>Promise<unknown>)=>{if(operation.current||wallet.busy)return;const captured=identity,token=Symbol();operation.current=token;setBusy(true);setNotice('');try{await fn();if(currentIdentity.current===captured){await refresh();window.dispatchEvent(new Event('world:gold-changed'));}}catch(e){if(currentIdentity.current===captured)setNotice(message(e));}finally{if(operation.current===token){operation.current=null;if(currentIdentity.current===captured)setBusy(false);}}};
+  const quote=async(product:string)=>{const captured=identity;let rid=orderAttempts.current.get(product);if(!rid){rid=economyRequestId();orderAttempts.current.set(product,rid);}try{const result=await client.quote(product,rid);const snap=await client.state();if(currentIdentity.current!==captured)throw new EconomyClientError('CONTEXT_CHANGED');const original=snap.orders.find(o=>o.id===result.orderId);if(!original)throw new EconomyClientError('INVALID_RESPONSE');setSelected(original);}catch(e){if(currentIdentity.current===captured&&e instanceof EconomyClientError&&e.code==='ORDER_EXPIRED'){orderAttempts.current.delete(product);setSelected(null);}throw e;}};
+  const pay=async(o:GoldOrder)=>{if(o.product===RESEARCH_PASS_PRODUCT&&passAck!==o.id)throw new EconomyClientError('TERMS_REQUIRED');if((data as (GoldState&{localFixture?:boolean})|null)?.localFixture){await client.request('/api/local-gold/pay',{orderId:o.id});return;}if(!controller||!configRef.current||!state.session)throw new EconomyClientError('NOT_CONFIGURED');const config=configRef.current;
+diff --git a/src/world/auth.ts b/src/world/auth.ts
+index 01dd32b..adafba2 100644
+--- a/src/world/auth.ts
++++ b/src/world/auth.ts
+@@ -124,6 +124,8 @@ type CleanupContext={expectedNonce?:string;expectedAddress?:string};
+ export const HOME_MIN_GAP_MS=15_000,OWNER_RECHECK_MS=60_000,OWNER_STALE_MS=3*OWNER_RECHECK_MS;
+ /** ADV-3: how long a sign-in click waits for this page's logouts still on their way before it ends, asking nothing. */
+ export const LOGOUT_WAIT_MS=5_000;
++/** Backoff of the idle client's own session re-read while the session is unknown (armKnown). */
++export const KNOWN_RETRY_MS=[1_500,4_000,10_000,30_000,60_000] as const;
+ 
+ export class AuthClient{
+   private s:AuthState=INITIAL;private listeners=new Set<()=>void>();
+@@ -161,7 +163,7 @@ export class AuthClient{
+   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return ()=>{this.listeners.delete(fn);};};
+   private set(patch:Partial<AuthState>){const s={...this.s,...patch};if(s.phase!=='awaitingSignature')s.signing=null;
+     if(patch.sessionKnown!==undefined)this.lifecycle.know(!s.sessionKnown?{kind:'UNKNOWN'}:s.session?{kind:'PRESENT',session:s.session}:{kind:'ABSENT'});
+-    this.s=s;this.arm();for(const fn of this.listeners)fn();
++    this.s=s;this.arm();this.armKnown();for(const fn of this.listeners)fn();
+     // Complete the caller's synchronous acceptance/notification first. Pending canonical reconciliation must not
+     // erase PRESENT between set() and announceAccepted() when a restarted click finishes its valid verify body.
+     if(this.cleanupReadPending)queueMicrotask(()=>this.drainCleanupRead());}
+@@ -173,6 +175,21 @@ export class AuthClient{
+     this.expiry={session,timer:this.env.set(()=>{if(this.expiry?.session!==session)return;this.expiry=null;if(!this.expireIfDue())this.arm();},
+       Math.min(MAX_TIMER_MS,Math.max(0,session.expiresAt-this.now())))};
+   }
++  /** sessionKnown can drop to false with nothing scheduled to read the cookie again (a wallet pick, an account switch,
++   *  the local expiry, a 401 house check, a failed or rate-limited session read). Every surface that needs a known
++   *  session then stayed disabled until a reload ("Checking session…" forever). An idle client now re-reads it itself,
++   *  with backoff. A session read asks the server only: never the wallet, never a signature. */
++  private knownTimer:unknown=null;private knownRetry=0;
++  private armKnown(){
++    // A session that ran out on this clock (W-1) is deliberately ended locally with no request; it re-reads when shown.
++    const want=this.started&&!this.s.sessionKnown&&!this.s.expired&&this.s.phase==='idle'&&!this.s.leaving&&!this.s.waiting;
++    if(!want){if(this.knownTimer!==null){this.env.clear(this.knownTimer);this.knownTimer=null;}if(this.s.sessionKnown)this.knownRetry=0;return;}
++    if(this.knownTimer!==null)return;
++    const delay=KNOWN_RETRY_MS[Math.min(this.knownRetry,KNOWN_RETRY_MS.length-1)];this.knownRetry++;
++    this.knownTimer=this.env.set(()=>{this.knownTimer=null;
++      if(this.started&&!this.s.sessionKnown&&!this.s.expired&&this.s.phase==='idle'&&!this.s.leaving&&!this.s.waiting&&!this.busy&&!this.restoring)void this.restore().finally(()=>this.armKnown());
++      else this.armKnown();},delay);
++  }
+   /** A session whose expiresAt has passed on this clock is over here now: owner mode off, 'expired' shown, the hint kept
+    *  (it says expired on the next visit too) and any in-flight house read dropped. The server refuses it anyway. */
+   private expireIfDue(){
+@@ -277,7 +294,8 @@ export class AuthClient{
+       this.automaticCleanup('stop',this.gen,life,click,held);
+       if(this.s.phase!=='idle'||this.s.waiting||this.s.leaving||this.s.checking)this.set({phase:'idle',waiting:false,leaving:false,checking:false});
+       off();offVisible();this.unsub();this.unsub=()=>{};this.bound=null;this.observedAccount=null;this.binds++;this.channel?.close();this.channel=null;
+-      if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;};
++      if(this.expiry)this.env.clear(this.expiry.timer);this.expiry=null;
++      if(this.knownTimer!==null)this.env.clear(this.knownTimer);this.knownTimer=null;this.knownRetry=0;};
+   }
+   /** Follows `p`: its already-granted account (eth_accounts, never a prompt) and its accountsChanged. chainChanged is not
+    *  followed: the SIWE message is always chainId 1 and personal_sign does not depend on the wallet's chain. */
+@@ -334,10 +352,7 @@ export class AuthClient{
+       if(!isRecord(v)||!(v.signedIn===false&&(v.expired===undefined||typeof v.expired==='boolean')||
+         v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt))){this.set({restored:true,sessionKnown:false});return;}
+       if(v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt)){
+-        // An unchanged session keeps its object: readers compare sessions by identity to notice a real change, so a
+-        // fresh copy on every routine read (focus, other tab, timer) made their in-flight reads fail as CONTEXT_CHANGED.
+-        const held=this.s.session,read={address:v.address.toLowerCase(),expiresAt:v.expiresAt},same=held?.address===read.address;
+-        const session=same&&held!.expiresAt===read.expiresAt?held!:read;
++        const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},held=this.s.session,same=held?.address===session.address;
+         const owner=this.lifecycle.retained;
+         this.lifecycle.read({kind:'PRESENT',session},q,g,life); // terminal release before house I/O
+         this.canonicalReadSeq=q;
+diff --git a/src/world/celestaoCheckoutClient.ts b/src/world/celestaoCheckoutClient.ts
+index e019d65..cdcc9b1 100644
+--- a/src/world/celestaoCheckoutClient.ts
++++ b/src/world/celestaoCheckoutClient.ts
+@@ -1,5 +1,5 @@
+ import {fortuneProduct,type FortuneProduct} from '../shared/fortunePricing.ts';
+-import {economySession,EconomyClientError,type EconomyOrder} from './economyClient.ts';
++import {economySession,sameSession,EconomyClientError,type EconomyOrder} from './economyClient.ts';
+ import type {AuthState} from './auth.ts';
+ export type CelestaoCheckoutState={wallet:string;runId:string;product:FortuneProduct;expiresMs:number;ready:boolean;order:(EconomyOrder&{delivery:string|null;result:string|null;failure:string|null})|null};
+ const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
+@@ -19,7 +19,7 @@ export class CelestaoCheckoutClient{
+  async request(runId:string,quote=false,signal?:AbortSignal){
+   if(!/^[A-Za-z0-9_-]{43}$/.test(runId))throw new EconomyClientError('INVALID_REQUEST');
+   const now=this.deps.now??Date.now,session=economySession(this.deps.auth(),now()),started=now();if(!session)throw new EconomyClientError('AUTH_REQUIRED');
+-  const guard=()=>{if(signal?.aborted||now()<started||economySession(this.deps.auth(),now())!==session)throw new EconomyClientError('CONTEXT_CHANGED');};
++  const guard=()=>{if(signal?.aborted||now()<started||!sameSession(economySession(this.deps.auth(),now()),session))throw new EconomyClientError('CONTEXT_CHANGED');};
+   guard();const value={runId,expectedAddress:session.address.toLowerCase()},path='/api/celestao-checkout/'+(quote?'quote':'state');
+   const response=await (this.deps.fetch??fetch)(path+(quote?'':'?'+new URLSearchParams(value)),{method:quote?'POST':'GET',credentials:'same-origin',cache:'no-store',redirect:'error',signal,...quote?{headers:{'content-type':'application/json'},body:JSON.stringify(value)}:{}});
+   guard();const data:unknown=await response.json();guard();
+diff --git a/src/world/economyClient.ts b/src/world/economyClient.ts
+index 1a808b7..b8b04ed 100644
+--- a/src/world/economyClient.ts
++++ b/src/world/economyClient.ts
+@@ -25,6 +25,14 @@ export function economySession(state:AuthState,now=Date.now()):Session|null{
+  const session=state.session;
+  return state.sessionKnown&&!state.leaving&&!state.waiting&&state.phase==='idle'&&session&&economyAddress(session.address)&&Number.isSafeInteger(session.expiresAt)&&Number.isSafeInteger(now)&&now>0&&session.expiresAt>now&&(!state.account||state.account.toLowerCase()===session.address.toLowerCase())?session:null;
+ }
++/** The same signed-in session, by value, for displays (ledger, balances, order status). The auth client builds a fresh
++ *  session object on every routine re-read (focus, another tab, a timer), so comparing objects made those reads fail as
++ *  CONTEXT_CHANGED although nothing changed: the GOLD panel fell into "ledger unavailable" and the balance HUD flickered.
++ *  A different wallet or a new sign-in (new expiry) still counts as a change. Transaction and debit authority keep their
++ *  stricter identity check. */
++export function sameSession(a:Session|null|undefined,b:Session|null|undefined):boolean{
++ return !!a&&!!b&&a.address.toLowerCase()===b.address.toLowerCase()&&a.expiresAt===b.expiresAt;
++}
+ export function parseEconomyConfig(value:unknown):EconomyConfig|EconomyDisabled{
+  if(record(value)&&value.mining!==undefined&&(!validMiningPolicy(value.mining)||value.enabled!==true))throw new EconomyClientError('INVALID_RESPONSE');
+  if(!record(value)||value.shareTokens!=='100000'||value.rule!=='utc-full-day-v1'||value.goldTransferable!==false||!Array.isArray(value.catalogue))throw new EconomyClientError('INVALID_RESPONSE');
+@@ -82,6 +90,7 @@ export class EconomyClient{
+  constructor(deps:{fetch?:Requester;auth:()=>AuthState;now?:()=>number;canSpend?:()=>boolean}){this.deps=deps;}
+  private now(){return (this.deps.now??Date.now)();}
+  private current(){const s=economySession(this.deps.auth(),this.now());if(!s)throw new EconomyClientError('AUTH_REQUIRED');return s;}
++ // Money-moving calls (GOLD debit, challenges) keep the strict identity check: a replaced session object stops them.
+  private guard(session:Session,started:number,signal?:AbortSignal){if(signal?.aborted||this.now()<started||economySession(this.deps.auth(),this.now())!==session)throw new EconomyClientError('CONTEXT_CHANGED');}
+  private async json(path:string,init:RequestInit,guard:()=>void){
+   guard();const r=await (this.deps.fetch??fetch)(path,{...init,credentials:'same-origin',cache:'no-store',redirect:'error'});guard();
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index b825ebd..950fc0c 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -169,11 +169,13 @@ export class EconomyWalletController{
+   await this.waitReceipt(this.transaction!.hash!);
+  }
+  private async waitReceipt(candidate:Hex){
+-  const attempts=Math.min(20,Math.max(1,this.deps.receiptAttempts??8));
++  // About 2 minutes (40 x 3 s): a normal Ethereum inclusion often takes longer than the earlier 12 s, which ended
++  // ordinary approvals, payments and stakes in the alarming 'unknown' state.
++  const attempts=Math.min(60,Math.max(1,this.deps.receiptAttempts??40));
+   for(let i=0;i<attempts;i++){
+    this.guard();const receipt=await this.rpc('eth_getTransactionReceipt',[candidate]);
+    if(receipt!==null){await this.finishReceipt(receipt,candidate);return;}
+-   if(i+1<attempts){await (this.deps.delay??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(1500);this.guard();}
++   if(i+1<attempts){await (this.deps.delay??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(3000);this.guard();}
+   }
+   this.set({phase:'unknown',busy:false,error:'PENDING_TRANSACTION'});
+  }
+diff --git a/src/world/goldPurchaseRules.ts b/src/world/goldPurchaseRules.ts
+index cdad8f0..1777194 100644
+--- a/src/world/goldPurchaseRules.ts
++++ b/src/world/goldPurchaseRules.ts
+@@ -21,7 +21,7 @@ export function goldPurchaseError(code:string,zh:boolean){
+   CHAIN_MISMATCH:['請先在錢包切換至 Ethereum 主網，再核對原單。','Switch your wallet to Ethereum mainnet, then review the original order.'],
+   USER_REJECTED:['已取消錢包確認，尚未完成本筆付款。','Wallet confirmation cancelled. This payment is not completed.'],
+   INSUFFICIENT_EMBEO:['錢包的 EMBEO 不足，請確認餘額。','Insufficient EMBEO. Check your wallet balance.'],
+-  AUTH_REQUIRED:['請使用原入帳錢包重新登入 World。','Sign in to World with the original receiving wallet.'],
++  AUTH_REQUIRED:['請確認已登入 World，且錢包已解鎖、連接的是登入的那個帳號（在「我的錢包」可以選擇與連接）。','Make sure you are signed in to World and your wallet is unlocked and connected with the signed-in account (choose and connect it under My wallet).'],
+   ACCOUNT_MISMATCH:['錢包與登入帳號不同，請重新登入並核對。','Your wallet differs from the signed-in account. Sign in again and review.'],
+   CONTEXT_CHANGED:['錢包或登入狀態已變更，請重新核對原單。','Wallet or session changed. Review the original order again.'],
+   PENDING_TRANSACTION:['原交易仍待確認，請查詢原交易，不要重複付款。','An original transaction is unresolved. Check it; do not pay again.'],
+diff --git a/src/world/memberBalancesClient.ts b/src/world/memberBalancesClient.ts
+index 8eaf2ea..a23e33c 100644
+--- a/src/world/memberBalancesClient.ts
++++ b/src/world/memberBalancesClient.ts
+@@ -1,5 +1,5 @@
+ import type {AuthState} from './auth.ts';
+-import {EconomyClientError,economySession,economyInteger} from './economyClient.ts';
++import {EconomyClientError,economySession,economyInteger,sameSession} from './economyClient.ts';
+ type Missing={status:'unavailable'|'not-configured'|'indexing'};
+ type TokenBalance=Missing|{status:'ok';atomic:string;block:string;throughMs?:number};
+ export type MemberBalances={wallet:string;asOf:number;embeo:TokenBalance;staked:TokenBalance;gold:Missing|{status:'ok';available:string;book:string;reserved:string}};
+@@ -17,7 +17,7 @@ export class MemberBalancesClient{
+  constructor(deps:{auth:()=>AuthState;now?:()=>number;fetch?:typeof fetch}){this.deps=deps;}
+  async read(signal?:AbortSignal){
+   const now=this.deps.now??Date.now,started=now(),session=economySession(this.deps.auth(),started);if(!session)throw new EconomyClientError('AUTH_REQUIRED');
+-  const guard=()=>{if(signal?.aborted||now()<started||economySession(this.deps.auth(),now())!==session)throw new EconomyClientError('CONTEXT_CHANGED');};
++  const guard=()=>{if(signal?.aborted||now()<started||!sameSession(economySession(this.deps.auth(),now()),session))throw new EconomyClientError('CONTEXT_CHANGED');};
+   const r=await (this.deps.fetch??fetch)('/api/me/balances?'+new URLSearchParams({expected_address:session.address}),{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',signal});guard();
+   const value:unknown=await r.json();guard();if(r.status!==200)throw new EconomyClientError('BALANCE_UNAVAILABLE');return parseMemberBalances(value,session.address);
+  }
+diff --git a/src/world/useMemberBalances.ts b/src/world/useMemberBalances.ts
+index bece071..61a1eb3 100644
+--- a/src/world/useMemberBalances.ts
++++ b/src/world/useMemberBalances.ts
+@@ -24,9 +24,12 @@ export function useMemberBalances(state:AuthState):MemberBalancesRead{
+  },[]);
+  useEffect(()=>{setResult(null);setFailed(false);setRefreshing(false);if(identity)void refresh();return()=>inflight.current?.abort();},[identity,refresh]);
+  useEffect(()=>{
+-  const update=()=>{setClock(Date.now());if(!document.hidden)void refresh();},timer=setInterval(update,30000);
+-  window.addEventListener('focus',update);window.addEventListener('world:gold-changed',update);window.addEventListener('world:economy-changed',update);document.addEventListener('visibilitychange',update);
+-  return()=>{clearInterval(timer);window.removeEventListener('focus',update);window.removeEventListener('world:gold-changed',update);window.removeEventListener('world:economy-changed',update);document.removeEventListener('visibilitychange',update);};
++  // Returning to a tab fires both focus and visibilitychange: one read, not two (the second aborted the first and both
++  // spent the shared per-IP and per-location read budgets). Explicit GOLD/economy changes always read.
++  let last=0;
++  const update=()=>{setClock(Date.now());if(!document.hidden)void refresh();},passive=()=>{const t=Date.now();if(t-last<2000)return;last=t;update();},timer=setInterval(update,60000);
++  window.addEventListener('focus',passive);window.addEventListener('world:gold-changed',update);window.addEventListener('world:economy-changed',update);document.addEventListener('visibilitychange',passive);
++  return()=>{clearInterval(timer);window.removeEventListener('focus',passive);window.removeEventListener('world:gold-changed',update);window.removeEventListener('world:economy-changed',update);document.removeEventListener('visibilitychange',passive);};
+  },[refresh]);
+  useEffect(()=>{
+   if(!session)return;
+diff --git a/src/world/worldGoldClient.ts b/src/world/worldGoldClient.ts
+index dc538eb..33082e1 100644
+--- a/src/world/worldGoldClient.ts
++++ b/src/world/worldGoldClient.ts
+@@ -1,4 +1,4 @@
+-import {economySession,economyRequestId,EconomyClientError} from './economyClient.ts';
++import {economySession,economyRequestId,sameSession,EconomyClientError} from './economyClient.ts';
+ import type {AuthState} from './auth.ts';
+ export function goldPriceInputAtomic(value:string):string|null{
+  if(!/^(0|[1-9][0-9]{0,77})(?:\.[0-9]{1,18})?$/.test(value))return null;
+@@ -19,7 +19,7 @@ export class WorldGoldClient{
+  async request(path:string,value?:Record<string,unknown>,signal?:AbortSignal){
+   const session=this.context(),expected=session.address.toLowerCase(),started=(this.deps.now??Date.now)();
+   const r=await (this.deps.fetch??fetch)(path+(value?'':(path.includes('?')?'&':'?')+'expected_address='+expected),{method:value?'POST':'GET',cache:'no-store',credentials:'same-origin',signal,...value?{headers:{'content-type':'application/json'},body:JSON.stringify({...value,expectedAddress:expected})}:{}});
+-  const data=await r.json();if(signal?.aborted||this.context()!==session||(this.deps.now??Date.now)()<started)throw new EconomyClientError('CONTEXT_CHANGED');
++  const data=await r.json();if(signal?.aborted||!sameSession(this.context(),session)||(this.deps.now??Date.now)()<started)throw new EconomyClientError('CONTEXT_CHANGED');
+   if(!r.ok)throw new EconomyClientError(typeof data.error==='string'?data.error:'UNAVAILABLE');return data;
+  }
+  async state(signal?:AbortSignal){const session=this.context();return parseWorldGold(await this.request('/api/gold/state',undefined,signal),session.address);}
+diff --git a/tests/session-compare.test.mjs b/tests/session-compare.test.mjs
+new file mode 100644
+index 0000000..f22c77c
+--- /dev/null
++++ b/tests/session-compare.test.mjs
+@@ -0,0 +1,36 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {INITIAL} from '../src/world/auth.ts';
++import {sameSession} from '../src/world/economyClient.ts';
++import {WorldGoldClient} from '../src/world/worldGoldClient.ts';
++import {MemberBalancesClient} from '../src/world/memberBalancesClient.ts';
++// The auth client builds a fresh session object on every routine re-read (focus, another tab, a timer). Readers used to
++// compare those objects, so a read that crossed such a re-read failed as CONTEXT_CHANGED with nothing changed: the GOLD
++// panel showed "ledger unavailable" and the balance HUD flickered (owner report, 2026-10-26).
++const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40),NOW=Date.UTC(2026,9,26,1),EXP=NOW+86_400_000;
++const signedIn=session=>({...INITIAL,account:session.address,session,sessionKnown:true,restored:true,phase:'idle'});
++const gold={wallet:A,book:'0',available:'0',reserved:'0',asOf:NOW,isAdmin:false,products:[],orders:[],history:[],campaign:{},controls:[]};
++const balances={wallet:A,embeo:{status:'ok',atomic:'0',block:'1'},staked:{status:'ok',atomic:'0',block:'1'},gold:{status:'ok',available:'0',book:'0',reserved:'0'},asOf:NOW};
++
++test('sameSession compares wallet and expiry, never object identity',()=>{
++ assert.equal(sameSession({address:A,expiresAt:EXP},{address:A.toUpperCase().replace('0X','0x'),expiresAt:EXP}),true);
++ assert.equal(sameSession({address:A,expiresAt:EXP},{address:B,expiresAt:EXP}),false);
++ assert.equal(sameSession({address:A,expiresAt:EXP},{address:A,expiresAt:EXP+1}),false);
++ for(const x of [null,undefined])assert.equal(sameSession(x,{address:A,expiresAt:EXP}),false);
++});
++
++for(const [name,make,path,body] of [
++ ['GOLD ledger',deps=>new WorldGoldClient(deps),'/api/gold/state',gold],
++ ['wallet balances',deps=>new MemberBalancesClient(deps),'/api/me/balances',balances],
++]){
++ test(`${name}: a read that crosses a routine session re-read still succeeds; a real change still fails`,async()=>{
++  for(const [swap,expectOk] of [[{address:A,expiresAt:EXP},true],[{address:B,expiresAt:EXP},false],[{address:A,expiresAt:EXP+60_000},false]]){
++   let state=signedIn({address:A,expiresAt:EXP});
++   const fetch=async url=>{assert.ok(String(url).startsWith(path));state=signedIn({...swap});return {ok:true,status:200,json:async()=>body};};
++   const client=make({auth:()=>state,fetch,now:()=>NOW});
++   const read=name==='GOLD ledger'?client.state():client.read();
++   if(expectOk)assert.equal((await read).wallet,A,JSON.stringify(swap));
++   else await assert.rejects(read,/CONTEXT_CHANGED/,JSON.stringify(swap));
++  }
++ });
++}
+diff --git a/tests/wallet-client.test.mjs b/tests/wallet-client.test.mjs
+index 42e68d6..623b0ee 100644
+--- a/tests/wallet-client.test.mjs
++++ b/tests/wallet-client.test.mjs
+@@ -69,14 +69,20 @@ test('first sign-in asks for exactly one signature, goes connect → sign → ve
+   t.stop();
+ });
+ 
+-test('a routine session re-read that finds the same session keeps the same session object (readers compare by identity)',async()=>{
++test('a session read that fails (lost connection) does not leave the session unknown: the idle client reads it again by itself',async()=>{
+   const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A);
+-  const t=tab(w,b,wallet);await t.client.signIn();const first=t.client.state.session;assert.ok(first);
+-  const reads=()=>t.calls.filter(c=>c==='GET /api/auth/session').length,before=reads();
+-  w.clock.advance(60_000);t.client.visible();await until(()=>reads()>before&&t.client.state.phase==='idle');await settle();
+-  assert.ok(reads()>before,'the session was read again');
+-  assert.equal(t.client.state.session,first,'unchanged address and expiry keep the object, so in-flight GOLD and balance reads survive');
+-  t.stop();
++  const first=tab(w,b,wallet);await first.client.signIn();first.stop();
++  let failing=true;const t=tab(w,b,wallet,{drop:path=>failing&&path==='/api/auth/session'});
++  await until(()=>t.calls.includes('GET /api/auth/session'));await settle();
++  assert.equal(t.client.state.sessionKnown,false,'the failed read leaves the session unknown');
++  failing=false;await until(()=>t.client.state.sessionKnown===true);
++  assert.equal(t.client.state.sessionKnown,true,'recovered without a reload, a click or a signature');assert.equal(t.client.state.session?.address,a);
++  assert.equal(wallet.signed,1,'no new signature');t.stop();
++});
++test('a stopped client schedules no further session reads',async()=>{
++  const A=newAccount(),w=world(),b=w.browser(),wallet=fakeWallet(A);
++  const t=tab(w,b,wallet,{drop:path=>path==='/api/auth/session'});await until(()=>t.calls.includes('GET /api/auth/session'));t.stop();
++  const n=t.calls.length;await new Promise(r=>setTimeout(r,1_800));assert.equal(t.calls.length,n);
+ });
+ 
+ test('a reload restores the session from the cookie with no signature and no challenge, even when the click comes first',async()=>{
+diff --git a/tests/world-library-cover.test.mjs b/tests/world-library-cover.test.mjs
+index 4c8bb5d..7b16fbd 100644
+--- a/tests/world-library-cover.test.mjs
++++ b/tests/world-library-cover.test.mjs
+@@ -16,7 +16,8 @@ const effects=content.body.statements.filter(node=>ts.isExpressionStatement(node
+ assert.equal(effects.length,2);
+ const audioEffects=content.body.statements.filter(node=>ts.isExpressionStatement(node)&&ts.isCallExpression(node.expression)&&node.expression.expression.getText(ast)==='useEffect'&&/libraryAudio\.current\?\.setPaused\(/.test(node.getText(ast)));
+ assert.equal(audioEffects.length,1);const audioCovered=declaration('audioCovered');assert.ok(audioCovered);
+-const program=ts.transpileModule(`function render({research=false,library=false,game=false,gold=false,economy=false,inventory=false,drawer=null,selfie=false,avatar=false,opening=false,sceneReady=true}){const ${portal.getText(ast)},${audioCovered.getText(ast)},${sceneCovered.getText(ast)};${[...effects,...audioEffects].map(node=>node.getText(ast)).join('\n')}return portalOpen;}
++const insideOpen=declaration('insideOpen');assert.ok(insideOpen);
++const program=ts.transpileModule(`function render({research=false,library=false,game=false,gold=false,economy=false,inventory=false,drawer=null,selfie=false,avatar=false,opening=false,sceneReady=true,inside=null}){const ${portal.getText(ast)},${audioCovered.getText(ast)},${sceneCovered.getText(ast)},${insideOpen.getText(ast)};${[...effects,...audioEffects].map(node=>node.getText(ast)).join('\n')}return portalOpen;}
+ var openLibrary=${declaration('openLibrary').initializer.getText(ast)};
+ var openResearch=${declaration('openResearch').initializer.getText(ast)};
+ var openGame=${declaration('openGame').initializer.getText(ast)};
+@@ -29,6 +30,14 @@ function fixture(){
+  vm.createContext(context);vm.runInContext(program,context);
+  return {calls,changes,render(value){cursor=0;return context.render(value);},openLibrary:context.openLibrary,openResearch:context.openResearch,openGame:context.openGame,closeGame:context.closeGame,setLocation:href=>context.location.href=href,dispose(){for(const effect of effects)effect.cleanup?.();}};
+ }
++test('a pane opened from inside the house (Inventory) never resumes the world the interior suspended',()=>{
++ const f=fixture(),room={home:null};f.render({inside:room});const before=f.calls.length;
++ f.render({inside:room,inventory:true});f.render({inside:room,inventory:false});
++ assert.equal(f.calls.slice(before).some(([name])=>name==='suspend'||name==='resume'),false,'the interior keeps ownership of the suspended world');
++ // outside again, a pane suspends and resumes as before
++ f.render({inside:null});f.render({inventory:true});f.render({inventory:false});
++ assert.equal(f.calls.filter(([name])=>name==='suspend').length,1);assert.equal(f.calls.filter(([name])=>name==='resume').length,1);f.dispose();
++});
+ test('actual World hooks suspend once across library/research/game swaps, preserve a drawer hold and resume only on leaving all',()=>{
+  const f=fixture();f.render({research:false,library:false});assert.equal(f.calls.some(([name])=>name==='suspend'),false);
+  f.render({research:false,library:true});assert.equal(f.calls.filter(([name])=>name==='suspend').length,1);assert.ok(f.calls.some(([name])=>name==='clear'));
+-- 
+2.55.0.windows.5
+

@@ -1,0 +1,316 @@
+From 48ef107dbd9b7d729c79f2d5c32ea6a329874fde Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 17:19:05 +0800
+Subject: [PATCH 02/18] GOLD panel and wallet HUD: stop false "ledger
+ unavailable", show error codes, unlock stuck prompts
+
+- auth.ts keeps the session object when a routine re-read finds the same address and expiry. Readers compare
+  sessions by identity, so a fresh copy on every focus/other-tab/timer read made in-flight GOLD and balance reads
+  fail as CONTEXT_CHANGED: the GOLD panel fell into "ledger unavailable" and the wallet HUD flickered.
+- GOLD panel: a failed refresh keeps the last good ledger and names the code; refresh shows "reading"; the
+  no-data message carries the code; a failed payment-settings read is reported and retried by Refresh;
+  ordering/signing errors scroll into view.
+- Wallet HUD: a failed refresh keeps the last balances (only the note changes); CONTEXT_CHANGED is not a failure.
+- GOLD signature prompt gives up after 3 minutes (WALLET_TIMEOUT) instead of locking the panel.
+- Day-pass card says when GOLD is short and does not create an unpayable order.
+- Wording for INVALID_GOLD_CHALLENGE (device clock), CHALLENGE_EXPIRED, INSUFFICIENT_GOLD, ECONOMY_HALTED,
+  NOT_CONFIGURED, INVALID_CHAIN_RESPONSE, WALLET_TIMEOUT, RATE_LIMITED, INVALID_SIGNATURE.
+- AIMarket pane: no trial/pass polling while the tab is hidden; trial poll 5 s -> 15 s; read on becoming visible.
+
+Found in the owner's first real top-up and the independent review of 2026-10-26.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/AIMarketPane.tsx      | 12 +++++++-----
+ src/world/ResearchPassCard.tsx  |  4 +++-
+ src/world/WorldGoldPanel.tsx    | 31 +++++++++++++++++++++----------
+ src/world/auth.ts               |  5 ++++-
+ src/world/economyWallet.ts      |  7 +++++--
+ src/world/goldPurchaseRules.ts  | 10 ++++++++++
+ src/world/useMemberBalances.ts  |  6 ++++--
+ tests/economy-client.test.mjs   |  9 ++++++++-
+ tests/research-pass-ui.test.mjs | 14 ++++++++++++++
+ tests/wallet-client.test.mjs    | 10 ++++++++++
+ 10 files changed, 86 insertions(+), 22 deletions(-)
+
+diff --git a/src/world/AIMarketPane.tsx b/src/world/AIMarketPane.tsx
+index 2f62576..69c99dc 100644
+--- a/src/world/AIMarketPane.tsx
++++ b/src/world/AIMarketPane.tsx
+@@ -45,13 +45,15 @@ export function AIMarketPane({state,onSignIn,language,onLanguage,onClose}:AIMark
+   return()=>{active=false;controller.abort();};
+  },[sessionIdentity]);
+  useEffect(()=>{setTrial(null);if(!sessionIdentity||!state.session)return;const identity=sessionIdentity,session=state.session,abort=new AbortController();let active=true;
+-  const read=()=>void fetchAIMarketTrialStatus(session,{signal:abort.signal}).then(value=>{if(active&&!abort.signal.aborted)setTrial(value?{...value,identity}:null);});read();const timer=setInterval(read,5000);
+-  return()=>{active=false;abort.abort();clearInterval(timer);};
++  // Hidden tabs do not poll (they shared one per-IP limit with the GOLD panel); becoming visible reads at once.
++  const read=()=>{if(document.hidden)return;void fetchAIMarketTrialStatus(session,{signal:abort.signal}).then(value=>{if(active&&!abort.signal.aborted)setTrial(value?{...value,identity}:null);});};read();const timer=setInterval(read,15000);
++  document.addEventListener('visibilitychange',read);
++  return()=>{active=false;abort.abort();clearInterval(timer);document.removeEventListener('visibilitychange',read);};
+  },[sessionIdentity]);
+  useEffect(()=>{setPass(null);if(!sessionIdentity||!state.session)return;const identity=sessionIdentity,session=state.session,abort=new AbortController();let active=true;
+-  const read=()=>void fetchAIMarketPassStatus(session,{signal:abort.signal}).then(value=>{if(active&&!abort.signal.aborted)setPass(value?{...value,identity}:null);});read();const timer=setInterval(read,15000);
+-  window.addEventListener('world:gold-changed',read);window.addEventListener('focus',read);
+-  return()=>{active=false;abort.abort();clearInterval(timer);window.removeEventListener('world:gold-changed',read);window.removeEventListener('focus',read);};
++  const read=()=>{if(document.hidden)return;void fetchAIMarketPassStatus(session,{signal:abort.signal}).then(value=>{if(active&&!abort.signal.aborted)setPass(value?{...value,identity}:null);});};read();const timer=setInterval(read,15000);
++  window.addEventListener('world:gold-changed',read);window.addEventListener('focus',read);document.addEventListener('visibilitychange',read);
++  return()=>{active=false;abort.abort();clearInterval(timer);window.removeEventListener('world:gold-changed',read);window.removeEventListener('focus',read);document.removeEventListener('visibilitychange',read);};
+  },[sessionIdentity]);
+  useEffect(()=>{
+   if(researchSessionChanged(previousIdentity.current,sessionIdentity))frame.current?.contentWindow?.postMessage({type:'ember-world:session-changed',version:1},researchOrigin);
+diff --git a/src/world/ResearchPassCard.tsx b/src/world/ResearchPassCard.tsx
+index cf815c1..6e6dd3e 100644
+--- a/src/world/ResearchPassCard.tsx
++++ b/src/world/ResearchPassCard.tsx
+@@ -1,11 +1,13 @@
+ import {researchPassTerms,utcMinute} from './researchPassCopy.ts';
+ export type ResearchPassProduct={id:string;product:string;version:number;title:string;gold:string;serviceable?:boolean};
+ /** Sale card for the 24-hour AIMarket day pass: terms are always shown next to the price and the order button. */
+-export function ResearchPassCard({product,pass,zh,busy,disabled,onCreate}:{product:ResearchPassProduct;pass:{active:boolean;endsMs:number}|null|undefined;zh:boolean;busy:boolean;disabled:boolean;onCreate:()=>void}){
++export function ResearchPassCard({product,pass,zh,busy,disabled,insufficient=false,onCreate}:{product:ResearchPassProduct;pass:{active:boolean;endsMs:number}|null|undefined;zh:boolean;busy:boolean;disabled:boolean;insufficient?:boolean;onCreate:()=>void}){
+  const active=!!pass?.active;
++ // An order the wallet cannot pay would block a new one for its whole 15-minute life (PASS_ORDER_PENDING).
+  return <article className="gold-pass" data-product={product.product}><h2>{product.title}</h2><p>{product.gold} GOLD</p><small>v{product.version}</small>
+   <small className="gold-pass-terms" style={{display:'block',margin:'8px 0 12px'}}>{researchPassTerms(zh,product.gold)}</small>
+   {active&&pass&&<p role="status">{zh?'通行證有效至 ':'Pass active until '}{utcMinute(pass.endsMs)}{zh?'；到期後才能再次購買。':'. You can buy another after it ends.'}</p>}
+   {product.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}
++  {insufficient&&!active&&<p role="status">{zh?`GOLD 不足：需要 ${product.gold} GOLD，請先在上方購點，再購買通行證。`:`Not enough GOLD: ${product.gold} GOLD is needed. Buy GOLD above first, then the pass.`}</p>}
+   <button disabled={busy||disabled||active||product.serviceable===false} onClick={onCreate}>{active?(zh?'通行證有效中':'Pass active'):(zh?'建立訂單':'Create order')}</button></article>;
+ }
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 4d8bc88..619b3b7 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -15,15 +15,18 @@ const EMPTY:EconomyWalletState={phase:'idle',busy:false,hash:null,error:null,pla
+ const message=(e:unknown)=>e instanceof EconomyClientError?e.code:e instanceof Error?e.message:'UNAVAILABLE';
+ function useGold(state:AuthState){
+  const auth=useRef(state);auth.current=state;const client=useRef<WorldGoldClient|null>(null);if(!client.current)client.current=new WorldGoldClient({auth:()=>auth.current});
+- const [read,setRead]=useState<{identity:string;value:GoldState}|null>(null),[error,setError]=useState<string|null>(null),[clock,setClock]=useState(Date.now),inflight=useRef<AbortController|null>(null);
++ const [read,setRead]=useState<{identity:string;value:GoldState}|null>(null),[error,setError]=useState<string|null>(null),[reading,setReading]=useState(false),[clock,setClock]=useState(Date.now),inflight=useRef<AbortController|null>(null);
+  const session=economySession(state,clock),identity=session?session.address.toLowerCase()+':'+session.expiresAt:null,latest=useRef(identity);latest.current=identity;
+- const refresh=useCallback(async()=>{if(!latest.current)return;const key=latest.current,abort=new AbortController();inflight.current?.abort();inflight.current=abort;
++ // A failed refresh keeps the last good ledger of the same identity on screen and names its code; a context change
++ // is not a failure (the next read under the current session answers it). `reading` gives a refresh visible feedback.
++ const refresh=useCallback(async()=>{if(!latest.current)return;const key=latest.current,abort=new AbortController();inflight.current?.abort();inflight.current=abort;setReading(true);
+   try{const value=await client.current!.state(abort.signal);if(!abort.signal.aborted&&key===latest.current){setRead({identity:key,value});setError(null);}}
+-  catch(e){if(!abort.signal.aborted&&key===latest.current){setRead(null);setError(message(e));}}
++  catch(e){const code=message(e);if(!abort.signal.aborted&&key===latest.current&&code!=='CONTEXT_CHANGED')setError(code);}
++  finally{if(inflight.current===abort)setReading(false);}
+  },[]);
+  useEffect(()=>{setRead(null);setError(null);if(identity)void refresh();return()=>inflight.current?.abort();},[identity,refresh]);
+  useEffect(()=>{const changed=()=>{setClock(Date.now());if(!document.hidden)void refresh();};const timer=setInterval(changed,12000);window.addEventListener('focus',changed);window.addEventListener('world:gold-changed',changed);document.addEventListener('visibilitychange',changed);return()=>{clearInterval(timer);window.removeEventListener('focus',changed);window.removeEventListener('world:gold-changed',changed);document.removeEventListener('visibilitychange',changed);};},[refresh]);
+- return {client:client.current,auth,identity,data:identity&&read?.identity===identity?read.value:null,error,refresh};
++ return {client:client.current,auth,identity,data:identity&&read?.identity===identity?read.value:null,error,reading,refresh};
+ }
+ export function GoldWalletBlock({state,zh=true}:{state:AuthState;zh?:boolean}){
+  const {data,error,identity,refresh}=useGold(state);if(!identity)return null;
+@@ -58,14 +61,20 @@ function Admin({client,data,refresh,zh}:{client:WorldGoldClient;data:GoldState;r
+  <button disabled={!caseData||reason.trim().length<3} onClick={()=>void run({action:'repair-topup',orderId})}>{zh?'補足原購點差額':'Repair original topup'}</button><button disabled={!caseData||reason.trim().length<3} onClick={()=>void run({action:'refund-service',orderId})}>{zh?'依原單退回 GOLD':'Refund original GOLD'}</button></fieldset><p role="status">{notice}</p></details>;
+ }
+ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthState;language:'zh'|'en';onClose:()=>void;onSignIn:()=>void}){
+- const zh=language==='zh',{client,data,error,identity,refresh,auth}=useGold(state),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[controller,setController]=useState<EconomyWalletController|null>(null),configRef=useRef<EconomyConfig|null>(null),[selected,setSelected]=useState<GoldOrder|null>(null),[passAck,setPassAck]=useState<string|null>(null),host=useRef<HTMLElement>(null),operation=useRef<symbol|null>(null);
++ const zh=language==='zh',{client,data,error,reading,identity,refresh,auth}=useGold(state),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[controller,setController]=useState<EconomyWalletController|null>(null),configRef=useRef<EconomyConfig|null>(null),[selected,setSelected]=useState<GoldOrder|null>(null),[passAck,setPassAck]=useState<string|null>(null),host=useRef<HTMLElement>(null),operation=useRef<symbol|null>(null);
++ // A failed payment-settings read used to leave "continue to wallet" disabled with no explanation and no retry.
++ const [configTry,setConfigTry]=useState(0),[configFailed,setConfigFailed]=useState(false),statusLine=useRef<HTMLParagraphElement>(null);
+  // Provider initialization must not clear an in-flight quote lock. Only an
+  // authenticated identity change invalidates the operation/request IDs.
+  const currentIdentity=useRef(identity);currentIdentity.current=identity;const orderAttempts=useRef(new Map<string,string>());
+  const wallet=useSyncExternalStore(controller?.subscribe??(()=>()=>{}),()=>controller?.state??EMPTY,()=>EMPTY);
+  useEffect(()=>{setSelected(null);setNotice('');setBusy(false);operation.current=null;orderAttempts.current.clear();controller?.contextChanged();},[identity]);
+  useEffect(()=>{setSelected(old=>{const next=old?data?.orders.find(o=>o.id===old.id)??old:null;if(next?.status==='paid'||next&&next.expires_ms<=Date.now())orderAttempts.current.delete(next.product);return next;});},[data]);
+- useEffect(()=>{setController(null);configRef.current=null;if(!identity)return;let active=true,c:EconomyWalletController|undefined;const registry=wallets();void new EconomyClient({auth:()=>auth.current}).config().then(config=>{if(!active||!config.enabled)return;configRef.current=config;c=new EconomyWalletController({config,auth:()=>auth.current,provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(fn),pending:localEconomyPending});c.restorePending();setController(c);}).catch(()=>{});return()=>{active=false;c?.dispose();};},[identity]);
++ useEffect(()=>{setController(null);configRef.current=null;setConfigFailed(false);if(!identity)return;let active=true,c:EconomyWalletController|undefined;const registry=wallets();void new EconomyClient({auth:()=>auth.current}).config().then(config=>{if(!active||!config.enabled)return;configRef.current=config;c=new EconomyWalletController({config,auth:()=>auth.current,provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(fn),pending:localEconomyPending});c.restorePending();setController(c);}).catch(()=>{if(active)setConfigFailed(true);});return()=>{active=false;c?.dispose();};},[identity,configTry]);
++ // Errors from ordering or signing are written to the status line at the end of the panel; bring it into view.
++ useEffect(()=>{if(notice)statusLine.current?.scrollIntoView?.({block:'nearest'});},[notice]);
++ const refreshAll=()=>{if(!controller)setConfigTry(n=>n+1);void refresh();};
++ const lacks=(gold:unknown)=>{try{return !!data&&BigInt(data.available)<BigInt(String(gold));}catch{return false;}};
+  useEffect(()=>{const prior=document.activeElement as HTMLElement|null;host.current?.querySelector<HTMLButtonElement>('.gold-return')?.focus();const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onClose();}if(e.key!=='Tab')return;const list=[...(host.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),summary,a[href]')??[])].filter(e=>e.offsetWidth),first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}};document.addEventListener('keydown',key);return()=>{document.removeEventListener('keydown',key);if(prior?.isConnected)prior.focus();};},[onClose]);
+  const run=async(fn:()=>Promise<unknown>)=>{if(operation.current||wallet.busy)return;const captured=identity,token=Symbol();operation.current=token;setBusy(true);setNotice('');try{await fn();if(currentIdentity.current===captured){await refresh();window.dispatchEvent(new Event('world:gold-changed'));}}catch(e){if(currentIdentity.current===captured)setNotice(message(e));}finally{if(operation.current===token){operation.current=null;if(currentIdentity.current===captured)setBusy(false);}}};
+  const quote=async(product:string)=>{const captured=identity;let rid=orderAttempts.current.get(product);if(!rid){rid=economyRequestId();orderAttempts.current.set(product,rid);}try{const result=await client.quote(product,rid);const snap=await client.state();if(currentIdentity.current!==captured)throw new EconomyClientError('CONTEXT_CHANGED');const original=snap.orders.find(o=>o.id===result.orderId);if(!original)throw new EconomyClientError('INVALID_RESPONSE');setSelected(original);}catch(e){if(currentIdentity.current===captured&&e instanceof EconomyClientError&&e.code==='ORDER_EXPIRED'){orderAttempts.current.delete(product);setSelected(null);}throw e;}};
+@@ -78,9 +87,11 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+ 
+  {!identity?<><p className="gold-test-note">{zh?'100 EMBEO → 1 GOLD，單向購點。GOLD 綁定錢包，不可轉讓、不可賣出，也不能兌回 EMBEO。':'100 EMBEO → 1 GOLD, one-way purchase. GOLD is wallet-bound and cannot be transferred, sold or redeemed for EMBEO.'}</p><button onClick={onSignIn}>{zh?'沿用 World 錢包登入':'Sign in with World wallet'}</button></>:<>
+  {data?<><div className="gold-balance"><strong>{data.available} GOLD</strong><span>{zh?'帳面':'Book'} {data.book}</span><span>{zh?'保留':'Reserved'} {data.reserved}</span><small>{new Date(data.asOf).toISOString()}</small></div>
++ {error&&<p role="status" className="gold-stale">{zh?`最新帳本暫時讀不到（代碼：${error}），以下是上次讀到的資料。`:`Could not refresh the ledger (code: ${error}); showing the last data read.`}</p>}
++ {configFailed&&<p role="alert">{zh?'錢包付款設定讀取失敗，請按下方「更新餘額與狀態」重試。':'Payment settings could not be read. Press "Refresh ledger" below to retry.'}</p>}
+  <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={()=>void run(()=>controller!.checkReceipt())} reconcile={()=>selected&&void run(()=>client.reconcile(selected.id))} clear={()=>setSelected(null)}/>
+  <details className="gold-ledger-details"><summary>{zh?'帳本、訂單與其他館內服務':'Ledger, orders and hall services'}</summary>
+- {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購點不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
++ {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購點不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product===RESEARCH_PASS_PRODUCT&&<ResearchPassConfirm order={selected} zh={zh} acknowledged={passAck===selected.id} busy={busy||wallet.busy} onAcknowledge={checked=>setPassAck(checked?selected.id:null)} onSign={()=>void run(()=>pay(selected))}/>}
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product!==RESEARCH_PASS_PRODUCT&&<section className="gold-confirm"><h2>{zh?'核對原始訂單':'Review original order'}</h2><code>{selected.id}</code><p>{selected.amount} GOLD · {zh?'此筆服務費用':'Service payment'}</p><button disabled={busy||wallet.busy} onClick={()=>void run(()=>pay(selected))}>{zh?'簽名確認扣點':'Sign GOLD payment'}</button></section>}
+  {selected?.kind==='service'&&<div className="gold-actions">{['approve-required','reset-required'].includes(wallet.phase)&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.approve())}>{zh?'確認指定額度授權':'Approve exact amount'}</button>}{wallet.phase==='confirm'&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.confirm())}>{zh?'確認 EMBEO 付款':'Confirm EMBEO payment'}</button>}{wallet.hash&&<code>{wallet.hash}</code>}{['unknown','pending'].includes(wallet.phase)&&<button onClick={()=>void run(()=>controller!.checkReceipt())}>{zh?'查詢原交易':'Check original transaction'}</button>}</div>}
+@@ -88,9 +99,9 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  {(data.pendingRewards?.length??0)>0&&<section><h2>{zh?'待補發質押獎勵':'Pending staking rewards'}</h2><p>{zh?'以下權益尚未入帳，也未計入可用餘額；空間恢復後會依原始紀錄補發。最多顯示 100 筆。':'These entitlements are not credited or spendable. Original rewards retry when capacity is available. Up to 100 entries are shown.'}</p><ul>{data.pendingRewards!.map(r=><li key={r.id}>{new Date(r.dayStartMs).toISOString().slice(0,10)} UTC · {r.gold} GOLD</li>)}</ul></section>}
+  <h2>{zh?'GOLD 紀錄（最近 100 筆）':'GOLD history (latest 100)'}</h2><ul className="gold-history">{data.history.map(h=><li key={h.id}><span>{h.kind}</span><b>{h.delta} GOLD</b><small>{new Date(h.created_ms).toISOString()}</small></li>)}</ul>
+  </details>
+- {data.isAdmin&&data.paymentsReady!==false&&<Admin client={client} data={data} refresh={refresh} zh={zh}/>}</>:<p role="status">{error?(zh?'帳本目前無法取得；請重試，不代表餘額為零。':'Ledger unavailable. Try again; this does not mean a zero balance.'):(zh?'讀取帳本…':'Reading ledger…')}</p>}
+- <button disabled={busy} onClick={()=>void refresh()}>{zh?'更新餘額與狀態':'Refresh ledger'}</button></>}
+- <p role="status">{notice?goldPurchaseError(notice,zh):selected?.kind==='service'&&wallet.error?goldPurchaseError(wallet.error,zh):''}</p></section>;
++ {data.isAdmin&&data.paymentsReady!==false&&<Admin client={client} data={data} refresh={refresh} zh={zh}/>}</>:<p role="status">{reading?(zh?'正在讀取帳本…':'Reading ledger…'):error?(zh?`帳本目前無法取得（代碼：${error}）；請按「更新餘額與狀態」重試，這不代表餘額為零。`:`Ledger unavailable (code: ${error}). Press "Refresh ledger" to retry; this does not mean a zero balance.`):(zh?'讀取帳本…':'Reading ledger…')}</p>}
++ <button disabled={busy||reading} onClick={refreshAll}>{reading?(zh?'讀取中…':'Reading…'):zh?'更新餘額與狀態':'Refresh ledger'}</button></>}
++ <p role="status" ref={statusLine}>{notice?goldPurchaseError(notice,zh):selected?.kind==='service'&&wallet.error?goldPurchaseError(wallet.error,zh):''}</p></section>;
+ }
+ 
+ 
+diff --git a/src/world/auth.ts b/src/world/auth.ts
+index e4f0b84..01dd32b 100644
+--- a/src/world/auth.ts
++++ b/src/world/auth.ts
+@@ -334,7 +334,10 @@ export class AuthClient{
+       if(!isRecord(v)||!(v.signedIn===false&&(v.expired===undefined||typeof v.expired==='boolean')||
+         v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt))){this.set({restored:true,sessionKnown:false});return;}
+       if(v.signedIn===true&&isAddress(v.address)&&isExpiry(v.expiresAt)){
+-        const session={address:v.address.toLowerCase(),expiresAt:v.expiresAt},held=this.s.session,same=held?.address===session.address;
++        // An unchanged session keeps its object: readers compare sessions by identity to notice a real change, so a
++        // fresh copy on every routine read (focus, other tab, timer) made their in-flight reads fail as CONTEXT_CHANGED.
++        const held=this.s.session,read={address:v.address.toLowerCase(),expiresAt:v.expiresAt},same=held?.address===read.address;
++        const session=same&&held!.expiresAt===read.expiresAt?held!:read;
+         const owner=this.lifecycle.retained;
+         this.lifecycle.read({kind:'PRESENT',session},q,g,life); // terminal release before house I/O
+         this.canonicalReadSeq=q;
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 537c56a..b825ebd 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -26,7 +26,7 @@ export type EconomyLock={run<T>(key:string,fn:()=>Promise<T>):Promise<T>};
+ /** The lock spans wallet prompts too. Storage read/write/readback alone is not
+  * a compare-and-swap across separate tabs. No unprotected fallback may send. */
+ export const localEconomyLock:EconomyLock={async run(key,fn){const locks=globalThis.navigator?.locks;if(!locks)throw new EconomyClientError('PENDING_LOCK_UNAVAILABLE');return locks.request(key,{mode:'exclusive',ifAvailable:true},lock=>{if(!lock)throw new EconomyClientError('PENDING_LOCK_BUSY');return fn();});}};
+-type Deps={config:EconomyConfig;auth:()=>AuthState;provider:()=>Provider|null;onProviderChange?:(fn:()=>void)=>()=>void;fetch?:typeof fetch;origin?:string;canSpend?:()=>boolean;now?:()=>number;delay?:(ms:number)=>Promise<void>;receiptAttempts?:number;rpcTimeoutMs?:number;pending?:EconomyPendingStore;lock?:EconomyLock};
++type Deps={config:EconomyConfig;auth:()=>AuthState;provider:()=>Provider|null;onProviderChange?:(fn:()=>void)=>()=>void;fetch?:typeof fetch;origin?:string;canSpend?:()=>boolean;now?:()=>number;delay?:(ms:number)=>Promise<void>;receiptAttempts?:number;rpcTimeoutMs?:number;signTimeoutMs?:number;pending?:EconomyPendingStore;lock?:EconomyLock};
+ const HASH=/^0x[0-9a-fA-F]{64}$/,HEX=/^0x[0-9a-fA-F]*$/;
+ const quantity=(v:unknown):v is Hex=>typeof v==='string'&&/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(v)&&v.length<=66;
+ const nonce=(v:unknown):v is Hex=>quantity(v)&&BigInt(v)<(1n<<64n);
+@@ -227,7 +227,10 @@ export class EconomyWalletController{
+   const origin=this.deps.origin??globalThis.location?.origin;validateGoldChallenge(challenge,order,requestId,this.context!.session,origin??'',this.now());
+   await this.verify();this.guard();validateGoldChallenge(challenge,order,requestId,this.context!.session,origin??'',this.now());if(this.deps.canSpend&&!this.deps.canSpend())throw new EconomyClientError('ECONOMY_HALTED');
+   this.set({phase:'sending',busy:true});const hex='0x'+[...new TextEncoder().encode(challenge.message)].map(b=>b.toString(16).padStart(2,'0')).join('');
+-  const signature=await this.context!.provider.request({method:'personal_sign',params:[hex,this.context!.address]});this.guard();
++  // A GOLD signature is off-chain and broadcasts nothing, so a prompt that never answers (a second wallet extension, a
++  // closed popup) can be given up safely; without this the whole panel stayed busy until it was closed.
++  let timer:ReturnType<typeof setTimeout>|undefined;
++  const signature=await Promise.race([this.context!.provider.request({method:'personal_sign',params:[hex,this.context!.address]}),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new EconomyClientError('WALLET_TIMEOUT')),Math.max(1,this.deps.signTimeoutMs??180_000));})]).finally(()=>{if(timer!==undefined)clearTimeout(timer);});this.guard();
+   validateGoldChallenge(challenge,order,requestId,this.context!.session,origin??'',this.now());
+   if(typeof signature!=='string'||!/^0x[0-9a-fA-F]{130}$/.test(signature))throw new EconomyClientError('INVALID_SIGNATURE');
+   if(this.deps.canSpend&&!this.deps.canSpend())throw new EconomyClientError('ECONOMY_HALTED');paid=await this.client.payGold(order,requestId,signature,this.abort.signal);this.guard();this.set({phase:'confirmed',busy:false});
+diff --git a/src/world/goldPurchaseRules.ts b/src/world/goldPurchaseRules.ts
+index 577dc78..cdad8f0 100644
+--- a/src/world/goldPurchaseRules.ts
++++ b/src/world/goldPurchaseRules.ts
+@@ -33,6 +33,16 @@ export function goldPurchaseError(code:string,zh:boolean){
+   PASS_ORDER_PENDING:['已有一筆待付款的通行證訂單，請先完成，或等它到期（約 15 分鐘）再重新下單。','You already have a pending pass order. Finish it, or wait for it to expire (about 15 minutes) before ordering again.'],
+   TRANSACTION_REVERTED:['鏈上交易失敗，請核對原交易；鏈上手續費仍可能產生。','Transaction reverted. Check the original transaction; network fees may still apply.'],
+   REQUEST_TIMEOUT:['錢包回覆逾時，請先核對原交易，勿重複付款。','Wallet response timed out. Check the original transaction before retrying.'],
++  // Codes that used to fall through to the generic "reference code" line.
++  INVALID_GOLD_CHALLENGE:['付款確認訊息的時間和這台裝置的時鐘對不上。請把電腦或手機的時間設為自動同步，再重新核對原單。','The payment message time does not match this device clock. Set your device time to sync automatically, then review the order again.'],
++  CHALLENGE_EXPIRED:['付款確認已逾時（5 分鐘），請重新按簽名確認。尚未扣點。','The payment confirmation expired (5 minutes). Sign again; nothing was charged.'],
++  INSUFFICIENT_GOLD:['GOLD 不足，請先購點再付款。','Not enough GOLD. Buy GOLD first, then pay.'],
++  ECONOMY_HALTED:['帳本暫停中，暫時不能付款；已付款項目不受影響。','The ledger is paused; payments are not possible right now. Completed payments are unaffected.'],
++  NOT_CONFIGURED:['錢包付款設定尚未載入，請按「更新餘額與狀態」後再試。','Payment settings are not loaded yet. Press "Refresh ledger", then try again.'],
++  INVALID_CHAIN_RESPONSE:['錢包回傳的資料格式不正確，尚未送出交易。請重新整理頁面後再試；若一再出現，請告訴站方。','The wallet returned data in an unexpected format; nothing was sent. Reload the page and try again; tell us if it keeps happening.'],
++  WALLET_TIMEOUT:['錢包一直沒有回應，已停止等待，尚未扣點。請打開錢包取消待處理的請求後再試。','The wallet did not answer, so the request was dropped; nothing was charged. Open your wallet, cancel any pending request, and try again.'],
++  RATE_LIMITED:['操作太頻繁，請等一分鐘再試。','Too many requests. Wait a minute and try again.'],
++  INVALID_SIGNATURE:['錢包回傳的簽名格式不正確，尚未扣點，請再試一次。','The wallet returned an invalid signature; nothing was charged. Try again.'],
+  };
+  return copy[code]?.[zh?0:1]??(zh?'目前無法完成，請更新原單狀態後再試。參考代碼：':'Unable to complete. Refresh the original order before retrying. Reference: ')+code;
+ }
+diff --git a/src/world/useMemberBalances.ts b/src/world/useMemberBalances.ts
+index 8490f9f..bece071 100644
+--- a/src/world/useMemberBalances.ts
++++ b/src/world/useMemberBalances.ts
+@@ -1,6 +1,6 @@
+ import {createContext,useCallback,useEffect,useMemo,useRef,useState} from 'react';
+ import type {AuthState} from './auth.ts';
+-import {economySession} from './economyClient.ts';
++import {EconomyClientError,economySession} from './economyClient.ts';
+ import {MemberBalancesClient,type MemberBalances} from './memberBalancesClient.ts';
+ 
+ export type MemberBalancesRead={identity:string|null;data:MemberBalances|null;failed:boolean;refreshing:boolean;refresh:()=>Promise<void>};
+@@ -17,7 +17,9 @@ export function useMemberBalances(state:AuthState):MemberBalancesRead{
+   const key=latest.current;if(!key||document.hidden)return;
+   const abort=new AbortController();inflight.current?.abort();inflight.current=abort;setRefreshing(true);
+   try{const data=await client.current!.read(abort.signal);if(!abort.signal.aborted&&latest.current===key){setResult({key,data});setFailed(false);}}
+-  catch{if(!abort.signal.aborted&&latest.current===key){setResult(null);setFailed(true);}}
++  // A failed refresh keeps the last good balances on screen (only the note changes), so a passing hiccup no longer
++  // blanks the HUD. A context change is not a failure: the next read under the current session answers it.
++  catch(e){if(!abort.signal.aborted&&latest.current===key&&!(e instanceof EconomyClientError&&e.code==='CONTEXT_CHANGED'))setFailed(true);}
+   finally{if(!abort.signal.aborted&&latest.current===key)setRefreshing(false);}
+  },[]);
+  useEffect(()=>{setResult(null);setFailed(false);setRefreshing(false);if(identity)void refresh();return()=>inflight.current?.abort();},[identity,refresh]);
+diff --git a/tests/economy-client.test.mjs b/tests/economy-client.test.mjs
+index 1e8c79b..fc5803f 100644
+--- a/tests/economy-client.test.mjs
++++ b/tests/economy-client.test.mjs
+@@ -51,7 +51,7 @@ function fixture(options={}){
+  current=provider;
+  const fetch=async(path,init)=>{http.push({path,init});if(fetchIntercept){const value=fetchIntercept(path,init);if(value!==undefined)return value;}if(path==='/api/auth/session')return response({signedIn:true,address:state.session?.address,expiresAt:state.session?.expiresAt});if(path==='/api/economy/config')return response(config());if(path.endsWith('/gold'))return response({order:{...selected(),status:'paid',paidMs:clock}});throw Error('unexpected HTTP '+path);};
+  let lockTail=Promise.resolve();const lock={run(_key,fn){const run=lockTail.then(fn,fn);lockTail=run.catch(()=>{});return run;}};
+- const deps={config:config(),auth:()=>state,provider:()=>current,onProviderChange:fn=>{providers.add(fn);return()=>providers.delete(fn);},fetch,origin:'https://imdember.com',now:()=>clock,receiptAttempts:1,rpcTimeoutMs:options.rpcTimeoutMs??1000,delay:async()=>{},canSpend:()=>available,lock,pending:options.pendingStore??{get:key=>hints.get(key),set:(key,value)=>{if(value)hints.set(key,value);else hints.delete(key);}}};
++ const deps={config:config(),auth:()=>state,provider:()=>current,onProviderChange:fn=>{providers.add(fn);return()=>providers.delete(fn);},fetch,origin:'https://imdember.com',now:()=>clock,receiptAttempts:1,rpcTimeoutMs:options.rpcTimeoutMs??1000,signTimeoutMs:options.signTimeoutMs,delay:async()=>{},canSpend:()=>available,lock,pending:options.pendingStore??{get:key=>hints.get(key),set:(key,value)=>{if(value)hints.set(key,value);else hints.delete(key);}}};
+  const controller=new EconomyWalletController(deps);
+  return {controller,calls,http,sent,events,hints,provider,reopen:()=>new EconomyWalletController(deps),intercept(fn){intercept=fn;},fetchIntercept(fn){fetchIntercept=fn;},emit(event,value){for(const fn of events.get(event)??[])fn(value);},switchProvider(value){current=value;for(const fn of providers)fn();},set state(value){state=value;controller.contextChanged();},get state(){return state;},set now(value){clock=value;},set receiptNull(value){receiptNull=value;},set rejectSend(value){rejectSend=value;},set available(value){available=value;},get allowance(){return allowance;}};
+ }
+@@ -168,6 +168,13 @@ test('malicious GOLD messages never reach the wallet, even with a matching World
+ test('an account switch, expiry or unmount while GOLD signature is open never posts a debit',async()=>{
+  for(const kind of ['account','expiry','unmount']){const f=fixture(),gate=deferred();f.intercept(args=>args.method==='personal_sign'?gate.promise:undefined);const pending=f.controller.payGold(selected(),REQ,challenge());await turn();if(kind==='account')f.emit('accountsChanged',[B]);else if(kind==='expiry')f.now=NOW+300001;else f.controller.dispose();gate.resolve(SIG);assert.equal(await pending,undefined);assert.equal(f.http.some(c=>c.path.endsWith('/gold')),false);f.controller.dispose();}
+ });
++test('a GOLD signature prompt that never answers is given up: the panel unlocks with WALLET_TIMEOUT and nothing is debited',async()=>{
++ const f=fixture({signTimeoutMs:20});f.intercept(args=>args.method==='personal_sign'?new Promise(()=>{}):undefined);
++ try{assert.equal(await f.controller.payGold(selected(),REQ,challenge()),undefined);assert.equal(f.controller.state.error,'WALLET_TIMEOUT');assert.equal(f.controller.state.busy,false);assert.equal(f.http.some(c=>c.path.endsWith('/gold')),false);
++  // and the next attempt is not blocked by the abandoned prompt
++  f.intercept(null);const paid=await f.controller.payGold(selected(),REQ,challenge());assert.equal(paid.status,'paid');}
++ finally{f.controller.dispose();}
++});
+ test('wrong network or revoked World session rejects GOLD before personal_sign',async()=>{
+  for(const kind of ['chain','revoked']){const f=fixture();if(kind==='chain')f.intercept(args=>args.method==='eth_chainId'?'0xa':undefined);else f.fetchIntercept(path=>path==='/api/auth/session'?response({signedIn:false}):undefined);await f.controller.payGold(selected(),REQ,challenge());assert.equal(f.calls.some(c=>c.method==='personal_sign'),false);assert.equal(f.http.some(c=>c.path.endsWith('/gold')),false);f.controller.dispose();}
+ });
+diff --git a/tests/research-pass-ui.test.mjs b/tests/research-pass-ui.test.mjs
+index 19ba3ce..cceece2 100644
+--- a/tests/research-pass-ui.test.mjs
++++ b/tests/research-pass-ui.test.mjs
+@@ -90,6 +90,20 @@ test('pass status refuses another wallet, a failed or malformed answer, an expir
+  const aborted=new AbortController();aborted.abort();assert.equal(await fetchAIMarketPassStatus(session,{signal:aborted.signal,fetch:async()=>assert.fail('must not fetch'),now:()=>NOW}),null);
+ });
+ 
++test('a wallet without enough GOLD is told so on the pass card instead of creating an order it cannot pay',()=>{
++ const short=renderToStaticMarkup(h(ResearchPassCard,{product,pass:null,zh:true,busy:false,disabled:true,insufficient:true,onCreate(){}}));
++ assert.ok(short.includes('GOLD 不足')&&short.includes('100 GOLD'));assert.match(short,/<button disabled="">建立訂單<\/button>/);
++ assert.ok(!renderToStaticMarkup(h(ResearchPassCard,{product,pass:null,zh:true,busy:false,disabled:false,onCreate(){}})).includes('GOLD 不足'));
++ assert.ok(!renderToStaticMarkup(h(ResearchPassCard,{product,pass:{active:true,endsMs:ENDS},zh:true,busy:false,disabled:true,insufficient:true,onCreate(){}})).includes('GOLD 不足'));   // an active pass needs no top-up note
++ assert.ok(renderToStaticMarkup(h(ResearchPassCard,{product,pass:null,zh:false,busy:false,disabled:true,insufficient:true,onCreate(){}})).includes('Not enough GOLD'));
++});
++test('signing-step failures that used to show only a reference code now say what to do',()=>{
++ for(const code of ['INVALID_GOLD_CHALLENGE','CHALLENGE_EXPIRED','INSUFFICIENT_GOLD','ECONOMY_HALTED','NOT_CONFIGURED','INVALID_CHAIN_RESPONSE','WALLET_TIMEOUT','RATE_LIMITED','INVALID_SIGNATURE']){
++  const zh=goldPurchaseError(code,true),en=goldPurchaseError(code,false);
++  assert.ok(!zh.includes('參考代碼')&&!en.includes('Reference:'),code);assert.notEqual(zh,en);
++ }
++ assert.ok(goldPurchaseError('INVALID_GOLD_CHALLENGE',true).includes('時間'));assert.ok(goldPurchaseError('UNKNOWN_X',true).includes('參考代碼：UNKNOWN_X'));
++});
+ test('refusal reasons have plain wording in both languages',()=>{
+  for(const code of ['PASS_ALREADY_ACTIVE','PASS_ORDER_PENDING']){const zh=goldPurchaseError(code,true),en=goldPurchaseError(code,false);assert.ok(!zh.includes(code)&&!en.includes(code));assert.notEqual(zh,en);}
+  assert.ok(goldPurchaseError('PASS_ALREADY_ACTIVE',true).includes('到期後才能再次購買'));assert.ok(goldPurchaseError('PASS_ORDER_PENDING',false).includes('15 minutes'));
+diff --git a/tests/wallet-client.test.mjs b/tests/wallet-client.test.mjs
+index 5c70c64..42e68d6 100644
+--- a/tests/wallet-client.test.mjs
++++ b/tests/wallet-client.test.mjs
+@@ -69,6 +69,16 @@ test('first sign-in asks for exactly one signature, goes connect → sign → ve
+   t.stop();
+ });
+ 
++test('a routine session re-read that finds the same session keeps the same session object (readers compare by identity)',async()=>{
++  const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A);
++  const t=tab(w,b,wallet);await t.client.signIn();const first=t.client.state.session;assert.ok(first);
++  const reads=()=>t.calls.filter(c=>c==='GET /api/auth/session').length,before=reads();
++  w.clock.advance(60_000);t.client.visible();await until(()=>reads()>before&&t.client.state.phase==='idle');await settle();
++  assert.ok(reads()>before,'the session was read again');
++  assert.equal(t.client.state.session,first,'unchanged address and expiry keep the object, so in-flight GOLD and balance reads survive');
++  t.stop();
++});
++
+ test('a reload restores the session from the cookie with no signature and no challenge, even when the click comes first',async()=>{
+   const A=newAccount(),a=A.address.toLowerCase(),w=world({swarm:{361:a},chain:{361:a}}),b=w.browser(),wallet=fakeWallet(A);
+   const first=tab(w,b,wallet);await first.client.signIn();first.stop();assert.equal(wallet.signed,1);
+-- 
+2.55.0.windows.5
+

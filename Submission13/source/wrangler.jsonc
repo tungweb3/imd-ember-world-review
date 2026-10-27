@@ -1,0 +1,77 @@
+// IMD Ember World at https://imdember.com — one Worker (worker/index.ts) plus Workers Static Assets (dist/).
+//
+// [REDACTED-INTERNAL]
+// [REDACTED-INTERNAL]
+// [REDACTED-INTERNAL]
+// Local use needs no account: `npm run edge:dev` (wrangler dev) and `npm run edge:dry-run`.
+// Also before the first deploy (README, 正式環境): Always Use HTTPS and a WAF rate limiting rule for /api/ on the
+// imdember.com zone. pepe.webp: the owner confirmed on 2026-09-27 that IMD agreed to its use (assets/references/imd/PROVENANCE.md).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "imd-world",
+  "account_id": "REDACTED-CLOUDFLARE-ACCOUNT-ID",
+  "main": "worker/index.ts",
+  // Runtime semantics, chosen as the newest date wrangler 4.92.0 / workerd 1.20260515.1 supported. Kept when wrangler went to
+  // 4.143.0 (swarm review F-6: build-machine advisories), so production behaviour does not move with a tool update; local
+  // dev (workerd 1.20260926.1) runs these same semantics.
+  "compatibility_date": "2026-05-15",
+  // Workers Paid guardrail: a request normally needs about 1-4 ms of CPU; anything past 50 ms is a bug, and the cap
+  // stops it before it runs up CPU billing. (Free would reject this setting.)
+  "limits": { "cpu_ms": 50 },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Unknown paths get index.html from the asset layer, exactly like the Vite dev server's SPA fallback.
+    // With run_worker_first as an array, misses (a missing .glb, /favicon.ico, /api/other) never invoke the Worker.
+    "not_found_handling": "single-page-application",
+    // Only the read-only data API runs Worker code (Workers Free: 100k Worker requests/day; asset requests are free).
+    // Do not set run_worker_first to true, and never enable "cache" (Workers Cache bills every asset request).
+    // The wallet routes (server/auth.ts): sign-in, the session's home, and a wallet's public assets.
+    // AIMarket SSO stays disabled until 0009 is applied and its independent AIMARKET_BRIDGE_SECRET is configured.
+    "run_worker_first": ["/api/world/*", "/api/auth/*", "/api/me/*", "/api/wallet/*", "/api/aimarket-auth/*", "/api/celestao-auth/*", "/api/celestao-checkout/*", "/api/economy/*", "/api/gold/*"]
+  },
+  "routes": [{ "pattern": "imdember.com", "custom_domain": true }],
+  // workers.dev stays off: a brand-new account has no workers.dev subdomain, and a non-interactive deploy that asks
+  // for one throws. It would also expose a second hostname drawing on the same daily request budget.
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true, "head_sampling_rate": 0.2 },
+  // Per client IP, per Cloudflare location. All four are required: on imdember.com a missing one makes every route that
+  // needs it answer 503 (worker/app.ts, fail closed), so a rename here is an outage, never an unthrottled route.
+  // namespace_id only has to be unique within the account.
+  "ratelimits": [
+    // Also, under the constant key 'chain:code' (server/auth.ts CODE_CAP, fails closed): the sign-in's eth_getCode reads,
+    // 180/min per Cloudflare location. The key never collides with the per-IP 'ip:' / 'ip6:' keys.
+    { "name": "API_LIMITER", "namespace_id": "4101", "simple": { "limit": 180, "period": 60 } },
+    { "name": "SEAT_LIMITER", "namespace_id": "4102", "simple": { "limit": 60, "period": 60 } },
+    // Sign-in per IP: challenges under the IP's key and verifies under 'verify:'+IP, so each gets 20/min and a challenge
+    // flood never starves a verify (F-5 L4); and /api/me/home per session (session keys). Unlike the two above, this one
+    // fails CLOSED when the binding throws (server/auth.ts). Logout is never limited.
+    { "name": "AUTH_LIMITER", "namespace_id": "4103", "simple": { "limit": 20, "period": 60 } },
+    // Constant keys (server/auth.ts CHAIN_KEYS), one budget each: the keyed Alchemy reads a throwaway-key session can
+    // cause. The ERC-1271 check of a non-ECDSA sign-in (a first-time contract 'chain:erc1271', one that signed in that
+    // way before 'chain:erc1271:known' and, once a contract address's shared checks of the minute are spent, one check
+    // of it per network 'chain:erc1271:lane', server/auth.ts CLAIM_LANE), every NFT index read of /api/me/home (and, once
+    // 'chain:index' refused a read that counts no seat, READY + 30 s probe gate then 'chain:index:lane', server/auth.ts
+    // followed by atomic INDEX_LANE admission), and the public assets route's character list (once collections.ts lists one).
+    // Per Cloudflare location, not global (the global sign-in budgets are counted in D1, server/auth.ts); fails closed.
+    { "name": "CHAIN_LIMITER", "namespace_id": "4104", "simple": { "limit": 20, "period": 60 } },
+    // New economy routes and confirmed-chain reads have a separate namespace;
+    // neither consumes the previously audited identity/NFT read budgets.
+    { "name": "ECONOMY_LIMITER", "namespace_id": "4105", "simple": { "limit": 20, "period": 60 } },
+    { "name": "ECONOMY_CHAIN_LIMITER", "namespace_id": "4106", "simple": { "limit": 600, "period": 60 } },
+    // AIMarket's server re-checks a research session (POST /api/aimarket-auth/session) on every protected read, 8-10 per
+    // page load, and may not cache grants (web/world_auth.py). Under AUTH_LIMITER's 20/min a paying day-pass user who
+    // reopened the hall or switched language within a minute was refused and saw the locked view. Per bridge session;
+    // fails closed like AUTH_LIMITER (falls back to it only where this binding is absent, e.g. local runs).
+    { "name": "BRIDGE_LIMITER", "namespace_id": "4120", "simple": { "limit": 120, "period": 60 } }
+  ],
+  // Wallet login (docs/wallet-login/DESIGN_W1_v001.md): challenges, sessions and seat presence, in the imd-world
+  // database of the IMD account (created 2026-09-28). Schema changes: wrangler d1 migrations apply imd-world --remote
+  // (export a backup first). Locally: npx wrangler d1 migrations apply imd-world --local.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "imd-world", "database_id": "REDACTED-D1-DATABASE-ID", "migrations_dir": "migrations" }
+  ],
+  // The presence recorder (server/presence.ts): every 15 min, one upsert of the seats IMD lists online.
+  "triggers": { "crons": ["*/15 * * * *", "* * * * *"] }
+}

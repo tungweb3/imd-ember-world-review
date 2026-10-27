@@ -1,0 +1,239 @@
+From b96738d0030dd098a3a5856db16c3cfd8c301ce5 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 00:56:20 +0800
+Subject: [PATCH 10/18] GOLD fast credit: own rate-limit budget, visible
+ fallback reason, retry from "check original credit"
+
+The owner's first live fast-credit purchase (order 0xacecd436..., tx 0xec38fd54..., mined 16:40:11 UTC) fell
+back to finality: the receipt verifies (replayed locally through fastCreditTopup with the production row and
+the real receipt: credited), so the polls were refused before reaching it. They shared the per-IP
+'world-gold:' ECONOMY_LIMITER budget (20/min) with the panel's ledger refreshes and the AIMarket pane's
+15 s status polls during the same purchase.
+
+- world-gold-api: fast-credit uses its own key 'world-gold-fast:<ip>' (12 polls in its first minute).
+- worker: each fast-credit outcome is logged (status or refusal code only) for live tails.
+- fastGoldCredit: the schedule's end names its last transient answer (TIMEOUT_WAITING, TIMEOUT_RATE_LIMITED,
+  ...); a fallback can be restarted, never doubled; the follow keeps its transaction hash.
+- GoldPurchase: the fallback message shows the reference code; "Check original credit" retries the fast
+  credit too. The review button now says what it does: "Next: check allowance" (it prompts nothing).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/world-gold-api.ts        |  4 +++-
+ src/world/GoldPurchase.tsx      |  4 ++--
+ src/world/WorldGoldPanel.tsx    |  5 ++++-
+ src/world/fastGoldCredit.ts     | 19 +++++++++++--------
+ tests/fast-gold-client.test.mjs | 19 ++++++++++++++++---
+ tests/gold-purchase-ui.test.mjs |  4 ++--
+ tests/world-gold-fast.test.mjs  |  8 +++++++-
+ worker/app.ts                   |  5 ++++-
+ 8 files changed, 49 insertions(+), 19 deletions(-)
+
+diff --git a/server/world-gold-api.ts b/server/world-gold-api.ts
+index 5b2f708..55d887c 100644
+--- a/server/world-gold-api.ts
++++ b/server/world-gold-api.ts
+@@ -43,7 +43,9 @@ export async function handleWorldGoldApi(request:Request,deps:Deps={}):Promise<R
+  let checkSession:(()=>Promise<boolean>)|undefined;
+  try{
+   const clock=economySessionClock(deps.now??Date.now),started=clock();
+-  if(!await deps.allow('world-gold:'+(deps.client??'unknown')))return bad(429,'RATE_LIMITED');
++  // Fast credit polls for about 90 s right after a payment, while the panel is also refreshing: its own budget key,
++  // so neither starves the other (2026-10-26: a shared budget ran out and the credit fell back to finality).
++  if(!await deps.allow((fast?'world-gold-fast:':'world-gold:')+(deps.client??'unknown')))return bad(429,'RATE_LIMITED');
+   const b=write?await body(request):null,expected=b?.expectedAddress??u.searchParams.get('expected_address');
+   const lookup=admin?u.searchParams.get('order_id'):null;
+   if(typeof expected!=='string'||!address.test(expected)||(!write&&(u.searchParams.size!==(lookup?2:1)||u.search.length>256))||(lookup!==null&&!/^0x[0-9a-f]{64}$/.test(lookup)))return bad(400,'BAD_REQUEST');
+diff --git a/src/world/GoldPurchase.tsx b/src/world/GoldPurchase.tsx
+index 87dd25d..d4a14ea 100644
+--- a/src/world/GoldPurchase.tsx
++++ b/src/world/GoldPurchase.tsx
+@@ -35,7 +35,7 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,fast,quote,pre
+   {wallet.hash&&<p className="gold-transaction-reference">{say('交易雜湊','Transaction hash')}<a href={'https://etherscan.io/tx/'+wallet.hash} target="_blank" rel="noopener noreferrer">{wallet.hash}</a></p>}
+   <div className="gold-purchase-buttons">
+    {!order&&<button className="gold-primary" disabled={!chosen||!canStart||locked||prepared&&wallet.phase!=='confirmed'} onClick={()=>chosen&&quote(chosen.product)}>{say('核對購點內容','Review purchase')}</button>}
+-   {order&&stage==='review'&&<button className="gold-primary" disabled={locked||!ack||!config||unresolved} onClick={prepare}>{say('前往錢包確認','Continue to wallet')}</button>}
++   {order&&stage==='review'&&<button className="gold-primary" disabled={locked||!ack||!config||unresolved} onClick={prepare}>{say('下一步：檢查授權額度','Next: check allowance')}</button>}
+    {order&&stage==='approve'&&<button className="gold-primary" disabled={locked||!ack} onClick={approve}>{wallet.phase==='reset-required'?say('先將原授權歸零','Reset existing allowance'):say('授權本筆指定額度','Approve exact purchase amount')}</button>}
+    {order&&stage==='confirm'&&<button className="gold-primary" disabled={locked||!ack} onClick={confirm}>{say('確認 EMBEO 付款','Confirm EMBEO payment')}</button>}
+    {['pending','unknown'].includes(wallet.phase)&&wallet.hash&&<button className="gold-primary" disabled={locked} onClick={check}>{say('查詢原交易','Check original transaction')}</button>}
+@@ -46,7 +46,7 @@ export function GoldPurchase({data,selected,wallet,config,busy,zh,fast,quote,pre
+   {stage==='approve'&&<p role="status">{say('授權不等於付款。請確認錢包中的額度，完成授權後還需確認付款。','Approval is separate from payment. Check the allowance in your wallet, then confirm payment.')}</p>}
+   {(stage==='pending'||stage==='awaiting-credit')&&fast?.status==='crediting'&&<p role="status">{say('付款已送出，入帳中（約 12 秒）。GOLD 到帳後右上角會自動更新，你可以先返回世界；請勿重複付款。','Payment sent; crediting (about 12 seconds). The top bar updates by itself when the GOLD arrives, so you can go back to the World. Do not pay again.')}</p>}
+   {stage==='pending'&&fast?.status!=='crediting'&&<p role="status">{say('交易確認中，請勿重複付款。','Transaction pending. Do not pay again.')}</p>}
+-  {stage==='awaiting-credit'&&fast?.status!=='crediting'&&<p role="status">{say('這筆付款改由鏈上最終確認後入帳，最晚約 15 分鐘。GOLD 尚未入帳，請稍後按「查詢原單入帳」，不需再次付款。','This payment is credited after final chain confirmation instead, at most about 15 minutes. GOLD is not credited yet. Press "Check original credit" later; do not pay again.')}</p>}
++  {stage==='awaiting-credit'&&fast?.status!=='crediting'&&<p role="status">{say('這筆付款改由鏈上最終確認後入帳，最晚約 15 分鐘。GOLD 尚未入帳，請稍後按「查詢原單入帳」（也會再試一次快速入帳），不需再次付款。','This payment is credited after final chain confirmation instead, at most about 15 minutes. GOLD is not credited yet. Press "Check original credit" later (it also retries the fast credit); do not pay again.')}{fast?.code&&<small className="gold-fast-code"> {say('參考代碼：','Reference: ')}{fast.code}</small>}</p>}
+   {stage==='credited'&&<p role="status">{say('已核對帳本入帳；右上角資產餘額會同步更新。','Ledger credit verified. Your asset balance will refresh.')}</p>}
+   {wallet.error&&<p role="alert">{goldPurchaseError(wallet.error,zh)}</p>}
+   {wallet.phase==='unknown'&&!wallet.hash&&<p role="alert">{say('錢包回覆不明，已暫停新付款。請先在錢包核對原交易，勿重複付款。','Wallet response is uncertain. New payments are blocked. Check the original transaction in your wallet; do not pay again.')}</p>}
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index d1a43c7..704c902 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -79,6 +79,9 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  useEffect(()=>{const o=selected;if(!o||o.kind!=='topup'||o.id!==payingOrder||!payingHash||o.fastCredit||o.status==='paid')return;
+   followFastCredit({fastCredit:(id,hash)=>client.fastCredit(id,hash)},o.id,payingHash,o.gold);},[selected,payingOrder,payingHash,client]);
+  const fast=useSyncExternalStore(subscribeFastFollow,()=>fastFollow(selected?.id),()=>null);
++ /** "Check original credit" also asks for the fast credit again after a fallback, with the hash it already followed. */
++ const retryFast=(o:GoldOrder)=>{const hash=fastFollow(o.id)?.transactionHash??(o.id===payingOrder?payingHash:null);
++  if(o.kind==='topup'&&o.status==='pending'&&!o.fastCredit&&hash)followFastCredit({fastCredit:(id,h)=>client.fastCredit(id,h)},o.id,hash,o.gold);};
+  useEffect(()=>{if(fast?.status==='credited')void refresh();},[fast?.status,refresh]);
+  // Errors from ordering or signing are written to the status line at the end of the panel; bring it into view.
+  useEffect(()=>{if(notice)statusLine.current?.scrollIntoView?.({block:'nearest'});},[notice]);
+@@ -98,7 +101,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  {data?<><div className="gold-balance"><strong>{data.available} GOLD</strong><span>{zh?'帳面':'Book'} {data.book}</span><span>{zh?'保留':'Reserved'} {data.reserved}</span><small>{new Date(data.asOf).toISOString()}</small></div>
+  {error&&<p role="status" className="gold-stale">{zh?`最新帳本暫時讀不到（代碼：${error}），以下是上次讀到的資料。`:`Could not refresh the ledger (code: ${error}); showing the last data read.`}</p>}
+  {configFailed&&<p role="alert">{zh?'錢包付款設定讀取失敗，請按下方「更新餘額與狀態」重試。':'Payment settings could not be read. Press "Refresh ledger" below to retry.'}</p>}
+- <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} fast={fast} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={()=>void run(()=>controller!.checkReceipt())} reconcile={()=>selected&&void run(()=>client.reconcile(selected.id))} clear={()=>setSelected(null)}/>
++ <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} fast={fast} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={()=>void run(()=>controller!.checkReceipt())} reconcile={()=>selected&&void run(()=>{retryFast(selected);return client.reconcile(selected.id);})} clear={()=>setSelected(null)}/>
+  <details className="gold-ledger-details"><summary>{zh?'帳本、訂單與其他館內服務':'Ledger, orders and hall services'}</summary>
+  {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購點不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product===RESEARCH_PASS_PRODUCT&&<ResearchPassConfirm order={selected} zh={zh} acknowledged={passAck===selected.id} busy={busy||wallet.busy} onAcknowledge={checked=>setPassAck(checked?selected.id:null)} onSign={()=>void run(()=>pay(selected))}/>}
+diff --git a/src/world/fastGoldCredit.ts b/src/world/fastGoldCredit.ts
+index f50d186..531f61a 100644
+--- a/src/world/fastGoldCredit.ts
++++ b/src/world/fastGoldCredit.ts
+@@ -6,7 +6,7 @@ import {EconomyClientError} from './economyClient.ts';
+  *  outside the GOLD panel, so the player can go back to the World while the top bar shows "crediting". A refusal, an
+  *  outage or the end of the schedule falls back to the finalized path, which still credits the order. */
+ export const FAST_CREDIT_SCHEDULE_MS=[1_500,3_000,5_000,7_000,10_000,13_000,17_000,22_000,28_000,35_000,45_000,60_000,90_000] as const;
+-export type FastFollow={orderId:string;gold:string;status:'crediting'|'credited'|'fallback';code?:string};
++export type FastFollow={orderId:string;gold:string;transactionHash:string;status:'crediting'|'credited'|'fallback';code?:string};
+ export type FastFollowDeps={fastCredit:(orderId:string,transactionHash:string)=>Promise<FastCreditReply>;
+   set?:(fn:()=>void,ms:number)=>unknown;emit?:(name:string,detail?:unknown)=>void};
+ /** Transient: try again at the next step of the schedule. Anything else ends fast credit for this order. */
+@@ -18,22 +18,25 @@ export function subscribeFastFollow(fn:()=>void){listeners.add(fn);return()=>{li
+ /** The GOLD still being credited across all followed orders (the top bar's "+N crediting"). */
+ export function fastCrediting(){let n=0n;for(const f of follows.values())if(f.status==='crediting')n+=BigInt(f.gold);return n;}
+ export function resetFastFollows(){follows.clear();for(const fn of listeners)fn();}
+-/** Start following one order's payment once; a repeat call for the same order is ignored. */
++/** Start following one order's payment. A repeat call is ignored while it is crediting or credited; after a fallback
++ *  (the "check original credit" button) it starts the schedule again. */
+ export function followFastCredit(deps:FastFollowDeps,orderId:string,transactionHash:string,gold:string){
+-  if(follows.has(orderId)||!/^[1-9][0-9]*$/.test(gold))return;
++  const prior=follows.get(orderId);if(prior&&prior.status!=='fallback'||!/^[1-9][0-9]*$/.test(gold))return;
+   const set=deps.set??((fn,ms)=>setTimeout(fn,ms)),emit=deps.emit??defaultEmit;
+   const update=(next:FastFollow)=>{follows.set(orderId,next);emit('world:gold-crediting',{gold:String(fastCrediting())});for(const fn of listeners)fn();};
+-  update({orderId,gold,status:'crediting'});
+-  let step=0,elapsed=0;
+-  const end=(status:'credited'|'fallback',code?:string)=>{update({orderId,gold,status,...code?{code}:{}});if(status==='credited')emit('world:gold-changed');};
++  update({orderId,gold,transactionHash,status:'crediting'});
++  let step=0,elapsed=0,last:string|undefined;
++  const end=(status:'credited'|'fallback',code?:string)=>{update({orderId,gold,transactionHash,status,...code?{code}:{}});if(status==='credited')emit('world:gold-changed');};
+   const attempt=async()=>{
+     if(follows.get(orderId)?.status!=='crediting')return;
+     try{
+       const r=await deps.fastCredit(orderId,transactionHash);
+       if(r.status==='credited'||r.status==='paid')return end('credited');
+       if(r.status==='reverted')return end('fallback','REVERTED');
+-    }catch(e){const code=e instanceof EconomyClientError?e.code:'UNAVAILABLE';if(!RETRY.has(code))return end('fallback',code);}
+-    if(step>=FAST_CREDIT_SCHEDULE_MS.length)return end('fallback','TIMEOUT');
++      last='WAITING';
++    }catch(e){const code=e instanceof EconomyClientError?e.code:'UNAVAILABLE';if(!RETRY.has(code))return end('fallback',code);last=code;}
++    // The last transient answer says why the schedule ran out (still not mined, rate limited, chain unavailable).
++    if(step>=FAST_CREDIT_SCHEDULE_MS.length)return end('fallback','TIMEOUT_'+last);
+     const at=FAST_CREDIT_SCHEDULE_MS[step++];set(()=>void attempt(),at-elapsed);elapsed=at;
+   };
+   const first=FAST_CREDIT_SCHEDULE_MS[step++];elapsed=first;set(()=>void attempt(),first);
+diff --git a/tests/fast-gold-client.test.mjs b/tests/fast-gold-client.test.mjs
+index c34fad7..c64f28a 100644
+--- a/tests/fast-gold-client.test.mjs
++++ b/tests/fast-gold-client.test.mjs
+@@ -38,15 +38,27 @@ test('the follower asks the server with the wallet hash and stops once the GOLD
+ test('outages and rate limits retry on the schedule; a refusal ends fast credit and leaves the finalized path',async()=>{resetFastFollows();
+   const t=harness([new EconomyClientError('RATE_LIMITED'),new EconomyClientError('CHAIN_UNAVAILABLE'),new EconomyClientError('PAYMENT_DOES_NOT_MATCH_ORDER')]);
+   followFastCredit(t.deps,ID,TX,'100');await t.run();await t.run();assert.equal(fastFollow(ID).status,'crediting');
+-  await t.run();assert.deepEqual(fastFollow(ID),{orderId:ID,gold:'100',status:'fallback',code:'PAYMENT_DOES_NOT_MATCH_ORDER'});
++  await t.run();assert.deepEqual(fastFollow(ID),{orderId:ID,gold:'100',transactionHash:TX,status:'fallback',code:'PAYMENT_DOES_NOT_MATCH_ORDER'});
+   assert.equal(t.timers.length,0);assert.equal(fastCrediting(),0n);
+ });
+ 
++test('after a fallback the "check original credit" button can start the schedule again, never alongside a running one',async()=>{resetFastFollows();
++  const t=harness([new EconomyClientError('FAST_CREDIT_UNAVAILABLE'),{status:'credited',gold:'100'}]);
++  followFastCredit(t.deps,ID,TX,'100');await t.run();assert.equal(fastFollow(ID).status,'fallback');
++  followFastCredit(t.deps,ID,TX,'100');assert.equal(fastFollow(ID).status,'crediting');
++  followFastCredit(t.deps,ID,TX,'100');assert.equal(t.timers.length,1,'a running schedule is not doubled');
++  await t.run();assert.equal(fastFollow(ID).status,'credited');assert.equal(t.calls.length,2);
++});
++
+ test('the schedule ends after about 90 seconds of waiting, then the finalized path takes over',async()=>{resetFastFollows();
+   const t=harness(FAST_CREDIT_SCHEDULE_MS.map(()=>({status:'waiting'})));followFastCredit(t.deps,ID,TX,'100');
+   let total=0;while(t.timers.length)total+=await t.run();
+   assert.equal(total,FAST_CREDIT_SCHEDULE_MS.at(-1));assert.equal(t.calls.length,FAST_CREDIT_SCHEDULE_MS.length);
+-  assert.deepEqual(fastFollow(ID),{orderId:ID,gold:'100',status:'fallback',code:'TIMEOUT'});
++  assert.deepEqual(fastFollow(ID),{orderId:ID,gold:'100',transactionHash:TX,status:'fallback',code:'TIMEOUT_WAITING'});
++});
++test('a schedule that ran out on rate limits says so in its code',async()=>{resetFastFollows();
++  const t=harness(FAST_CREDIT_SCHEDULE_MS.map(()=>new EconomyClientError('RATE_LIMITED')));followFastCredit(t.deps,ID,TX,'100');
++  while(t.timers.length)await t.run();assert.equal(fastFollow(ID).code,'TIMEOUT_RATE_LIMITED');
+ });
+ 
+ test('a fast credit, not a mined receipt, completes the purchase stage',()=>{
+@@ -70,8 +82,9 @@ test('after payment the page says crediting while the follower runs, and the 15-
+   const paying={...idle,phase:'confirmed',step:'execute',plan:{kind:'pay',payment:{orderId:ID}},hash:TX};
+   let s=html({selected:order,wallet:paying,fast:{orderId:ID,gold:'1000',status:'crediting'}});
+   assert.ok(s.includes('入帳中（約 12 秒）'));assert.ok(s.includes('請勿重複付款'));assert.ok(!s.includes('最晚約 15 分鐘'));
+-  s=html({selected:order,wallet:paying,fast:{orderId:ID,gold:'1000',status:'fallback',code:'TIMEOUT'}});
++  s=html({selected:order,wallet:paying,fast:{orderId:ID,gold:'1000',transactionHash:TX,status:'fallback',code:'TIMEOUT_RATE_LIMITED'}});
+   assert.ok(s.includes('最晚約 15 分鐘'));assert.ok(s.includes('查詢原單入帳'));assert.ok(!s.includes('入帳中（約 12 秒）'));
++  assert.ok(s.includes('參考代碼：TIMEOUT_RATE_LIMITED'),'the reason is visible for a screenshot');
+   s=html({selected:{...order,fastCredit:'credited',creditedGold:'1000'},wallet:paying,fast:{orderId:ID,gold:'1000',status:'credited'}});
+   assert.ok(s.includes('GOLD 已入帳'));
+ });
+diff --git a/tests/gold-purchase-ui.test.mjs b/tests/gold-purchase-ui.test.mjs
+index 993c607..eda69fa 100644
+--- a/tests/gold-purchase-ui.test.mjs
++++ b/tests/gold-purchase-ui.test.mjs
+@@ -13,7 +13,7 @@ const W='0x'+'a'.repeat(40),id='0x'+'1'.repeat(64),order={id,kind:'topup',gold:'
+ const data={wallet:W,products:PACKAGES,paymentsReady:true,controls:[{feature:'topup',enabled:1}]},wallet={phase:'idle',busy:false,plan:null,step:null,hash:null,error:null};
+ const html=patch=>renderToStaticMarkup(h(GoldPurchase,{data,wallet,selected:null,config:{token:W,paymentContract:W,treasury:W},busy:false,zh:true,quote(){throw Error('SSR must not quote');},prepare(){throw Error('SSR must not prepare');},approve(){throw Error('SSR must not send');},confirm(){throw Error('SSR must not send');},check(){},reconcile(){},clear(){},...patch}));
+ test('actual quick-plan UI shows precise server prices and mandatory one-way wallet-bound unsellable terms',()=>{const s=html();for(const text of ['100 GOLD','1,000 GOLD','1,200 GOLD','10,000','100,000','120,000',W,'不可轉讓','不可賣出','不能兌回 EMBEO'])assert.ok(s.includes(text),text);assert.ok(!s.includes('年化'));assert.ok(!s.includes('36.5%'));assert.match(s,/aria-pressed="true"[^>]*><strong>1,000 GOLD/);});
+-test('review keeps the full original wallet/order and cannot prepare before a fresh acknowledgement',()=>{const s=html({selected:order});assert.ok(s.includes(W));assert.ok(s.includes(id));assert.match(s,/<input type="checkbox"\/>/);assert.match(s,/<button class="gold-primary" disabled="">前往錢包確認/);});
++test('review keeps the full original wallet/order and cannot prepare before a fresh acknowledgement',()=>{const s=html({selected:order});assert.ok(s.includes(W));assert.ok(s.includes(id));assert.match(s,/<input type="checkbox"\/>/);assert.match(s,/<button class="gold-primary" disabled="">下一步：檢查授權額度/);});
+ test('closed admission, unavailable configuration and busy wallet disable new purchase requests',()=>{for(const patch of [{data:{...data,paymentsReady:false}},{data:{...data,controls:[]}},{busy:true},{wallet:{...wallet,busy:true,phase:'pending'}}])assert.match(html(patch),/<button class="gold-primary" disabled="">核對購點內容/);});
+-test('paid without actual credited amount stays pending; genuine credit is the only completion condition',()=>{let s=html({selected:{...order,status:'paid'}});assert.ok(s.includes('GOLD 尚未入帳'));assert.ok(!s.includes('GOLD 已入帳'));assert.ok(!s.includes('前往錢包確認'));s=html({selected:{...order,status:'paid',creditedGold:'1000'}});assert.ok(s.includes('GOLD 已入帳'));assert.ok(!s.includes('前往錢包確認'));});
++test('paid without actual credited amount stays pending; genuine credit is the only completion condition',()=>{let s=html({selected:{...order,status:'paid'}});assert.ok(s.includes('GOLD 尚未入帳'));assert.ok(!s.includes('GOLD 已入帳'));assert.ok(!s.includes('下一步：檢查授權額度'));s=html({selected:{...order,status:'paid',creditedGold:'1000'}});assert.ok(s.includes('GOLD 已入帳'));assert.ok(!s.includes('下一步：檢查授權額度'));});
+ test('restored unresolved send blocks new orders and offers original-transaction recovery without new payment',()=>{const s=html({wallet:{...wallet,phase:'unknown',hash:'0x'+'2'.repeat(64),error:'PENDING_TRANSACTION'}});assert.ok(s.includes('查詢原交易'));assert.match(s,/<button class="gold-primary" disabled="">核對購點內容/);assert.ok(s.includes('不要重複付款'));});
+diff --git a/tests/world-gold-fast.test.mjs b/tests/world-gold-fast.test.mjs
+index d6e96d4..c8bf650 100644
+--- a/tests/world-gold-fast.test.mjs
++++ b/tests/world-gold-fast.test.mjs
+@@ -189,7 +189,7 @@ const post=(path,wallet,body)=>new Request(ROOT+path,{method:'POST',headers:{ori
+ test('POST /api/gold/orders/{id}/fast-credit: signed-in owner only, exact body, off unless the Worker binds it',async()=>{const f=await setup();try{
+   f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,1,?,?,?,?,?)').run(await sha256(TOKEN),W,NOW-1,NOW+3600000,'fast-credit-api','EOA','ECDSA');
+   const id=await f.quote(),tx=hash(0xaf);f.c.pay(tx,150,{orderId:id,amount:f.order(id).amount});
+-  const base={db:f.db,config:f.config,now:()=>NOW+10,allow:async()=>true},path='/api/gold/orders/'+id+'/fast-credit';
++  const keys=[],base={db:f.db,config:f.config,now:()=>NOW+10,client:'ip-a',allow:async k=>{keys.push(k);return true;}},path='/api/gold/orders/'+id+'/fast-credit';
+   const bound={...base,fastCredit:args=>fastCreditTopup(f.db,f.config,f.c.rpc,args)};
+   let r=await handleWorldGoldApi(post(path,W,{transactionHash:tx}),base);assert.equal(r.status,503);assert.equal((await r.json()).error,'FAST_CREDIT_UNAVAILABLE');
+   r=await handleWorldGoldApi(new Request(ROOT+path+'?expected_address='+W,{headers:{cookie:SESSION_COOKIE+'='+TOKEN}}),bound);assert.equal(r.status,405);
+@@ -199,4 +199,10 @@ test('POST /api/gold/orders/{id}/fast-credit: signed-in owner only, exact body,
+   r=await handleWorldGoldApi(post(path,W,{transactionHash:wrong}),bound);assert.equal(r.status,409);assert.equal((await r.json()).error,'PAYMENT_DOES_NOT_MATCH_ORDER');
+   r=await handleWorldGoldApi(post(path,W,{transactionHash:tx.toUpperCase().replace('0X','0x')}),bound);assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'credited',gold:'10'});
+   assert.equal((await f.snapshot()).book,'10');f.balanced();
++  // Its own rate-limit budget: the panel's ledger refreshes cannot use up the fast-credit polls (and vice versa).
++  assert.ok(keys.length>0&&keys.every(k=>k==='world-gold-fast:ip-a'),JSON.stringify([...new Set(keys)]));
++  keys.length=0;await handleWorldGoldApi(new Request(ROOT+'/api/gold/state?expected_address='+W,{headers:{cookie:SESSION_COOKIE+'='+TOKEN}}),bound);
++  assert.deepEqual(keys,['world-gold:ip-a']);
++  const limited=await handleWorldGoldApi(post(path,W,{transactionHash:tx}),{...bound,allow:async k=>k!=='world-gold-fast:ip-a'});
++  assert.equal(limited.status,429);assert.equal((await limited.json()).error,'RATE_LIMITED');
+ }finally{f.close();}});
+diff --git a/worker/app.ts b/worker/app.ts
+index ca5d8ba..cd4283b 100644
+--- a/worker/app.ts
++++ b/worker/app.ts
+@@ -223,7 +223,10 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+         const delivery=deliveryFor(env);
+         const db=env.DB,fastConfig=config;
+         const fastCredit=env.GOLD_FAST_CREDIT==='1'&&db&&fastConfig&&env.ECONOMY_CHAIN_LIMITER?
+-          (args:Parameters<typeof fastCreditTopup>[3])=>fastCreditTopup(db,fastConfig,economyRpc(env,'economy:fast'),args):undefined;
++          // Each outcome is logged (status or refusal code only) so a live tail shows why a credit waited or fell back.
++          (args:Parameters<typeof fastCreditTopup>[3])=>fastCreditTopup(db,fastConfig,economyRpc(env,'economy:fast'),args).then(
++            r=>{console.log('gold_fast_credit',JSON.stringify({status:r.status}));return r;},
++            e=>{console.log('gold_fast_credit',JSON.stringify({code:e instanceof Error?e.message:'UNKNOWN'}));throw e;}):undefined;
+         const deps={db:env.DB,config,now,serviceReady:hasGoldDeliveryProvider(delivery),serviceProducts:delivery?.products,client:rateLimitKey(ip),fastCredit,allow:async(key:string)=>{
+           if(!env.ECONOMY_LIMITER)throw new LimiterMissing('ECONOMY_LIMITER');
+           return (await env.ECONOMY_LIMITER.limit({key})).success;
+-- 
+2.55.0.windows.5
+

@@ -1,0 +1,168 @@
+From 2f7570d89cd45b48678073d56b5d2d5c4d7f4055 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 18:09:01 +0800
+Subject: [PATCH 07/18] Wallet pick: keep the session when the picked wallet
+ already grants the signed-in address
+
+The owner runs two wallet extensions and was signed out (and asked to sign again) on every pick in
+"My wallet", even when the picked wallet holds the same account. An explicit pick now first reads the
+picked wallet's already-granted account (eth_accounts, never a prompt). If it is the signed-in address
+and no sign-in or retained flow is in progress, the session stays and only the transport changes. A
+locked wallet, an empty or failed reply, another address or a newer event switch as before (the old
+session is cleaned up); a pick reverted before the reply changes nothing. Owner decision 2026-10-26.
+
+Tests: the Audit1 same-address case now expects the session to stay; new cases for locked and
+other-address picks (still switch) and for a pick reverted before the reply. Removing the fast path
+fails the new same-address test.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/auth.ts            | 28 ++++++++++++++++--
+ tests/auth-audit8.test.mjs   | 55 ++++++++++++++++++++++++++++++++++--
+ tests/wallet-client.test.mjs |  3 +-
+ 3 files changed, 80 insertions(+), 6 deletions(-)
+
+diff --git a/src/world/auth.ts b/src/world/auth.ts
+index adafba2..ad43857 100644
+--- a/src/world/auth.ts
++++ b/src/world/auth.ts
+@@ -137,6 +137,8 @@ export class AuthClient{
+   private bound:Provider|null=null;private binds=0;private accountEvents=0;
+   /** A cookie is not a wallet observation. Keep the last observed account across a lock, within this page's binding. */
+   private observedAccount:string|null=null;
++  /** The explicit wallet pick whose eth_accounts reply is awaited; any newer pick or a return to the bound one drops it. */
++  private picking:object|null=null;
+   /** The newest session read: a click waits until none is running, so a reload with a live cookie never asks for a signature. */
+   private restoring:Promise<void>|null=null;private deps:AuthDeps;
+   /** N-1: numbers every session read; only the newest one's answer, failure or body is applied (one overtaken by a newer
+@@ -320,10 +322,14 @@ export class AuthClient{
+     if(p.on){const h=(v:unknown)=>{if(b===this.binds)this.accountChanged(firstAccount(v));};p.on('accountsChanged',h);this.unsub=()=>p.removeListener?.('accountsChanged',h);}
+   }
+   /** Passive provider replacement is rebind/reconcile only until eth_accounts proves a different address. An explicit
+-   *  wallet pick remains a context switch, even for the same address. SIWE is fixed to chain 1; wallet chain events do
+-   *  not expand that existing policy or add wallet methods. */
++   *  wallet pick is a context switch unless the picked wallet's already-granted account (eth_accounts, never a prompt)
++   *  is the signed-in address while no sign-in or retained flow is in progress: then the session stays and only the
++   *  transport changes. A locked wallet, an empty or failed reply, another address or any intervening event switches
++   *  as before. SIWE is fixed to chain 1; wallet chain events do not expand that existing policy or add wallet methods. */
+   providerChanged(reason:ProviderChangeReason='discovery'){
+-    const p=this.deps.provider();if(p===this.bound)return;
++    const p=this.deps.provider();
++    if(p===this.bound){if(this.picking){this.picking=null;this.set({account:this.observedAccount,checking:false});}return;}
++    this.picking=null;
+     const abandoned=this.lifecycle.click,held=this.s.session??undefined;
+     if(reason==='discovery'){
+       const account=this.observedAccount,currentOwners=this.lifecycle.retainedOwners.filter(owner=>owner.life===this.life);
+@@ -334,6 +340,22 @@ export class AuthClient{
+       }else this.set({account:null});
+       this.bind(p,true,account);return;
+     }
++    if(p&&held&&!abandoned&&!this.lifecycle.retainedOwners.some(owner=>owner.life===this.life)){
++      const pick={},g=this.gen,life=this.life,e=this.accountEvents;this.picking=pick;
++      this.set({account:null,checking:true});
++      void p.request({method:'eth_accounts'}).then(firstAccount,()=>null).then(a=>{
++        if(this.picking!==pick||life!==this.life||this.deps.provider()!==p)return;this.picking=null;
++        if(a&&g===this.gen&&e===this.accountEvents&&!this.lifecycle.click&&a===this.s.session?.address){
++          this.observedAccount=a;this.set({checking:false});this.bind(p,true,a);return;}
++        this.switchProvider(p);
++      });
++      return;
++    }
++    this.switchProvider(p);
++  }
++  /** An explicit pick of another wallet identity: every flow of the old one ends and its session is cleaned up. */
++  private switchProvider(p:Provider|null){
++    const abandoned=this.lifecycle.click,held=this.s.session??undefined;
+     this.gen++;this.lifecycle.cancel();this.cancelOwners('context-switch');
+     this.set({account:null,phase:'idle',waiting:false,notice:null,sessionKnown:false,home:null,checking:false});
+     this.automaticCleanup('provider-switch',this.gen,this.life,abandoned,held);
+diff --git a/tests/auth-audit8.test.mjs b/tests/auth-audit8.test.mjs
+index f774ffb..1a1a76e 100644
+--- a/tests/auth-audit8.test.mjs
++++ b/tests/auth-audit8.test.mjs
+@@ -46,8 +46,8 @@ for(const mode of ['late-announcement','second-wallet','same-address-object'])te
+   }finally{off();reg.stop();q.stop();}
+ });
+ 
+-for(const mode of ['same-address','different-address'])test(`Audit1 explicit ${mode} wallet selection owns cleanup; old provider callback cannot restore`,async t=>{
+-  const w=setup(),A=newAccount(),B=mode==='same-address'?A:newAccount(),b=w.browser(),first=provider(A),second=provider(B),reg=registry(null);
++for(const mode of ['different-address'])test(`Audit1 explicit ${mode} wallet selection owns cleanup; old provider callback cannot restore`,async t=>{
++  const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),first=provider(A),second=provider(B),reg=registry(null);
+   let oldCallback;const on=first.on;first.on=(name,fn)=>{if(name==='accountsChanged')oldCallback=fn;on(name,fn);};
+   reg.announce(first);reg.announce(second,'two');reg.r.choose(reg.r.state.options[0]);
+   assert.equal((await b.signIn(A)).verify.status,200);
+@@ -64,6 +64,57 @@ for(const mode of ['same-address','different-address'])test(`Audit1 explicit ${m
+   }finally{off();reg.stop();q.stop();}
+ });
+ 
++// 2026-10-26 owner decision: picking another wallet that already grants the signed-in address keeps the session (the
++// owner with two wallet extensions was signed out on every pick). Only the transport changes; nothing is signed or revoked.
++test('explicit pick of another wallet with the signed-in address keeps the session and follows only the new wallet',async t=>{
++  const w=setup(),A=newAccount(),b=w.browser(),first=provider(A),second=provider(A),reg=registry(null);
++  reg.announce(first);reg.announce(second,'two');reg.r.choose(reg.r.state.options[0]);
++  assert.equal((await b.signIn(A)).verify.status,200);
++  const q=tab(w,b,first,{getProvider:()=>reg.r.current()}),off=reg.r.subscribeProvider(reason=>q.notifyProvider(reason));
++  try{
++    await ready(q);const accepted=q.c.state.session;
++    reg.r.choose(reg.r.state.options.find(o=>o.provider===second));
++    await until(()=>q.c.state.account===A.address.toLowerCase()&&!q.c.state.checking);await flush(20);record(t,'same-address pick',q,[first,second]);
++    assert.equal(logouts(q).length,0,'no cleanup for the same address');
++    assert.deepEqual([rows(w).counts.created,rows(w).counts.live,rows(w).counts.revoked],[1,1,0]);
++    assert.deepEqual(q.c.state.session,accepted);assert.equal((await (await b.get('/api/auth/session')).json()).signedIn,true);
++    assert.ok(second.calls.length>0&&second.calls.every(m=>m==='eth_accounts'),'the picked wallet is only read silently');
++    assert.equal(prompts([first,second]),0);assert.equal(routeEvents(q,'/api/auth/challenge').length,0);
++    const before=first.calls.length;await q.signIn();await flush();
++    assert.equal(first.calls.length,before,'the previous wallet is no longer asked anything');
++  }finally{off();reg.stop();q.stop();}
++});
++
++for(const mode of ['locked','other-address'])test(`explicit pick of a wallet that is ${mode} still switches and cleans the old session`,async t=>{
++  const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),first=provider(A),second=provider(mode==='locked'?null:B),reg=registry(null);
++  reg.announce(first);reg.announce(second,'two');reg.r.choose(reg.r.state.options[0]);
++  assert.equal((await b.signIn(A)).verify.status,200);
++  const q=tab(w,b,first,{getProvider:()=>reg.r.current()}),off=reg.r.subscribeProvider(reason=>q.notifyProvider(reason));
++  try{
++    await ready(q);reg.r.choose(reg.r.state.options.find(o=>o.provider===second));
++    await until(()=>rows(w).counts.revoked===1&&!q.c.state.session&&!q.c.state.checking);record(t,mode,q,[first,second]);
++    assert.equal(logouts(q).length,1);assert.equal(q.c.lifecycleSnapshot.cleanupPlans.at(-1).reason,'provider-switch');
++    assert.equal(q.c.state.account,mode==='locked'?null:B.address.toLowerCase());assert.equal(prompts([first,second]),0);
++  }finally{off();reg.stop();q.stop();}
++});
++
++test('a pick reverted before the picked wallet answers changes nothing',async t=>{
++  const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),first=provider(A),second=provider(B),reg=registry(null);
++  const reply=defer(),request=second.request;second.request=async a=>{if(a.method==='eth_accounts')await reply.promise;return request(a);};
++  reg.announce(first);reg.announce(second,'two');reg.r.choose(reg.r.state.options[0]);
++  assert.equal((await b.signIn(A)).verify.status,200);
++  const q=tab(w,b,first,{getProvider:()=>reg.r.current()}),off=reg.r.subscribeProvider(reason=>q.notifyProvider(reason));
++  try{
++    await ready(q);const accepted=q.c.state.session;
++    reg.r.choose(reg.r.state.options.find(o=>o.provider===second));await flush();assert.equal(q.c.state.checking,true);
++    reg.r.choose(reg.r.state.options.find(o=>o.provider===first));await flush();
++    assert.equal(q.c.state.checking,false);assert.equal(q.c.state.account,A.address.toLowerCase());
++    reply.resolve();await flush(20);record(t,'reverted pick',q,[first,second]);
++    assert.equal(logouts(q).length,0);assert.deepEqual(q.c.state.session,accepted);
++    assert.deepEqual([rows(w).counts.created,rows(w).counts.live,rows(w).counts.revoked],[1,1,0]);
++  }finally{off();reg.stop();q.stop();}
++});
++
+ test('Audit1 passive first provider with a different account cannot revoke a cookie-restored session without an established wallet account',async t=>{
+   const w=setup(),A=newAccount(),B=newAccount(),b=w.browser(),p=provider(B),reg=registry(null);
+   assert.equal((await b.signIn(A)).verify.status,200);
+diff --git a/tests/wallet-client.test.mjs b/tests/wallet-client.test.mjs
+index 623b0ee..0de5d03 100644
+--- a/tests/wallet-client.test.mjs
++++ b/tests/wallet-client.test.mjs
+@@ -786,7 +786,8 @@ test('with several wallets, only the chosen one is asked anything; choosing anot
+   // v1.1 provider-switch policy explicitly selects the trusted displayed session's expectedAddress.
+   assert.equal(t.client.state.account,bAddr);assert.equal(statusOf(t.client.state,w.clock.now()),'connected');assert.equal(ownerAddress(t.client.state,w.clock.now()),null,'owner mode off');
+   assert.equal((await b.get('/api/auth/session').then(r=>r.json())).signedIn,false,'old provider session is actually revoked');
+-  assert.deepEqual(wb.asked,['eth_accounts'],'the new wallet is read silently, never prompted');
++  // Read once to see whether it grants the signed-in address (it does not: switch), once more by the new binding.
++  assert.ok(wb.asked.length>0&&wb.asked.every(m=>m==='eth_accounts'),'the new wallet is read silently, never prompted');
+   wa.switchTo(newAccount());assert.equal(t.client.state.account,bAddr,'the old wallet’s events are no longer followed');
+   const other=newAccount();wb.switchTo(other);assert.equal(t.client.state.account,other.address.toLowerCase());
+   assert.equal(t.client.state.session,null,'a switch to another address ends the old session');
+-- 
+2.55.0.windows.5
+

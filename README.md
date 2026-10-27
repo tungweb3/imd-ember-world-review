@@ -1,5 +1,9 @@
 # IMD Ember World — selected-source review
 
+**Current: [Submission13](Submission13/README.md) — wallet, GOLD fast credit and staking changes of 2026-10-26/27 · DEPLOYED (Worker `a718a392`, source `ae1f640`) · EXTERNAL REVIEW NOT YET DONE**
+
+Read [Submission13/AUDIT_REQUEST.md](Submission13/AUDIT_REQUEST.md) first. The Submission12 text below is the previous review and is kept as history.
+
 **Submission12: TEAM SOURCE EVIDENCE PASS BOUNDED · EXTERNAL AUDIT12 UNKNOWN · RELEASE-READINESS UNKNOWN · NOT DEPLOYED**
 
 This package targets only Audit11's scheduled non-finite housekeeping findings: A11-L1 (Low), destructive presence/session/challenge/member cleanup, and A11-I1 (Info), premature live index-probe deletion and backoff refund. Read [Submission12](Submission12/README.md), [review inputs](Submission12/REVIEW_INPUTS.md), [two-row matrix](Submission12/FinalClosure/CLOSURE_MATRIX.md), [measured tests](Submission12/FinalClosure/TEST_RESULTS.json) and [boundary](Submission12/BOUNDARY_CHECK.json).

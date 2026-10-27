@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "models": {
+    "small": {
+      "model": "/assets/miners/small.d79441a567f0.glb",
+      "poster": "/assets/miners/small.664b24c41f7f.webp",
+      "modelBytes": 1054408,
+      "posterBytes": 58088,
+      "modelSha256": "d79441a567f0d45d96ce760c187a10621c28ab5aa96487a7ea2aacab73a4e24c",
+      "posterSha256": "664b24c41f7f317e13d10a76447a89c2048fe65d7c8e7a2ca898315b69d2ca8c",
+      "sourceModel": "mining+drill+robot+3d+model.glb",
+      "sourceModelBytes": 4330484,
+      "sourceModelSha256": "9cfbcea00fefd0e6341079a99126ca1f0b83ce97f924e8fc4e2c2fdadaeb8d83",
+      "sourcePoster": "象牙翡翠小型採礦機-1.png",
+      "sourcePosterBytes": 2074055,
+      "sourcePosterSha256": "adb28690f9a4ade4cf568f66db73606bf80ea9daf7b1954dc2830c7c06f25db1",
+      "geometrySha256": [
+        "8986e250bd17926d8fa3e14c2971dd8c9ad4cda2ae884259bfdff37c172a5fdf",
+        "8ac158239c744c7ef140a104f48e107667a8085217bd0432daf81be52b54a950"
+      ],
+      "triangles": 37462
+    },
+    "medium": {
+      "model": "/assets/miners/medium.578ec8003577.glb",
+      "poster": "/assets/miners/medium.731033f99cb4.webp",
+      "modelBytes": 1045032,
+      "posterBytes": 59486,
+      "modelSha256": "578ec80035773a1c9fce15722300c26af8b89d82118b9afd1b42c3ac6cbbbe4c",
+      "posterSha256": "731033f99cb4b8e15b732e3483f286f1dcc89cd5c9b7fcee491191efe5075418",
+      "sourceModel": "steampunk+robot+3d+model.glb",
+      "sourceModelBytes": 4179032,
+      "sourceModelSha256": "bf656d3a5ffd74ebd55e88ade9ac87195b548fb337d2fab10ee95811c896231a",
+      "sourcePoster": "中型翡翠雙鑽採礦機-2.png",
+      "sourcePosterBytes": 1971153,
+      "sourcePosterSha256": "eafb806287e6b2c555bce49006560dd948320de4a3c28d3355158255192949d4",
+      "geometrySha256": [
+        "ae3a1c328cd5165542b823a656c7138d70bed4d684dd496eef03ebbd35709e65",
+        "9e5be8c0572bdf29bd4846b54ec193232ce7ee9ac440a5ca202ce18327dfebc1"
+      ],
+      "triangles": 35967
+    },
+    "large": {
+      "model": "/assets/miners/large.d39e7c27da1a.glb",
+      "poster": "/assets/miners/large.78072e38c148.webp",
+      "modelBytes": 1058384,
+      "posterBytes": 55980,
+      "modelSha256": "d39e7c27da1a11c35e105f7251c384386d498fa2fc93c1fe07c82fa4b4e0b0e0",
+      "posterSha256": "78072e38c148c9de6534ff7fb25c2cfda2fadc3b2772c626e54ad3c090fc3576",
+      "sourceModel": "mining+machine+3d+model.glb",
+      "sourceModelBytes": 4007484,
+      "sourceModelSha256": "31dce7fa5e053385da335e19472566f782bf7212147973b6c3a6a28468da5b00",
+      "sourcePoster": "象牙翡翠巨型採礦機-3.png",
+      "sourcePosterBytes": 1995791,
+      "sourcePosterSha256": "cb27ea442b9e4a086ce903bda1905599d5b6577c73f6b8de662b79a0c9847ab2",
+      "geometrySha256": [
+        "e612e9a32b45148cccd1805cf4cf42cc72ac08068a6e669d9e77c0435426d40c",
+        "244e26129c22b031ba213d6f761fcac60331c231c4e4f76fd127dbc9bb13cd83"
+      ],
+      "triangles": 36063
+    }
+  },
+  "videos": {
+    "small": {
+      "src": "/assets/miners/small.e94816cdd5d9.mp4",
+      "bytes": 278819,
+      "sha256": "e94816cdd5d98a0521589dade4f4b4721a29ba64315f63323973195b67c39ebd",
+      "sourceVideo": "Animating_mining_machine_video_1080p_20261027043647.mp4",
+      "sourceBytes": 3780186,
+      "sourceSha256": "3b3cf968a675e548be63fb1d08295dbf4f680e735eaaf106ec771acae1e57eee"
+    },
+    "medium": {
+      "src": "/assets/miners/medium.76c19a0054b9.mp4",
+      "bytes": 273671,
+      "sha256": "76c19a0054b94d055322ffb177502d55938e12159ed2e4b6d013e45dc2ecb6bf",
+      "sourceVideo": "Mining_machine_video_animation_loop_1080p_20261027043800.mp4",
+      "sourceBytes": 3861297,
+      "sourceSha256": "0be44d2225f794a19e8486a38b3fb7092e13e749d2c41c98911f2103c1611db8"
+    },
+    "large": {
+      "src": "/assets/miners/large.dab5d616bcc7.mp4",
+      "bytes": 250802,
+      "sha256": "dab5d616bcc759cd21cad24126df1e21521848ab9e3b47157eaf2c2412127ffa",
+      "sourceVideo": "Animate_mining_machine_video_1080p_20261027043852.mp4",
+      "sourceBytes": 3640887,
+      "sourceSha256": "5640fba2115bafef3b206dff929f135e047c5f7d996be95e43427eb175f986da"
+    }
+  }
+}

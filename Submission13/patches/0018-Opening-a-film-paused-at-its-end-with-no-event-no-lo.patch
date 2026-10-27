@@ -1,0 +1,63 @@
+From ae1f640da7a00247ba6ab94b2ee5f55daaacae6d Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 05:14:54 +0800
+Subject: [PATCH 18/18] Opening: a film paused at its end with no event no
+ longer holds the ready World
+
+Found in the post-deploy check of 2026-10-27: in a backgrounded browser pane the opening film stopped at 8.0 of 8 s, paused but not ended, with no visibility event; the World was ready behind it and the page showed 'Loading is taking longer' until focus returned. While the film runs it is now checked every 2 s: paused at its end (within 0.5 s) counts as ended; paused mid-way after it had started gets the same single resume as a window return (which falls back to the loading wait if it still does not move). Removing the check fails both new tests.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ public/opening-entry.js      | 15 +++++++++++++++
+ tests/world-opening.test.mjs | 10 ++++++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/public/opening-entry.js b/public/opening-entry.js
+index b130081..0a3006c 100644
+--- a/public/opening-entry.js
++++ b/public/opening-entry.js
+@@ -145,6 +145,21 @@ function createOpening(doc, win) {
+         stuck = later(() => { if (video.ended) skipClip(); else if (video.paused) fallbackClip(); }, 3000);
+         try { void video.play()?.catch(quietRetry); } catch { quietRetry(); }
+     };
++    // A browser can also pause a backgrounded film with no visibility event at all, even a few frames before its end, so
++    // `ended` never fires and entry waits for a click (seen 2026-10-27). While the film runs it is checked every 2 s:
++    // paused at its end counts as ended; paused mid-way after it had started gets the same single resume as a return.
++    let started = false, idle = 0;
++    listen(video, 'playing', () => { started = true; idle = 0; });
++    const watch = () => {
++        if (closing || removed || clipDone || !video.src) return;
++        if (started && video.paused && !video.ended && !doc.hidden) {
++            if (Number.isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 0.5) { skipClip(); return; }
++            if (++idle >= 2) { idle = 0; resume(); }
++        }
++        else idle = 0;
++        later(watch, 2000);
++    };
++    later(watch, 2000);
+     listen(doc, 'visibilitychange', resume);
+     listen(doc, 'resume', resume);
+     listen(win, 'pageshow', resume);
+diff --git a/tests/world-opening.test.mjs b/tests/world-opening.test.mjs
+index 00b7066..d844cbc 100644
+--- a/tests/world-opening.test.mjs
++++ b/tests/world-opening.test.mjs
+@@ -102,4 +102,14 @@ test('a film the browser kept playing while hidden is not moved again',()=>{
+  const f=fixture();f.video.duration=8;f.video.currentTime=2;let t=1000;f.win.performance={now:()=>t};
+  f.doc.hidden=true;f.doc.emit('visibilitychange');t+=3000;f.video.currentTime=5;f.doc.hidden=false;f.doc.emit('visibilitychange');
+  assert.equal(f.video.currentTime,5);assert.equal(f.video.playCalls,1,'it never stopped');
++});// 2026-10-27: a backgrounded film was paused a few frames before its end with no visibility event; `ended` never fired
++// and the ready World stayed behind the opening. A 2 s check while the film runs treats "paused at the end" as ended.
++test('a film paused at its end with no event still opens the ready World',()=>{
++ const f=fixture();f.video.duration=8;f.ready();assert.equal(f.closed,0);
++ f.video.currentTime=7.9;f.video.paused=true;f.advance(2000);assert.equal(f.closed,1,'treated as ended');assert.equal(f.video.playCalls,1,'not restarted');
++});
++test('a film paused mid-way with no event gets one resume, and nothing acts before the film has started',()=>{
++ const f=fixture();f.video.duration=8;f.video.currentTime=3;f.video.paused=true;f.advance(2000);assert.equal(f.video.playCalls,1,'one check is not enough');
++ f.advance(2000);assert.equal(f.video.playCalls,2,'second check resumes');assert.equal(f.closed,0);
++ const g=fixture({playing:false});g.video.duration=8;g.video.paused=true;g.advance(6000);assert.equal(g.video.playCalls,1,'a film that never started is left to the existing load/stall timers');
+ });
+\ No newline at end of file
+-- 
+2.55.0.windows.5
+

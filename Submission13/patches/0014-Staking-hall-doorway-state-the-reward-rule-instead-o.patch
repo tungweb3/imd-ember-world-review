@@ -1,0 +1,35 @@
+From 3cdaab18883db0e7d3d8cf5581a8255331372433 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 02:28:19 +0800
+Subject: [PATCH 14/18] Staking hall doorway: state the reward rule instead of
+ the stale 'opening requires review' note
+
+Owner request 2026-10-27 (plain wording): the staking pane is live, so the doorway now says the rule the pane itself uses (100,000 EMBEO a share, a full UTC day staked earns 1 GOLD the next day) and 'GOLD history' instead of 'GOLD ledger'.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/publicHalls/runtime.ts | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/world/publicHalls/runtime.ts b/src/world/publicHalls/runtime.ts
+index 1bfe779..5c9bac1 100644
+--- a/src/world/publicHalls/runtime.ts
++++ b/src/world/publicHalls/runtime.ts
+@@ -353,11 +353,12 @@ export class PublicHallsRuntime {
+       const doorway=createWebsiteDoorway('newspaper',this.language);doorway.link.className='public-halls-research-link';this.modal.append(doorway.link);this.boardDispose=doorway.dispose;
+       this.status=node('p',zh?'官網另開分頁，World 保留在這裡。':'The website opens in a new tab. World stays here.');this.modal.append(this.status);
+     }else if(id==='staking'){
+-      this.modal.append(node('p',zh?'管理 EMBEO 質押、查看 GOLD 帳本及支付 World 服務費用。':'Manage EMBEO staking, view your GOLD ledger and pay for World services.'));
++      this.modal.append(node('p',zh?'質押 EMBEO 領 GOLD、查看 GOLD 紀錄、支付 World 服務費用。':'Stake EMBEO to earn GOLD, see your GOLD history and pay for World services.'));
+       const manage=node('button',zh?'管理質押與 GOLD':'Manage staking and GOLD');manage.type='button';let disposed=false;
+       manage.onclick=()=>{if(disposed)return;this.close();if(this.h.onEconomy)this.h.onEconomy();else window.location.assign(economyEntry(this.language));};
+       this.boardDispose=()=>{disposed=true;manage.onclick=null;};this.modal.append(manage);
+-      this.status=node('p',zh?'正式開放須完成新增功能審核。':'Opening requires review of the new features.');this.status.className='public-halls-status';this.modal.append(this.status);
++      // The staking pane is live (2026-10-27); the old "opening requires review" note confused visitors.
++      this.status=node('p',zh?'每 100,000 EMBEO 為一份，持續質押滿一個完整 UTC 日，次日得到 1 GOLD。':'Every 100,000 EMBEO is one share; a share staked for a full UTC day earns 1 GOLD the next day.');this.status.className='public-halls-status';this.modal.append(this.status);
+     }else if(id==='fortune'){
+       this.modal.append(createFortuneBoard(this.language));this.status=node('p',zh?'玄曜 Celestial Atlas · 官網入口':'Celestial Atlas · Official website doorway');this.status.className='public-halls-status';this.modal.append(this.status);
+     }else if(id==='hive'||id==='pepe2pepe'){
+-- 
+2.55.0.windows.5
+

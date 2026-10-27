@@ -1,0 +1,104 @@
+From 380227d90a889ce11469706cb0f4ff4971835e48 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 04:55:52 +0800
+Subject: [PATCH 17/18] Miner films: a running miner plays its tier's film
+ (owner-provided, 2026-10-27)
+
+The owner's three Flow films (1920x1080, 10 s, with audio) are mapped by content to small / medium / large and re-encoded for the miner's square stage: 720x720 H.264, no audio, faststart, about 250-280 KB each. The machines are not always centred (the small miner's drill sits left), so nothing is cropped: the 16:9 frame is kept whole and the band above and below is the frame's own top / bottom row, stretched and blurred into the background gradient. Files are content-hashed and pinned in miningAssets.json 'videos' (src, bytes, sha256, source name/bytes/sha256); MinerMedia plays the film muted and looping only for a running miner, and keeps the image under reduced motion. CSP default-src 'self' covers same-origin media.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/MinerMedia.tsx    |  4 ++--
+ src/world/miningAssets.json | 26 ++++++++++++++++++++++++++
+ tests/mining-media.test.mjs | 17 +++++++++++++++--
+ 3 files changed, 43 insertions(+), 4 deletions(-)
+
+diff --git a/src/world/MinerMedia.tsx b/src/world/MinerMedia.tsx
+index 3eb9474..15aeef6 100644
+--- a/src/world/MinerMedia.tsx
++++ b/src/world/MinerMedia.tsx
+@@ -3,10 +3,10 @@ import type {MinerTier} from './miningRules.ts';
+ 
+ /** A miner's still image; once the miner runs, its film when one is listed (miningAssets.json "videos", owner-provided)
+  *  and the visitor allows motion. The 3D viewer was removed on 2026-10-27 at the owner's request: a film replaces it. */
+-type Films=Partial<Record<'small'|'medium'|'large',string>>;
++type Films=Partial<Record<'small'|'medium'|'large',{src:string}>>;
+ export function MinerMedia({tier,language,active=false}:{tier:MinerTier;language:'zh'|'en';active?:boolean}){
+  const kind=tier==='none'?'small':tier,asset=assets.models[kind],zh=language==='zh',name=zh?{small:'小型礦機',medium:'中型礦機',large:'大型礦機'}[kind]:kind+' miner';
+- const film=(assets as {videos?:Films}).videos?.[kind];
++ const film=(assets as {videos?:Films}).videos?.[kind]?.src;
+  const motion=typeof window!=='undefined'&&typeof window.matchMedia==='function'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return <div className="miner-media">
+   <div className="miner-stage">
+diff --git a/src/world/miningAssets.json b/src/world/miningAssets.json
+index f6d89ba..774bcd5 100644
+--- a/src/world/miningAssets.json
++++ b/src/world/miningAssets.json
+@@ -58,5 +58,31 @@
+       ],
+       "triangles": 36063
+     }
++  },
++  "videos": {
++    "small": {
++      "src": "/assets/miners/small.e94816cdd5d9.mp4",
++      "bytes": 278819,
++      "sha256": "e94816cdd5d98a0521589dade4f4b4721a29ba64315f63323973195b67c39ebd",
++      "sourceVideo": "Animating_mining_machine_video_1080p_20261027043647.mp4",
++      "sourceBytes": 3780186,
++      "sourceSha256": "3b3cf968a675e548be63fb1d08295dbf4f680e735eaaf106ec771acae1e57eee"
++    },
++    "medium": {
++      "src": "/assets/miners/medium.76c19a0054b9.mp4",
++      "bytes": 273671,
++      "sha256": "76c19a0054b94d055322ffb177502d55938e12159ed2e4b6d013e45dc2ecb6bf",
++      "sourceVideo": "Mining_machine_video_animation_loop_1080p_20261027043800.mp4",
++      "sourceBytes": 3861297,
++      "sourceSha256": "0be44d2225f794a19e8486a38b3fb7092e13e749d2c41c98911f2103c1611db8"
++    },
++    "large": {
++      "src": "/assets/miners/large.dab5d616bcc7.mp4",
++      "bytes": 250802,
++      "sha256": "dab5d616bcc759cd21cad24126df1e21521848ab9e3b47157eaf2c2412127ffa",
++      "sourceVideo": "Animate_mining_machine_video_1080p_20261027043852.mp4",
++      "sourceBytes": 3640887,
++      "sourceSha256": "5640fba2115bafef3b206dff929f135e047c5f7d996be95e43427eb175f986da"
++    }
+   }
+ }
+diff --git a/tests/mining-media.test.mjs b/tests/mining-media.test.mjs
+index efd7e22..d35f999 100644
+--- a/tests/mining-media.test.mjs
++++ b/tests/mining-media.test.mjs
+@@ -14,13 +14,26 @@ function render(props,{films,reduced=false}={}){
+  const out=[],visit=n=>{if(!n||typeof n!=='object')return;if(Array.isArray(n)){n.forEach(visit);return;}out.push(n);visit(n.props?.children);};visit(exports.MinerMedia(props));return out;
+ }
+ const of=(nodes,type)=>nodes.filter(n=>n.type===type);
++test('the miner films shipped with the site are pinned: one per tier, the hashed file, its exact size and SHA-256',async()=>{
++ const {createHash}=await import('node:crypto');
++ assert.deepEqual(Object.keys(assets.videos),['small','medium','large']);
++ for(const [tier,v]of Object.entries(assets.videos)){
++  assert.match(v.src,new RegExp('^/assets/miners/'+tier+'\\.[a-f0-9]{12}\\.mp4$'));const bytes=readFileSync(new URL('../public'+v.src,import.meta.url));
++  const sha=createHash('sha256').update(bytes).digest('hex');assert.equal(sha,v.sha256);assert.equal(bytes.length,v.bytes);assert.ok(v.src.includes(sha.slice(0,12)));
++  assert.ok(v.bytes<600_000,'a light web film (no audio, 720 px)');assert.ok(v.bytes<v.sourceBytes*.2);
++ }
++});
++test('a running miner shows the film shipped for its tier; a miner not running keeps the image',()=>{
++ const n=render({tier:'medium',language:'zh',active:true},{films:assets.videos});assert.equal(of(n,'video')[0].props.src,assets.videos.medium.src);
++ assert.equal(of(render({tier:'medium',language:'zh',active:false},{films:assets.videos}),'video').length,0);
++});
+ test('the miner shows its still image and offers no 3D control',()=>{
+  const n=render({tier:'small',language:'zh'});assert.equal(of(n,'img').length,1);assert.equal(of(n,'img')[0].props.src,assets.models.small.poster);
+  assert.equal(of(n,'button').length,0);assert.equal(of(n,'video').length,0);assert.doesNotMatch(code,/miningViewer|3D/);
+ });
+ test('a running miner plays its film, muted and looping, when one is listed and motion is allowed',()=>{
+- const films={small:'/assets/miners/small-run.mp4'},n=render({tier:'small',language:'zh',active:true},{films});
+- const [v]=of(n,'video');assert.equal(v.props.src,films.small);assert.equal(v.props.muted,true);assert.equal(v.props.loop,true);assert.equal(v.props.autoPlay,true);assert.equal(v.props.poster,assets.models.small.poster);
++ const films={small:{src:'/assets/miners/small-run.mp4'}},n=render({tier:'small',language:'zh',active:true},{films});
++ const [v]=of(n,'video');assert.equal(v.props.src,films.small.src);assert.equal(v.props.muted,true);assert.equal(v.props.loop,true);assert.equal(v.props.autoPlay,true);assert.equal(v.props.poster,assets.models.small.poster);
+  assert.equal(of(render({tier:'small',language:'zh',active:false},{films}),'video').length,0,'a miner not yet running keeps the image');
+  assert.equal(of(render({tier:'medium',language:'zh',active:true},{films}),'video').length,0,'no film listed for this tier: image');
+  assert.equal(of(render({tier:'small',language:'zh',active:true},{films,reduced:true}),'video').length,0,'reduced motion keeps the image');
+-- 
+2.55.0.windows.5
+

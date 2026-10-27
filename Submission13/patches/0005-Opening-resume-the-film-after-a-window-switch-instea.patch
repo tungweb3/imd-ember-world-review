@@ -1,0 +1,100 @@
+From 6f5ff19b1bd3e9625d89b09d88f810e90055077b Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 17:20:16 +0800
+Subject: [PATCH 05/18] Opening: resume the film after a window switch instead
+ of freezing on it
+
+A hidden or frozen tab can pause the opening film and the browser does not
+always resume it, so returning left the page stuck on the paused film (the
+clip never ended, so the World was never revealed). On visibilitychange,
+document resume, pageshow and focus the film now resumes once (muted retry
+on refusal); a film that already ended enters directly, and one that still
+does not move within 3 s hands over to the normal "preparing the world" wait.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ public/opening-entry.js      | 19 +++++++++++++++++--
+ tests/world-opening.test.mjs | 18 ++++++++++++++++--
+ 2 files changed, 33 insertions(+), 4 deletions(-)
+
+diff --git a/public/opening-entry.js b/public/opening-entry.js
+index 68cbf21..7a2fcd6 100644
+--- a/public/opening-entry.js
++++ b/public/opening-entry.js
+@@ -18,7 +18,7 @@ function createOpening(doc, win) {
+     const status = overlay?.querySelector('[data-opening-status]');
+     if (!overlay || !root || !video || !retry || !status)
+         return;
+-    let removed = false, closing = false, worldReady = root.dataset.worldReady === 'ready', clipDone = false, stall = 0, initial = 0;
++    let removed = false, closing = false, worldReady = root.dataset.worldReady === 'ready', clipDone = false, stall = 0, initial = 0, stuck = 0;
+     const timers = new Set(), cleanups = [];
+     const later = (fn, ms) => { const id = win.setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); return id; };
+     const clear = (id) => { win.clearTimeout(id); timers.delete(id); };
+@@ -87,7 +87,7 @@ function createOpening(doc, win) {
+     const finish = () => { if (worldReady && clipDone)
+         close(); };
+     const skipClip = () => { if (closing || removed || clipDone)
+-        return; clipDone = true; if (sound) sound.hidden = true; clear(stall); clear(initial); video.pause(); status.textContent = text('正在準備世界…', 'Preparing the world…'); finish(); };
++        return; clipDone = true; if (sound) sound.hidden = true; clear(stall); clear(initial); clear(stuck); video.pause(); status.textContent = text('正在準備世界…', 'Preparing the world…'); finish(); };
+     const fallbackClip = () => { if (closing || removed || clipDone)
+         return; video.hidden = true; stopVideo(); skipClip(); };
+     if (!openingRoute(win.location.pathname, win.location.search)) {
+@@ -120,6 +120,21 @@ function createOpening(doc, win) {
+     listen(video, 'waiting', waiting);
+     listen(video, 'stalled', waiting);
+     listen(video, 'playing', () => clear(stall));
++    // A window switch can pause the film (background power saving, a frozen tab) without the browser resuming it.
++    // Returning resumes it once; a film that still does not move hands over to the normal loading wait.
++    const resume = () => {
++        if (closing || removed || clipDone || !video.src || doc.hidden) return;
++        if (video.ended) { skipClip(); return; }
++        if (!video.paused) return;
++        clear(stuck);
++        stuck = later(() => { if (video.ended) skipClip(); else if (video.paused) fallbackClip(); }, 3000);
++        try { void video.play()?.catch(quietRetry); } catch { quietRetry(); }
++    };
++    listen(doc, 'visibilitychange', resume);
++    listen(doc, 'resume', resume);
++    listen(win, 'pageshow', resume);
++    listen(win, 'focus', resume);
++    listen(video, 'playing', () => clear(stuck));
+     listen(reduced, 'change', () => { if (reduced.matches)
+         fallbackClip(); });
+     listen(win, 'pagehide', () => { if (closing)
+diff --git a/tests/world-opening.test.mjs b/tests/world-opening.test.mjs
+index 06961e8..d3a6e6b 100644
+--- a/tests/world-opening.test.mjs
++++ b/tests/world-opening.test.mjs
+@@ -21,7 +21,7 @@ function fixture({search='?lang=zh',pathname='/',mobile=false,reduced=false,save
+   video.src='';video.playCalls=0;video.pauseCalls=0;video.loads=0;video.pause=()=>video.pauseCalls++;video.load=()=>video.loads++;
+   video.play=()=>{video.playCalls++;if(throwPlay)throw Error('no codec');return blocked||blockedAudible&&!video.muted?Promise.reject(Object.assign(Error('NotAllowedError'),{name:'NotAllowedError'})):Promise.resolve();};
+   if(preReady)root.dataset.worldReady='ready';
+-  const doc={getElementById:id=>id==='root'?root:id==='world-opening'&&!removed?overlay:null,activeElement:null};
++  const doc=new Node();Object.assign(doc,{getElementById:id=>id==='root'?root:id==='world-opening'&&!removed?overlay:null,activeElement:null});
+   const win=new Node();Object.assign(win,{navigator:{connection:{saveData}},location:{search,pathname,reload(){reloads++;}},localStorage:{getItem(key){if(storageThrows)throw Error('denied');return preferences.get(key)??null;},setItem(key,value){if(storageThrows)throw Error('denied');preferences.set(key,value);}},matchMedia:q=>q.includes('reduced-motion')?motion:{matches:mobile},setTimeout(fn,delay){const id=++serial;timers.set(id,{at:now+delay,fn});return id;},clearTimeout(id){timers.delete(id);}});
+   Object.defineProperty(win,'ethereum',{get(){throw Error('Opening must never inspect a wallet');}});
+   win.addEventListener('ember-world-opening-closed',()=>closed++);
+@@ -71,5 +71,19 @@ test('late autoplay failures and sound clicks cannot restart or unmute a closed
+ test('direct services bypass the opening and do not fetch a movie',()=>{for(const options of [{search:'?portal=aimarket&lang=zh'},{search:'?portal=stickember'},{search:'?portal=ember-clash'},{pathname:'/aimarket/'}]){const f=fixture(options);assert.equal(f.removed,true);assert.equal(f.video.playCalls,0);assert.equal(f.root.inert,false);assert.equal(f.timers.size,0);}});
+ test('a ready signal before the independent startup script is retained, including reduced motion',()=>{const f=fixture({preReady:true});assert.equal(f.closed,0);f.video.emit('ended');assert.equal(f.closed,1);const reduced=fixture({preReady:true,reduced:true});assert.equal(reduced.removed,true);assert.equal(reduced.root.inert,false);});
+ test('slow app recovery offers reload without automatically reloading or claiming readiness',()=>{const f=fixture();f.advance(30000);assert.equal(f.retry.hidden,false);assert.match(f.status.textContent,/載入較久/);assert.equal(f.closed,0);assert.equal(f.reloads,0);f.retry.emit('click');assert.equal(f.reloads,1);});
+-test('pagehide cleans media/timers and informs the cached World to resume on return',()=>{const f=fixture();f.win.emit('pagehide');assert.equal(f.removed,true);assert.equal(f.closed,1);assert.equal(f.root.inert,false);assert.equal(f.timers.size,0);for(const node of [f.video,f.skip,f.sound,f.retry,f.motion])assert.ok([...node.listeners.values()].every(n=>n===0));});
++test('pagehide cleans media/timers and informs the cached World to resume on return',()=>{const f=fixture();f.win.emit('pagehide');assert.equal(f.removed,true);assert.equal(f.closed,1);assert.equal(f.root.inert,false);assert.equal(f.timers.size,0);for(const node of [f.video,f.skip,f.sound,f.retry,f.motion,f.doc])assert.ok([...node.listeners.values()].every(n=>n===0));for(const type of ['ember-world-ready','pagehide','pageshow','focus'])assert.equal(f.win.listeners.get(type),0);});
+ test('English works even with unavailable storage and no wallet capability',()=>{const f=fixture({search:'?lang=en',storageThrows:true});assert.equal(f.retry.textContent,'Reload');f.video.emit('ended');assert.equal(f.status.textContent,'Preparing the world…');f.ready();assert.equal(f.closed,1);});
++test('a film paused while the window was away resumes on return and still waits for its end',()=>{
++ const f=fixture();f.video.paused=true;f.doc.hidden=true;f.doc.emit('visibilitychange');assert.equal(f.video.playCalls,1,'no restart while still hidden');
++ f.doc.hidden=false;f.doc.emit('visibilitychange');assert.equal(f.video.playCalls,2);f.video.paused=false;f.video.emit('playing');f.advance(3000);assert.equal(f.video.hidden,false);assert.ok(f.video.src);
++ f.ready();assert.equal(f.closed,0,'the film still has its remaining seconds');f.video.emit('ended');assert.equal(f.closed,1);
++});
++test('a film the browser will not resume after a frozen tab hands over to loading instead of trapping entry',async()=>{
++ const f=fixture();f.ready();f.video.paused=true;f.doc.emit('resume');assert.equal(f.video.playCalls,2);await Promise.resolve();f.advance(2999);assert.equal(f.closed,0);f.advance(1);assert.equal(f.video.hidden,true);assert.equal(f.video.src,'');assert.equal(f.closed,1);
++ const g=fixture();g.video.paused=true;g.video.play=()=>{g.video.playCalls++;return Promise.reject(Object.assign(Error('NotAllowedError'),{name:'NotAllowedError'}));};g.win.emit('pageshow');for(let i=0;i<4;i++)await Promise.resolve();assert.equal(g.video.playCalls,3,'one muted retry, then the poster');assert.equal(g.video.hidden,true);assert.equal(g.closed,0);g.ready();assert.equal(g.closed,1);
++});
++test('a film that ended while the window was away enters on return without replaying',()=>{const f=fixture();f.video.paused=true;f.video.ended=true;f.win.emit('focus');assert.equal(f.video.playCalls,1);assert.match(f.status.textContent,/正在準備/);f.ready();assert.equal(f.closed,1);});
++test('returning to a playing, finished or closed opening never restarts the film',()=>{
++ const f=fixture();f.video.paused=false;f.doc.emit('visibilitychange');assert.equal(f.video.playCalls,1);f.video.paused=true;f.video.emit('ended');f.win.emit('focus');assert.equal(f.video.playCalls,1);
++ const g=fixture();g.ready(true);g.video.paused=true;g.doc.emit('visibilitychange');g.win.emit('pageshow');assert.equal(g.video.playCalls,1);assert.equal(g.timers.size,0);
++});
+-- 
+2.55.0.windows.5
+

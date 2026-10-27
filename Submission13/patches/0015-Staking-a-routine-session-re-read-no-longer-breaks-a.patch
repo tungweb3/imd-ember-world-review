@@ -1,0 +1,149 @@
+From b3118c9d953a0976ea81ca892bce2cf9191c36de Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 03:36:43 +0800
+Subject: [PATCH 15/18] Staking: a routine session re-read no longer breaks
+ approve-then-stake; plainer stake form
+
+Owner test 2026-10-27: the approval was mined, then the pane showed 'wallet, network or sign-in changed' and never offered Confirm stake. The auth client re-reads the session about once a minute with a new object (same address and expiry); the wallet controller's guard compared objects and EconomyPane reset its flow on every new object. Both now use the sign-in's value (sameSession / address+expiry); a new sign-in or another wallet still stops the flow (tests changed to a new expiry; a same-value copy now keeps authority, and reverting the guard fails that test).
+
+Stake form: '1 share = 100,000 EMBEO' in the label, the total with thousands separators, and the review button says what it does ('Next: check allowance') with a line explaining the approve and confirm steps.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/EconomyPane.tsx              |  7 +++++--
+ src/world/economyWallet.ts             |  7 +++++--
+ tests/economy-client.test.mjs          |  9 ++++++++-
+ tests/economy-pane.test.mjs            | 10 +++++-----
+ tests/economy-wallet-recovery.test.mjs |  4 ++--
+ 5 files changed, 25 insertions(+), 12 deletions(-)
+
+diff --git a/src/world/EconomyPane.tsx b/src/world/EconomyPane.tsx
+index 50b7d1c..338f471 100644
+--- a/src/world/EconomyPane.tsx
++++ b/src/world/EconomyPane.tsx
+@@ -35,7 +35,10 @@ export function EconomyPane({language,state,onSignIn,onClose}:EconomyPaneProps){
+  const readAccount=async()=>{if(!config?.enabled||!economySession(auth.current))return;const abort=new AbortController();requestAbort.current?.abort();requestAbort.current=abort;setLoading(true);setError(null);try{const result=await client.snapshot(abort.signal);if(config.mining&&result.mining?.effectiveDayMs!==config.mining.effectiveDayMs||!config.mining&&result.mining)throw new EconomyClientError('INVALID_RESPONSE');if(life.current&&!abort.signal.aborted){setSnapshot(result);setSelected(old=>{const refreshed=old&&result.orders.find(row=>row.id===old.id);if(refreshed?.status==='paid'){orderAttempt.current=null;return refreshed;}return old;});}}catch(e){if(life.current&&!abort.signal.aborted)setError(e instanceof EconomyClientError?e.code:'UNAVAILABLE');}finally{if(life.current&&!abort.signal.aborted)setLoading(false);}};
+  useEffect(()=>{life.current=true;const abort=new AbortController();void client.config(abort.signal).then(value=>{if(!abort.signal.aborted)setConfig(value);},()=>{if(!abort.signal.aborted)setError('UNAVAILABLE');});return()=>{life.current=false;abort.abort();requestAbort.current?.abort();};},[client]);
+  useEffect(()=>{if(!config?.enabled)return;const c=new EconomyWalletController({config,auth:()=>auth.current,provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(()=>fn()),pending:localEconomyPending,canSpend:()=>{const s=snapshotRef.current;return !!s&&s.address===auth.current.session?.address.toLowerCase()&&s.chain.throughMs>0&&!s.chain.haltedReason;}});c.restorePending();setController(c);return()=>c.dispose();},[config,registry]);
+- useEffect(()=>{controller?.contextChanged();setSelected(null);setChallenge(null);goldAttempt.current=null;orderAttempt.current=null;requestAbort.current?.abort();setSnapshot(null);if(config?.enabled&&session)void readAccount();},[config,state.session,state.account,state.sessionKnown,state.leaving,state.phase]);
++ // Keyed by the sign-in's value: a routine session re-read (a new object, same address and expiry) must not reset an
++ // approve-then-stake in progress or clear the ledger.
++ const sessionKey=state.session?state.session.address.toLowerCase()+':'+state.session.expiresAt:'';
++ useEffect(()=>{controller?.contextChanged();setSelected(null);setChallenge(null);goldAttempt.current=null;orderAttempt.current=null;requestAbort.current?.abort();setSnapshot(null);if(config?.enabled&&session)void readAccount();},[config,sessionKey,state.account,state.sessionKnown,state.leaving,state.phase]);
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
+  useEffect(()=>{const prior=document.activeElement as HTMLElement|null;host.current?.querySelector<HTMLButtonElement>('.economy-return')?.focus();const key=(event:KeyboardEvent)=>{
+   if(event.defaultPrevented)return;if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close.current();return;}if(event.key!=='Tab')return;
+@@ -74,7 +77,7 @@ export function EconomyPane({language,state,onSignIn,onClose}:EconomyPaneProps){
+     {visibleSnapshot?.pendingRewardCount&&visibleSnapshot.pendingRewardCount!=='0'&&<p className="economy-notice" role="status">{say('仍有待補發質押獎勵，尚未計入可用 GOLD。可在「購買 GOLD／查看紀錄」核對。','Some staking rewards are pending and are not included in spendable GOLD. Review their original entitlements in the World GOLD ledger.')}</p>}
+     {visibleSnapshot?.chain.throughMs===0&&<p className="economy-muted">{say('鏈上資料尚未同步，不能視為沒有持倉；請稍後更新帳本。','Chain data has not synced. This does not mean you have no positions. Refresh the ledger later.')}</p>}
+     {halted&&<p className="economy-notice" role="status">{say('鏈上索引核對暫停，此設定的新增質押與付款已停止；帳本餘額保留，仍可核對並取回本金。','Chain indexing is paused for this configuration. Its new stakes and payments are stopped; balances are retained and principal withdrawal remains available.')}</p>}
+-    <section className="economy-section"><h2>{say('新增質押','Stake EMBEO')}</h2><div className="economy-form"><label htmlFor="economy-shares">{say('質押份數','Shares to stake')}</label><input id="economy-shares" inputMode="numeric" pattern="[0-9]*" value={shares} onChange={event=>setShares(event.target.value.replace(/[^0-9]/g,'').slice(0,54))}/><span>{/^[1-9][0-9]*$/.test(shares)?String(BigInt(shares)*100000n):'—'} EMBEO</span><button disabled={!canSpend||!/^[1-9][0-9]*$/.test(shares)} onClick={()=>prepare({kind:'stake',shares})}>{say('核對質押','Review stake')}</button></div><p className="economy-muted">{config.mining?say('新增質押會合併到同一台礦機；各筆本金仍保留獨立紀錄，方便取回。日中存入從下一個完整 UTC 日開始計算，以實際上鏈時間為準。','New deposits join the same miner. Principal lots remain individually recorded for withdrawal. Deposits during the day count from the next complete UTC day, based on actual chain time.'):say('每次新增質押會建立獨立持倉。日中存入從下一個 UTC 日開始計算，以實際上鏈時間為準。','Every deposit creates a separate position. A deposit during the day starts counting on the next UTC day, based on its actual on-chain time.')}</p></section>
++    <section className="economy-section"><h2>{say('新增質押','Stake EMBEO')}</h2><div className="economy-form"><label htmlFor="economy-shares">{say('質押份數（1 份 = 100,000 EMBEO）','Shares to stake (1 share = 100,000 EMBEO)')}</label><input id="economy-shares" inputMode="numeric" pattern="[0-9]*" value={shares} onChange={event=>setShares(event.target.value.replace(/[^0-9]/g,'').slice(0,54))}/><span>{/^[1-9][0-9]*$/.test(shares)?say('共 ','Total ')+String(BigInt(shares)*100000n).replace(/\B(?=(\d{3})+(?!\d))/g,','):'—'} EMBEO</span><button disabled={!canSpend||!/^[1-9][0-9]*$/.test(shares)} onClick={()=>prepare({kind:'stake',shares})}>{say('下一步：檢查授權額度','Next: check allowance')}</button></div><p className="economy-muted">{say('按下後不會馬上跳出錢包：先檢查你的 EMBEO 餘額和質押合約的授權額度。額度不夠時，會先請你在錢包授權「剛好這次的數量」；授權完成後，再按「確認質押」並在錢包確認，EMBEO 才會存入質押合約。','This does not open your wallet yet: it first checks your EMBEO balance and the staking contract allowance. If the allowance is short, your wallet asks you to approve exactly this amount; after that, press Confirm stake and approve in your wallet to deposit the EMBEO.')}</p><p className="economy-muted">{config.mining?say('新增質押會合併到同一台礦機；各筆本金仍保留獨立紀錄，方便取回。日中存入從下一個完整 UTC 日開始計算，以實際上鏈時間為準。','New deposits join the same miner. Principal lots remain individually recorded for withdrawal. Deposits during the day count from the next complete UTC day, based on actual chain time.'):say('每次新增質押會建立獨立持倉。日中存入從下一個 UTC 日開始計算，以實際上鏈時間為準。','Every deposit creates a separate position. A deposit during the day starts counting on the next UTC day, based on its actual on-chain time.')}</p></section>
+     <section className="economy-section"><h2>{say('我的質押','My staked positions')}</h2>{!visibleSnapshot?<p>{say('正在讀取帳本…','Reading the ledger…')}</p>:visibleSnapshot.positions.length===0?<p>{say('已同步的帳本尚無持倉。','No positions in the synced ledger yet.')}</p>:<ul className="economy-positions">{visibleSnapshot.positions.filter(p=>BigInt(p.shares)>0n).map(p=><li key={p.id}><div><strong>{say('持倉','Position')} #{p.id}</strong><p>{p.shares} {say('份','shares')} · {String(BigInt(p.shares)*100000n)} EMBEO</p><small>{say('首個完整日','First full day')}: {economyUtc(firstEconomyDay(p.depositedMs))}</small></div><div className="economy-withdraw"><label htmlFor={'economy-withdraw-'+p.id}>{say('取回份數','Shares to withdraw')}</label><input id={'economy-withdraw-'+p.id} inputMode="numeric" value={withdrawShares[p.id]??p.shares} onChange={event=>setWithdrawShares(old=>({...old,[p.id]:event.target.value.replace(/[^0-9]/g,'').slice(0,54)}))}/><button disabled={!canAct||! /^[1-9][0-9]*$/.test(withdrawShares[p.id]??p.shares)||BigInt(withdrawShares[p.id]??p.shares)>BigInt(p.shares)} onClick={()=>prepare({kind:'withdraw',positionId:p.id,shares:withdrawShares[p.id]??p.shares})}>{say('核對取回本金','Review withdrawal')}</button></div></li>)}</ul>}{visibleSnapshot?.positionsTruncated&&<p className="economy-notice">{say('持倉超過目前顯示的 200 筆；這裡不是完整清單。','You have more than the 200 positions shown. This list is incomplete.')}</p>}</section>
+     <details className="economy-manual-withdraw"><summary>{say('依持倉編號核對取回本金','Review withdrawal by position ID')}</summary><p>{say('可從原質押交易紀錄查到持倉編號。即使帳本未同步或清單未列出，仍可核對；會以固定質押合約確認你的持有人與可取回份數。','Find the position ID in your original staking receipt. You can review a position even if the ledger is behind or its list is incomplete. The fixed staking contract verifies ownership and available shares.')}</p><div className="economy-form"><label htmlFor="economy-position-id">{say('持倉編號','Position ID')}</label><input id="economy-position-id" inputMode="numeric" value={manualPosition} onChange={event=>setManualPosition(event.target.value.replace(/[^0-9]/g,'').slice(0,78))}/><label htmlFor="economy-manual-shares">{say('取回份數','Shares to withdraw')}</label><input id="economy-manual-shares" inputMode="numeric" value={manualShares} onChange={event=>setManualShares(event.target.value.replace(/[^0-9]/g,'').slice(0,54))}/><button disabled={!canAct||! /^[1-9][0-9]*$/.test(manualPosition)||! /^[1-9][0-9]*$/.test(manualShares)} onClick={()=>prepare({kind:'withdraw',positionId:manualPosition,shares:manualShares})}>{say('核對指定持倉','Review this position')}</button></div></details>
+     <section className="economy-section"><h2>{say('世界內付款','Payments in World')}</h2>{config?.enabled&&config.catalogue.length?<ul className="economy-services">{config.catalogue.map(service=><li key={service.id}><strong>{zh?service.titleZh:service.titleEn}</strong><div className="economy-actions">{service.gold&&<button disabled={!canSpend} onClick={()=>void makeOrder(service.id,'GOLD')}>{service.gold} GOLD</button>}{service.embeo&&<button disabled={!canSpend} onClick={()=>void makeOrder(service.id,'EMBEO')}>{economyTokenAmount(service.embeo)} EMBEO</button>}</div></li>)}</ul>:<p>{say('尚無上架服務，價格公布後才可付款。','No services are listed. Payments will be available when prices are published.')}</p>}</section>
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 7edf344..b148575 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -1,5 +1,5 @@
+ import type {AuthState,Provider,Session} from './auth.ts';
+-import {EconomyClient,EconomyClientError,economyAddress,economyInteger,economySession,parseEconomyConfig,validateGoldChallenge,SHARE_WEI,type EconomyConfig,type EconomyPayment,type EconomyOrder,type EconomyGoldChallenge} from './economyClient.ts';
++import {EconomyClient,EconomyClientError,economyAddress,economyInteger,economySession,sameSession,parseEconomyConfig,validateGoldChallenge,SHARE_WEI,type EconomyConfig,type EconomyPayment,type EconomyOrder,type EconomyGoldChallenge} from './economyClient.ts';
+ 
+ type Hex=`0x${string}`;
+ // Fixed static ABI words keep the transaction module small. Tests compare every
+@@ -102,9 +102,12 @@ export class EconomyWalletController{
+   for(const event of ['accountsChanged','chainChanged','disconnect']){provider.on?.(event,this.invalidate);this.cleanups.push(()=>provider.removeListener?.(event,this.invalidate));}
+   if(this.deps.onProviderChange)this.cleanups.push(this.deps.onProviderChange(()=>{if(this.deps.provider()!==provider)this.invalidate();}));
+  }
++ /** The same sign-in by value (address and expiry): the auth client re-reads the session about once a minute and builds a
++  *  new object each time, so an identity check failed any approve-then-stake that took longer (2026-10-27 owner test).
++  *  A new sign-in or another wallet changes the expiry or address; the provider and account are still identity-checked. */
+  private guard(){
+   const c=this.context,state=this.deps.auth(),session=economySession(state,this.now());
+-  if(!this.alive||!c||c.generation!==this.generation||this.deps.provider()!==c.provider||session!==c.session||state.account?.toLowerCase()!==c.address||this.now()<c.started||this.abort.signal.aborted)throw new EconomyClientError('CONTEXT_CHANGED');
++  if(!this.alive||!c||c.generation!==this.generation||this.deps.provider()!==c.provider||!sameSession(session,c.session)||state.account?.toLowerCase()!==c.address||this.now()<c.started||this.abort.signal.aborted)throw new EconomyClientError('CONTEXT_CHANGED');
+  }
+  private async rpc(method:string,params?:unknown[]){
+   this.guard();let timer:ReturnType<typeof setTimeout>|undefined;
+diff --git a/tests/economy-client.test.mjs b/tests/economy-client.test.mjs
+index fc5803f..8db9ef5 100644
+--- a/tests/economy-client.test.mjs
++++ b/tests/economy-client.test.mjs
+@@ -128,7 +128,7 @@ for(const event of ['accountsChanged','chainChanged','disconnect'])test('provide
+ });
+ test('provider replacement during preparation cancels even when its address is the same',async()=>{const f=fixture(),gate=deferred();f.intercept(args=>args.method==='eth_chainId'?gate.promise:undefined);const pending=f.controller.prepare({kind:'stake',shares:'1'});await turn();f.switchProvider({request:async()=>[]});gate.resolve('0x1');await pending;assert.equal(f.controller.state.phase,'context-changed');assert.equal(f.sent.length,0);f.controller.dispose();});
+ test('session replacement and clock expiry during awaited reads stop transaction authority',async()=>{
+- for(const kind of ['replacement','expiry']){const f=fixture(),gate=deferred();f.intercept(args=>args.method==='eth_accounts'?gate.promise:undefined);const pending=f.controller.prepare({kind:'stake',shares:'1'});await turn();if(kind==='replacement')f.state={...f.state,session:{...f.state.session}};else f.now=f.state.session.expiresAt;gate.resolve([A]);await pending;assert.equal(f.sent.length,0);assert.equal(f.controller.state.phase,'context-changed');f.controller.dispose();}
++ for(const kind of ['replacement','expiry']){const f=fixture(),gate=deferred();f.intercept(args=>args.method==='eth_accounts'?gate.promise:undefined);const pending=f.controller.prepare({kind:'stake',shares:'1'});await turn();if(kind==='replacement')f.state={...f.state,session:{...f.state.session,expiresAt:f.state.session.expiresAt+1}};else f.now=f.state.session.expiresAt;gate.resolve([A]);await pending;assert.equal(f.sent.length,0);assert.equal(f.controller.state.phase,'context-changed');f.controller.dispose();}
+ });
+ test('two simultaneous clicks produce one wallet send and retain the same transaction',async()=>{
+  const f=fixture({allowance:SHARE_WEI}),gate=deferred();await f.controller.prepare({kind:'stake',shares:'1'});f.intercept(args=>args.method==='eth_sendTransaction'?gate.promise:undefined);const first=f.controller.confirm(),second=f.controller.confirm();await turn();assert.equal(f.calls.filter(c=>c.method==='eth_sendTransaction').length,1);gate.reject(Object.assign(Error('rejected'),{code:4001}));await Promise.all([first,second]);assert.equal(f.controller.state.phase,'rejected');f.controller.dispose();
+@@ -202,3 +202,10 @@ test('EMBEO preparation checks the exact amount replay slot; another paid amount
+  const amount=3n*10n**18n,payment={chainId:1,contract:PAY,token:ECONOMY_TOKEN,receiver:ECONOMY_TREASURY,orderId:OID,amount:String(amount)},plan={kind:'pay',payment,expiresMs:NOW+900000,serviceTitle:'Local fixture'};
+  for(const paidAmounts of [[1n],[amount]]){const f=fixture({allowance:amount,paidAmounts});await f.controller.prepare(plan);const calls=f.calls.filter(c=>c.method==='eth_call').map(c=>decodeFunctionData({abi,data:c.params[0].data})).filter(c=>c.functionName==='paid');assert.equal(calls.length,1);assert.equal(calls[0].args[0].toLowerCase(),A);assert.deepEqual(calls[0].args.slice(1),[OID,amount]);assert.equal(f.controller.state.phase,paidAmounts[0]===amount?'error':'confirm');if(paidAmounts[0]===amount)assert.equal(f.controller.state.error,'ORDER_ALREADY_PAID');assert.equal(f.sent.length,0);f.controller.dispose();}
+ });
++
++// 2026-10-27: the auth client re-reads the session about once a minute and builds a new object with the same address and
++// expiry. That is the same sign-in: it must not stop an approve-then-stake (only a new sign-in or wallet does, above).
++test('a same-value session re-read during an awaited read keeps transaction authority',async()=>{
++ const f=fixture(),gate=deferred();f.intercept(args=>args.method==='eth_accounts'?gate.promise:undefined);const pending=f.controller.prepare({kind:'stake',shares:'1'});await turn();
++ f.state={...f.state,session:{...f.state.session}};gate.resolve([A]);await pending;assert.notEqual(f.controller.state.phase,'context-changed');assert.equal(f.controller.state.error,null);f.controller.dispose();
++});
+\ No newline at end of file
+diff --git a/tests/economy-pane.test.mjs b/tests/economy-pane.test.mjs
+index 725935a..180cfe0 100644
+--- a/tests/economy-pane.test.mjs
++++ b/tests/economy-pane.test.mjs
+@@ -38,7 +38,7 @@ test('actual disabled pane shows truthful rules and never loads a wallet or asse
+ });
+ test('actual English disabled state and return action preserve the original World shell',async()=>{const f=fixture({language:'en'});f.requests[0].resolve(disabled);await f.settle();assert.match(f.text,/Not open yet/);assert.match(f.text,/wallet-bound/);assert.match(f.text,/cannot be transferred, sold or redeemed for EMBEO/);const back=f.nodes('button').find(b=>b.props.children==='Back to World');back.props.onClick();assert.equal(f.closed,1);assert.equal(f.focus,1);f.unmount();assert.equal(f.restored,1);});
+ test('enabled panel reads only the current server account and displays finalized balance and sync',async()=>{
+- const f=fixture();f.requests[0].resolve(enabled);await f.settle();assert.equal(f.controllers.length,1);assert.equal(f.requests.filter(r=>r.kind==='snapshot').length,1);assert.equal(f.walletReads,0);f.requests.find(r=>r.kind==='snapshot').resolve(snapshot());await f.settle();assert.match(f.text,/12\s+GOLD/);assert.match(f.text,/已確認的可用 GOLD，已扣除處理中保留/);assert.match(f.text,/尚無上架服務/);assert.equal(f.nodes('button').some(b=>b.props.children==='核對質押'&&!b.props.disabled),true);f.unmount();assert.equal(f.controllers[0].disposed,true);
++ const f=fixture();f.requests[0].resolve(enabled);await f.settle();assert.equal(f.controllers.length,1);assert.equal(f.requests.filter(r=>r.kind==='snapshot').length,1);assert.equal(f.walletReads,0);f.requests.find(r=>r.kind==='snapshot').resolve(snapshot());await f.settle();assert.match(f.text,/12\s+GOLD/);assert.match(f.text,/已確認的可用 GOLD，已扣除處理中保留/);assert.match(f.text,/尚無上架服務/);assert.equal(f.nodes('button').some(b=>b.props.children==='下一步：檢查授權額度'&&!b.props.disabled),true);f.unmount();assert.equal(f.controllers[0].disposed,true);
+ });
+ 
+ test('capacity-pending rewards are labelled separately from spendable GOLD in the actual staking pane',async()=>{
+@@ -65,10 +65,10 @@ test('account switch hides old GOLD immediately and aborts its late ledger reply
+ });
+ test('expired login hides all displayed balances and preserves explicit sign-in',async()=>{const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot());await f.settle();f.time(NOW+3600000);assert.doesNotMatch(f.text,/12\s+GOLD/);const sign=f.nodes('button').find(b=>b.props.children==='登入 World 錢包');assert.ok(sign);sign.props.onClick();assert.equal(f.signedIn,1);f.unmount();});
+ test('halt retains balance and withdrawal while blocking new stakes and listing payments',async()=>{
+- const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot({positionsTruncated:true,chain:{block:'123',throughMs:NOW,haltedReason:'FINALIZED_CURSOR_CHANGED'}}));await f.settle();assert.match(f.text,/12\s+GOLD/);assert.match(f.text,/鏈上索引核對暫停/);assert.match(f.text,/200 筆/);assert.equal(f.nodes('button').find(b=>b.props.children==='核對質押').props.disabled,true);assert.equal(f.nodes('button').find(b=>b.props.children==='核對取回本金').props.disabled,false);f.nodes('button').find(b=>b.props.children==='核對取回本金').props.onClick();f.render();assert.equal(f.controllers[0].plans[0].kind,'withdraw');assert.equal(f.controllers[0].plans[0].shares,'2');assert.match(f.text,/取出部分今日不計 GOLD/);f.unmount();
++ const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot({positionsTruncated:true,chain:{block:'123',throughMs:NOW,haltedReason:'FINALIZED_CURSOR_CHANGED'}}));await f.settle();assert.match(f.text,/12\s+GOLD/);assert.match(f.text,/鏈上索引核對暫停/);assert.match(f.text,/200 筆/);assert.equal(f.nodes('button').find(b=>b.props.children==='下一步：檢查授權額度').props.disabled,true);assert.equal(f.nodes('button').find(b=>b.props.children==='核對取回本金').props.disabled,false);f.nodes('button').find(b=>b.props.children==='核對取回本金').props.onClick();f.render();assert.equal(f.controllers[0].plans[0].kind,'withdraw');assert.equal(f.controllers[0].plans[0].shares,'2');assert.match(f.text,/取出部分今日不計 GOLD/);f.unmount();
+ });
+-test('unsynced chain is not described as an authoritative zero position and cannot accept new money',async()=>{const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot({positions:[],chain:{block:'1',throughMs:0,haltedReason:null}}));await f.settle();assert.match(f.text,/不能視為沒有持倉/);assert.equal(f.nodes('button').find(b=>b.props.children==='核對質押').props.disabled,true);f.unmount();});
+-test('the pane prepares whole shares only after the player clicks and does not sign on mount',async()=>{const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot());await f.settle();assert.equal(f.controllers[0].plans.length,0);const input=f.nodes('input').find(n=>n.props.id==='economy-shares');input.props.onChange({target:{value:'2'}});f.render();f.nodes('button').find(b=>b.props.children==='核對質押').props.onClick();f.render();assert.deepEqual(JSON.parse(JSON.stringify(f.controllers[0].plans[0])),{kind:'stake',shares:'2'});assert.match(f.text,/200000\s+EMBEO/);assert.match(f.text,/確認質押 EMBEO/);assert.equal(f.walletReads,0);f.unmount();});
++test('unsynced chain is not described as an authoritative zero position and cannot accept new money',async()=>{const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot({positions:[],chain:{block:'1',throughMs:0,haltedReason:null}}));await f.settle();assert.match(f.text,/不能視為沒有持倉/);assert.equal(f.nodes('button').find(b=>b.props.children==='下一步：檢查授權額度').props.disabled,true);f.unmount();});
++test('the pane prepares whole shares only after the player clicks and does not sign on mount',async()=>{const f=fixture();f.requests[0].resolve(enabled);await f.settle();f.requests.find(r=>r.kind==='snapshot').resolve(snapshot());await f.settle();assert.equal(f.controllers[0].plans.length,0);const input=f.nodes('input').find(n=>n.props.id==='economy-shares');input.props.onChange({target:{value:'2'}});f.render();f.nodes('button').find(b=>b.props.children==='下一步：檢查授權額度').props.onClick();f.render();assert.deepEqual(JSON.parse(JSON.stringify(f.controllers[0].plans[0])),{kind:'stake',shares:'2'});assert.match(f.text,/200000\s+EMBEO/);assert.match(f.text,/確認質押 EMBEO/);assert.equal(f.walletReads,0);f.unmount();});
+ test('the actual server GOLD canonical builder and shipped client produce byte-identical text',()=>{
+  const backend=readFileSync(new URL('../server/economy-ledger.ts',import.meta.url),'utf8'),compiled=ts.transpileModule(backend,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,exports={};
+  vm.runInNewContext(compiled,{exports,require:()=>({}),Date,Error});const c={orderId:'0x'+'3'.repeat(64),requestId:'request_1234567890',wallet:A,nonce:'0x'+'4'.repeat(64),origin:'https://imdember.com',issuedMs:NOW,expiresMs:NOW+300000,amount:'2',serviceId:'local-test'};
+@@ -122,7 +122,7 @@ test('focus wraps within dialog and handled Escape is respected, then restores c
+ test('confirmed stake hides its changing estimate and retains the ledger position first day after a UTC rollover',async()=>{
+  const longSession={...account(),session:{address:A,expiresAt:NOW+10*entry.ECONOMY_DAY_MS}},f=fixture({initial:longSession});
+  f.requests[0].resolve(enabled);await f.settle();const recorded=snapshot();f.requests.find(r=>r.kind==='snapshot').resolve(recorded);await f.settle();
+- f.nodes('button').find(b=>b.props.children==='核對質押').props.onClick();f.render();assert.match(f.text,/預計首個完整 UTC 日/);
++ f.nodes('button').find(b=>b.props.children==='下一步：檢查授權額度').props.onClick();f.render();assert.match(f.text,/預計首個完整 UTC 日/);
+  const c=f.controllers[0];c.state={...c.state,phase:'confirmed',step:'execute',hash:'0x'+'9'.repeat(64)};for(const notify of c.listeners)notify();f.render();
+  assert.doesNotMatch(f.text,/預計首個完整 UTC 日|預計首次產出/);assert.match(f.text,/鏈上交易已確認/);
+  const positionFirstDay=entry.economyUtc(entry.firstEconomyDay(recorded.positions[0].depositedMs));assert.ok(f.text.includes(positionFirstDay));
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 49d68a5..5ae791e 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -91,9 +91,9 @@ test('a routed transaction without exactly the intended effect is never taken as
+  f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER}));await f.controller.checkReceipt(OTHER);
+  assert.notEqual(f.controller.state.phase,'confirmed');f.controller.dispose();
+ });
+-test('a session refresh while the wallet prompt is open still shows the broadcast hash and offers the check',async()=>{
++test('a new sign-in while the wallet prompt is open still shows the broadcast hash and offers the check',async()=>{
+  const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});
+- f.intercept(a=>{if(a.method!=='eth_sendTransaction')return undefined;const s=f.deps.auth();s.session={...s.session};f.sent.push(a.params[0]);return HASH;});
++ f.intercept(a=>{if(a.method!=='eth_sendTransaction')return undefined;const s=f.deps.auth();s.session={...s.session,expiresAt:s.session.expiresAt+1};f.sent.push(a.params[0]);return HASH;});
+  await f.controller.confirm();
+  assert.equal(f.controller.state.phase,'unknown');assert.equal(f.controller.state.error,'CONTEXT_CHANGED');
+  assert.equal(f.controller.state.hash,HASH,'the hash is visible, so the panel offers "check original transaction"');
+-- 
+2.55.0.windows.5
+

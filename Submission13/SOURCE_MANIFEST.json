@@ -1,0 +1,446 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 13,
+ "privateSource": "ae1f640",
+ "privateBase": "c0b96c7 (rebuilt; content of 6d982dd)",
+ "deployedWorker": "a718a392-9c68-459f-940a-fa3657a36d0b",
+ "files": [
+  {
+   "path": "migrations/0021_world_gold_fast_credit.sql",
+   "bytes": 9118,
+   "sha256": "f619dd23adc964bb1f49f7c82d0508d51e6e81fb24eb381e551bc23bac4e2240",
+   "publicBlob": "396260e1226c7042702dfcb7e6b97c167ea67020",
+   "privateBlob": "396260e1226c7042702dfcb7e6b97c167ea67020",
+   "exact": true
+  },
+  {
+   "path": "public/opening-entry.js",
+   "bytes": 10588,
+   "sha256": "1c24c2c5542b6c2686f9b5e80b0e2a4fe46dc3d323832148e0cdc4805a7291c4",
+   "publicBlob": "0a3006c490c1327cecf7c9e2d2425cd01269a285",
+   "privateBlob": "0a3006c490c1327cecf7c9e2d2425cd01269a285",
+   "exact": true
+  },
+  {
+   "path": "server/economy-recovery.ts",
+   "bytes": 33797,
+   "sha256": "79889fa32ed288f98964742286fd59263f248e74aaeaeb19fccbfe361a296f43",
+   "publicBlob": "dd2dfdbe6a5b565689a0f40a7698d8c93a1047ad",
+   "privateBlob": "dd2dfdbe6a5b565689a0f40a7698d8c93a1047ad",
+   "exact": true
+  },
+  {
+   "path": "server/economy-rpc.ts",
+   "bytes": 21152,
+   "sha256": "53becc8d5f6e2b29316f82d95cc88d9fc755dfeeb7ac8df82445b92a209756be",
+   "publicBlob": "8a028d3cb7f0898244e70b6983aa0189ff1425c1",
+   "privateBlob": "8a028d3cb7f0898244e70b6983aa0189ff1425c1",
+   "exact": true
+  },
+  {
+   "path": "server/world-gold-api.ts",
+   "bytes": 11471,
+   "sha256": "13be61241b5be00c1d55dbe70d5cfbb26fcd01dd385a2d760a48314a9150f545",
+   "publicBlob": "55d887c7e890d13f7212dad886b9a479b35e7928",
+   "privateBlob": "55d887c7e890d13f7212dad886b9a479b35e7928",
+   "exact": true
+  },
+  {
+   "path": "server/world-gold-fast.ts",
+   "bytes": 14452,
+   "sha256": "d0da654bb0fdd0aaae5d10fcae21476dedcc7cfd2023a385123f8bdd4d300a3b",
+   "publicBlob": "7db61d2b2f12df820bd085f24d0fe2b5b654dccd",
+   "privateBlob": "7db61d2b2f12df820bd085f24d0fe2b5b654dccd",
+   "exact": true
+  },
+  {
+   "path": "server/world-gold.ts",
+   "bytes": 34329,
+   "sha256": "4dc72dec22826fe419c3a6de448a701ec8eaf0c889379ccdfcaec9958177d44f",
+   "publicBlob": "b5158c0b4e272eaba45d6863f04a3c634de2f411",
+   "privateBlob": "b5158c0b4e272eaba45d6863f04a3c634de2f411",
+   "exact": true
+  },
+  {
+   "path": "src/world/AIMarketPane.tsx",
+   "bytes": 11080,
+   "sha256": "65e6ebb4a3b1e8a26f8a7b4401e363ab47a2345a338144f63d8b1a77c8f88336",
+   "publicBlob": "69c99dcf89b462559c097d1506b99ef3226f2bd5",
+   "privateBlob": "69c99dcf89b462559c097d1506b99ef3226f2bd5",
+   "exact": true
+  },
+  {
+   "path": "src/world/auth.ts",
+   "bytes": 67077,
+   "sha256": "8d3e75ad2f58a5d4d61dc5d63374da491726153db38fe70e609fa887113bb53f",
+   "publicBlob": "ad43857144b91854d1e5359f3957f3e9c40f515b",
+   "privateBlob": "ad43857144b91854d1e5359f3957f3e9c40f515b",
+   "exact": true
+  },
+  {
+   "path": "src/world/CelestaoCheckout.tsx",
+   "bytes": 8140,
+   "sha256": "1b00cb46bd324080d4f17ab6d8e272d5c02aa3387dad19e42c7d8abf1f559fd2",
+   "publicBlob": "134b1337d3ff0bc42e5b8d9668118291f1cb9693",
+   "privateBlob": "134b1337d3ff0bc42e5b8d9668118291f1cb9693",
+   "exact": true
+  },
+  {
+   "path": "src/world/celestaoCheckoutClient.ts",
+   "bytes": 3358,
+   "sha256": "48b4b933362e2fda6bd2aa7e26cfe1e7cee31f9b3443c29254b2409d51833f3f",
+   "publicBlob": "cdcc9b1843319db7cf330d9d7623739ee8c5f5e1",
+   "privateBlob": "cdcc9b1843319db7cf330d9d7623739ee8c5f5e1",
+   "exact": true
+  },
+  {
+   "path": "src/world/economyClient.ts",
+   "bytes": 20274,
+   "sha256": "c0780b956a284826d9ab3e56f40cbe7993bc70dcd86de08f7cb55a7b46eb2cd4",
+   "publicBlob": "b8b04eddbf4473c12abcc26e9a2964a64dd357ef",
+   "privateBlob": "b8b04eddbf4473c12abcc26e9a2964a64dd357ef",
+   "exact": true
+  },
+  {
+   "path": "src/world/economyPane.css",
+   "bytes": 4872,
+   "sha256": "0fb58da84045ce4a4298cfcde32bf97c2bed10a91171353941d0d39e1b896087",
+   "publicBlob": "90cb5b99ca823f3739aa1d020ce6288d8563edb7",
+   "privateBlob": "90cb5b99ca823f3739aa1d020ce6288d8563edb7",
+   "exact": true
+  },
+  {
+   "path": "src/world/EconomyPane.tsx",
+   "bytes": 38113,
+   "sha256": "bc3be6146941ad8992545f80052e4a240137a0a788d6a28bb83e6b9474e5905e",
+   "publicBlob": "6b37ab47cd4a240f7d504d59651785ede5f3fe41",
+   "privateBlob": "6b37ab47cd4a240f7d504d59651785ede5f3fe41",
+   "exact": true
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "bytes": 31669,
+   "sha256": "9b7980f3887a6022d5dc67fd96d25c3af838832d080aaeacf86181b4d5de9f14",
+   "publicBlob": "b1485751a23347331c47947f739df95d428d3a0c",
+   "privateBlob": "b1485751a23347331c47947f739df95d428d3a0c",
+   "exact": true
+  },
+  {
+   "path": "src/world/fastGoldCredit.ts",
+   "bytes": 3760,
+   "sha256": "4dcb7efae6b26c0a2d8615f3de0bf04a55e3a6207b01c114237e246c80d5cdaa",
+   "publicBlob": "531f61a1e149383714722cfaf2a594604b7dae9d",
+   "privateBlob": "531f61a1e149383714722cfaf2a594604b7dae9d",
+   "exact": true
+  },
+  {
+   "path": "src/world/GoldPurchase.tsx",
+   "bytes": 9529,
+   "sha256": "7a97287d2ce6b86fffb44fbb3a3403fd756185490b9c1360bfd5c14778125609",
+   "publicBlob": "d4a14ead4691771d8b2f39a30636be0032a47a88",
+   "privateBlob": "d4a14ead4691771d8b2f39a30636be0032a47a88",
+   "exact": true
+  },
+  {
+   "path": "src/world/goldPurchaseRules.ts",
+   "bytes": 6305,
+   "sha256": "61e6a966762259ec03c32fa24702c822593bfbf8d8e710abc5defc04924538a4",
+   "publicBlob": "472b4f22ef3d1704495e7180354da16af504fd90",
+   "privateBlob": "472b4f22ef3d1704495e7180354da16af504fd90",
+   "exact": true
+  },
+  {
+   "path": "src/world/memberBalancesClient.ts",
+   "bytes": 2502,
+   "sha256": "c9ea76085210a09438e22db9aebafc11be132b6e1d96287ad5a7535c70fc409f",
+   "publicBlob": "a23e33cfada4a7c764b5330bcefc4605fee470ac",
+   "privateBlob": "a23e33cfada4a7c764b5330bcefc4605fee470ac",
+   "exact": true
+  },
+  {
+   "path": "src/world/MinerMedia.tsx",
+   "bytes": 1215,
+   "sha256": "825cd0e084716bb68a049dd413a64d4bf0fda2ee35099831659dbc7111b9ca1b",
+   "publicBlob": "15aeef62ca6bc66499c526317e11698da752f374",
+   "privateBlob": "15aeef62ca6bc66499c526317e11698da752f374",
+   "exact": true
+  },
+  {
+   "path": "src/world/miningAssets.json",
+   "bytes": 4081,
+   "sha256": "27c5e47fd02c8f070ce3fecb2f357ed3a906905afd9d47621d9f195c677bf773",
+   "publicBlob": "774bcd593811ebf07ad77f4791e62815ece1d949",
+   "privateBlob": "774bcd593811ebf07ad77f4791e62815ece1d949",
+   "exact": true
+  },
+  {
+   "path": "src/world/miningPanel.css",
+   "bytes": 4133,
+   "sha256": "c910f72fbed81d8b57911175ae49c20cf24e366dd9e10dcafc3cd267d669d5d7",
+   "publicBlob": "cf7944d6dafdb7c1c4f6beb827a295e037f03e08",
+   "privateBlob": "cf7944d6dafdb7c1c4f6beb827a295e037f03e08",
+   "exact": true
+  },
+  {
+   "path": "src/world/MiningPanel.tsx",
+   "bytes": 5025,
+   "sha256": "242104e49b975489ea84e8a3950bd80d7cc68b0139c13053fbed807891aa0bdd",
+   "publicBlob": "58ddc80464410e1a87c0ec63eea000b2efeff576",
+   "privateBlob": "58ddc80464410e1a87c0ec63eea000b2efeff576",
+   "exact": true
+  },
+  {
+   "path": "src/world/ResearchPassCard.tsx",
+   "bytes": 1788,
+   "sha256": "611de1a5429172b09fb44445d6e394be8cfae2f92dfc62135e9dc47b55ad46d9",
+   "publicBlob": "6e6dd3ede927df284a0d6739b2ff96f703108685",
+   "privateBlob": "6e6dd3ede927df284a0d6739b2ff96f703108685",
+   "exact": true
+  },
+  {
+   "path": "src/world/useMemberBalances.ts",
+   "bytes": 3561,
+   "sha256": "16dc61eca0aeddd666db2d18513ebf1ddae647e7ce0203f8ec67e3b88b75196d",
+   "publicBlob": "61a1eb3eab184879fc87e10eda3967de0cdf9775",
+   "privateBlob": "61a1eb3eab184879fc87e10eda3967de0cdf9775",
+   "exact": true
+  },
+  {
+   "path": "src/world/walletBalanceHud.css",
+   "bytes": 8727,
+   "sha256": "eba0ce071b002b8aa4a900bedacd5ea6b53533bab9ab28eaeb76f2c5a1aac2f5",
+   "publicBlob": "5cec64774f66684fef2655b191a2e87f9e9d051f",
+   "privateBlob": "5cec64774f66684fef2655b191a2e87f9e9d051f",
+   "exact": true
+  },
+  {
+   "path": "src/world/WalletBalanceHud.tsx",
+   "bytes": 4489,
+   "sha256": "6ff479ab30f42387a33524b29dee726bc82daae99d462dbbc0114d5f0add6b85",
+   "publicBlob": "e0b6395a0df14522763af67fab4a428aa19b29ae",
+   "privateBlob": "e0b6395a0df14522763af67fab4a428aa19b29ae",
+   "exact": true
+  },
+  {
+   "path": "src/world/WalletBalancesBlock.tsx",
+   "bytes": 2442,
+   "sha256": "b3f3b85cf1e42a6b7b802ff3e3e05fe14b2ee9d2dc3f02242d0d84037445a3ba",
+   "publicBlob": "10a457a60ec6a286101de3ace2d948461b04d037",
+   "privateBlob": "10a457a60ec6a286101de3ace2d948461b04d037",
+   "exact": true
+  },
+  {
+   "path": "src/world/worldGold.css",
+   "bytes": 5558,
+   "sha256": "1568aa00678d933c6e851111b6831239590f187d9bac9361c4fa11645217c461",
+   "publicBlob": "50549ef872177910fd142da6f33a0458ea39a0b5",
+   "privateBlob": "50549ef872177910fd142da6f33a0458ea39a0b5",
+   "exact": true
+  },
+  {
+   "path": "src/world/worldGoldClient.ts",
+   "bytes": 4705,
+   "sha256": "85446b9a2249979e0378ccdfacb8fb2a7dcd95228d9bfaefa7d13e8603d5ab60",
+   "publicBlob": "52b3269f55e540e0a83e5b699f7a5f21040c7820",
+   "privateBlob": "52b3269f55e540e0a83e5b699f7a5f21040c7820",
+   "exact": true
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "bytes": 26220,
+   "sha256": "cf8ff09f9f582cf265468a91fefd0f00bf5057f8038be6ecc7ba441e71341f0b",
+   "publicBlob": "f60363a1a740c38459655f3b5a3756b05464c871",
+   "privateBlob": "f60363a1a740c38459655f3b5a3756b05464c871",
+   "exact": true
+  },
+  {
+   "path": "tests/auth-audit8.test.mjs",
+   "bytes": 27594,
+   "sha256": "0bd417c2e50833117f64c073f9ce86881a9ea83ff647fbf2738d678b369650d9",
+   "publicBlob": "1a1a76e9f05b38f8bf162521c5738e67208ad0b8",
+   "privateBlob": "1a1a76e9f05b38f8bf162521c5738e67208ad0b8",
+   "exact": true
+  },
+  {
+   "path": "tests/bridge-budget.test.mjs",
+   "bytes": 1807,
+   "sha256": "a6397579cb3f99f183b61bf64bf52af5496f8f06f3ae5556d5c995471c13c181",
+   "publicBlob": "7c8d328c99728b19528cc3d90fa61867d3dd1ea9",
+   "privateBlob": "7c8d328c99728b19528cc3d90fa61867d3dd1ea9",
+   "exact": true
+  },
+  {
+   "path": "tests/d1-sqlite.mjs",
+   "bytes": 2227,
+   "sha256": "af44b084062d7180749e62c8603231ae9f50d7b25c8fcc0d73b185b9cf57bce6",
+   "publicBlob": "604fa5318f82ad42de5fccdbfb282a55a65f1357",
+   "privateBlob": "604fa5318f82ad42de5fccdbfb282a55a65f1357",
+   "exact": true
+  },
+  {
+   "path": "tests/economy-client.test.mjs",
+   "bytes": 37356,
+   "sha256": "c988c25cd9882b38f43dabbba819f154064adffba131dd342fab39214e1ec6a3",
+   "publicBlob": "8db9ef5376d3cfdaf71474cb0bb19f2ec8f9a822",
+   "privateBlob": "8db9ef5376d3cfdaf71474cb0bb19f2ec8f9a822",
+   "exact": true
+  },
+  {
+   "path": "tests/economy-pane.test.mjs",
+   "bytes": 28861,
+   "sha256": "e96e894e0a792336072ee8522dbf8e6b4899ed1427d4ada3d0619f3d780da425",
+   "publicBlob": "f2fd260cec9474eb8d3cb7dd21e43743e168750b",
+   "privateBlob": "f2fd260cec9474eb8d3cb7dd21e43743e168750b",
+   "exact": true
+  },
+  {
+   "path": "tests/economy-wallet-recovery.test.mjs",
+   "bytes": 24573,
+   "sha256": "3db5af303b20edb846e7200bad84eac0958b659ef971f588d23eaa063152a6f8",
+   "publicBlob": "5ae791e34a92f3388a05f8dd40864f589bdc1cbd",
+   "privateBlob": "5ae791e34a92f3388a05f8dd40864f589bdc1cbd",
+   "exact": true
+  },
+  {
+   "path": "tests/fast-gold-client.test.mjs",
+   "bytes": 7911,
+   "sha256": "6e2521bd9aaf07e01f3dfa956da37ba7570791dde3534bb0e98f60645d756413",
+   "publicBlob": "c64f28a5309d4414710a6b07e70a550527ce72e9",
+   "privateBlob": "c64f28a5309d4414710a6b07e70a550527ce72e9",
+   "exact": true
+  },
+  {
+   "path": "tests/gold-purchase-ui.test.mjs",
+   "bytes": 3603,
+   "sha256": "3364f6e7a858798468d9beb64eea56fd8350f820618aaedab34a82d4cf84f2c3",
+   "publicBlob": "eda69fa356ebaf20635c759642a0a84a1c533584",
+   "privateBlob": "eda69fa356ebaf20635c759642a0a84a1c533584",
+   "exact": true
+  },
+  {
+   "path": "tests/mining-media.test.mjs",
+   "bytes": 3624,
+   "sha256": "18b001fea6b68af5993c6c058766bc2dab883f5134a574dcdc3ea95f99e317dd",
+   "publicBlob": "d35f999c04fea8bec5717d60838c95b037cfd530",
+   "privateBlob": "d35f999c04fea8bec5717d60838c95b037cfd530",
+   "exact": true
+  },
+  {
+   "path": "tests/mining-panel.test.mjs",
+   "bytes": 4142,
+   "sha256": "5460f8f39a2afbd66d8388b655ef0345e4c62ec7304988dbfedcc6cbf58b2e87",
+   "publicBlob": "93c46dbc253b324e8db16f79972465b1a8ba661f",
+   "privateBlob": "93c46dbc253b324e8db16f79972465b1a8ba661f",
+   "exact": true
+  },
+  {
+   "path": "tests/presence.test.mjs",
+   "bytes": 21091,
+   "sha256": "f0b83eeda69c581feb6145e0a07094913e87f787673a7fc95621c4d8af02c872",
+   "publicBlob": "4ff6082d08521109a1b62d991ec11b1296df72cc",
+   "privateBlob": "4ff6082d08521109a1b62d991ec11b1296df72cc",
+   "exact": true
+  },
+  {
+   "path": "tests/research-pass-ui.test.mjs",
+   "bytes": 11574,
+   "sha256": "10c15cb2f4934433d3b7548c5b280c67f699dfcc081aa7b2b4fb799db90e6a58",
+   "publicBlob": "cceece233778428037cade8ad5f242c8dfb127ef",
+   "privateBlob": "cceece233778428037cade8ad5f242c8dfb127ef",
+   "exact": true
+  },
+  {
+   "path": "tests/session-compare.test.mjs",
+   "bytes": 2585,
+   "sha256": "cfc612d02f5166fd36529d6cabc51045cbe594657d5f09a68c4a55b9b62c974a",
+   "publicBlob": "f22c77ca43bc220e7e0b77596af90387e8fe04af",
+   "privateBlob": "f22c77ca43bc220e7e0b77596af90387e8fe04af",
+   "exact": true
+  },
+  {
+   "path": "tests/wallet-client.test.mjs",
+   "bytes": 236096,
+   "sha256": "1c0d3d7056a76ffad01318521d1ed874d0db3df10c64447e9d1d87c6ec1aacc2",
+   "publicBlob": "0de5d0334af88467b1bd99db6bfd9f97e024a992",
+   "privateBlob": "0de5d0334af88467b1bd99db6bfd9f97e024a992",
+   "exact": true
+  },
+  {
+   "path": "tests/world-gold-fast.test.mjs",
+   "bytes": 19055,
+   "sha256": "bb0e4a9f44dcbb51a686670c4581f9f65e87a6a9ad4dfac23841043b35f5f037",
+   "publicBlob": "c8bf6506a39fac7769b4721b395d2a45513d1d49",
+   "privateBlob": "c8bf6506a39fac7769b4721b395d2a45513d1d49",
+   "exact": true
+  },
+  {
+   "path": "tests/world-library-cover.test.mjs",
+   "bytes": 12430,
+   "sha256": "9d75cee8b0aa2869a737a0a3abaa675cbb5fa0b895a3ad2bf9a01629e7e23c3d",
+   "publicBlob": "7b16fbd356b2fa89f589fd4ffdcdb5d6596b5ac2",
+   "privateBlob": "7b16fbd356b2fa89f589fd4ffdcdb5d6596b5ac2",
+   "exact": true
+  },
+  {
+   "path": "tests/world-opening.test.mjs",
+   "bytes": 16406,
+   "sha256": "7ca7e0d72aee2cc1c9adeb18a264d1b041a6b105c6ec756127588942941cf840",
+   "publicBlob": "d844cbca29211cfff2d8cd79d402cb10384dd499",
+   "privateBlob": "d844cbca29211cfff2d8cd79d402cb10384dd499",
+   "exact": true
+  },
+  {
+   "path": "worker/app.ts",
+   "bytes": 24894,
+   "sha256": "03a945b721c147aca964350ea0e6d6ce6159c9f1d66170c9968920ffde45ba7c",
+   "publicBlob": "cd4283ba51f57c2dec37e19f0501c7914e0225e5",
+   "privateBlob": "cd4283ba51f57c2dec37e19f0501c7914e0225e5",
+   "exact": true
+  },
+  {
+   "path": "wrangler.jsonc",
+   "bytes": 6340,
+   "sha256": "e2428477c32bd3df615109ad19c0751d944412ab9d4466ac54c9a2c310d955cb",
+   "publicBlob": "c1d8dcf0c3acb2ef2a14c971afe102cbb2707701",
+   "privateBlob": "804dbb9845d801d831ad80e6712f36cb4a69d249",
+   "exact": false
+  }
+ ],
+ "withheld": [
+  {
+   "path": "public/assets/miners/small.e94816cdd5d9.mp4",
+   "bytes": 278819,
+   "sha256": "e94816cdd5d98a0521589dade4f4b4721a29ba64315f63323973195b67c39ebd",
+   "privateBlob": "c90ddd1788fe4be0468f3e9abb69e94910afae05",
+   "published": false
+  },
+  {
+   "path": "public/assets/miners/medium.76c19a0054b9.mp4",
+   "bytes": 273671,
+   "sha256": "76c19a0054b94d055322ffb177502d55938e12159ed2e4b6d013e45dc2ecb6bf",
+   "privateBlob": "e1609a47aae6cf046c7335a9081cf29ccef9174d",
+   "published": false
+  },
+  {
+   "path": "public/assets/miners/large.dab5d616bcc7.mp4",
+   "bytes": 250802,
+   "sha256": "dab5d616bcc759cd21cad24126df1e21521848ab9e3b47157eaf2c2412127ffa",
+   "privateBlob": "22e55a89fa9f03c3375c25dd7c0c05d5eb70434f",
+   "published": false
+  },
+  {
+   "path": "src/world/WorldApp.tsx",
+   "bytes": 86714,
+   "sha256": "473e2bc1ea395463dcffd295982dc9e50f3deb41ba380d96b704bc2363bd850b",
+   "privateBlob": "e754d2f24d49a2b2e04366631ab3d6c236a8c146",
+   "published": false
+  },
+  {
+   "path": "src/world/publicHalls/runtime.ts",
+   "bytes": 45857,
+   "sha256": "b57e376fab3db7f67b4d03b631ec04c71ad81a65d09777a1755fb869f432e5f6",
+   "privateBlob": "5c9bac1ba4285dcf726f05ed808a64aa3def1d6a",
+   "published": false
+  }
+ ]
+}

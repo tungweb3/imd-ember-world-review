@@ -1,0 +1,116 @@
+From 66565c7a84fb1e12aded358724b76f17739db317 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 01:33:11 +0800
+Subject: [PATCH 11/18] GOLD fast credit: bind safe integers, never BigInt
+ (D1_TYPE_ERROR on production)
+
+The owner's second live test (order 0x6cc87a12..., tx 0x7ce2e92b...) was verified by the server and then
+refused by D1: "Type 'bigint' not supported for value '100'". node:sqlite accepts BigInt binds, so the
+tests never saw it. Every GOLD amount and block number bound by world-gold-fast.ts is now a checked safe
+integer, and the test D1 adapter refuses BigInt binds exactly like D1 (no other code in the suite binds
+one; restoring a BigInt bind fails 11 fast-credit tests).
+
+Also: the panel follows only the payment step's hash. During the allowance step wallet.hash is the
+approval transaction, whose receipt pays nothing (the same test logged NO_PAYMENT_FOR_ORDER first).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/world-gold-fast.ts    | 14 ++++++++------
+ src/world/WorldGoldPanel.tsx |  3 ++-
+ tests/d1-sqlite.mjs          |  7 +++++--
+ 3 files changed, 15 insertions(+), 9 deletions(-)
+
+diff --git a/server/world-gold-fast.ts b/server/world-gold-fast.ts
+index cfcca48..7db61d2 100644
+--- a/server/world-gold-fast.ts
++++ b/server/world-gold-fast.ts
+@@ -23,6 +23,8 @@ const fail=(code:string):never=>{throw Error(code);};
+ /** An RPC outage or budget refusal says nothing about the payment: retry later, never revert or refuse on it. */
+ const transient=(e:unknown)=>e instanceof Error&&/^(ECONOMY_RPC_UNAVAILABLE|ECONOMY_RPC_RATE_LIMITED|ECONOMY_SYNC_TIMEOUT|RPC_RESULT_LIMIT)$/.test(e instanceof EconomyRpcError?e.code:e.message);
+ const DEFINITE_REFUSALS=['TRANSACTION_FAILED','NO_PAYMENT_FOR_ORDER','PAYMENT_DOES_NOT_MATCH_ORDER'];
++/** D1 binds no BigInt (D1_TYPE_ERROR); every GOLD amount and block number here is a safe integer. */
++const int=(n:bigint|string)=>{const v=Number(n);return Number.isSafeInteger(v)?v:fail('GOLD_INTEGER_LIMIT');};
+ const tx=(s:unknown)=>typeof s==='string'&&ECONOMY_HASH.test(s)?s.toLowerCase():fail('BAD_REQUEST');
+ 
+ /** The migration is applied (code may reach a database before it: then fast credit is simply unavailable). */
+@@ -61,8 +63,8 @@ export async function fastCreditTopup(db:D1Database,config:EconomyConfig,rpc:Eco
+    AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM economy_config_lineage WHERE ancestor_id=?)
+    AND NOT EXISTS(SELECT 1 FROM world_gold_fast_credits WHERE order_id=? OR (tx_hash=? AND log_index=?))`,orderId,wallet,config.id,config.id,orderId,e.transactionHash,e.logIndex),
+   st(db,`INSERT INTO world_gold_fast_credits(order_id,wallet,gold,tx_hash,log_index,block_number,block_hash,state,created_ms,updated_ms) VALUES(?,?,?,?,?,?,?,'credited',?,?)`,
+-   orderId,wallet,BigInt(row!.gold),e.transactionHash,e.logIndex,BigInt(e.blockNumber),e.blockHash,now,now),
+-  st(db,`INSERT INTO world_gold_fast_entries(id,wallet,delta,kind,reference,order_id,created_ms) VALUES(?,?,?,'fast-topup',?,?,?)`,'fast-topup:'+orderId,wallet,BigInt(row!.gold),'fast-topup:'+orderId,orderId,now),
++   orderId,wallet,int(row!.gold),e.transactionHash,e.logIndex,int(e.blockNumber),e.blockHash,now,now),
++  st(db,`INSERT INTO world_gold_fast_entries(id,wallet,delta,kind,reference,order_id,created_ms) VALUES(?,?,?,'fast-topup',?,?,?)`,'fast-topup:'+orderId,wallet,int(row!.gold),'fast-topup:'+orderId,orderId,now),
+   st(db,'DELETE FROM world_gold_write_checks')
+  ]);}catch(error){
+   const again=await orderRow(db,config,orderId),settled=again&&settledOutcome(again);if(settled)return settled;
+@@ -109,7 +111,7 @@ export async function maintainFastGold(db:D1Database,config:EconomyConfig,rpc:Ec
+    catch(error){const code=error instanceof Error?error.message:'';if(!DEFINITE_REFUSALS.includes(code))throw error;refused=code;}
+    if(e&&(e.blockHash!==c.block_hash||BigInt(e.blockNumber)!==BigInt(c.block_number)||e.logIndex!==c.log_index)&&BigInt(e.blockNumber)>BigInt(cursor.lastBlock)){
+     // A reorg re-included the same payment in another block that the finalized cursor has not reached yet.
+-    await st(db,`UPDATE world_gold_fast_credits SET block_number=?,block_hash=?,log_index=?,updated_ms=MAX(updated_ms,?) WHERE order_id=? AND state='credited'`,BigInt(e.blockNumber),e.blockHash,e.logIndex,nowMs,c.order_id).run();
++    await st(db,`UPDATE world_gold_fast_credits SET block_number=?,block_hash=?,log_index=?,updated_ms=MAX(updated_ms,?) WHERE order_id=? AND state='credited'`,int(e.blockNumber),e.blockHash,e.logIndex,nowMs,c.order_id).run();
+     out.moved++;continue;
+    }
+    if(!passed)continue;   // not final yet: the indexer will pay the order (settled by reconcileWorldGold) or pass the block
+@@ -128,7 +130,7 @@ export async function maintainFastGold(db:D1Database,config:EconomyConfig,rpc:Ec
+    const take=BigInt(view.available)<BigInt(d.amount)?BigInt(view.available):BigInt(d.amount);if(take<=0n)continue;
+    const left=BigInt(d.amount)-take;
+    await st(db,`INSERT INTO world_gold_fast_entries(id,wallet,delta,kind,reference,order_id,created_ms) VALUES(?,?,?,'fast-debt-collect',?,?,?)`,
+-    `fast-debt-collect:${d.order_id}:${left}`,d.wallet,-take,`fast-debt-collect:${d.order_id}:${left}`,d.order_id,nowMs).run();
++    `fast-debt-collect:${d.order_id}:${left}`,d.wallet,int(-take),`fast-debt-collect:${d.order_id}:${left}`,d.order_id,nowMs).run();
+    out.collected++;
+   }catch(error){out.failures.push({orderId:d.order_id,code:error instanceof Error&&/^[A-Z][A-Z0-9_]{1,80}$/.test(error.message)?error.message:'FAST_DEBT_RETRY'});}
+  }
+@@ -142,8 +144,8 @@ async function revert(db:D1Database,config:EconomyConfig,c:CreditRow,nowMs:numbe
+   check(db,`EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND status='pending') AND EXISTS(SELECT 1 FROM world_gold_fast_credits WHERE order_id=? AND state='credited' AND block_number<=CAST(? AS INTEGER))
+    AND EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND last_block>=CAST(? AS INTEGER) AND halted_reason IS NULL)`,c.order_id,c.order_id,lastBlock,config.id,c.block_number),
+   st(db,`UPDATE world_gold_fast_credits SET state='reverted',updated_ms=MAX(updated_ms,?) WHERE order_id=? AND state='credited'`,nowMs,c.order_id),
+-  ...take>0n?[st(db,`INSERT INTO world_gold_fast_entries(id,wallet,delta,kind,reference,order_id,created_ms) VALUES(?,?,?,'fast-revert',?,?,?)`,'fast-revert:'+c.order_id,c.wallet,-take,'fast-revert:'+c.order_id,c.order_id,nowMs)]:[],
+-  ...owed>0n?[st(db,'INSERT INTO world_gold_fast_debts(order_id,wallet,amount,created_ms) VALUES(?,?,?,?)',c.order_id,c.wallet,owed,nowMs)]:[],
++  ...take>0n?[st(db,`INSERT INTO world_gold_fast_entries(id,wallet,delta,kind,reference,order_id,created_ms) VALUES(?,?,?,'fast-revert',?,?,?)`,'fast-revert:'+c.order_id,c.wallet,int(-take),'fast-revert:'+c.order_id,c.order_id,nowMs)]:[],
++  ...owed>0n?[st(db,'INSERT INTO world_gold_fast_debts(order_id,wallet,amount,created_ms) VALUES(?,?,?,?)',c.order_id,c.wallet,int(owed),nowMs)]:[],
+   st(db,'DELETE FROM world_gold_write_checks')
+  ]);}catch(error){if(writeGuardFailed(error))fail('FAST_REVERT_SUPERSEDED');throw error;}
+ }
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 704c902..3cc779c 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -75,7 +75,8 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  useEffect(()=>{setController(null);configRef.current=null;setConfigFailed(false);if(!identity)return;let active=true,c:EconomyWalletController|undefined;const registry=wallets();void new EconomyClient({auth:()=>auth.current}).config().then(config=>{if(!active||!config.enabled)return;configRef.current=config;c=new EconomyWalletController({config,auth:()=>auth.current,provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(fn),pending:localEconomyPending});c.restorePending();setController(c);}).catch(()=>{if(active)setConfigFailed(true);});return()=>{active=false;c?.dispose();};},[identity,configTry]);
+  // GOLD fast credit: the wallet's hash of this top-up's payment starts the server check (fastGoldCredit.ts), which keeps
+  // running after the panel closes; its credit refreshes this book.
+- const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=wallet.hash;
++ // Only the payment's hash: during the allowance step wallet.hash is the approval transaction, which pays nothing.
++ const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=wallet.step==='execute'?wallet.hash:null;
+  useEffect(()=>{const o=selected;if(!o||o.kind!=='topup'||o.id!==payingOrder||!payingHash||o.fastCredit||o.status==='paid')return;
+   followFastCredit({fastCredit:(id,hash)=>client.fastCredit(id,hash)},o.id,payingHash,o.gold);},[selected,payingOrder,payingHash,client]);
+  const fast=useSyncExternalStore(subscribeFastFollow,()=>fastFollow(selected?.id),()=>null);
+diff --git a/tests/d1-sqlite.mjs b/tests/d1-sqlite.mjs
+index 67ac4b6..604fa53 100644
+--- a/tests/d1-sqlite.mjs
++++ b/tests/d1-sqlite.mjs
+@@ -11,14 +11,17 @@ export function openStandaloneEconomyD1(files=migrationFiles().filter(f=>Number(
+ export function openD1(files=migrationFiles(),filename=':memory:'){
+   const db=new DatabaseSync(filename);
+   for(const f of files)db.exec(readFileSync(new URL(f,dir),'utf8'));
++  // Production D1 refuses a BigInt bind (D1_TYPE_ERROR); node:sqlite would accept it, so the adapter refuses it too
++  // (2026-10-26: fast GOLD credit passed here and failed on D1).
++  const value=v=>{if(typeof v==='bigint')throw Error(`D1_TYPE_ERROR: Type 'bigint' not supported for value '${v}'`);return v===undefined?null:v;};
+   const exec=(sql,args)=>{
+-    const s=db.prepare(sql),values=args.map(v=>v===undefined?null:v);
++    const s=db.prepare(sql),values=args.map(value);
+     if(/^\s*(select|with)\b/i.test(sql)||/\breturning\b/i.test(sql))return {results:s.all(...values).map(r=>({...r})),success:true,meta:{changes:0}};
+     const r=s.run(...values);return {results:[],success:true,meta:{changes:Number(r.changes)}};
+   };
+   const statement=(sql,args=[])=>({sql,args,
+     bind:(...values)=>statement(sql,values),
+-    first:async()=>{const r=db.prepare(sql).get(...args.map(v=>v===undefined?null:v));return r?{...r}:null;},
++    first:async()=>{const r=db.prepare(sql).get(...args.map(value));return r?{...r}:null;},
+     all:async()=>exec(sql,args),
+     run:async()=>exec(sql,args)});
+   return {raw:db,
+-- 
+2.55.0.windows.5
+

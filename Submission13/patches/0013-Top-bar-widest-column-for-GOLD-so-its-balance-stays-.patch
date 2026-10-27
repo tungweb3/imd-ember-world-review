@@ -1,0 +1,65 @@
+From 40e97f490e58f60066f747392b6db88ca8578c64 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 27 Oct 2026 02:22:57 +0800
+Subject: [PATCH 13/18] Top bar: widest column for GOLD so its balance stays
+ visible next to +N and Buy
+
+Owner report 2026-10-27: during a fast credit the 400 was hidden behind the note and the new Buy button. GOLD now takes 1.6 shares of the bar (EMBEO 1, staked 0.8); the tablet bar grows 320 -> 360 px; below 1100 px the note keeps '+100' and the word 'crediting' goes to screen readers. Measured on the live page at 1600, 1000 and 375 px: balance, note and button stay inside the GOLD cell.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/WalletBalanceHud.tsx | 2 +-
+ src/world/walletBalanceHud.css | 9 +++++++--
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/src/world/WalletBalanceHud.tsx b/src/world/WalletBalanceHud.tsx
+index 70ebc26..e0b6395 100644
+--- a/src/world/WalletBalanceHud.tsx
++++ b/src/world/WalletBalanceHud.tsx
+@@ -24,7 +24,7 @@ export function WalletBalanceHud({state,read,zh,onOpen}:{state:AuthState;read:Me
+   <dl>
+    <div><dt title={say('錢包 EMBEO','Wallet EMBEO')} aria-label={say('錢包 EMBEO','Wallet EMBEO')}><span className="balance-label-long">{say('錢包 EMBEO','Wallet EMBEO')}</span><span className="balance-label-short" aria-hidden="true">{say('EMBEO','EMBEO')}</span></dt><dd title={token(data?.embeo)}>{token(data?.embeo)}</dd></div>
+    <div><dt title={say('質押 EMBEO','Staked EMBEO')} aria-label={say('質押 EMBEO','Staked EMBEO')}><span className="balance-label-long">{say('質押 EMBEO','Staked EMBEO')}</span><span className="balance-label-short" aria-hidden="true">{say('質押','Staked')}</span></dt><dd title={token(data?.staked)}>{token(data?.staked)}</dd></div>
+-   <div className="balance-gold"><dt><button type="button" className="balance-gold-purchase" onClick={()=>window.dispatchEvent(new Event('world:gold-open'))} aria-label={say('購買 GOLD 與查看帳本','Buy GOLD and view ledger')}>GOLD <span aria-hidden="true">＋</span></button></dt><dd title={gold}>{gold}{crediting!=='0'&&<span className="balance-gold-crediting" role="status"> +{balanceNumber(crediting)} {say('入帳中','crediting')}</span>}</dd>
++   <div className="balance-gold"><dt><button type="button" className="balance-gold-purchase" onClick={()=>window.dispatchEvent(new Event('world:gold-open'))} aria-label={say('購買 GOLD 與查看帳本','Buy GOLD and view ledger')}>GOLD <span aria-hidden="true">＋</span></button></dt><dd title={gold}>{gold}{crediting!=='0'&&<span className="balance-gold-crediting" role="status" title={say('入帳中','Crediting')}> +{balanceNumber(crediting)}<span className="balance-gold-crediting-word"> {say('入帳中','crediting')}</span></span>}</dd>
+     {/* A visible, one-tap way to buy GOLD (the "GOLD ＋" label alone was not recognised as a button). */}
+     <button type="button" className="balance-gold-buy" onClick={()=>window.dispatchEvent(new Event('world:gold-open'))}>{say('購買','Buy')}</button></div>
+   </dl>
+diff --git a/src/world/walletBalanceHud.css b/src/world/walletBalanceHud.css
+index 1df721d..5cec647 100644
+--- a/src/world/walletBalanceHud.css
++++ b/src/world/walletBalanceHud.css
+@@ -4,7 +4,8 @@
+ .wallet-balance-hud header,.wallet-balance-hud footer{display:contents}
+ .wallet-balance-hud h2,.wallet-balance-hud footer small{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .wallet-balance-hud .balance-heading-short,.wallet-balance-hud .balance-label-short,.wallet-balance-hud .balance-wallet-label{display:none}
+-.wallet-balance-hud dl{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
++/* GOLD holds its balance, a "+N crediting" note and the Buy button: it gets the widest column. */
++.wallet-balance-hud dl{margin:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr) minmax(0,1.6fr);gap:10px}
+ .wallet-balance-hud dl>div{display:flex;align-items:center;gap:7px;min-width:0}
+ .wallet-balance-hud dl>div+div{padding-left:10px;border-left:1px solid #d8c8942e}
+ .wallet-balance-hud dt{flex-shrink:0;color:#c4d2c9;white-space:nowrap}
+@@ -12,6 +13,8 @@
+ .wallet-balance-hud dt,.wallet-balance-hud dd{font:10px/16px "Microsoft JhengHei","PingFang TC",sans-serif}
+ .wallet-balance-hud .balance-gold dt,.wallet-balance-hud .balance-gold dd{color:#edce85}
+ .wallet-balance-hud .balance-gold-crediting{font-size:.8em;color:#bfe3c4;white-space:nowrap}
++/* The balance itself is never the part cut off: the GOLD cell's number keeps its width, the note shrinks first. */
++.wallet-balance-hud .balance-gold dd{flex-shrink:0;overflow:visible}
+ .wallet-balance-hud header button,.wallet-balance-hud footer button{position:absolute;top:0;bottom:0;right:0;display:grid;place-content:center;width:30px;padding:0;background:transparent;color:#d8c48e;font-size:18px}
+ .wallet-balance-hud footer button{right:30px;font-size:15px}
+ .wallet-balance-hud:has(footer button){padding-right:68px}
+@@ -37,8 +40,10 @@
+ .world-market-summary .world-time-live{min-height:34px;font-size:10px}
+ .world-explore-tools{position:relative;display:flex;margin-top:8px;pointer-events:auto}
+ .ember-world.drawer-open .world-market-hud{visibility:hidden}
++/* Where the bar is narrow, "+100" stays and the word "crediting" goes to screen readers only. */
++@media(max-width:1100px){.wallet-balance-hud .balance-gold-crediting-word{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+ @media(min-width:701px) and (max-width:1100px){
+- .world-account-hud{width:320px;right:80px}
++ .world-account-hud{width:360px;right:80px}
+  .wallet-balance-hud .balance-label-long{display:none}
+  .wallet-balance-hud .balance-label-short{display:inline}
+ }
+-- 
+2.55.0.windows.5
+

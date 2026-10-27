@@ -1,0 +1,233 @@
+From ad01fd239ed0f14210fe3d8407d218f849698f96 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 17:20:16 +0800
+Subject: [PATCH 06/18] Economy wallet: confirm smart-account routed payments,
+ wait out wallet lag, keep the hash visible
+
+From the owner's first real top-up (order 0x4121e687..., tx 0x9c62...b08f):
+- MetaMask routed the pay call through its Delegation Manager (redeemDelegations),
+  so the mined tx's to/input differ from the request although the call ran. The
+  wallet's own returned hash now counts as done when the receipt carries exactly
+  the intended effect (Approval / Paid / Staked / Withdrawn from the intended
+  contract, this sender, this call's arguments). Pasted hashes never get this.
+  Replaying the real receipt: confirmed at once (was NOT_FINALIZED, then REPLACED).
+- MetaMask answers eth_getTransactionByHash from its own copy (no block, no chain
+  ID) while it still lists a mined tx as pending; that raced the receipt and showed
+  TRANSACTION_MISMATCH. Such a record is now polled again instead of judged.
+- send() shows the broadcast hash before the context check, so a session refresh
+  during the wallet prompt no longer leaves "wallet response uncertain" with no
+  hash and no "check original transaction" button.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/economyWallet.ts             | 52 ++++++++++++++---
+ tests/economy-wallet-recovery.test.mjs | 78 +++++++++++++++++++++++++-
+ 2 files changed, 121 insertions(+), 9 deletions(-)
+
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 950fc0c..7edf344 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -31,6 +31,34 @@ const HASH=/^0x[0-9a-fA-F]{64}$/,HEX=/^0x[0-9a-fA-F]*$/;
+ const quantity=(v:unknown):v is Hex=>typeof v==='string'&&/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(v)&&v.length<=66;
+ const nonce=(v:unknown):v is Hex=>quantity(v)&&BigInt(v)<(1n<<64n);
+ const initial=():EconomyWalletState=>({phase:'idle',busy:false,plan:null,hash:null,step:null,error:null,legacyPending:false});
++/** keccak256 of the event signatures that prove an intended call ran (tests compare them with viem). */
++export const ECONOMY_EFFECT_TOPICS=Object.freeze({
++ approval:'0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925',  // Approval(address,address,uint256)
++ paid:'0x060bb954af967ecb7aa08a0072a7f8fe308ceee2f5d15f4a9d4a5275a5fe79e9',      // Paid(bytes32,address,address,address,uint256)
++ staked:'0xb4caaf29adda3eefee3ad552a8e85058589bf834c7466cae4ee58787f70589ed',    // Staked(address,uint256,uint256,uint256)
++ withdrawn:'0x75e161b3e824b114fc1a33274bd7091918dd4e639cede50b78b15a4eea956a21'  // Withdrawn(address,uint256,uint256,uint256)
++});
++/** A smart-account wallet (EIP-7702; MetaMask upgrades accounts to one) executes the requested call through its own
++ *  delegation contract, so the mined transaction's `to` and input are not what this page asked for although the call
++ *  ran (first real top-up, 2026-10-26). True only when the receipt carries exactly the intended effect: the event the
++ *  intended contract emits for this sender with this call's arguments. Anything else stays a replacement. */
++export function intendedEffect(tx:{from:string;to:string;data:string},logs:unknown,config:Pick<EconomyConfig,'token'|'paymentContract'|'stakingContract'|'treasury'>):boolean{
++ if(!Array.isArray(logs)||typeof tx.data!=='string'||!/^0x[0-9a-fA-F]{8}(?:[0-9a-fA-F]{64})*$/.test(tx.data))return false;
++ const lower=(v:unknown)=>typeof v==='string'?v.toLowerCase():'',pad=(a:string)=>'0x'+lower(a).slice(2).padStart(64,'0');
++ const selector=tx.data.slice(2,10).toLowerCase(),word=(i:number)=>tx.data.slice(10+64*i,74+64*i).toLowerCase(),to=lower(tx.to),from=pad(tx.from);
++ const want=((): {address:string;topics:string[];data:(d:string)=>boolean}|null=>{
++  if(selector==='095ea7b3'&&to===lower(config.token))return {address:to,topics:[ECONOMY_EFFECT_TOPICS.approval,from,'0x'+word(0)],data:d=>d==='0x'+word(1)};
++  if(selector==='d0ee4de0'&&to===lower(config.paymentContract))return {address:to,topics:[ECONOMY_EFFECT_TOPICS.paid,'0x'+word(0),from,pad(config.token)],data:d=>d===pad(config.treasury)+word(1)};
++  if(selector==='b6b55f25'&&to===lower(config.stakingContract))return {address:to,topics:[ECONOMY_EFFECT_TOPICS.staked,from],data:d=>d.length===130&&d.slice(2,66)===word(0)};
++  if(selector==='441a3e70'&&to===lower(config.stakingContract))return {address:to,topics:[ECONOMY_EFFECT_TOPICS.withdrawn,from,'0x'+word(0)],data:d=>d.length===130&&d.slice(2,66)===word(1)};
++  return null;
++ })();
++ if(!want)return false;
++ return logs.some(l=>{const log=l as {address?:unknown;topics?:unknown;data?:unknown};const topics=Array.isArray(log.topics)?log.topics.map(lower):[];
++  // Staked carries a third topic (the new position id) that the call cannot know in advance.
++  const n=want.topics[0]===ECONOMY_EFFECT_TOPICS.staked?3:want.topics.length;
++  return lower(log.address)===want.address&&topics.length===n&&want.topics.every((t,i)=>topics[i]===t)&&want.data(lower(log.data));});
++}
+ export const localEconomyPending:EconomyPendingStore={get(key){try{return JSON.parse(localStorage.getItem(key)??'null');}catch{return null;}},set(key,value){try{if(value)localStorage.setItem(key,JSON.stringify(value));else localStorage.removeItem(key);}catch{/* A hint is never transaction authority. */}}};
+ /** A separate, click-driven transaction controller. It does not change SIWE,
+  * choose a provider, switch chains, request accounts, sign messages or retry sends. */
+@@ -164,7 +192,9 @@ export class EconomyWalletController{
+   catch(error){if((error as {code?:unknown})?.code===4001){this.savePending(null,intent.intentId);this.transaction=null;this.sendAttempted=false;}throw error;}
+   if(typeof value!=='string'||!HASH.test(value))throw new EconomyClientError('INVALID_TRANSACTION_HASH');
+   this.transaction={...intent,hash:value as Hex};if(!this.savePending(this.transaction,intent.intentId))throw new EconomyClientError('PENDING_CHANGED');
+-  this.guard();this.set({phase:'pending',hash:value,busy:true});
++  // Show the broadcast hash before the context check: a session refresh while the wallet prompt was open used to fail
++  // here with the hash unseen, leaving "wallet response uncertain" and no "check original transaction" button.
++  this.set({phase:'pending',hash:value,busy:true});this.guard();
+   });
+   await this.waitReceipt(this.transaction!.hash!);
+  }
+@@ -174,23 +204,30 @@ export class EconomyWalletController{
+   const attempts=Math.min(60,Math.max(1,this.deps.receiptAttempts??40));
+   for(let i=0;i<attempts;i++){
+    this.guard();const receipt=await this.rpc('eth_getTransactionReceipt',[candidate]);
+-   if(receipt!==null){await this.finishReceipt(receipt,candidate);return;}
++   if(receipt!==null&&await this.finishReceipt(receipt,candidate))return;
+    if(i+1<attempts){await (this.deps.delay??(ms=>new Promise(resolve=>setTimeout(resolve,ms))))(3000);this.guard();}
+   }
+   this.set({phase:'unknown',busy:false,error:'PENDING_TRANSACTION'});
+  }
+- private async finishReceipt(receipt:unknown,candidate:Hex){
++ /** False while the wallet still lists the transaction as pending: poll again rather than judge it. */
++ private async finishReceipt(receipt:unknown,candidate:Hex):Promise<boolean>{
+   const tx=this.transaction!,r=receipt as {transactionHash?:unknown;status?:unknown;from?:unknown;to?:unknown;blockHash?:unknown;blockNumber?:unknown};
+   if(tx.version!==2&&candidate.toLowerCase()!==tx.hash?.toLowerCase())throw new EconomyClientError('LEGACY_REVIEW_REQUIRED');
+   if(!r||typeof r.transactionHash!=='string'||r.transactionHash.toLowerCase()!==candidate.toLowerCase()||typeof r.from!=='string'||r.from.toLowerCase()!==tx.from||(r.to!==null&&(typeof r.to!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(r.to)))||typeof r.blockHash!=='string'||!HASH.test(r.blockHash)||!quantity(r.blockNumber)||!['0x0','0x1'].includes(String(r.status)))throw new EconomyClientError('INVALID_CHAIN_RESPONSE');
+-  const record=await this.rpc('eth_getTransactionByHash',[candidate]) as {hash?:string;from?:string;to?:string|null;input?:string;value?:string;chainId?:string;nonce?:string;blockHash?:string;blockNumber?:string}|null;
++  const record=await this.rpc('eth_getTransactionByHash',[candidate]) as {hash?:string;from?:string;to?:string|null;input?:string;value?:string;chainId?:string;nonce?:string;blockHash?:string|null;blockNumber?:string|null}|null;
++  // MetaMask answers this from its own copy (no block, no chain ID) while it still lists the transaction as pending,
++  // even after the network has the receipt: wallet lag, not another transaction (the 2026-10-26 TRANSACTION_MISMATCH).
++  if(record&&record.hash?.toLowerCase()===candidate.toLowerCase()&&record.blockHash==null&&record.blockNumber==null)return false;
+   if(!record||record.hash?.toLowerCase()!==candidate.toLowerCase()||record.from?.toLowerCase()!==tx.from||record.chainId!=='0x1'||record.blockHash?.toLowerCase()!==r.blockHash.toLowerCase()||record.blockNumber!==r.blockNumber||(record.to?.toLowerCase()??null)!==(typeof r.to==='string'?r.to.toLowerCase():null)||typeof record.input!=='string'||!HEX.test(record.input)||!quantity(record.value)||(tx.version===2&&record.nonce!==tx.nonce))throw new EconomyClientError('TRANSACTION_MISMATCH');
+   const same=record.to?.toLowerCase()===tx.to&&record.input.toLowerCase()===tx.data.toLowerCase()&&record.value==='0x0';
+   if(tx.version!==2&&!same)throw new EconomyClientError('TRANSACTION_MISMATCH');
++  // The wallet's own returned hash, routed through a smart account, counts as this call when its receipt proves the
++  // exact intended effect (see intendedEffect). A pasted hash never gets this shortcut.
++  const done=same||tx.version===2&&r.status==='0x1'&&tx.hash?.toLowerCase()===candidate.toLowerCase()&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
+   // The wallet-returned original hash retains its normal mined confirmation.
+   // A manually supplied/replacement hash needs irreversible nonce consumption
+   // before it can release an unrelated original send intent.
+-  if(tx.hash?.toLowerCase()!==candidate.toLowerCase()||!same){
++  if(tx.hash?.toLowerCase()!==candidate.toLowerCase()||!done){
+    const final=await this.rpc('eth_getBlockByNumber',['finalized',false]) as {number?:unknown;hash?:unknown}|null;
+    if(!final||!quantity(final.number)||typeof final.hash!=='string'||!HASH.test(final.hash)||BigInt(final.number)<BigInt(r.blockNumber))throw new EconomyClientError('TRANSACTION_NOT_FINALIZED');
+    const canonical=final.number===r.blockNumber?final:await this.rpc('eth_getBlockByNumber',[r.blockNumber,false]) as {number?:unknown;hash?:unknown}|null;
+@@ -203,9 +240,10 @@ export class EconomyWalletController{
+    // must instead remain protected and become this pane's current review.
+    if(stored&&stored.intentId!==tx.intentId){this.adoptPending(stored,tx.from);throw new EconomyClientError('PENDING_CHANGED');}
+    if(stored&&!this.savePending(null,tx.intentId))throw new EconomyClientError('PENDING_CHANGED');
+-   this.transaction=null;this.sendAttempted=false;this.set({busy:false,phase:!same?'replaced':r.status==='0x1'?'confirmed':'error',hash:candidate,legacyPending:false,error:!same?'TRANSACTION_REPLACED':r.status==='0x1'?null:'TRANSACTION_REVERTED'});
++   this.transaction=null;this.sendAttempted=false;this.set({busy:false,phase:!done?'replaced':r.status==='0x1'?'confirmed':'error',hash:candidate,legacyPending:false,error:!done?'TRANSACTION_REPLACED':r.status==='0x1'?null:'TRANSACTION_REVERTED'});
+   });
+-  if(same&&r.status==='0x1'&&tx.step!=='execute'&&this.s.plan){this.set({phase:'checking',busy:true});await this.inspect();}
++  if(done&&r.status==='0x1'&&tx.step!=='execute'&&this.s.plan){this.set({phase:'checking',busy:true});await this.inspect();}
++  return true;
+  }
+  async checkReceipt(hash?:string){if(!this.transaction||!hash&&!this.transaction.hash)return;return this.action(async()=>{
+   const candidate=hash??this.transaction!.hash!;if(!HASH.test(candidate))throw new EconomyClientError('INVALID_TRANSACTION_HASH');
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 716cba6..49d68a5 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -1,7 +1,8 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import {INITIAL} from '../src/world/auth.ts';
+-import {EconomyWalletController,encodeEconomyCall,localEconomyLock} from '../src/world/economyWallet.ts';
++import {EconomyWalletController,encodeEconomyCall,localEconomyLock,ECONOMY_EFFECT_TOPICS} from '../src/world/economyWallet.ts';
++import {keccak256,stringToHex} from 'viem';
+ import {ECONOMY_TOKEN,ECONOMY_TREASURY,SHARE_WEI} from '../src/world/economyClient.ts';
+ 
+ const A='0x'+'a'.repeat(40),VAULT='0x'+'1'.repeat(40),PAY='0x'+'2'.repeat(40),HASH='0x'+'3'.repeat(64),OTHER='0x'+'4'.repeat(64),BLOCK='0x'+'5'.repeat(64),NOW=Date.UTC(2026,9,16);
+@@ -22,10 +23,12 @@ function fixture({lost=false,lock=mutex(),store=new Map(),legacy=null}={}){
+    if(selector==='10a223e7')return word(SHARE_WEI);
+    if(selector==='70a08231'||selector==='dd62ed3e')return word(10n*SHARE_WEI);
+    if(selector==='99fbab88')return address(A)+word(3n).slice(2);
++   if(selector==='61d027b3')return address(ECONOMY_TREASURY);
++   if(selector==='e9c1121e')return word(0n);
+    throw Error('unexpected selector '+selector);
+   }
+   if(method==='eth_sendTransaction'){sent.push(params[0]);if(lost)throw Error('lost response');return HASH;}
+-  if(method==='eth_getTransactionReceipt')return candidate&&params[0]===candidate.hash?{transactionHash:candidate.hash,from:A,to:candidate.to,status:candidate.status??'0x1',blockHash:BLOCK,blockNumber:'0x20'}:null;
++  if(method==='eth_getTransactionReceipt')return candidate&&params[0]===candidate.hash?{transactionHash:candidate.hash,from:A,to:candidate.to,status:candidate.status??'0x1',blockHash:BLOCK,blockNumber:'0x20',logs:candidate.logs??[]}:null;
+   if(method==='eth_getTransactionByHash')return candidate&&params[0]===candidate.hash?{from:A,to:candidate.to,input:candidate.input,value:'0x0',chainId:'0x1',nonce:candidate.nonce,hash:candidate.hash,blockHash:BLOCK,blockNumber:'0x20',...candidate.patch}:null;
+   if(method==='eth_getBlockByNumber')return {number:params[0]==='finalized'&&!finalized?'0x1f':'0x20',hash:BLOCK};
+   throw Error('unexpected RPC '+method);
+@@ -42,6 +45,77 @@ test('new sends bind and persist a pending nonce plus chain ID before the wallet
+  assert.equal([...f.store.values()][0].nonce,'0x8');assert.equal([...f.store.values()][0].version,2);
+  assert.deepEqual(f.calls.find(c=>c.method==='eth_getTransactionCount').params,[A,'pending']);f.controller.dispose();
+ });
++// A smart-account wallet (EIP-7702, MetaMask) runs the call through its own delegation contract: the mined transaction's
++// `to`/input differ from the request although the call ran (owner's first real top-up, 2026-10-26).
++const DELEGATION='0x'+'d'.repeat(40),OID='0x'+'7'.repeat(64),pad=a=>'0x'+a.slice(2).toLowerCase().padStart(64,'0');
++const T=ECONOMY_EFFECT_TOPICS,routed=(logs,patch={})=>({hash:HASH,to:DELEGATION,input:'0xcef6d209'+'0'.repeat(64),nonce:'0x8',logs,...patch});
++const effect={
++ staked:shares=>({address:VAULT,topics:[T.staked,pad(A),word(9n)],data:word(shares)+word(shares*SHARE_WEI).slice(2)}),
++ approval:(spender,amount)=>({address:ECONOMY_TOKEN,topics:[T.approval,pad(A),pad(spender)],data:word(amount)}),
++ paid:(orderId,amount)=>({address:PAY,topics:[T.paid,orderId,pad(A),pad(ECONOMY_TOKEN)],data:pad(ECONOMY_TREASURY)+word(amount).slice(2)}),
++};
++const payPlan=()=>({kind:'pay',payment:{chainId:1,contract:PAY,token:ECONOMY_TOKEN,receiver:ECONOMY_TREASURY,orderId:OID,amount:'1000'},expiresMs:NOW+600000,serviceTitle:'gold-100'});
++test('effect topics are the keccak of the reviewed event signatures',()=>{
++ assert.deepEqual(T,{approval:keccak256(stringToHex('Approval(address,address,uint256)')),paid:keccak256(stringToHex('Paid(bytes32,address,address,address,uint256)')),
++  staked:keccak256(stringToHex('Staked(address,uint256,uint256,uint256)')),withdrawn:keccak256(stringToHex('Withdrawn(address,uint256,uint256,uint256)'))});
++});
++test('smart-account routed stake, approval and payment count as done when the receipt proves the exact intended effect',async()=>{
++ {const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});await f.controller.confirm();assert.equal(f.controller.state.hash,HASH);
++  f.candidate(routed([effect.staked(1n)]));await f.controller.checkReceipt();
++  assert.equal(f.controller.state.phase,'confirmed');assert.equal(f.controller.state.error,null);assert.equal(f.store.size,0);f.controller.dispose();}
++ {const f=fixture();let allowance=0n;f.intercept(a=>a.method==='eth_call'&&a.params[0].data.slice(2,10)==='dd62ed3e'?word(allowance):undefined);
++  await f.controller.prepare({kind:'stake',shares:'1'});assert.equal(f.controller.state.phase,'approve-required');await f.controller.approve();
++  f.candidate(routed([effect.approval(VAULT,SHARE_WEI)]));allowance=SHARE_WEI;await f.controller.checkReceipt();
++  assert.equal(f.controller.state.phase,'confirm','after the approval the page moves on to the payment/stake step');assert.equal(f.store.size,0);f.controller.dispose();}
++ {const f=fixture();await f.controller.prepare(payPlan());assert.equal(f.controller.state.phase,'confirm');await f.controller.confirm();
++  assert.equal(f.sent[0].to,PAY.toLowerCase());f.candidate(routed([{address:ECONOMY_TOKEN,topics:['0x'+'e'.repeat(64)],data:'0x'},effect.paid(OID,1000n)]));
++  await f.controller.checkReceipt();assert.equal(f.controller.state.phase,'confirmed');assert.equal(f.controller.state.error,null);assert.equal(f.store.size,0);f.controller.dispose();}
++});
++test('a routed transaction without exactly the intended effect is never taken as done',async()=>{
++ const wrong={
++  sender:{...effect.paid(OID,1000n),topics:[T.paid,OID,pad('0x'+'4'.repeat(40)),pad(ECONOMY_TOKEN)]},
++  order:effect.paid('0x'+'8'.repeat(64),1000n),
++  amount:effect.paid(OID,999n),
++  contract:{...effect.paid(OID,1000n),address:'0x'+'9'.repeat(40)},
++  token:{...effect.paid(OID,1000n),topics:[T.paid,OID,pad(A),pad('0x'+'5'.repeat(40))]},
++  receiver:{...effect.paid(OID,1000n),data:pad('0x'+'6'.repeat(40))+word(1000n).slice(2)},
++  event:{...effect.paid(OID,1000n),topics:[T.staked,OID,pad(A),pad(ECONOMY_TOKEN)]},
++ };
++ for(const [name,log] of [...Object.entries(wrong),['no log',null],['reverted',effect.paid(OID,1000n)]]){
++  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++  f.candidate(routed(log?[log]:[],name==='reverted'?{status:'0x0'}:{}));await f.controller.checkReceipt();
++  assert.notEqual(f.controller.state.phase,'confirmed',name);assert.equal(f.controller.state.error,'TRANSACTION_REPLACED',name);f.controller.dispose();
++ }
++ // and a pasted hash of another routed transaction never gets the shortcut, even with a matching effect
++ const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
++ f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER}));await f.controller.checkReceipt(OTHER);
++ assert.notEqual(f.controller.state.phase,'confirmed');f.controller.dispose();
++});
++test('a session refresh while the wallet prompt is open still shows the broadcast hash and offers the check',async()=>{
++ const f=fixture();await f.controller.prepare({kind:'stake',shares:'1'});
++ f.intercept(a=>{if(a.method!=='eth_sendTransaction')return undefined;const s=f.deps.auth();s.session={...s.session};f.sent.push(a.params[0]);return HASH;});
++ await f.controller.confirm();
++ assert.equal(f.controller.state.phase,'unknown');assert.equal(f.controller.state.error,'CONTEXT_CHANGED');
++ assert.equal(f.controller.state.hash,HASH,'the hash is visible, so the panel offers "check original transaction"');
++ assert.equal([...f.store.values()][0].hash,HASH);f.controller.dispose();
++});
++// MetaMask answers eth_getTransactionByHash from its own copy while it still lists the transaction as pending: no block,
++// no chain ID, even when the network already has the receipt (the owner's first top-up showed TRANSACTION_MISMATCH).
++const walletCopy={chainId:undefined,blockHash:null,blockNumber:null};
++test('a mined payment the wallet still lists as pending is polled again, never called a mismatch',async()=>{
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();const sent=f.sent[0];
++  f.candidate({hash:HASH,to:sent.to,input:sent.data,nonce:'0x8',patch:walletCopy});await f.controller.checkReceipt();
++  assert.equal(f.controller.state.phase,'unknown');assert.equal(f.controller.state.error,'PENDING_TRANSACTION');assert.equal(f.controller.state.hash,HASH);assert.equal(f.store.size,1,'the intent stays protected');
++  f.candidate({hash:HASH,to:sent.to,input:sent.data,nonce:'0x8'});await f.controller.checkReceipt();
++  assert.equal(f.controller.state.phase,'confirmed');assert.equal(f.controller.state.error,null);assert.equal(f.store.size,0);f.controller.dispose();}
++ {const f=fixture();f.deps.receiptAttempts=3;await f.controller.prepare(payPlan());await f.controller.confirm();const sent=f.sent[0];let lag=1;
++  f.intercept(a=>a.method==='eth_getTransactionByHash'&&lag-->0?{hash:HASH,from:A,to:sent.to,input:sent.data,value:'0x0',nonce:'0x8',...walletCopy}:undefined);
++  f.candidate(routed([effect.paid(OID,1000n)]));await f.controller.checkReceipt();
++  assert.equal(f.controller.state.phase,'confirmed','the next poll sees the network record, here a smart-account route');assert.equal(f.store.size,0);f.controller.dispose();}
++ {const f=fixture({lost:true});await f.controller.prepare({kind:'stake',shares:'1'});await f.controller.confirm();
++  f.candidate({hash:OTHER,to:VAULT,input:encodeEconomyCall('deposit',[1n]),nonce:'0x8',patch:{...walletCopy,blockHash:BLOCK}});await f.controller.checkReceipt(OTHER);
++  assert.equal(f.controller.state.error,'TRANSACTION_MISMATCH','a record with a block but no chain ID is still refused');assert.equal(f.store.size,1);f.controller.dispose();}
++});
+ test('MetaMask pending count as a JSON number (45) still reaches the wallet prompt, as quantity 0x2d, for approve and pay alike',async()=>{
+  for(const step of ['approve','execute']){
+   const f=fixture();f.intercept(args=>args.method==='eth_getTransactionCount'?45:args.method==='eth_call'&&args.params[0].data.slice(2,10)==='dd62ed3e'&&step==='approve'?word(0):undefined);
+-- 
+2.55.0.windows.5
+

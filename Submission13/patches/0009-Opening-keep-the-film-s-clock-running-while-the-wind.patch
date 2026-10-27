@@ -1,0 +1,83 @@
+From ea72e926fb7c0adfb1400748529d1bb171f3a1c3 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 26 Oct 2026 19:37:59 +0800
+Subject: [PATCH 09/18] Opening: keep the film's clock running while the window
+ is switched away
+
+Owner request 2026-10-26: switching windows during the opening paused the film until the player came back,
+and sometimes it stuck. The browser pauses a muted video in a hidden tab (power saving); a page cannot stop
+that. The opening now notes when the tab was hidden and, on return, continues from where the film would be
+after the time away (seeking only past what was not played), or opens the World if the film would already
+have ended. A film the browser kept playing is not moved; the existing 3 s "still not moving" fallback stays.
+
+Tests: three cases in tests/world-opening.test.mjs (paused while away, away longer than the film, kept
+playing); removing the catch-up fails the first two.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ public/opening-entry.js      | 21 ++++++++++++++++++---
+ tests/world-opening.test.mjs | 16 ++++++++++++++++
+ 2 files changed, 34 insertions(+), 3 deletions(-)
+
+diff --git a/public/opening-entry.js b/public/opening-entry.js
+index 7a2fcd6..b130081 100644
+--- a/public/opening-entry.js
++++ b/public/opening-entry.js
+@@ -120,11 +120,26 @@ function createOpening(doc, win) {
+     listen(video, 'waiting', waiting);
+     listen(video, 'stalled', waiting);
+     listen(video, 'playing', () => clear(stall));
+-    // A window switch can pause the film (background power saving, a frozen tab) without the browser resuming it.
+-    // Returning resumes it once; a film that still does not move hands over to the normal loading wait.
++    // A window switch can pause the film (browsers pause muted video in a hidden tab to save power) without resuming it.
++    // The film's own clock keeps running while the player is away: on return it continues from where it would be now,
++    // or the World opens if it would have ended. A film that still does not move hands over to the normal loading wait.
++    const clock = () => win.performance?.now?.() ?? Date.now();
++    let awayAt = null, awayFrom = 0;
++    const leave = () => { if (awayAt === null) { awayAt = clock(); awayFrom = video.currentTime || 0; } };
++    /** Seek past the time spent away; true when the film would already have ended (the World is entered instead). */
++    const catchUp = () => {
++        if (awayAt === null) return false;
++        const away = (clock() - awayAt) / 1000, now = video.currentTime || 0, target = awayFrom + Math.max(away, now - awayFrom);
++        awayAt = null;
++        if (Number.isFinite(video.duration) && video.duration > 0 && target >= video.duration - 0.25) { skipClip(); return true; }
++        if (target > now + 0.25) try { video.currentTime = target; } catch { /* not seekable yet: it plays on from here */ }
++        return false;
++    };
+     const resume = () => {
+-        if (closing || removed || clipDone || !video.src || doc.hidden) return;
++        if (closing || removed || clipDone || !video.src) return;
++        if (doc.hidden) { leave(); return; }
+         if (video.ended) { skipClip(); return; }
++        if (catchUp()) return;
+         if (!video.paused) return;
+         clear(stuck);
+         stuck = later(() => { if (video.ended) skipClip(); else if (video.paused) fallbackClip(); }, 3000);
+diff --git a/tests/world-opening.test.mjs b/tests/world-opening.test.mjs
+index d3a6e6b..00b7066 100644
+--- a/tests/world-opening.test.mjs
++++ b/tests/world-opening.test.mjs
+@@ -87,3 +87,19 @@ test('returning to a playing, finished or closed opening never restarts the film
+  const f=fixture();f.video.paused=false;f.doc.emit('visibilitychange');assert.equal(f.video.playCalls,1);f.video.paused=true;f.video.emit('ended');f.win.emit('focus');assert.equal(f.video.playCalls,1);
+  const g=fixture();g.ready(true);g.video.paused=true;g.doc.emit('visibilitychange');g.win.emit('pageshow');assert.equal(g.video.playCalls,1);assert.equal(g.timers.size,0);
+ });
++// 2026-10-26 owner request: switching windows must not hold the film back. The browser pauses a muted film in a hidden
++// tab; on return it continues from where it would be after the time away, or the World opens if it would have ended.
++const away=(f,seconds)=>{let t=1000;f.win.performance={now:()=>t};f.doc.hidden=true;f.doc.emit('visibilitychange');f.video.paused=true;t+=seconds*1000;f.doc.hidden=false;f.doc.emit('visibilitychange');};
++test('a film paused while hidden continues from where it would be after the time away',()=>{
++ const f=fixture();f.video.duration=8;f.video.currentTime=2;away(f,3);
++ assert.equal(f.video.currentTime,5);assert.equal(f.video.playCalls,2,'resumed once');f.ready();assert.equal(f.closed,0,'three seconds of film remain');f.video.emit('ended');assert.equal(f.closed,1);
++});
++test('a film that would have ended while hidden opens the World on return instead of playing on',()=>{
++ const f=fixture();f.video.duration=8;f.video.currentTime=2;away(f,20);
++ assert.equal(f.video.playCalls,1,'not restarted');assert.match(f.status.textContent,/正在準備/);f.ready();assert.equal(f.closed,1);
++});
++test('a film the browser kept playing while hidden is not moved again',()=>{
++ const f=fixture();f.video.duration=8;f.video.currentTime=2;let t=1000;f.win.performance={now:()=>t};
++ f.doc.hidden=true;f.doc.emit('visibilitychange');t+=3000;f.video.currentTime=5;f.doc.hidden=false;f.doc.emit('visibilitychange');
++ assert.equal(f.video.currentTime,5);assert.equal(f.video.playCalls,1,'it never stopped');
++});
+\ No newline at end of file
+-- 
+2.55.0.windows.5
+
