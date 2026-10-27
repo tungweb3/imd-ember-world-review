@@ -1,0 +1,412 @@
+diff --git a/scripts/deploy.mjs b/scripts/deploy.mjs
+index fd60c18..3759745 100644
+--- a/scripts/deploy.mjs
++++ b/scripts/deploy.mjs
+@@ -8,9 +8,11 @@
+ //   worker/        the uploaded Worker bundle (wrangler's --outdir)
+ //   wrangler.log   wrangler's own output (bindings and IDs; secrets are never printed by wrangler)
+ // A real deploy refuses a dirty working tree, at the start and again after the build just before upload (HEAD must not have
+-// moved either), so the record's commit is exactly what shipped, and refuses any .env file
+-// Vite would load into the build (gitignored, so the commit would not say what shipped); a dry run lists their names in
+-// the manifest. Nothing here reads .dev.vars, .env or credentials (only file names are listed); wrangler uses its own login.
++// moved either), and reads it a third time after wrangler (which bundles the Worker from the tree while uploading): a change
++// then cannot be undone, so the record says dirty and the outcome fails. It refuses any .env file Vite would load into the
++// build, any VITE_* variable of the shell, and a node_modules that does not match package-lock.json (all gitignored or
++// outside git, so the commit would not say what shipped); a dry run lists them in the manifest. Nothing here reads
++// .dev.vars, .env, variable values or credentials (only names are listed); wrangler uses its own login.
+ import {spawnSync} from 'node:child_process';
+ import {createHash} from 'node:crypto';
+ import {readFileSync,readdirSync,statSync,lstatSync,realpathSync,mkdirSync,writeFileSync,existsSync,renameSync} from 'node:fs';
+@@ -48,6 +50,35 @@ export const VITE_ENV_FILE=/^\.env(?:\.local|\.production|\.production\.local)?$
+ export const envFiles=dir=>readdirSync(dir).filter(n=>VITE_ENV_FILE.test(n)&&statSync(join(dir,n)).isFile()).sort();
+ /** A real deploy refuses them: they are gitignored, so the build would depend on something the commit does not name. */
+ export function envRefusal(names,dryRun){return names.length&&!dryRun?'env files would change the build but are not in git ('+names.join(', ')+'); move the setting into the commit or remove them':null;}
++/** VITE_* variables of the deploy shell reach the client bundle (import.meta.env) ahead of any .env file, and nothing in
++ *  git names them: a real deploy refuses them, a dry run lists their names (Swarm audit 12e0525d L-5). */
++export const viteEnvNames=env=>Object.keys(env).filter(k=>/^VITE_/i.test(k)).sort();
++export function viteEnvRefusal(names,dryRun){return names.length&&!dryRun?'VITE_* environment variables would change the build but are not in git ('+names.join(', ')+'); unset them':null;}
++/** NODE_ENV other than production makes vite build a development bundle (React's development build, for one). */
++export function nodeEnvRefusal(value,dryRun){return value!==undefined&&value!==''&&value!=='production'&&!dryRun?'NODE_ENV='+value+' would build a non-production bundle; unset it':null;}
++/** node_modules is gitignored, yet tsc, vite and wrangler run from it and bundle it. package-lock.json must be a v2+
++ *  lockfile and npm's own record of the installed tree (node_modules/.package-lock.json, written by npm ci) must exist.
++ *  Every package the lockfile names must be installed at its locked version (an optional or devOptional package for
++ *  another platform may be absent), and with the same source (resolved, integrity) as npm recorded installing; npm's
++ *  record must list nothing the lockfile does not. A stale tree (a pull without npm ci), a --no-save package or a
++ *  same-version package from elsewhere is refused. A file edited inside an installed package is not detected. */
++export function dependencyMismatches(root=ROOT){
++  const read=p=>{try{return JSON.parse(readFileSync(join(root,p),'utf8'));}catch{return null;}};
++  const lock=read('package-lock.json'),hidden=read('node_modules/.package-lock.json');
++  if(!lock||!(lock.lockfileVersion>=2)||!lock.packages)return ['package-lock.json is missing, unreadable or older than lockfile v2'];
++  if(!hidden?.packages)return ['node_modules/.package-lock.json is missing: node_modules was not installed by npm ci'];
++  const locked=Object.entries(lock.packages).filter(([k])=>k.startsWith('node_modules/')),out=[];
++  for(const [k,v] of locked){
++    const installed=read(k+'/package.json'),record=hidden.packages[k];
++    if(!installed){if(!v.optional&&!v.devOptional)out.push('missing '+k);continue;}
++    if(installed.version!==v.version)out.push(k+' '+installed.version+' installed, '+v.version+' locked');
++    else if(record&&((v.resolved&&record.resolved!==v.resolved)||(v.integrity&&record.integrity!==v.integrity)))out.push(k+' installed from another source than locked');
++  }
++  const names=new Set(locked.map(([k])=>k));
++  for(const k of Object.keys(hidden.packages))if(k.startsWith('node_modules/')&&!names.has(k))out.push('not in package-lock.json: '+k);
++  return out;
++}
++export function dependencyRefusal(mismatches,dryRun){return mismatches.length&&!dryRun?'node_modules does not match package-lock.json (run npm ci):\n'+mismatches.slice(0,20).join('\n'):null;}
+ /** Only a dry run may skip the tests. */
+ export function skipRefusal(skipTests,dryRun){return skipTests&&!dryRun?'--skip-tests is only accepted with --dry-run; a real deploy always runs the full test suite first':null;}
+ /** The node arguments of package.json's scripts.test (today `node --test tests/*.test.mjs`), run with this same Node, so
+@@ -138,7 +169,8 @@ const pkgVersion=name=>JSON.parse(readFileSync(join(ROOT,'node_modules',name,'pa
+ function main(){
+   const dryRun=process.argv.includes('--dry-run'),skipTests=process.argv.includes('--skip-tests');
+   const commit=git('rev-parse','HEAD'),porcelain=git('status','--porcelain','--untracked-files=normal');
+-  const env=envFiles(ROOT),refused=skipRefusal(skipTests,dryRun)??dirtyRefusal(porcelain,dryRun)??envRefusal(env,dryRun);if(refused){console.error(refused);process.exit(1);}
++  const env=envFiles(ROOT),viteEnv=viteEnvNames(process.env),dependencies=dependencyMismatches(ROOT);
++  const refused=skipRefusal(skipTests,dryRun)??dirtyRefusal(porcelain,dryRun)??envRefusal(env,dryRun)??viteEnvRefusal(viteEnv,dryRun)??nodeEnvRefusal(process.env.NODE_ENV,dryRun)??dependencyRefusal(dependencies,dryRun);if(refused){console.error(refused);process.exit(1);}
+   const started=new Date(),name=recordName(started,commit,dryRun),rec=join(ROOT,RECORDS_DIR,name),tmp=rec+'.partial';
+   if(skipTests)console.log('> npm test skipped (--dry-run --skip-tests)');
+   for(const [label,args] of buildSteps(ROOT,skipTests)){
+@@ -159,12 +191,18 @@ function main(){
+   const w=run(['node_modules/wrangler/bin/wrangler.js','deploy',...(dryRun?['--dry-run']:[]),'--outdir',join(tmp,'worker')],
+     {capture:true,env:{WRANGLER_LOG_PATH:join(tmp,'wrangler-logs'),WRANGLER_SEND_METRICS:'false'}});
+   const log=(w.stdout??'')+(w.stderr??'');process.stdout.write(log);
++  // wrangler bundles the Worker from the working tree while it uploads, after the check above: read the tree a third time.
++  // An upload cannot be undone, so a change seen now marks the record dirty and the outcome failed (Swarm audit 12e0525d L-4).
++  const commitAfter=git('rev-parse','HEAD'),porcelainAfter=git('status','--porcelain','--untracked-files=normal'),envAfter=envFiles(ROOT);
++  const sourceUnchanged=commitAfter===commit&&porcelainAfter===porcelainNow&&envAfter.join('\n')===env.join('\n');
++  if(!sourceUnchanged)console.error('the working tree, HEAD or .env files changed while wrangler bundled and uploaded the Worker; the record is marked dirty:\n'+porcelainAfter);
+   const distAfter=hashTree(join(ROOT,'dist'),ROOT);
+   const worker=existsSync(join(tmp,'worker'))?hashTree(join(tmp,'worker'),tmp):[];
+   const file=p=>({path:p,sha256:sha256(readFileSync(join(ROOT,p)))});
+   const manifest={
+     kind:'imd-world deploy record',mode:dryRun?'dry-run':'deploy',startedAt:started.toISOString(),finishedAt:new Date().toISOString(),
+-    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()),envFiles:env,tests:skipTests?'skipped (dry run)':'passed',
++    commit,branch:git('rev-parse','--abbrev-ref','HEAD'),dirty:Boolean(porcelain.trim()||porcelainNow.trim()||!sourceUnchanged),envFiles:env,viteEnv,nodeEnv:process.env.NODE_ENV??null,dependencies:{mismatches:dependencies},
++    source:{unchangedDuringUpload:sourceUnchanged,...sourceUnchanged?{}:{headAfter:commitAfter,porcelainAfter,envFilesAfter:envAfter}},tests:skipTests?'skipped (dry run)':'passed',
+     tools:{node:process.version,wrangler:pkgVersion('wrangler'),vite:pkgVersion('vite'),typescript:pkgVersion('typescript')},
+     config:[file('wrangler.jsonc'),file('package-lock.json'),file('public/_headers')],
+     wrangler:{exitCode:w.status,versionId:parseVersionId(log)},
+@@ -182,7 +220,7 @@ function main(){
+     writeFileSync(join(tmp,'SHA256SUMS'),sumsText([...dist,...worker.map(f=>({...f,path:RECORDS_DIR+'/'+name+'/'+f.path}))]),options);
+     finalization=finalizeRecord(tmp,rec,{recordsRoot:join(ROOT,RECORDS_DIR),identity:recordIdentity});
+   }catch(error){finalization={status:'failed',attempts:0,errors:[{...recordError(error),stage:'write'}],originalError:error};}
+-  const outcome=deploymentOutcome(w.status,manifest.dist.unchangedDuringDeploy,finalization.status==='persisted',dryRun);
++  const outcome=deploymentOutcome(w.status,manifest.dist.unchangedDuringDeploy&&sourceUnchanged,finalization.status==='persisted',dryRun);
+   console.log(JSON.stringify({kind:'imd-world deploy outcome',...outcome,record:relative(ROOT,finalization.status==='persisted'?rec:tmp),
+     finalization:{status:finalization.status,attempts:finalization.attempts,errors:finalization.errors}}));
+   if(finalization.status==='persisted')console.log(`record: ${relative(ROOT,rec)}  dist ${manifest.dist.sha256.slice(0,16)}  worker/index.js ${manifest.worker.main?.sha256.slice(0,16)??'-'}  version ${manifest.wrangler.versionId??'-'}`);
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index 92f430f..02a1151 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -5,7 +5,7 @@ import {WorldGoldClient,goldPriceInputAtomic,type GoldState,type GoldOrder} from
+ import {EconomyClient,economyRequestId,economySession,economyTokenAmount,EconomyClientError,type EconomyConfig,type EconomyOrder} from './economyClient.ts';
+ import {EconomyWalletController,localEconomyPending,type EconomyWalletState} from './economyWallet.ts';
+ import {GoldPurchase} from './GoldPurchase.tsx';
+-import {dropPendingCredit,paymentFailed,paymentHash,pendingCredit,settlePendingCredits,subscribePendingCredit,trackPendingCredit,type PendingCredit} from './pendingGoldCredit.ts';
++import {dropPendingCredit,dropPendingCreditByHash,markPendingCreditMined,paymentFailed,paymentHash,pendingCredit,settlePendingCredits,subscribePendingCredit,trackPendingCredit,type PendingCredit} from './pendingGoldCredit.ts';
+ import {ResearchPassCard} from './ResearchPassCard.tsx';
+ import {ResearchPassConfirm} from './ResearchPassConfirm.tsx';
+ import {RESEARCH_PASS_PRODUCT} from './researchPassCopy.ts';
+@@ -80,7 +80,13 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  const payingOrder=wallet.plan?.kind==='pay'?wallet.plan.payment.orderId:null,payingHash=paymentHash(wallet),failed=paymentFailed(wallet);
+  useEffect(()=>{const o=payingOrder?data?.orders.find(o=>o.id===payingOrder):null;if(!data||!o||o.kind!=='topup'||!payingHash||o.status==='paid')return;
+   trackPendingCredit(data.wallet,o.id,payingHash,o.gold);},[payingOrder,payingHash,data]);
+- useEffect(()=>{if(data&&payingOrder&&failed)dropPendingCredit(data.wallet,payingOrder);},[data,payingOrder,failed]);
++ // By order while the plan is known, and by hash after a reload, where the restored transaction has no plan.
++ // The note holds the hash the payment was sent with: wallet.sentHash, which differs from wallet.hash when the
++ // receipt came through a pasted replacement hash.
++ const sent=wallet.sentHash??wallet.hash;
++ useEffect(()=>{if(!data||!failed)return;if(payingOrder)dropPendingCredit(data.wallet,payingOrder);if(sent)dropPendingCreditByHash(data.wallet,sent);},[data,payingOrder,failed,sent]);
++ const mined=wallet.step==='execute'&&wallet.phase==='confirmed';
++ useEffect(()=>{if(data&&mined&&sent)markPendingCreditMined(data.wallet,sent);},[data,mined,sent]);
+  // Once booked, the top bar's balances refresh too (the event also makes this panel read once more).
+  useEffect(()=>{if(data&&settlePendingCredits(data.wallet,data.orders))window.dispatchEvent(new Event('world:gold-changed'));},[data]);
+  const pending=JSON.parse(useSyncExternalStore(subscribePendingCredit,()=>JSON.stringify(pendingCredit(data?.wallet,selected?.id)),()=>'null')) as PendingCredit|null;
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 61230b1..657746c 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -19,7 +19,9 @@ export function decodeEconomyResult(name:FunctionName,value:unknown):unknown{
+ }
+ export type EconomyPlan={kind:'stake';shares:string}|{kind:'withdraw';positionId:string;shares:string}|{kind:'pay';payment:EconomyPayment;expiresMs:number;serviceTitle:string};
+ export type EconomyWalletPhase='idle'|'checking'|'reset-required'|'approve-required'|'confirm'|'sending'|'pending'|'unknown'|'confirmed'|'replaced'|'rejected'|'error'|'context-changed';
+-export type EconomyWalletState={phase:EconomyWalletPhase;busy:boolean;plan:EconomyPlan|null;hash:string|null;step:'reset'|'approve'|'execute'|null;error:string|null;legacyPending:boolean};
++export type EconomyWalletState={phase:EconomyWalletPhase;busy:boolean;plan:EconomyPlan|null;hash:string|null;step:'reset'|'approve'|'execute'|null;error:string|null;legacyPending:boolean;
++ /** Once a receipt is judged: the hash this intent originally sent (`hash` is the receipt's, a pasted replacement's too). */
++ sentHash?:string|null};
+ type Pending={version?:2;nonce?:Hex;chainId:1;from:string;to:string;data:Hex;hash:Hex|null;step:'reset'|'approve'|'execute';intentId:string;createdMs:number};
+ export type EconomyPendingStore={get(key:string):unknown;set(key:string,value:Pending|null):void};
+ export type EconomyLock={run<T>(key:string,fn:()=>Promise<T>):Promise<T>};
+@@ -230,8 +232,11 @@ export class EconomyWalletController{
+   const same=record.to?.toLowerCase()===tx.to&&record.input.toLowerCase()===tx.data.toLowerCase()&&record.value==='0x0';
+   if(tx.version!==2&&!same)throw new EconomyClientError('TRANSACTION_MISMATCH');
+   // The wallet's own returned hash, routed through a smart account, counts as this call when its receipt proves the
+-  // exact intended effect (see intendedEffect). A pasted hash never gets this shortcut.
+-  const done=same||tx.version===2&&r.status==='0x1'&&tx.hash?.toLowerCase()===candidate.toLowerCase()&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
++  // exact intended effect (see intendedEffect). A pasted hash never gets this shortcut. When that same hash reverted
++  // (status 0x0), it consumed this intent's nonce and did nothing: it is judged now as the reverted send it is, like
++  // a direct one (`same`), not held for finality and then called a replacement (Swarm audit 12e0525d, L-1).
++  const own=tx.version===2&&tx.hash?.toLowerCase()===candidate.toLowerCase();
++  const done=same||own&&r.status==='0x0'||own&&r.status==='0x1'&&intendedEffect(tx,(receipt as {logs?:unknown}).logs,this.config);
+   // The wallet-returned original hash retains its normal mined confirmation.
+   // A manually supplied/replacement hash needs irreversible nonce consumption
+   // before it can release an unrelated original send intent.
+@@ -248,7 +253,7 @@ export class EconomyWalletController{
+    // must instead remain protected and become this pane's current review.
+    if(stored&&stored.intentId!==tx.intentId){this.adoptPending(stored,tx.from);throw new EconomyClientError('PENDING_CHANGED');}
+    if(stored&&!this.savePending(null,tx.intentId))throw new EconomyClientError('PENDING_CHANGED');
+-   this.transaction=null;this.sendAttempted=false;this.set({busy:false,phase:!done?'replaced':r.status==='0x1'?'confirmed':'error',hash:candidate,legacyPending:false,error:!done?'TRANSACTION_REPLACED':r.status==='0x1'?null:'TRANSACTION_REVERTED'});
++   this.transaction=null;this.sendAttempted=false;this.set({busy:false,phase:!done?'replaced':r.status==='0x1'?'confirmed':'error',hash:candidate,sentHash:tx.hash??null,legacyPending:false,error:!done?'TRANSACTION_REPLACED':r.status==='0x1'?null:'TRANSACTION_REVERTED'});
+   });
+   if(done&&r.status==='0x1'&&tx.step!=='execute'&&this.s.plan){this.set({phase:'checking',busy:true});await this.inspect();}
+   return true;
+diff --git a/src/world/goldPurchaseRules.ts b/src/world/goldPurchaseRules.ts
+index e9d9af0..a325d12 100644
+--- a/src/world/goldPurchaseRules.ts
++++ b/src/world/goldPurchaseRules.ts
+@@ -37,6 +37,7 @@ export function goldPurchaseError(code:string,zh:boolean){
+   PASS_ALREADY_ACTIVE:['每日通行證仍在有效期間，到期後才能再次購買。','Your day pass is still active. You can buy another after it ends.'],
+   PASS_ORDER_PENDING:['已有一筆待付款的通行證訂單，請先完成，或等它到期（約 15 分鐘）再重新下單。','You already have a pending pass order. Finish it, or wait for it to expire (about 15 minutes) before ordering again.'],
+   TRANSACTION_REVERTED:['鏈上交易失敗，請核對原交易；鏈上手續費仍可能產生。','Transaction reverted. Check the original transaction; network fees may still apply.'],
++  TRANSACTION_REPLACED:['原付款沒有照送出的內容完成（可能在錢包被取消或改送了另一筆）。請不要重複付款；如果 EMBEO 確實已經付出，原訂單會在鏈上最終確認後照常核對處理。','The original payment did not complete as it was sent (it may have been cancelled or replaced in your wallet). Do not pay again; if the EMBEO was in fact paid, the original order is still reconciled after final chain confirmation.'],
+   REQUEST_TIMEOUT:['錢包回覆逾時，請先核對原交易，勿重複付款。','Wallet response timed out. Check the original transaction before retrying.'],
+   // Codes that used to fall through to the generic "reference code" line.
+   INVALID_GOLD_CHALLENGE:['付款確認訊息的時間和這台裝置的時鐘對不上。請把電腦或手機的時間設為自動同步，再重新核對原單。','The payment message time does not match this device clock. Set your device time to sync automatically, then review the order again.'],
+diff --git a/src/world/pendingGoldCredit.ts b/src/world/pendingGoldCredit.ts
+index 892731c..823bdb8 100644
+--- a/src/world/pendingGoldCredit.ts
++++ b/src/world/pendingGoldCredit.ts
+@@ -5,9 +5,14 @@ import {orderCredited} from './goldPurchaseRules.ts';
+  *  (about 15 minutes; fast credit was switched off on 2026-10-27 after Swarm audit e4a57f91, owner decision), so the
+  *  top bar shows a gold "+N crediting" meanwhile. Kept per wallet in this browser so it survives a reload; display
+  *  only, never an entitlement: the ledger alone says credited. */
+-export type PendingCredit={orderId:string;gold:string;hash:string;atMs:number};
+-/** Finality takes about 13 minutes and the minute cron books it after; past 2 hours the entry is dropped. */
+-export const PENDING_CREDIT_ETA_MS=15*60_000,PENDING_CREDIT_MAX_MS=2*60*60_000;
++export type PendingCredit={orderId:string;gold:string;hash:string;atMs:number;
++ /** The wallet saw this payment mined with its effect: the after-expiry rule no longer applies, only the 2 h cap. */
++ mined?:boolean};
++/** Finality takes about 13 minutes and the minute cron books it after; past 2 hours the entry is dropped. A note for an
++ *  order still unpaid 30 minutes after its quote expired goes too: a payment cancelled or sped up in the wallet never
++ *  mines, so nothing else would end it (Swarm audit 12e0525d L-3). An entry dated more than 5 minutes ahead of this
++ *  clock (a clock corrected backwards, a damaged entry) is ignored rather than kept for ever (I-6). */
++export const PENDING_CREDIT_ETA_MS=15*60_000,PENDING_CREDIT_MAX_MS=2*60*60_000,PENDING_CREDIT_AFTER_EXPIRY_MS=30*60_000,PENDING_CREDIT_SKEW_MS=5*60_000;
+ const key=(address:string)=>'ember-pending-gold-v1:'+address.toLowerCase();
+ const listeners=new Set<()=>void>();
+ /** Also told when another tab of this site changes a note (the `storage` event), so every tab shows the same. */
+@@ -19,7 +24,7 @@ export function subscribePendingCredit(fn:()=>void){
+ function stored(address:string):unknown[]{try{const v=JSON.parse(localStorage.getItem(key(address))??'[]');return Array.isArray(v)?v:[];}catch{return [];}}
+ function save(address:string,list:PendingCredit[]){try{if(list.length)localStorage.setItem(key(address),JSON.stringify(list));else localStorage.removeItem(key(address));}catch{/* display only */}for(const fn of listeners)fn();}
+ export function readPendingCredits(address:string,now=Date.now()):PendingCredit[]{
+- return stored(address).filter((p):p is PendingCredit=>{const v=p as PendingCredit;return !!v&&/^0x[0-9a-f]{64}$/.test(v.orderId)&&/^[1-9][0-9]*$/.test(v.gold)&&typeof v.hash==='string'&&Number.isSafeInteger(v.atMs)&&now-v.atMs<PENDING_CREDIT_MAX_MS;});
++ return stored(address).filter((p):p is PendingCredit=>{const v=p as PendingCredit;return !!v&&/^0x[0-9a-f]{64}$/.test(v.orderId)&&/^[1-9][0-9]*$/.test(v.gold)&&typeof v.hash==='string'&&Number.isSafeInteger(v.atMs)&&v.atMs<=now+PENDING_CREDIT_SKEW_MS&&now-v.atMs<PENDING_CREDIT_MAX_MS;});
+ }
+ export function pendingCredit(address:string|null|undefined,orderId:string|null|undefined,now=Date.now()){return address&&orderId?readPendingCredits(address,now).find(p=>p.orderId===orderId)??null:null;}
+ /** The GOLD still being credited for this wallet (the top bar's "+N crediting"). */
+@@ -39,9 +44,22 @@ export function paymentFailed(wallet:{phase:string;step:string|null;error:string
+ export function dropPendingCredit(address:string,orderId:string,now=Date.now()){
+  const list=readPendingCredits(address,now);if(list.some(p=>p.orderId===orderId))save(address,list.filter(p=>p.orderId!==orderId));
+ }
++/** A payment the wallet saw mined with its intended effect is on its way to the ledger even when it mined late (low
++ *  gas) or the indexer is slow: keep its note past the after-expiry margin (review of 2aeac71). */
++export function markPendingCreditMined(address:string,hash:string,now=Date.now()){
++ const h=hash.toLowerCase(),list=readPendingCredits(address,now);
++ if(list.some(p=>p.hash.toLowerCase()===h&&!p.mined))save(address,list.map(p=>p.hash.toLowerCase()===h?{...p,mined:true}:p));
++}
++/** The same, found by the payment's hash: after a reload the wallet controller restores the transaction without its
++ *  plan, so the order id is not known there, only the hash (Swarm audit 12e0525d L-2). */
++export function dropPendingCreditByHash(address:string,hash:string,now=Date.now()){
++ const h=hash.toLowerCase(),list=readPendingCredits(address,now);if(list.some(p=>p.hash.toLowerCase()===h))save(address,list.filter(p=>p.hash.toLowerCase()!==h));
++}
+ /** Drop what the ledger has credited (and anything past the display window). True when a pending top-up was credited. */
+ export function settlePendingCredits(address:string,orders:readonly GoldOrder[],now=Date.now()){
+- const list=readPendingCredits(address,now),keep=list.filter(p=>{const o=orders.find(o=>o.id===p.orderId);return !(o&&orderCredited(o));});
++ const list=readPendingCredits(address,now),order=(p:PendingCredit)=>orders.find(o=>o.id===p.orderId);
++ const credited=list.filter(p=>{const o=order(p);return !!o&&orderCredited(o);});
++ const keep=list.filter(p=>{const o=order(p);return !(o&&(orderCredited(o)||!p.mined&&o.status==='pending'&&now>o.expires_ms+PENDING_CREDIT_AFTER_EXPIRY_MS));});
+  if(keep.length!==stored(address).length)save(address,keep);
+- return keep.length<list.length;
++ return credited.length>0;
+ }
+diff --git a/tests/deploy.test.mjs b/tests/deploy.test.mjs
+index 0fdfe22..e8a35ab 100644
+--- a/tests/deploy.test.mjs
++++ b/tests/deploy.test.mjs
+@@ -6,7 +6,7 @@ import {join,basename} from 'node:path';
+ import {spawnSync} from 'node:child_process';
+ import {pathToFileURL} from 'node:url';
+ import {hashTree,sumsText,treeDigest,parseVersionId,recordName,dirtyRefusal,envFiles,envRefusal,isEntry,RECORDS_DIR,ROOT,
+-  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal} from '../scripts/deploy.mjs';
++  skipRefusal,testArgs,buildSteps,runStep,finalizeRecord,deploymentOutcome,changedRefusal,viteEnvNames,viteEnvRefusal,nodeEnvRefusal,dependencyMismatches,dependencyRefusal} from '../scripts/deploy.mjs';
+ // scripts/deploy.mjs's provenance helpers, run on real files. Hashes are checked against the published SHA-256 test
+ // vectors ("abc", ""), never recomputed here. Importing the script must not deploy anything (it runs only as main).
+ const ABC='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',EMPTY='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+@@ -73,6 +73,35 @@ test('env files Vite would load are refused on a real deploy and listed by name
+     assert.equal(envRefusal(envFiles(dir),true),null,'a dry run only records them');assert.equal(envRefusal([],false),null);
+   }finally{rmSync(dir,{recursive:true,force:true});}
+ });
++test('Swarm audit 12e0525d L-5: VITE_* shell variables and a node_modules that differs from package-lock.json are refused',()=>{
++  assert.deepEqual(viteEnvNames({PATH:'x',VITE_API:'secret-value',vite_debug:'1',NODE_ENV:'production'}),['VITE_API','vite_debug']);
++  assert.match(viteEnvRefusal(['VITE_API'],false),/\(VITE_API\)/);assert.doesNotMatch(viteEnvRefusal(['VITE_API'],false),/secret-value/);
++  assert.equal(viteEnvRefusal(['VITE_API'],true),null,'a dry run only records the names');assert.equal(viteEnvRefusal([],false),null);
++  const lock=packages=>JSON.stringify({lockfileVersion:3,packages:{'':{name:'x'},...packages}});
++  const good=tree({'package-lock.json':lock({'node_modules/a':{version:'1.0.0'},'node_modules/b/node_modules/c':{version:'2.0.0'},'node_modules/@esbuild/darwin-arm64':{version:'0.1.0',optional:true}}),
++    'node_modules/a/package.json':'{"version":"1.0.0"}','node_modules/b/node_modules/c/package.json':'{"version":"2.0.0"}',
++    'node_modules/.package-lock.json':lock({'node_modules/a':{version:'1.0.0'},'node_modules/b/node_modules/c':{version:'2.0.0'}})});
++  const stale=tree({'package-lock.json':lock({'node_modules/a':{version:'1.1.0'},'node_modules/gone':{version:'1.0.0'}}),'node_modules/a/package.json':'{"version":"1.0.0"}',
++    'node_modules/.package-lock.json':lock({'node_modules/a':{version:'1.0.0'},'node_modules/extra':{version:'9.9.9'}}),'node_modules/extra/package.json':'{"version":"9.9.9"}'});
++  try{
++    assert.deepEqual(dependencyMismatches(good),[],'an optional package for another platform may be absent');assert.equal(dependencyRefusal([],false),null);
++    const m=dependencyMismatches(stale);
++    assert.deepEqual(m,['node_modules/a 1.0.0 installed, 1.1.0 locked','missing node_modules/gone','not in package-lock.json: node_modules/extra']);
++    assert.match(dependencyRefusal(m,false),/node_modules does not match package-lock\.json \(run npm ci\)/);assert.equal(dependencyRefusal(m,true),null);
++    assert.deepEqual(dependencyMismatches(ROOT),[],'this repository is installed exactly as locked');
++  }finally{rmSync(good,{recursive:true,force:true});rmSync(stale,{recursive:true,force:true});}
++  // Review of 2aeac71: nothing to compare is a refusal, not a pass; the source of a same-version package counts.
++  const cases={'no lockfile':{},'lockfile v1':{'package-lock.json':JSON.stringify({lockfileVersion:1,dependencies:{}})},
++    'not installed by npm ci':{'package-lock.json':lock({})},
++    'another source':{'package-lock.json':lock({'node_modules/a':{version:'1.0.0',resolved:'https://registry.npmjs.org/a/-/a-1.0.0.tgz',integrity:'sha512-locked'}}),
++      'node_modules/a/package.json':'{"version":"1.0.0"}','node_modules/.package-lock.json':lock({'node_modules/a':{version:'1.0.0',resolved:'file:../a-1.0.0.tgz',integrity:'sha512-other'}})},
++    'devOptional absent':{'package-lock.json':lock({'node_modules/fsevents':{version:'2.3.3',devOptional:true}}),'node_modules/.package-lock.json':lock({})}};
++  const seen={};for(const [name,files] of Object.entries(cases)){const d=tree({'x':'',...files});try{seen[name]=dependencyMismatches(d);}finally{rmSync(d,{recursive:true,force:true});}}
++  assert.deepEqual(seen,{'no lockfile':['package-lock.json is missing, unreadable or older than lockfile v2'],'lockfile v1':['package-lock.json is missing, unreadable or older than lockfile v2'],
++    'not installed by npm ci':['node_modules/.package-lock.json is missing: node_modules was not installed by npm ci'],'another source':['node_modules/a installed from another source than locked'],'devOptional absent':[]});
++  assert.match(nodeEnvRefusal('development',false),/NODE_ENV=development would build a non-production bundle/);
++  for(const v of [undefined,'','production'])assert.equal(nodeEnvRefusal(v,false),null,String(v));assert.equal(nodeEnvRefusal('development',true),null,'a dry run only records it');
++});
+ 
+ // S4: the deploy built and uploaded without running the tests.
+ test('the deploy runs the full suite (package.json scripts.test) before tsc and vite, and a failing test stops it; only a dry run may skip',()=>{
+@@ -283,14 +312,17 @@ for(const variant of ['good','upload-failed','dist-changed','record-locked'])tes
+ // 2026-10-26: an edit to src/world/publicHalls/runtime.ts made while the suite ran was built and uploaded uncommitted (deploy of
+ // 40e97f4). A real (not dry-run) deploy over the same synthetic local programs: the fake build edits or commits a tracked file.
+ // 'env-added': a gitignored .env.production that appears during the run is invisible to git status but read by vite.
+-for(const variant of ['clean','edited','head-moved','env-added'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
++// 'edited-while-uploading': wrangler bundles the Worker from the tree while it uploads, after the re-check (Swarm audit 12e0525d L-4).
++// 'vite-env': a VITE_* variable of the deploy shell reaches the client bundle (L-5).
++for(const variant of ['clean','edited','head-moved','env-added','edited-while-uploading','vite-env'])test('a real deploy re-checks the tree and HEAD after the build and uploads nothing changed during the run: '+variant,()=>{
+   const id=['-c','user.name=t','-c','user.email=t@example.invalid','-c','commit.gpgsign=false'];
+   const build="import {mkdirSync,writeFileSync} from 'node:fs';import {spawnSync} from 'node:child_process';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','abc');"+
+     (variant==='edited'?"writeFileSync('src/runtime.ts','edited during the run');":variant==='head-moved'?"writeFileSync('src/runtime.ts','committed during the run');spawnSync('git',"+JSON.stringify([...id,'commit','-qam','during the run'])+");":
+      variant==='env-added'?"writeFileSync('.env.production','VITE_X=1');":'');
+-  const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local upload, no network');";
++  const upload="import {mkdirSync,writeFileSync} from 'node:fs';import {join} from 'node:path';"+(variant==='edited-while-uploading'?"writeFileSync('src/runtime.ts','edited while uploading');":'')+"const out=process.argv[process.argv.indexOf('--outdir')+1];mkdirSync(out,{recursive:true});writeFileSync(join(out,'index.js'),'abc');console.log('synthetic local upload, no network');";
+   const dir=tree({'package.json':JSON.stringify({type:'module',scripts:{test:'node --test tests/*.test.mjs'}}),'tests/a.test.mjs':"import test from 'node:test';test('ok',()=>{});",
+-    'src/runtime.ts':'committed','.gitignore':'deploy-records/\nnode_modules/\ndist/\n.env*\n','package-lock.json':'{}','wrangler.jsonc':'{}','public/_headers':'/*\n',
++    'src/runtime.ts':'committed','.gitignore':'deploy-records/\nnode_modules/\ndist/\n.env*\n','package-lock.json':'{"lockfileVersion":3,"packages":{"":{}}}','wrangler.jsonc':'{}','public/_headers':'/*\n',
++    'node_modules/.package-lock.json':'{"lockfileVersion":3,"packages":{"":{}}}',
+     'node_modules/typescript/package.json':'{"version":"1.0.0"}','node_modules/typescript/bin/tsc':'',
+     'node_modules/vite/package.json':'{"version":"1.0.0"}','node_modules/vite/bin/vite.js':build,
+     'node_modules/wrangler/package.json':'{"version":"1.0.0"}','node_modules/wrangler/bin/wrangler.js':upload});
+@@ -298,14 +330,28 @@ for(const variant of ['clean','edited','head-moved','env-added'])test('a real de
+   try{
+     mkdirSync(join(dir,'scripts'));copyFileSync(join(ROOT,'scripts/deploy.mjs'),join(dir,'scripts/deploy.mjs'));
+     git('init','-q');git('add','-A');git('commit','-q','-m','synthetic deploy fixture');const start=git('rev-parse','HEAD');
+-    const r=spawnSync(process.execPath,['scripts/deploy.mjs'],{cwd:dir,encoding:'utf8',timeout:60000}),out=r.stdout+r.stderr;
++    const r=spawnSync(process.execPath,['scripts/deploy.mjs'],{cwd:dir,encoding:'utf8',timeout:60000,env:{...process.env,...variant==='vite-env'?{VITE_X:'injected'}:{}}}),out=r.stdout+r.stderr;
++    if(variant==='vite-env'){
++      assert.equal(r.status,1,out);assert.match(out,/VITE_\* environment variables would change the build but are not in git \(VITE_X\)/);
++      assert.doesNotMatch(out,/> npm test|> wrangler/);assert.doesNotMatch(out,/injected/,'only the name is printed');return;
++    }
+     assert.match(out,/> npm test[\s\S]*> tsc[\s\S]*> vite build/);
++    if(variant==='edited-while-uploading'){
++      // The upload already happened and cannot be undone: the record must say so instead of claiming a clean commit.
++      assert.equal(r.status,1,out);assert.match(out,/changed while wrangler bundled and uploaded the Worker[\s\S]*src\/runtime\.ts/);
++      const outcome=r.stdout.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(line)).find(row=>row.kind==='imd-world deploy outcome');
++      assert.deepEqual([outcome.deployment,outcome.verification,outcome.exitCode],['uploaded','failed',1]);
++      const names=readdirSync(join(dir,RECORDS_DIR)),manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
++      assert.equal(manifest.dirty,true);assert.equal(manifest.source.unchangedDuringUpload,false);assert.match(manifest.source.porcelainAfter,/src\/runtime\.ts/);
++      return;
++    }
+     if(variant==='clean'){
+       assert.equal(r.status,0,out);assert.match(out,/> wrangler deploy[\s\S]*synthetic local upload/);
+       const outcome=r.stdout.split(/\r?\n/).filter(line=>line.startsWith('{')).map(line=>JSON.parse(line)).find(row=>row.kind==='imd-world deploy outcome');
+       assert.equal(outcome.deployment,'uploaded');const names=readdirSync(join(dir,RECORDS_DIR));assert.equal(names.length,1);
+       const manifest=JSON.parse(readFileSync(join(dir,RECORDS_DIR,names[0],'manifest.json'),'utf8'));
+       assert.equal(manifest.mode,'deploy');assert.equal(manifest.commit,start);assert.equal(manifest.dirty,false);
++      assert.equal(manifest.source.unchangedDuringUpload,true);assert.deepEqual(manifest.viteEnv,[]);assert.deepEqual(manifest.dependencies.mismatches,[]);
+       return;
+     }
+     assert.equal(r.status,1,out);assert.doesNotMatch(out,/> wrangler deploy|synthetic local upload/,'nothing was uploaded');
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 4571b42..a87f483 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -81,15 +81,28 @@ test('a routed transaction without exactly the intended effect is never taken as
+   receiver:{...effect.paid(OID,1000n),data:pad('0x'+'6'.repeat(40))+word(1000n).slice(2)},
+   event:{...effect.paid(OID,1000n),topics:[T.staked,OID,pad(A),pad(ECONOMY_TOKEN)]},
+  };
+- for(const [name,log] of [...Object.entries(wrong),['no log',null],['reverted',effect.paid(OID,1000n)]]){
++ for(const [name,log] of Object.entries({...wrong,'no log':null})){
+   const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+-  f.candidate(routed(log?[log]:[],name==='reverted'?{status:'0x0'}:{}));await f.controller.checkReceipt();
++  f.candidate(routed(log?[log]:[]));await f.controller.checkReceipt();
+   assert.notEqual(f.controller.state.phase,'confirmed',name);assert.equal(f.controller.state.error,'TRANSACTION_REPLACED',name);f.controller.dispose();
+  }
++ // The wallet's own routed hash that reverted is the reverted send itself: judged at once, before finality, like a
++ // direct one (Swarm audit 12e0525d L-1: it used to wait for finality and then read "replaced").
++ for(const final of [false,true]){
++  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=final;
++  f.candidate(routed([],{status:'0x0'}));await f.controller.checkReceipt();   // a reverted receipt carries no logs
++  assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error},{phase:'error',error:'TRANSACTION_REVERTED'},'finalized '+final);
++  assert.equal(f.store.size,0,'the intent is resolved');f.controller.dispose();
++ }
++ {const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=false;
++  f.candidate(routed([effect.paid(OID,1000n)],{status:'0x0',hash:OTHER}));await f.controller.checkReceipt(OTHER);
++  assert.equal(f.controller.state.error,'TRANSACTION_NOT_FINALIZED','a pasted hash that reverted still waits for finality');f.controller.dispose();}
+  // and a pasted hash of another routed transaction never gets the shortcut, even with a matching effect
+  const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();
+  f.candidate(routed([effect.paid(OID,1000n)],{hash:OTHER}));await f.controller.checkReceipt(OTHER);
+- assert.notEqual(f.controller.state.phase,'confirmed');f.controller.dispose();
++ assert.notEqual(f.controller.state.phase,'confirmed');
++ // The crediting note is found by the hash the payment was sent with, not by the pasted one (review of 2aeac71).
++ assert.equal(f.controller.state.hash,OTHER);assert.equal(f.controller.state.sentHash,HASH);f.controller.dispose();
+ });
+ test('a delegated batch that also did something else of the same kind for this sender is not "exactly" the intended effect',async()=>{
+  // Swarm audit e4a57f91 I-8: one matching log among others used to be enough.
+diff --git a/tests/pending-gold-credit.test.mjs b/tests/pending-gold-credit.test.mjs
+index 15043ee..293197c 100644
+--- a/tests/pending-gold-credit.test.mjs
++++ b/tests/pending-gold-credit.test.mjs
+@@ -7,7 +7,7 @@ import ts from 'typescript';
+ import {createElement as h} from 'react';
+ import {renderToStaticMarkup} from 'react-dom/server';
+ import {PACKAGES} from '../scripts/gold-topup-release.mjs';
+-import {PENDING_CREDIT_ETA_MS,PENDING_CREDIT_MAX_MS,dropPendingCredit,paymentFailed,paymentHash,pendingCredit,pendingGold,readPendingCredits,settlePendingCredits,subscribePendingCredit,trackPendingCredit} from '../src/world/pendingGoldCredit.ts';
++import {PENDING_CREDIT_ETA_MS,PENDING_CREDIT_MAX_MS,PENDING_CREDIT_AFTER_EXPIRY_MS,PENDING_CREDIT_SKEW_MS,dropPendingCredit,dropPendingCreditByHash,markPendingCreditMined,paymentFailed,paymentHash,pendingCredit,pendingGold,readPendingCredits,settlePendingCredits,subscribePendingCredit,trackPendingCredit} from '../src/world/pendingGoldCredit.ts';
+ import {purchaseStage} from '../src/world/goldPurchaseRules.ts';
+ registerHooks({load(url,context,next){if(url.endsWith('.css'))return {format:'module',source:'export {};',shortCircuit:true};if(!url.startsWith('file:')||!url.endsWith('.tsx'))return next(url,context);const file=fileURLToPath(url);return {format:'module',shortCircuit:true,source:ts.transpileModule(readFileSync(file,'utf8'),{fileName:file,compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText};}});
+ const {GoldPurchase}=await import('../src/world/GoldPurchase.tsx');
+@@ -50,6 +50,34 @@ test('a reverted or replaced payment drops its note at once; a rejected prompt n
+   trackPendingCredit(W,ID,TX,'1000',NOW);trackPendingCredit(W,ID2,TX,'100',NOW);dropPendingCredit(W,ID,NOW);
+   assert.equal(pendingGold(W,NOW),100n);assert.equal(pendingCredit(W,ID,NOW),null);dropPendingCredit(W,ID,NOW);assert.equal(pendingGold(W,NOW),100n,'idempotent');
+ });
++test('Swarm audit 12e0525d: after a reload the failed payment\'s note is found by its hash (L-2)',()=>{store.clear();
++  trackPendingCredit(W,ID,TX,'1000',NOW);trackPendingCredit(W,ID2,'0x'+'4'.repeat(64),'100',NOW);
++  dropPendingCreditByHash(W,TX.toUpperCase().replace('0X','0x'),NOW);assert.equal(pendingCredit(W,ID,NOW),null);assert.equal(pendingGold(W,NOW),100n,'only that payment');
++  const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.match(src,/const sent=wallet\.sentHash\?\?wallet\.hash;/,'by the hash the payment was sent with, not a pasted replacement');
++  assert.match(src,/if\(sent\)dropPendingCreditByHash\(data\.wallet,sent\)/,'the panel drops by hash too, where the restored transaction has no plan');
++});
++test('a payment the wallet saw mined keeps its note past the after-expiry margin; only the 2 h cap ends it (review of 2aeac71)',()=>{store.clear();
++  const quote=order({expires_ms:NOW+900000}),late=NOW+900001+PENDING_CREDIT_AFTER_EXPIRY_MS;
++  trackPendingCredit(W,ID,TX,'1000',NOW);markPendingCreditMined(W,TX.toUpperCase().replace('0X','0x'),NOW);
++  settlePendingCredits(W,[quote],late);assert.equal(pendingGold(W,late),1000n,'mined late or a slow indexer: still on its way');
++  assert.equal(pendingGold(W,NOW+PENDING_CREDIT_MAX_MS),0n);
++  const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.match(src,/const mined=wallet\.step==='execute'&&wallet\.phase==='confirmed';/);assert.match(src,/if\(data&&mined&&sent\)markPendingCreditMined\(data\.wallet,sent\)/);
++});
++test('Swarm audit 12e0525d: a payment that never mines (cancelled or sped up in the wallet) ends 30 minutes after its quote expired (L-3)',()=>{store.clear();
++  const quote=order({expires_ms:NOW+900000});trackPendingCredit(W,ID,TX,'1000',NOW);
++  assert.equal(settlePendingCredits(W,[quote],NOW+900000+PENDING_CREDIT_AFTER_EXPIRY_MS),false);assert.equal(pendingGold(W,NOW+900000+PENDING_CREDIT_AFTER_EXPIRY_MS),1000n,'still within the margin');
++  assert.equal(settlePendingCredits(W,[quote],NOW+900001+PENDING_CREDIT_AFTER_EXPIRY_MS),false,'dropped, not credited: no balance refresh');
++  assert.equal(pendingGold(W,NOW+900001+PENDING_CREDIT_AFTER_EXPIRY_MS),0n);
++  trackPendingCredit(W,ID,TX,'1000',NOW);assert.equal(settlePendingCredits(W,[order({status:'paid',creditedGold:'1000'})],NOW+3*3600000),false,'past the 2 h window: dropped silently');
++});
++test('Swarm audit 12e0525d: a note dated ahead of this clock is ignored instead of living for ever (I-6)',()=>{store.clear();
++  trackPendingCredit(W,ID,TX,'1000',NOW+PENDING_CREDIT_SKEW_MS);assert.equal(pendingGold(W,NOW),1000n,'small skew tolerated');
++  store.clear();trackPendingCredit(W,ID,TX,'1000',NOW+3*3600000);assert.equal(pendingGold(W,NOW),0n,'clock corrected backwards by 3 h');
++  settlePendingCredits(W,[],NOW);assert.equal(store.size,0,'and removed on the next check');
++  store.set('ember-pending-gold-v1:'+W,JSON.stringify([{orderId:ID,gold:'5',hash:TX,atMs:Number.MAX_SAFE_INTEGER}]));assert.equal(pendingGold(W,NOW),0n);
++});
+ test('another tab changing a note reaches this tab (storage event), and only for these notes',()=>{
+   const prior=globalThis.window;globalThis.window=new EventTarget();try{
+    let n=0;const off=subscribePendingCredit(()=>n++);

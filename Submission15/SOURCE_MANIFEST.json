@@ -1,0 +1,74 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 15,
+ "privateBase": "64396ae",
+ "privateSource": "fe8bc4bfb046e6ffc8922c7f5f6ea9483a6ce037",
+ "files": [
+  {
+   "path": "scripts/deploy.mjs",
+   "status": "M",
+   "bytes": 20404,
+   "sha256": "e1fc19ddd0e9c333af4efbe070db2dd1264a39c4e61e4cdc8c2c3c7123a4e0dc",
+   "blob": "37597454d655fa1aac0e0db838d2ab8da2251b42",
+   "privateBlob": "37597454d655fa1aac0e0db838d2ab8da2251b42"
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "M",
+   "bytes": 26971,
+   "sha256": "f80219aec457488c0e3d85aa64c9d3417b3e939239225bdaf86c965cbd07dab3",
+   "blob": "02a115196a7ce6101f188cdbad71f09fc720c9af",
+   "privateBlob": "02a115196a7ce6101f188cdbad71f09fc720c9af"
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "status": "M",
+   "bytes": 32668,
+   "sha256": "6b7147c9b90cb1e758f845b3b61e916a1d7fe6301710188793f28f622ee387a5",
+   "blob": "657746cd7ab923fcac0bf1e9815db9a439dc4a7f",
+   "privateBlob": "657746cd7ab923fcac0bf1e9815db9a439dc4a7f"
+  },
+  {
+   "path": "src/world/goldPurchaseRules.ts",
+   "status": "M",
+   "bytes": 6920,
+   "sha256": "b0c02e3345dcc643bf69bc839b9be54650a5ed5e98557887bef350d32091bcfe",
+   "blob": "a325d12abf5bb6d41e3274a942cdf00c618c4b15",
+   "privateBlob": "a325d12abf5bb6d41e3274a942cdf00c618c4b15"
+  },
+  {
+   "path": "src/world/pendingGoldCredit.ts",
+   "status": "M",
+   "bytes": 6333,
+   "sha256": "5cb0f08adbbbef1088feda29898b25b1df8edebb26587cb49682379f85afb245",
+   "blob": "823bdb802f190f2efa3df8f466953515b0f9c026",
+   "privateBlob": "823bdb802f190f2efa3df8f466953515b0f9c026"
+  },
+  {
+   "path": "tests/deploy.test.mjs",
+   "status": "M",
+   "bytes": 33180,
+   "sha256": "5969d6b450b7a5033d78c8d14d9c60a47b7e8b47d6b4a0d0eedc464e94f799bd",
+   "blob": "e8a35ab09183e29952ee87cc47f6fb410f3a99f0",
+   "privateBlob": "e8a35ab09183e29952ee87cc47f6fb410f3a99f0"
+  },
+  {
+   "path": "tests/economy-wallet-recovery.test.mjs",
+   "status": "M",
+   "bytes": 28727,
+   "sha256": "2477af6754636e01b18ec4613af95c52af60b39942f8b32dda965bc7b0bfba3e",
+   "blob": "a87f4831cbd6090dcc0255b90b67035257731d74",
+   "privateBlob": "a87f4831cbd6090dcc0255b90b67035257731d74"
+  },
+  {
+   "path": "tests/pending-gold-credit.test.mjs",
+   "status": "M",
+   "bytes": 12951,
+   "sha256": "dbca5a2ca2b2da0da2688d7322be7e5ed3e978f8514d3f3f1bed7271820d37a1",
+   "blob": "293197cfae3fad52c1d53a29aef9d560ca6e7f13",
+   "privateBlob": "293197cfae3fad52c1d53a29aef9d560ca6e7f13"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission13": "files not listed here are unchanged since Submission14/source (World 64396ae) or Submission13/source (World ae1f640)"
+}

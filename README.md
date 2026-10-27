@@ -1,8 +1,8 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission14](Submission14/README.md) — remediation of audit e4a57f91: GOLD fast credit retired (credit at finality only), I-8 fixed · DEPLOYED (Worker `40c6477f`, source `64396ae`) · EXTERNAL REVIEW NOT YET DONE**
+**Current: [Submission15](Submission15/README.md) — remediation of audit 12e0525d: crediting note endings, deploy tool checks · DEPLOYED (Worker `d5335f94`, source `fe8bc4b`; server code unchanged) · EXTERNAL REVIEW NOT YET DONE**
 
-Read [Submission14/AUDIT_REQUEST.md](Submission14/AUDIT_REQUEST.md) first. [Submission13](Submission13/README.md) (wallet, GOLD fast credit and staking, source `ae1f640`) was reviewed in job `e4a57f91`; it and the Submission12 text below are kept as history.
+Read [Submission15/AUDIT_REQUEST.md](Submission15/AUDIT_REQUEST.md) first. [Submission14](Submission14/README.md) (GOLD fast credit retired, source `64396ae`) was reviewed in job `12e0525d`; [Submission13](Submission13/README.md) (wallet, GOLD fast credit and staking, source `ae1f640`) in job `e4a57f91`. They and the Submission12 text below are kept as history.
 
 **Submission12: TEAM SOURCE EVIDENCE PASS BOUNDED · EXTERNAL AUDIT12 UNKNOWN · RELEASE-READINESS UNKNOWN · NOT DEPLOYED**
 
