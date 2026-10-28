@@ -1,0 +1,249 @@
+From 7021b5bb1dd5815e3055ec4b674075d5de7dcce9 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Wed, 28 Oct 2026 03:34:18 +0800
+Subject: [PATCH 1/4] Swarm audit f6bd50ad: lower-nonce payment must succeed,
+ drop a failed note by hash, refuse bundler overrides; GOLD review record
+
+- Finding 1: the lower-nonce exception accepts only a successful payment (a revert uses no order id).
+- Finding 2: a failed payment's crediting note is dropped by its own hash, never by order, so a
+  second tab's new payment of the order keeps its note.
+- Finding 3: ESBUILD_BINARY_PATH and NAPI_RS_NATIVE_LIBRARY_PATH are refused like WRANGLER_BUILD_*.
+- The GOLD panel shows a collapsed record of this review (job, report, reviewed source, the three
+  findings and their status as the site maintainer reports it), in every panel state.
+
+5 mutations, each caught.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ scripts/deploy.mjs                     |  4 ++-
+ src/world/WorldGoldPanel.tsx           | 13 +++++----
+ src/world/economyWallet.ts             | 10 +++----
+ src/world/goldReviewRecord.ts          | 38 ++++++++++++++++++++++++++
+ tests/deploy.test.mjs                  |  3 +-
+ tests/economy-wallet-recovery.test.mjs |  5 ++--
+ tests/gold-review-record.test.mjs      | 31 +++++++++++++++++++++
+ tests/pending-gold-credit.test.mjs     |  9 ++++++
+ 8 files changed, 99 insertions(+), 14 deletions(-)
+ create mode 100644 src/world/goldReviewRecord.ts
+ create mode 100644 tests/gold-review-record.test.mjs
+
+diff --git a/scripts/deploy.mjs b/scripts/deploy.mjs
+index 966d2ad..849e5ef 100644
+--- a/scripts/deploy.mjs
++++ b/scripts/deploy.mjs
+@@ -66,7 +66,9 @@ export function viteEnvRefusal(names,dryRun){return names.length&&!dryRun?'VITE_
+  *  name (Swarm audit 1ac5269f, finding 8). NODE_OPTIONS runs inside every step: a blocklist of preloading flags missed
+  *  quoted flags, --snapshot-blob and --openssl-config (finding 7), so it is accepted only when every option is one of a
+  *  few that change no code. Names only, like VITE_*. */
+-const BUILD_ENV='^(CLOUDFLARE_ENV|WRANGLER_ENV|WRANGLER_BUILD_.+|CLOUDFLARE_API_BASE_URL|CF_API_BASE_URL|CLOUDFLARE_COMPLIANCE_REGION|WRANGLER_API_ENVIRONMENT|WRANGLER_CI_OVERRIDE_NAME)$';
++// ESBUILD_BINARY_PATH and NAPI_RS_NATIVE_LIBRARY_PATH replace the bundlers themselves (esbuild under wrangler, rolldown
++// under vite) with another program (Swarm audit f6bd50ad, finding 3).
++const BUILD_ENV='^(CLOUDFLARE_ENV|WRANGLER_ENV|WRANGLER_BUILD_.+|CLOUDFLARE_API_BASE_URL|CF_API_BASE_URL|CLOUDFLARE_COMPLIANCE_REGION|WRANGLER_API_ENVIRONMENT|WRANGLER_CI_OVERRIDE_NAME|ESBUILD_BINARY_PATH|NAPI_RS_NATIVE_LIBRARY_PATH)$';
+ const SAFE_NODE_OPTION=/^(--max[-_]old[-_]space[-_]size=\d+|--enable-source-maps|--no-warnings|--no-deprecation)$/;
+ const safeNodeOptions=value=>String(value).replace(/"/g,' ').split(/\s+/).filter(Boolean).every(o=>SAFE_NODE_OPTION.test(o));
+ export const buildEnvNames=(env,platform=process.platform)=>{const i=platform==='win32'?'i':'';
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index d8efa72..0b297c0 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -5,11 +5,12 @@ import {WorldGoldClient,goldPriceInputAtomic,type GoldState,type GoldOrder} from
+ import {EconomyClient,economyRequestId,economySession,economyTokenAmount,EconomyClientError,type EconomyConfig,type EconomyOrder} from './economyClient.ts';
+ import {EconomyWalletController,localEconomyPending,type EconomyWalletState} from './economyWallet.ts';
+ import {GoldPurchase} from './GoldPurchase.tsx';
+-import {dropPendingCredit,dropPendingCreditByHash,markPendingCreditMined,paymentFailed,paymentHash,pendingCredit,settlePendingCredits,subscribePendingCredit,trackPendingCredit,type PendingCredit} from './pendingGoldCredit.ts';
++import {dropPendingCreditByHash,markPendingCreditMined,paymentFailed,paymentHash,pendingCredit,settlePendingCredits,subscribePendingCredit,trackPendingCredit,type PendingCredit} from './pendingGoldCredit.ts';
+ import {ResearchPassCard} from './ResearchPassCard.tsx';
+ import {ResearchPassConfirm} from './ResearchPassConfirm.tsx';
+ import {RESEARCH_PASS_PRODUCT} from './researchPassCopy.ts';
+ import {goldPurchaseError} from './goldPurchaseRules.ts';
++import {GoldReviewRecord} from './goldReviewRecord.ts';
+ import {wallets} from './wallet.ts';
+ import './worldGold.css';
+ const EMPTY:EconomyWalletState={phase:'idle',busy:false,hash:null,sentHash:null,paidOrder:null,error:null,plan:null,step:null,legacyPending:false};
+@@ -87,11 +88,12 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  useEffect(()=>{const o=payingOrder?data?.orders.find(o=>o.id===payingOrder):null;if(!data||!o||o.kind!=='topup'||!payingHash||o.status==='paid')return;
+   const once=o.id+':'+payingHash.toLowerCase()+':'+wallet.phase;if(tracked.current.has(once))return;tracked.current.add(once);
+   trackPendingCredit(data.wallet,o.id,payingHash,o.gold);},[payingOrder,payingHash,wallet.phase,data]);
+- // By order while the plan is known, and by hash after a reload, where the restored transaction has no plan.
+- // The note holds the hash the payment was sent with: wallet.sentHash, which differs from wallet.hash when the
+- // receipt came through a pasted replacement hash.
++ // By the failed payment's own hash only: the note holds the hash the payment was sent with (wallet.sentHash, which
++ // differs from wallet.hash when the receipt came through a pasted replacement hash), and after a reload the restored
++ // transaction has no plan. Dropping by order removed, on every ledger refresh, the note of the same order paid again
++ // from another tab (Swarm audit f6bd50ad, finding 2).
+  const sent=wallet.sentHash??wallet.hash;
+- useEffect(()=>{if(!data||!failed)return;if(payingOrder)dropPendingCredit(data.wallet,payingOrder);if(sent)dropPendingCreditByHash(data.wallet,sent);},[data,payingOrder,failed,sent]);
++ useEffect(()=>{if(!data||!failed)return;if(sent)dropPendingCreditByHash(data.wallet,sent);if(wallet.hash&&wallet.hash!==sent)dropPendingCreditByHash(data.wallet,wallet.hash);},[data,failed,sent,wallet.hash]);
+  const mined=wallet.step==='execute'&&wallet.phase==='confirmed';
+  // Both hashes: a note made after a pasted replacement was confirmed holds that hash (wallet.hash), not the sent one, and
+  // left unmarked it was dropped at once by the after-expiry rule (Swarm audit 1ac5269f, finding 5).
+@@ -129,6 +131,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  </details>
+  {data.isAdmin&&data.paymentsReady!==false&&<Admin client={client} data={data} refresh={refresh} zh={zh}/>}</>:<p role="status">{reading?(zh?'正在讀取帳本…':'Reading ledger…'):error?(zh?`帳本目前無法取得（代碼：${error}）；請按「更新餘額與狀態」重試，這不代表餘額為零。`:`Ledger unavailable (code: ${error}). Press "Refresh ledger" to retry; this does not mean a zero balance.`):(zh?'讀取帳本…':'Reading ledger…')}</p>}
+  <button disabled={busy||reading} onClick={refreshAll}>{reading?(zh?'讀取中…':'Reading…'):zh?'更新餘額與狀態':'Refresh ledger'}</button></>}
++ <GoldReviewRecord zh={zh}/>
+  <p role="status" ref={statusLine}>{notice?goldPurchaseError(notice,zh):selected?.kind==='service'&&wallet.error?goldPurchaseError(wallet.error,zh):''}</p></section>;
+ }
+ 
+diff --git a/src/world/economyWallet.ts b/src/world/economyWallet.ts
+index 7c8359e..507b7b9 100644
+--- a/src/world/economyWallet.ts
++++ b/src/world/economyWallet.ts
+@@ -265,11 +265,11 @@ export class EconomyWalletController{
+   // nonce or a dropped transaction moves it down), and refusing that hash locked the address for good (Swarm audit
+   // 351b0573, finding 3; 1ac5269f, finding 1). Under a higher nonce it cannot be an older transaction: it is judged by
+   // the rules below, ending as a replacement after finality when it is not this call (1ac5269f, finding 3). Under a lower
+-  // one it may be a stale hash of an older transaction, so only a payment with this call's exact data or effect is
+-  // accepted: its order id is used once, and the contract refuses a second payment of it. A lower-nonce revert, stake,
+-  // withdrawal or approval proves nothing about which send it was and stays refused (review of this fix). A pasted hash
+-  // never gets this exception.
+-  const lowerPayment=(same||effect)&&tx.step==='execute'&&tx.to===this.config.paymentContract;
++  // one it may be a stale hash of an older transaction, so only a successful payment with this call's exact data or
++  // effect is accepted: its order id is used once, and the contract refuses a second payment of it. A lower-nonce revert
++  // (of a payment too: a revert uses no order id, Swarm audit f6bd50ad, finding 1), stake, withdrawal or approval proves
++  // nothing about which send it was and stays refused (review of this fix). A pasted hash never gets this exception.
++  const lowerPayment=r.status==='0x1'&&(same||effect)&&tx.step==='execute'&&tx.to===this.config.paymentContract;
+   const renumbered=own&&nonce(record.nonce)&&nonce(tx.nonce)&&(BigInt(record.nonce)>BigInt(tx.nonce)||lowerPayment);
+   if(tx.version===2&&record.nonce!==tx.nonce&&!renumbered)throw new EconomyClientError('TRANSACTION_MISMATCH');
+   const done=same||own&&r.status==='0x0'||effect;
+diff --git a/src/world/goldReviewRecord.ts b/src/world/goldReviewRecord.ts
+new file mode 100644
+index 0000000..ac6e30d
+--- /dev/null
++++ b/src/world/goldReviewRecord.ts
+@@ -0,0 +1,38 @@
++// The record of the last Swarm audit of World's GOLD purchase and wallet payment code (job f6bd50ad, 2026-10-27 UTC),
++// collapsed at the foot of the GOLD panel: what was reviewed, where to read the report and the reviewed source, and each
++// finding with the site maintainer's own account of its fix. The sign-in audits stay in "My wallet" (auditRecord.ts).
++// Written with createElement (no JSX) so tests/gold-review-record renders this very markup.
++import {createElement as h} from 'react';
++import {jobUrl} from './links.ts';
++import {outLink} from './reviewRecord.ts';
++
++type Text={zh:string;en:string};
++const JOB='f6bd50ad-af0b-4191-a0de-0e322c19c667';
++export const GOLD_REVIEW={job:JOB,jobUrl:jobUrl(JOB)!,reportUrl:`https://api.imd.fun/jobs/${JOB}/report.md`,
++  sourceUrl:'https://github.com/tungweb3/imd-ember-world-review/tree/26fd4b55b07509cecf33196677f222e41eebdf31/Submission18',
++  commit:'96858bf',worker:'b08f59ef',snapshot:'26fd4b5',date:'2026-10-27'} as const;
++export const GOLD_REVIEW_FINDINGS:readonly {id:string;severity:'Low';title:Text;status:Text}[]=[
++  {id:'#1',severity:'Low',title:{zh:'錢包回傳較舊的失敗付款時，防止重複付款的鎖會提早解除',en:'An older reverted payment returned by the wallet released the do-not-pay-again lock early'},
++    status:{zh:'此版本已修正：交易編號較舊的付款，只有成功時才算這次的付款；失敗的付款不會解除這個鎖。',
++      en:'Fixed in this version: under an older nonce only a successful payment counts as this one; a reverted one keeps the lock.'}},
++  {id:'#2',severity:'Low',title:{zh:'開兩個分頁時，一個分頁會刪掉另一個分頁的「入帳中」提示',en:'With two tabs open, one tab could remove the other tab’s crediting note'},
++    status:{zh:'此版本已修正：只刪除失敗那筆付款自己的提示。這只影響畫面，GOLD 入帳不受影響。',
++      en:'Fixed in this version: only the failed payment’s own note is removed. Display only; crediting itself was never affected.'}},
++  {id:'#3',severity:'Low',title:{zh:'部署工具沒有擋下兩個會換掉打包程式的環境變數',en:'The deploy tool did not refuse two variables that replace the bundlers'},
++    status:{zh:'此版本已修正：部署時只要設了其中一個，就拒絕上傳。',en:'Fixed in this version: a deploy refuses to upload when either is set.'}}];
++
++export function GoldReviewRecord({zh}:{zh:boolean}){
++  const say=(a:string,b:string)=>zh?a:b,r=GOLD_REVIEW,row=(k:string,v:unknown)=>[h('dt',{key:k+'t'},k),h('dd',{key:k+'d'},v as string)];
++  return h('details',{className:'audit-record gold-review-record'},
++    h('summary',null,say('GOLD 付款審查紀錄','GOLD payment review record')),
++    h('dl',null,
++      ...row(say('審查範圍','Reviewed scope'),say('GOLD 購買點數、錢包付款與部署工具（僅 World）','GOLD purchases, wallet payments and the deploy tool (World only)')),
++      ...row(say('審查版本','Reviewed version'),say(`World 原始碼 ${r.commit}（Worker ${r.worker}，公開快照 ${r.snapshot}）`,`World source ${r.commit} (Worker ${r.worker}, public snapshot ${r.snapshot})`)),
++      ...row(say('審查日期','Review date'),say(`${r.date}（UTC）`,`${r.date} (UTC)`)),
++      ...row(say('審查任務','Review job'),h('a',outLink(r.jobUrl),r.job.slice(0,8)+'… ↗')),
++      ...row(say('報告','Report'),h('a',outLink(r.reportUrl),'report.md ↗')),
++      ...row(say('受審查的原始碼','Reviewed source'),h('a',outLink(r.sourceUrl),'Submission18 ↗'))),
++    h('p',{className:'small-note'},say('這次審查找到 3 個 Low，沒有 Medium 以上的問題。','This review found 3 Low and nothing of Medium or higher.')),
++    h('p',{className:'small-note audit-head'},say('發現（出自審查）· 修正狀態為本站維護者自行說明，修正後的版本尚未重新審查','Findings (from the review) · fix status as reported by the site maintainer; the fixed version was not re-reviewed')),
++    h('ul',null,GOLD_REVIEW_FINDINGS.map(f=>h('li',{key:f.id},`${f.id} · ${f.severity} — ${say(f.title.zh,f.title.en)}${say('。','. ')}${say(f.status.zh,f.status.en)}`))));
++}
+diff --git a/tests/deploy.test.mjs b/tests/deploy.test.mjs
+index fff8407..651d20c 100644
+--- a/tests/deploy.test.mjs
++++ b/tests/deploy.test.mjs
+@@ -80,7 +80,8 @@ test('Swarm audit 12e0525d L-5: VITE_* shell variables and a node_modules that d
+   assert.deepEqual(buildEnvNames({PATH:'x',CLOUDFLARE_ENV:'staging',WRANGLER_BUILD_CONDITIONS:'node',WRANGLER_BUILD_PLATFORM:'node',CLOUDFLARE_ACCOUNT_ID:'id',WRANGLER_SEND_METRICS:'false',NODE_OPTIONS:'--import ./x.mjs'}),
+     ['CLOUDFLARE_ENV','NODE_OPTIONS','WRANGLER_BUILD_CONDITIONS','WRANGLER_BUILD_PLATFORM']);
+   // 1ac5269f, finding 8: the API host and the Worker name are the upload's target too; the account is recorded by name.
+-  for(const name of ['CLOUDFLARE_API_BASE_URL','CF_API_BASE_URL','CLOUDFLARE_COMPLIANCE_REGION','WRANGLER_API_ENVIRONMENT','WRANGLER_CI_OVERRIDE_NAME'])
++  // f6bd50ad, finding 3: the bundler binaries too.
++  for(const name of ['CLOUDFLARE_API_BASE_URL','CF_API_BASE_URL','CLOUDFLARE_COMPLIANCE_REGION','WRANGLER_API_ENVIRONMENT','WRANGLER_CI_OVERRIDE_NAME','ESBUILD_BINARY_PATH','NAPI_RS_NATIVE_LIBRARY_PATH'])
+     assert.deepEqual(buildEnvNames({PATH:'x',[name]:'other'},'linux'),[name],name);
+   assert.deepEqual(targetEnvNames({PATH:'x',CLOUDFLARE_ACCOUNT_ID:'id',CF_ACCOUNT_ID:'id2',CLOUDFLARE_API_TOKEN:'t'},'linux'),['CF_ACCOUNT_ID','CLOUDFLARE_ACCOUNT_ID']);
+   assert.deepEqual(targetEnvNames({cloudflare_account_id:'id'},'win32'),['cloudflare_account_id']);assert.deepEqual(targetEnvNames({CLOUDFLARE_ACCOUNT_ID:''},'linux'),[]);
+diff --git a/tests/economy-wallet-recovery.test.mjs b/tests/economy-wallet-recovery.test.mjs
+index 2f2afb6..9b0a5d9 100644
+--- a/tests/economy-wallet-recovery.test.mjs
++++ b/tests/economy-wallet-recovery.test.mjs
+@@ -312,7 +312,6 @@ test('the wallet\'s own hash mined under another nonce is this call when the rec
+  // hash with this call's exact data or effect, or reverted, is this call; refusing it locked the address for good.
+  const sentPay=encodeEconomyCall('pay',[OID,1000n]);
+  for(const [name,candidate,want] of [['lower, identical payment',{hash:HASH,to:PAY,input:sentPay,nonce:'0x7'},{phase:'confirmed',error:null}],
+-  ['lower, identical payment, reverted',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5',status:'0x0'},{phase:'error',error:'TRANSACTION_REVERTED'}],
+   ['lower, routed with the effect',routed([effect.paid(OID,1000n)],{nonce:'0x5'}),{phase:'confirmed',error:null}],
+   // Finding 3: under a HIGHER nonce it cannot be an older transaction; without the proof it ends as a replacement
+   // after finality, like the same case at the intent's nonce, instead of locked.
+@@ -328,7 +327,9 @@ test('the wallet\'s own hash mined under another nonce is this call when the rec
+  // Under a lower nonce without that proof (possibly a stale hash of an older transaction), or with no nonce, the
+  // intent stays locked as before.
+  for(const [name,candidate] of [['lower, routed without the effect',routed([],{nonce:'0x5'})],['lower, another call',{hash:HASH,to:PAY,input:encodeEconomyCall('pay',['0x'+'8'.repeat(64),1000n]),nonce:'0x5'}],
+-  ['lower, a revert of another call',{hash:HASH,to:A,input:'0x',nonce:'0x5',status:'0x0'}],['no nonce',{hash:HASH,to:PAY,input:sentPay,nonce:undefined}]]){
++  ['lower, a revert of another call',{hash:HASH,to:A,input:'0x',nonce:'0x5',status:'0x0'}],
++  // Swarm audit f6bd50ad, finding 1: a reverted payment of this order used no order id, so it may be an older attempt.
++  ['lower, identical payment, reverted',{hash:HASH,to:PAY,input:sentPay,nonce:'0x5',status:'0x0'}],['no nonce',{hash:HASH,to:PAY,input:sentPay,nonce:undefined}]]){
+   const f=fixture();await f.controller.prepare(payPlan());await f.controller.confirm();f.finalized=false;
+   f.candidate(candidate);await f.controller.checkReceipt();
+   assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'unknown',error:'TRANSACTION_MISMATCH',store:1},name);f.controller.dispose();
+diff --git a/tests/gold-review-record.test.mjs b/tests/gold-review-record.test.mjs
+new file mode 100644
+index 0000000..fe2c91a
+--- /dev/null
++++ b/tests/gold-review-record.test.mjs
+@@ -0,0 +1,31 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++import {createElement} from 'react';
++import {renderToStaticMarkup} from 'react-dom/server';
++import {GoldReviewRecord,GOLD_REVIEW,GOLD_REVIEW_FINDINGS} from '../src/world/goldReviewRecord.ts';
++// The record of the last Swarm audit of the GOLD purchase code (job f6bd50ad), at the foot of the GOLD panel in every
++// state: collapsed, naming scope, version, date, job, report and the reviewed source (new tab, no referrer, no opener),
++// that the statuses are the site maintainer's, and the three findings. No claim words (the rule of tests/review-record).
++const render=zh=>renderToStaticMarkup(createElement(GoldReviewRecord,{zh}));
++const text=html=>html.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/&quot;/g,'"');
++const FORBIDDEN=/security certified|officially audited|100% safe|guaranteed secure|certif|audited[- ]by|badge|已認證|認證|保證安全|安全無虞|徽章|(?<!Gnosis )\bsafe(?:ly|r|st)?\b|(?<!HttpOnly, )\bsecure(?:ly)?\b|\baudited\b|\bofficial(?:ly)?\b|已審計|保證|(?<!非)官方/i;
++test('the GOLD panel shows the last GOLD review: job, report, reviewed source and its three findings, with no claim words',()=>{
++  const en=render(false),zh=render(true);
++  assert.match(en,/^<details class="audit-record gold-review-record"><summary>GOLD payment review record<\/summary>/,'collapsed');
++  assert.match(zh,/<summary>GOLD 付款審查紀錄<\/summary>/);
++  const links=[...en.matchAll(/<a ([^>]*)>/g)].map(m=>m[1]);
++  assert.deepEqual(links,['https://explorer.imd.fun/jobs/f6bd50ad-af0b-4191-a0de-0e322c19c667','https://api.imd.fun/jobs/f6bd50ad-af0b-4191-a0de-0e322c19c667/report.md',
++    'https://github.com/tungweb3/imd-ember-world-review/tree/26fd4b55b07509cecf33196677f222e41eebdf31/Submission18'].map(u=>`href="${u}" target="_blank" rel="noreferrer noopener"`));
++  for(const part of ['World source 96858bf (Worker b08f59ef, public snapshot 26fd4b5)','2026-10-27 (UTC)','This review found 3 Low and nothing of Medium or higher.',
++    'fix status as reported by the site maintainer; the fixed version was not re-reviewed'])assert.ok(en.includes(part),part);
++  for(const part of ['World 原始碼 96858bf（Worker b08f59ef，公開快照 26fd4b5）','這次審查找到 3 個 Low，沒有 Medium 以上的問題。','修正狀態為本站維護者自行說明'])assert.ok(zh.includes(part),part);
++  assert.deepEqual(GOLD_REVIEW_FINDINGS.map(f=>f.id+' '+f.severity),['#1 Low','#2 Low','#3 Low']);
++  assert.equal([...en.matchAll(/<li>/g)].length,3);
++  for(const f of GOLD_REVIEW_FINDINGS){assert.match(f.status.en,/^Fixed in this version: /);assert.match(f.status.zh,/^此版本已修正：/);}
++  assert.equal(GOLD_REVIEW.job,'f6bd50ad-af0b-4191-a0de-0e322c19c667');
++  assert.doesNotMatch(text(en)+text(zh),FORBIDDEN);
++  // In every state of the panel: outside the signed-in and ledger branches, just before the status line.
++  const panel=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.match(panel,/\n <GoldReviewRecord zh=\{zh\}\/>\r?\n <p role="status" ref=\{statusLine\}>/);
++});
+diff --git a/tests/pending-gold-credit.test.mjs b/tests/pending-gold-credit.test.mjs
+index 3fe03f4..be4bc9d 100644
+--- a/tests/pending-gold-credit.test.mjs
++++ b/tests/pending-gold-credit.test.mjs
+@@ -76,6 +76,15 @@ test('Swarm audit 1ac5269f finding 5: a note made after a pasted replacement was
+   const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
+   assert.match(src,/if\(wallet\.hash&&wallet\.hash!==sent\)markPendingCreditMined\(data\.wallet,wallet\.hash\);\},\[data,mined,sent,wallet\.hash\]\);/);
+ });
++test('Swarm audit f6bd50ad finding 2: a tab left on a failed payment drops only that payment\'s note, not another tab\'s new payment of the order',()=>{store.clear();
++  // Tab 1 judged payment H1 of order ID replaced; tab 2 paid ID again (H2). Tab 1's drop effect runs on every refresh.
++  const H1=TX,H2='0x'+'6'.repeat(64);trackPendingCredit(W,ID,H1,'1000',NOW);dropPendingCreditByHash(W,H1,NOW);
++  trackPendingCredit(W,ID,H2,'1000',NOW);for(let i=0;i<3;i++)dropPendingCreditByHash(W,H1,NOW);
++  assert.equal(pendingGold(W,NOW),1000n,'the new payment keeps its note');
++  const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++  assert.doesNotMatch(src,/dropPendingCredit\(data\.wallet,payingOrder\)/,'never by order');
++  assert.match(src,/if\(!data\|\|!failed\)return;if\(sent\)dropPendingCreditByHash\(data\.wallet,sent\);if\(wallet\.hash&&wallet\.hash!==sent\)dropPendingCreditByHash\(data\.wallet,wallet\.hash\);/);
++});
+ test('Swarm audit 1ac5269f finding 6: after a reload the confirmed payment\'s order comes from the controller',()=>{
+   const src=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
+   assert.match(src,/const payingOrder=wallet\.plan\?\.kind==='pay'\?wallet\.plan\.payment\.orderId:wallet\.paidOrder\?\?null,/);
+-- 
+2.56.0.windows.4
+

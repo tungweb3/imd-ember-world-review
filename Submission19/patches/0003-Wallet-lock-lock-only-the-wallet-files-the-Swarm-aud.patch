@@ -1,0 +1,578 @@
+From 943959cad55bb3245e62fe703d636d3d328f3b3f Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Wed, 28 Oct 2026 07:10:47 +0800
+Subject: [PATCH 3/4] Wallet lock: lock only the wallet files the Swarm audits
+ reviewed (owner clarification)
+
+The owner asked for the lock to cover only what would invalidate a wallet audit. scripts/wallet-lock.mjs now names an
+explicit list instead of name patterns: the wallet sign-in files of the R5-R12 audits and the wallet controller, GOLD
+purchase, checkouts, staking panel, balances, server GOLD/recovery code, deploy tool and their tests of Submission13-18
+(audits e4a57f91 .. f6bd50ad), plus the lock itself: 70 files, all identical to 7021b5b (Worker a92a767c). Files no
+wallet audit reviewed, styles, worker/app.ts and wrangler.jsonc are free to change. The lock is a warning, not a ban:
+with the owner's approval the hashes are refreshed with a reason and the change deploys as usual, then needs a new
+Swarm audit. Full suite 3640 tests, 0 fail.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ CLAUDE.md                  |  27 ++--
+ scripts/wallet-lock.mjs    |  66 ++++----
+ security/wallet-lock.json  | 302 +++++++++----------------------------
+ tests/wallet-lock.test.mjs |  34 +++--
+ 4 files changed, 142 insertions(+), 287 deletions(-)
+
+diff --git a/CLAUDE.md b/CLAUDE.md
+index e61f408..7b9fbb1 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -1,18 +1,17 @@
+ # Wallet lock (錢包封鎖區)
+ 
+-The wallet, sign-in and payment code passed the Swarm audits (last one `f6bd50ad`, fixed in `7021b5b`, Worker `a92a767c`).
+-It is frozen: `security/wallet-lock.json` holds the hash of every file in the zone (`ZONE` in `scripts/wallet-lock.mjs`),
+-and `tests/wallet-lock.test.mjs` fails if any of them changes, is removed, or a new file appears in the zone. The deploy
+-tool runs the full suite, so such a change cannot be deployed by accident. The lock is a warning, not a ban: once the owner
+-approves, the change can be made and deployed as usual (re-audit timing is the owner's call).
++The wallet-related files that the Swarm audits reviewed (wallet sign-in R5-R12; wallet controller, GOLD purchase,
++checkouts, staking panel and deploy tool in Submission13-18, last audit `f6bd50ad`, fixed in `7021b5b`, Worker `a92a767c`)
++are locked: `LOCKED` in `scripts/wallet-lock.mjs`, hashes in `security/wallet-lock.json`. `tests/wallet-lock.test.mjs` fails
++if one of them changes or is removed, and the deploy tool runs the full suite, so such a change cannot be deployed by
++accident. Changing a locked file means the audit no longer covers what runs.
+ 
+-- Do not edit files in the zone. If a task seems to need it, stop and warn the owner first, in plain Chinese, that the
+-  change will need a new Swarm audit (「這會動到錢包封鎖區，改完必須重新送 Swarm audit」), and wait for their decision. The owner
+-  considers this very important.
+-- The same warning applies to changes outside the zone that alter wallet or payment behaviour: the payment routes in
+-  `worker/app.ts`, shared helpers the zone imports, the `/api/gold`, `/api/economy` and `/api/celestao-checkout` settings in
+-  `wrangler.jsonc`, contract addresses and prices.
+-- Only after the owner explicitly approves: make the change, then
+-  `node scripts/wallet-lock.mjs --update --reason "what changed and who approved it"`, and tell the owner a re-audit is due.
++The lock is a warning, not a ban:
++- Before editing a locked file, warn the owner in plain Chinese (「這會動到錢包封鎖區，改完必須重新送 Swarm audit」) and wait
++  for their decision. The owner considers this very important.
++- Once they approve: make the change, run `node scripts/wallet-lock.mjs --update --reason "what changed and who approved it"`,
++  and deploy as usual. Remind them the change needs a new Swarm audit; when to send it is their call.
++- Give the same warning for a change outside the lock that alters how a locked file behaves (for example the GOLD and
++  checkout routes in `worker/app.ts`, or their settings in `wrangler.jsonc`).
+ - Never refresh the hashes just to make the test pass, and never weaken or skip `tests/wallet-lock.test.mjs`.
+-- `node scripts/wallet-lock.mjs` alone checks the zone.
++- `node scripts/wallet-lock.mjs` alone checks the lock.
+diff --git a/scripts/wallet-lock.mjs b/scripts/wallet-lock.mjs
+index f9149b8..1564599 100644
+--- a/scripts/wallet-lock.mjs
++++ b/scripts/wallet-lock.mjs
+@@ -1,10 +1,11 @@
+-// Wallet lock: the wallet, sign-in and payment code that passed the Swarm audits (last one f6bd50ad, fixed in 7021b5b)
+-// is frozen. security/wallet-lock.json holds the SHA-256 of every file in the zone; tests/wallet-lock.test.mjs fails when
+-// any of them changes, disappears, or a new file appears in the zone, and scripts/deploy.mjs runs the full suite, so
+-// nothing changed there can be deployed. Line endings are normalised (CRLF -> LF) so a checkout setting does not count.
++// Wallet lock: the wallet-related files that the Swarm audits reviewed are frozen at the audited version (last audit
++// f6bd50ad, fixed in 7021b5b). Changing one of them means the audit no longer covers what runs, so it needs a new audit.
++// security/wallet-lock.json holds the SHA-256 of every file in LOCKED; tests/wallet-lock.test.mjs fails when any of them
++// changes or disappears, and scripts/deploy.mjs runs the full suite, so such a change cannot be deployed by accident.
++// Line endings are normalised (CRLF -> LF) so a checkout setting does not count.
+ //
+-// Changing the zone needs the owner's explicit approval, and the change has to go back to a Swarm audit. After the owner
+-// approves, refresh the hashes with a reason (it is appended to the manifest's unlock history):
++// It is a warning, not a ban. Once the owner approves a change, refresh the hashes with a reason (it is appended to the
++// manifest's unlock history) and deploy as usual; the change then needs a new Swarm audit, when the owner decides:
+ //   node scripts/wallet-lock.mjs --update --reason "what changed and who approved it"
+ // `node scripts/wallet-lock.mjs` alone only checks.
+ import {createHash} from 'node:crypto';
+@@ -15,29 +16,42 @@ import {fileURLToPath} from 'node:url';
+ 
+ export const ROOT=join(dirname(fileURLToPath(import.meta.url)),'..');
+ export const MANIFEST='security/wallet-lock.json';
+-// File names in the zone. A new file whose name matches is caught too, so a payment change cannot move to a new file.
+-export const ZONE=[
+-  /^src\/world\/(economy|Economy|gold|worldGold|WorldGold|pendingGold|Gold|wallet|Wallet|auth|siwe|celestaoCheckout|CelestaoCheckout|researchPass|ResearchPass)\w*\.tsx?$/,
+-  /^src\/shared\/(fortunePricing|celestaoProtocol)\.ts$/,
+-  /^server\/(auth|aimarket-auth|celestao-auth|celestao-checkout|celestao-delivery|celestao-protocol|research-pass|economy[\w-]*|world-gold[\w-]*)\.ts$/,
+-  /^migrations\/\d+_(wallet|world_economy|economy|world_gold|celestao_wallet|celestao_checkouts)\w*\.sql$/,
+-  /^scripts\/(deploy|economy-recovery|gold-topup-release|wallet-lock)\.mjs$/,
+-  /^tests\/(economy|world-gold|gold|pending-gold|wallet|research-pass|celestao-checkout|celestao-auth|aimarket-auth|auth|aud4-auth|deploy)[\w.-]*\.mjs$/,
+-  /^tests\/fixtures\/wallet-panel\.mjs$/,
++// Only files that a published audit reviewed (public review repo: source/ for the wallet sign-in audits R5-R12,
++// Submission13-18 for the wallet, GOLD and staking audits e4a57f91 .. f6bd50ad), limited to wallet code and its tests.
++// Styles, media and the shared worker/app.ts and wrangler.jsonc are left out.
++export const LOCKED=[
++  // Wallet sign-in (R5-R12)
++  'migrations/0001_wallet_login.sql','server/auth.ts','src/world/auth.ts','src/world/authCleanup.ts','src/world/authLifecycle.ts',
++  'src/world/siwe.ts','src/world/wallet.ts','src/world/walletView.ts','src/world/WalletPanel.tsx',
++  'tests/aud4-auth.test.mjs','tests/auth-artifacts.mjs','tests/auth-artifacts.test.mjs','tests/auth-audit10.test.mjs',
++  'tests/auth-audit8-causal.test.mjs','tests/auth-audit8-causes.mjs','tests/auth-audit8-reference.mjs','tests/auth-audit8.test.mjs',
++  'tests/auth-audit9.test.mjs','tests/auth-lifecycle-model.test.mjs','tests/auth-r5-authority.test.mjs','tests/auth-r5.test.mjs',
++  'tests/auth-r7-authority.test.mjs','tests/auth-r7-fixtures.mjs','tests/auth-r7-lifecycle.test.mjs','tests/auth-r8.test.mjs',
++  'tests/auth-reference-model.mjs','tests/auth-reference-scheduler.test.mjs','tests/auth-scheduler-driver.mjs','tests/auth-v11.test.mjs',
++  'tests/auth.test.mjs','tests/fixtures/wallet-panel.mjs','tests/wallet-client.test.mjs','tests/wallet-harness.mjs',
++  // Wallet controller, GOLD purchase, checkouts, staking panel and balances (Submission13-18)
++  'migrations/0021_world_gold_fast_credit.sql','server/economy-recovery.ts','server/economy-rpc.ts','server/world-gold-api.ts',
++  'server/world-gold-fast.ts','server/world-gold.ts','src/world/AIMarketPane.tsx','src/world/CelestaoCheckout.tsx',
++  'src/world/celestaoCheckoutClient.ts','src/world/EconomyPane.tsx','src/world/economyClient.ts','src/world/economyWallet.ts',
++  'src/world/GoldPurchase.tsx','src/world/goldPurchasePreview.tsx','src/world/goldPurchaseRules.ts','src/world/memberBalancesClient.ts',
++  'src/world/MiningPanel.tsx','src/world/pendingGoldCredit.ts','src/world/ResearchPassCard.tsx','src/world/useMemberBalances.ts',
++  'src/world/WalletBalanceHud.tsx','src/world/WalletBalancesBlock.tsx','src/world/worldGoldClient.ts','src/world/WorldGoldPanel.tsx',
++  'tests/economy-client.test.mjs','tests/economy-pane.test.mjs','tests/economy-wallet-recovery.test.mjs','tests/gold-purchase-ui.test.mjs',
++  'tests/mining-panel.test.mjs','tests/pending-gold-credit.test.mjs','tests/research-pass-ui.test.mjs','tests/session-compare.test.mjs',
++  'tests/world-gold-fast.test.mjs',
++  // Deploy tool (Submission14-18)
++  'scripts/deploy.mjs','tests/deploy.test.mjs',
++  // The lock itself, so it cannot be loosened quietly
++  'scripts/wallet-lock.mjs','tests/wallet-lock.test.mjs',
+ ];
+-export const inZone=path=>ZONE.some(r=>r.test(path));
++export const inZone=path=>LOCKED.includes(path);
+ export const digest=buf=>createHash('sha256').update(buf.toString('utf8').replace(/\r\n/g,'\n')).digest('hex');
+-/** Tracked and untracked (not ignored) files in the zone, so a new file is seen before it is committed. */
+-export function zoneFiles(root=ROOT){
+-  const out=execFileSync('git',['ls-files','--cached','--others','--exclude-standard','-z'],{cwd:root,encoding:'utf8'});
+-  return [...new Set(out.split('\0').filter(Boolean))].filter(inZone).sort();
+-}
+ export function currentHashes(root=ROOT){
+-  const files={};for(const p of zoneFiles(root))if(existsSync(join(root,p)))files[p]=digest(readFileSync(join(root,p)));
++  const files={};for(const p of LOCKED)if(existsSync(join(root,p)))files[p]=digest(readFileSync(join(root,p)));
+   return files;
+ }
+ export const readManifest=(root=ROOT)=>JSON.parse(readFileSync(join(root,MANIFEST),'utf8'));
+-/** Differences between the manifest and the working tree: changed, missing and new files. */
++/** Differences between the manifest and the working tree: changed, missing and newly locked files. */
+ export function lockDiff(manifest,now){
+   const locked=manifest.files;
+   return {
+@@ -49,8 +63,8 @@ export function lockDiff(manifest,now){
+ export const lockBroken=d=>d.changed.length+d.missing.length+d.added.length>0;
+ export function lockMessage(d){
+   const list=(t,a)=>a.length?t+'\n'+a.map(p=>'  '+p).join('\n')+'\n':'';
+-  return '錢包封鎖區的檔案和審計過的版本不同（wallet lock broken）。\n'+list('改過 changed:',d.changed)+list('不見 missing:',d.missing)+list('新增 new:',d.added)+
+-    '這些檔案已通過 Swarm 審計。要改必須先經擁有者同意，改完要重新送 Swarm audit；同意後執行\n'+
++  return '錢包封鎖區的檔案和審計過的版本不同（wallet lock broken）。\n'+list('改過 changed:',d.changed)+list('不見 missing:',d.missing)+list('新加入封鎖 new:',d.added)+
++    '這些檔案經過 Swarm 審計。要改請先問擁有者；同意後可以照常修改和部署，但這次改動需要重新送 Swarm audit。同意後執行\n'+
+     '  node scripts/wallet-lock.mjs --update --reason "改了什麼、誰同意的"\n';
+ }
+ 
+@@ -65,7 +79,7 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
+     const manifest={...(old||{}),files:now,unlocks:[...(old?.unlocks||[]),{date:new Date().toISOString(),head,reason,...d}]};
+     writeFileSync(join(ROOT,MANIFEST),JSON.stringify(manifest,null,2)+'\n');
+     console.log('wallet lock updated: '+Object.keys(now).length+' files; '+d.changed.length+' changed, '+d.missing.length+' missing, '+d.added.length+' new.');
+-    console.log('提醒：封鎖區有改動，可以照常部署，但這次改動需要重新送 Swarm audit。');
++    if(d.changed.length)console.log('提醒：封鎖區有改動，可以照常部署，但這次改動需要重新送 Swarm audit。');
+   }else{
+     const d=lockDiff(readManifest(),now);
+     if(lockBroken(d)){console.error(lockMessage(d));process.exit(1);}
+diff --git a/security/wallet-lock.json b/security/wallet-lock.json
+index dbeea68..6644524 100644
+--- a/security/wallet-lock.json
++++ b/security/wallet-lock.json
+@@ -1,76 +1,14 @@
+ {
+   "files": {
+     "migrations/0001_wallet_login.sql": "696eeccbebd66ce944d86ec248540a0afa10a0283e255c0bf9df85c2cfc22a71",
+-    "migrations/0010_world_economy.sql": "88d4e9f502def890213b55a0d0c72e4acd7215a144bb48d61ba3fee887dadd71",
+-    "migrations/0011_world_economy_staging.sql": "bc65b8ac2b163bb91a29c865c60c64aff4df228af54d50e419719c6c7c9fef3d",
+-    "migrations/0012_economy_reward_bindings.sql": "8fc2902b444ae7a0ef3a4e697d64e3ec3060f306aa2b955746a4f3ca8347cbae",
+-    "migrations/0013_economy_reconciliation.sql": "d4ecba4488e59e8c77bd4756efe1c33cfc9407eee489d67beac33b2e1a7b8dc4",
+-    "migrations/0014_world_gold_integration.sql": "d53d121ed6a919a2e5399f8d42a3d7121bdf5530701abd92d53f83801f7c6a7b",
+-    "migrations/0015_world_gold_audit_hardening.sql": "e801cb9cdb212b0567d8514ddecb79b3c9c6cd6c2c2755fac4447352d03038e5",
+-    "migrations/0016_world_gold_cross_path_guards.sql": "d94ce9d78b7cb13f4288967cb09987ac02a36acfa35016cc91906ed28032ee21",
+-    "migrations/0018_wallet_mining.sql": "ecef7dd6a9a8a03331d6b9d49f4af4fa4532501ec8039d93c1ae7684296dd5d7",
+-    "migrations/0019_celestao_wallet_bridge.sql": "7f3579a3682d7b5f8f27bdcc406cb12c7bf55dbb35f7daf7ec4280ad5bc3b89e",
+-    "migrations/0020_celestao_checkouts.sql": "68f00c19ec73f5213a6165b62ef27aa28a441753def51e14d2b8261bc7592b15",
+-    "migrations/0021_world_gold_fast_credit.sql": "f619dd23adc964bb1f49f7c82d0508d51e6e81fb24eb381e551bc23bac4e2240",
+-    "scripts/deploy.mjs": "3a9ad00ef209c1d889c657b2f32c3e4587e087bea07aa61994e3954233eebe72",
+-    "scripts/economy-recovery.mjs": "1ddeed1c6f34c7d3fab9d48840be085b837dbc480cb4ec17ab152921e877276d",
+-    "scripts/gold-topup-release.mjs": "c7de8f73d0836d87103f2459ed892443e8260f64fd496aefdf52b78572452b70",
+-    "scripts/wallet-lock.mjs": "f5e71d3a7dcf30416f55c436533c1067b08207ca231e57259fdbeffc3b00994b",
+-    "server/aimarket-auth.ts": "41f34f14d19bed5cb713f0350ff65c8ae7899d8ff296f9f696a8edf1bc5a0bc0",
+     "server/auth.ts": "d674e6248b9d81faa9b5e455a97e0d7a69fdcd812696f6bf4a416899c717a4dd",
+-    "server/celestao-auth.ts": "86d8e9d0aa250b2de151576c7fc12a57826ef7e3d8a267f5b9bb48a7a372d6dc",
+-    "server/celestao-checkout.ts": "ec51b7403c4554382fbb2826e421b4263f8861c9714f2f0ec0eb4deda1a32911",
+-    "server/celestao-delivery.ts": "db5f6d058bdf233142da46c51d48e9f2bb38f016b3e2a230b4f8cfc420b9aca1",
+-    "server/celestao-protocol.ts": "350e7744bcfc1e9440c9469722cded974fc4a9d8d64b9ab1eb0836d159f297d5",
+-    "server/economy-config.ts": "4f7b57575fcb287d4d52602852b0e4568177c5332551531119dfd0f3da1274e1",
+-    "server/economy-deployment.ts": "b95d4102fe628e81d3e9938ac1ab33d6d4d872a2f2e5b46a3edaf31a3e2ddcf8",
+-    "server/economy-ledger.ts": "68220938aec589e938788a041be553aacaa9ee04fb698571e6612badc1c0fcf2",
+-    "server/economy-mining.ts": "0798c50c709a3fa89a1cafb0c553b1d4fa2e3814079d882e4151e7a7f209e9ad",
+-    "server/economy-reconciliation.ts": "3cec7a01681f1161a66660d0cdffa4a1398a691b62221ff11623cdc1f57452e2",
+-    "server/economy-recovery.ts": "79889fa32ed288f98964742286fd59263f248e74aaeaeb19fccbfe361a296f43",
+-    "server/economy-rewards.ts": "72e74102192ea26812121706240e19fc3f970e12e4ad69b762d4f14f84b29c6d",
+-    "server/economy-rpc.ts": "53becc8d5f6e2b29316f82d95cc88d9fc755dfeeb7ac8df82445b92a209756be",
+-    "server/economy-session.ts": "5b3826bd5b79358f786a34a7e2474804877e623debedfb8b3411dfe17f7c6d98",
+-    "server/economy-staging.ts": "97053d0145716a0d99d8b381f67dd6c79448b77f77f33e7d8b1d44ff48d13946",
+-    "server/economy.ts": "9cec33a9c75bae3a12bd67653b7951770f952c153b6599de5d2f839c9981d233",
+-    "server/research-pass.ts": "9fedb2824cda2a2e060b4f695daf1275b1d95fe5ad72e3fe01b179e06d4ec06a",
+-    "server/world-gold-api.ts": "646c5e45bda4023d0ad0b94ba493f9c9c74176d49d1d5be027a8e7ee3cfb0296",
+-    "server/world-gold-delivery.ts": "ce741691ab8fdfc0402ed8f9e7634488d442fbc11be6c6a891b664c8fa078e09",
+-    "server/world-gold-fast.ts": "d0da654bb0fdd0aaae5d10fcae21476dedcc7cfd2023a385123f8bdd4d300a3b",
+-    "server/world-gold-inspection.ts": "854555c90a112ee1bbe91dcbb5fc5f5233de10c988eb18e95fea84cd438a728b",
+-    "server/world-gold-report.ts": "f55f91d86e98de586cd1e534abcab438e7b07c5551ecc051644f3c532661e800",
+-    "server/world-gold-result.ts": "0a99619dfcef3941d1e868eaa5601b1e85b3cabcbf581f2d36eeecf439cd7185",
+-    "server/world-gold-schema.ts": "fb22864a7e7f23885f33a336d63084e7c939b1694498dc356f8d9933f6ddfebb",
+-    "server/world-gold.ts": "4dc72dec22826fe419c3a6de448a701ec8eaf0c889379ccdfcaec9958177d44f",
+-    "src/shared/celestaoProtocol.ts": "d4e8950d2f7d51355f4ab12ae7d7e6b445fd3bad30a9e6476ef9fa981547e034",
+-    "src/shared/fortunePricing.ts": "2fd702a7cf708228e97078c6132a721bf7c86c8611f51635f74e82a8a57bcee4",
+-    "src/world/CelestaoCheckout.tsx": "815920a6b6340e4b72df596bde8fd972d6956fa10783424b4e2cb404e56a50e8",
+-    "src/world/EconomyPane.tsx": "bc3be6146941ad8992545f80052e4a240137a0a788d6a28bb83e6b9474e5905e",
+-    "src/world/GoldPurchase.tsx": "8de249a391ccf84c3508f6d2e1ce189529210e6f27bb8aa2fa4fe3e351492b2c",
+-    "src/world/ResearchPassCard.tsx": "1630b20a47e52f17f2fc895e1cf0722715544b7296736ff53828581a556bd144",
+-    "src/world/ResearchPassConfirm.tsx": "420cec53cc81a8f47b993131f1e3c95be3baec04250dfed638ea05c52e960edd",
+-    "src/world/WalletBalanceHud.tsx": "cdf898e298e289255874e573155a0975d9738b38766abd9440a0146944132c7c",
+-    "src/world/WalletBalancesBlock.tsx": "b3f3b85cf1e42a6b7b802ff3e3e05fe14b2ee9d2dc3f02242d0d84037445a3ba",
+-    "src/world/WalletPanel.tsx": "ee41c0a74c13490e790a615f47a21446b65b7c976286e70ae6dba6edaab3195a",
+-    "src/world/WorldGoldPanel.tsx": "2d6edea6b41a8d606f65f2156c9e1de828f493c0a9e25ec71c6b9dfffc048b93",
+     "src/world/auth.ts": "8d3e75ad2f58a5d4d61dc5d63374da491726153db38fe70e609fa887113bb53f",
+     "src/world/authCleanup.ts": "de5e50fe3a7d68d4dd3ffd5b489cdaa2e2a2e789c21ee590ef9cfd716b418c90",
+     "src/world/authLifecycle.ts": "9e19a45950ced3f4ce9f04c13169da1597b2e061420927cdaa852f8e0c4e5dce",
+-    "src/world/celestaoCheckoutClient.ts": "48b4b933362e2fda6bd2aa7e26cfe1e7cee31f9b3443c29254b2409d51833f3f",
+-    "src/world/economyClient.ts": "c0780b956a284826d9ab3e56f40cbe7993bc70dcd86de08f7cb55a7b46eb2cd4",
+-    "src/world/economyEntry.ts": "22eef542168a55c2a0b1f069491d12d521638b603ae79a5e5f2418c2b5f5c698",
+-    "src/world/economyWallet.ts": "1dd7442fb852e4882ee72bb54490333d99552852689729faa907041937a39a04",
+-    "src/world/goldLocalPreview.tsx": "ebdae21021de94f7b3b085dbb5e70bc2dde37109ab47fd8c6105f2d4c064266c",
+-    "src/world/goldPurchasePreview.tsx": "b9b5a474510276f1a92c8b5a931226d873f084aa1fad81b67cc9e50263dd13a9",
+-    "src/world/goldPurchaseRules.ts": "aa3eb14a23fba144c335d969b3368b993a7c2f486618d9478625eeaa38a1f64c",
+-    "src/world/goldReviewRecord.ts": "fe888a1750b8017fa3755ce13c7d59f1256350ad9aec0e1465395d87feb8b08a",
+-    "src/world/pendingGoldCredit.ts": "d19f8d72bd6f4adb4372c151cb1f6a623b023e4e5699cab97487451e69fbb608",
+-    "src/world/researchPassCopy.ts": "cb9ff1c2ff83a05a1d8da3bd9ed28cb7cc6e1ab965856753cd2171c972dec2dc",
+     "src/world/siwe.ts": "c5d6f1518939f206f193346cfcd83de5c66b0eccce5ef74aeda33619d6292296",
+     "src/world/wallet.ts": "05d5aa59f1eacc0514afd2107a08f33c76b4347dd06e51bd97e224621c3b05d1",
+     "src/world/walletView.ts": "82303e87042fbe6c8d36022c1402a3dcd92decf19bcd200f3377ae9f691abc7a",
+-    "src/world/worldGoldClient.ts": "9a668e1988f2a487aac661464f167544be2b1ab4bf25c882e78aff843923c642",
+-    "tests/aimarket-auth.test.mjs": "d024ebe13afe60f5884a7d1a7eeb22b036f38cd354e48b9ce86c9c137887285f",
++    "src/world/WalletPanel.tsx": "ee41c0a74c13490e790a615f47a21446b65b7c976286e70ae6dba6edaab3195a",
+     "tests/aud4-auth.test.mjs": "49750a3cc5f8c63389120c918df1ea148a19661133d7ed3335f86a25d66c338d",
+     "tests/auth-artifacts.mjs": "c0bf9ca363d604e05a6f63b6c88904ac9b0838cc263696a8ca2a4d13a58bc7c1",
+     "tests/auth-artifacts.test.mjs": "53d263d4abee06a68bbfc3d898eaddd2092e60e7030637077a7a093b2fadaca7",
+@@ -92,144 +30,64 @@
+     "tests/auth-scheduler-driver.mjs": "fbee8522512226a6c2cb41104126815c68ceaacf0a094f1b4bc3160f6ffe58e5",
+     "tests/auth-v11.test.mjs": "e1a5d5a3bdf827762b4fc97e7e70555501b2a4ffdf55662ab37b6421877949ec",
+     "tests/auth.test.mjs": "8549010c8542c1abe63b54b6809ffea26a32709e36d8636f3ef1719fed37cde8",
+-    "tests/celestao-auth.test.mjs": "905839abb12f1fa156e2277dc0eb52ebc06eda2df9e768247fb7adefe200e72a",
+-    "tests/celestao-checkout-client.test.mjs": "aeaa9da4633dbc96a95a4cdc31d4f3cde0c9bdc2b42defea88707c16b6522f9c",
+-    "tests/celestao-checkout.test.mjs": "a098cd07ae7bea6465f1ea2c2b6069c62b714f75333b48531b393d556323b587",
+-    "tests/deploy-evidence.test.mjs": "3496d6b994d0a6c73ca46a256f5f48b2aa293e43e334a0cecc3762ab73042cec",
+-    "tests/deploy-research.test.mjs": "07ba8d0582e5ab8d7b4d98b0590b7270ab3f98e214a0732985e4d6a05ad0f15a",
+-    "tests/deploy.test.mjs": "9360854e8ead8014c613ed346f38eb2ccb15e955ebd2c6967a99cbea39077f09",
+-    "tests/economy-adversarial.test.mjs": "f4ced28187058c3bce241ef0d04ce4a1f9324f04d5bef1adc719fcbc069631f3",
+-    "tests/economy-api.test.mjs": "dae5527cec61205223059419ad8d7e8c701cd8131ad29e3c27a0bf7ca08681a1",
+-    "tests/economy-audit-regressions.test.mjs": "28d7eb500a533e555dd65369527ac84bce6f446c4831448f91e067d880af0995",
+-    "tests/economy-audit2-medium.test.mjs": "e6581b722312e87a3ac41b8175744f4ed1624d6e2cdc63763b6a3a32bf505a3f",
+-    "tests/economy-audit3-recovery.test.mjs": "4ddfca5942e714461e9f4f05e1efdc2b26e2d3c92afe0a1858b0f123fae6b29e",
+-    "tests/economy-audit4-recovery.test.mjs": "5af5b51686d42cf6c05012ead66ebc89c794266e670d2de7d5ea9af26a815a10",
+-    "tests/economy-boundaries-audit10.test.mjs": "7b10313ac2007d42d419901dad071c9c66158fdc0e15d2bfd73272126f2e22ff",
+-    "tests/economy-boundaries-audit11.test.mjs": "530957ff7b27195903816bba39ceb8f3f7ad8586d1ab3de100f12e6f16a19915",
+-    "tests/economy-boundaries-audit9.test.mjs": "2bde5c9c95c1479bca9470659788a41c5bb1fd0b0370ae643b87aa32f733896a",
++    "tests/fixtures/wallet-panel.mjs": "c77e763f03c7f87db988669052e30425fdad7b8e3bed3c4784582d8167e3eac5",
++    "tests/wallet-client.test.mjs": "1c0d3d7056a76ffad01318521d1ed874d0db3df10c64447e9d1d87c6ec1aacc2",
++    "tests/wallet-harness.mjs": "20d5e9b6e001cc2476f077a9ef7d4529860a28f73e675c00481a7c4be2b3ba26",
++    "migrations/0021_world_gold_fast_credit.sql": "f619dd23adc964bb1f49f7c82d0508d51e6e81fb24eb381e551bc23bac4e2240",
++    "server/economy-recovery.ts": "79889fa32ed288f98964742286fd59263f248e74aaeaeb19fccbfe361a296f43",
++    "server/economy-rpc.ts": "53becc8d5f6e2b29316f82d95cc88d9fc755dfeeb7ac8df82445b92a209756be",
++    "server/world-gold-api.ts": "646c5e45bda4023d0ad0b94ba493f9c9c74176d49d1d5be027a8e7ee3cfb0296",
++    "server/world-gold-fast.ts": "d0da654bb0fdd0aaae5d10fcae21476dedcc7cfd2023a385123f8bdd4d300a3b",
++    "server/world-gold.ts": "4dc72dec22826fe419c3a6de448a701ec8eaf0c889379ccdfcaec9958177d44f",
++    "src/world/AIMarketPane.tsx": "65e6ebb4a3b1e8a26f8a7b4401e363ab47a2345a338144f63d8b1a77c8f88336",
++    "src/world/CelestaoCheckout.tsx": "815920a6b6340e4b72df596bde8fd972d6956fa10783424b4e2cb404e56a50e8",
++    "src/world/celestaoCheckoutClient.ts": "48b4b933362e2fda6bd2aa7e26cfe1e7cee31f9b3443c29254b2409d51833f3f",
++    "src/world/EconomyPane.tsx": "bc3be6146941ad8992545f80052e4a240137a0a788d6a28bb83e6b9474e5905e",
++    "src/world/economyClient.ts": "c0780b956a284826d9ab3e56f40cbe7993bc70dcd86de08f7cb55a7b46eb2cd4",
++    "src/world/economyWallet.ts": "1dd7442fb852e4882ee72bb54490333d99552852689729faa907041937a39a04",
++    "src/world/GoldPurchase.tsx": "8de249a391ccf84c3508f6d2e1ce189529210e6f27bb8aa2fa4fe3e351492b2c",
++    "src/world/goldPurchasePreview.tsx": "b9b5a474510276f1a92c8b5a931226d873f084aa1fad81b67cc9e50263dd13a9",
++    "src/world/goldPurchaseRules.ts": "aa3eb14a23fba144c335d969b3368b993a7c2f486618d9478625eeaa38a1f64c",
++    "src/world/memberBalancesClient.ts": "c9ea76085210a09438e22db9aebafc11be132b6e1d96287ad5a7535c70fc409f",
++    "src/world/MiningPanel.tsx": "242104e49b975489ea84e8a3950bd80d7cc68b0139c13053fbed807891aa0bdd",
++    "src/world/pendingGoldCredit.ts": "d19f8d72bd6f4adb4372c151cb1f6a623b023e4e5699cab97487451e69fbb608",
++    "src/world/ResearchPassCard.tsx": "1630b20a47e52f17f2fc895e1cf0722715544b7296736ff53828581a556bd144",
++    "src/world/useMemberBalances.ts": "16dc61eca0aeddd666db2d18513ebf1ddae647e7ce0203f8ec67e3b88b75196d",
++    "src/world/WalletBalanceHud.tsx": "cdf898e298e289255874e573155a0975d9738b38766abd9440a0146944132c7c",
++    "src/world/WalletBalancesBlock.tsx": "b3f3b85cf1e42a6b7b802ff3e3e05fe14b2ee9d2dc3f02242d0d84037445a3ba",
++    "src/world/worldGoldClient.ts": "9a668e1988f2a487aac661464f167544be2b1ab4bf25c882e78aff843923c642",
++    "src/world/WorldGoldPanel.tsx": "2d6edea6b41a8d606f65f2156c9e1de828f493c0a9e25ec71c6b9dfffc048b93",
+     "tests/economy-client.test.mjs": "c988c25cd9882b38f43dabbba819f154064adffba131dd342fab39214e1ec6a3",
+-    "tests/economy-forwarder.test.mjs": "68c1972651e2ca1c873512f25d7dd580a310f01266058b7706a018c5ae9ea97f",
+-    "tests/economy-journey.test.mjs": "ea61f61483aa6f2e24a5682378d7cdf55141813ade9c22ec6e66259eb9ff1aef",
+-    "tests/economy-ledger.test.mjs": "c69838260d33c301b849576b36e4d149c6059ba027a269ed931640c99683802f",
+-    "tests/economy-migration.test.mjs": "510862dc7e16bf4555509de16754cc105ca97ed4a6cb2c4e1a6f9270e734732b",
+     "tests/economy-pane.test.mjs": "e96e894e0a792336072ee8522dbf8e6b4899ed1427d4ada3d0619f3d780da425",
+-    "tests/economy-payload-roundtrip.test.mjs": "519aa69556b205d1eeb839a5b6f421419989587a385b512d4c3f494db348bb15",
+-    "tests/economy-payment-timing.test.mjs": "82e2de343658cb20ab9d1c378c673346523cb6aa8ed9fc61816f2b433b4640c4",
+-    "tests/economy-provider-range.test.mjs": "7afe5f144b342f962020a49227e4fca7e1f74b4ab6d983d80b15a377fc73c88e",
+-    "tests/economy-read-session.test.mjs": "27bac64a27b5712394056259a7a0f60eff9ef35bdffd23001a4a54234bf4b95c",
+-    "tests/economy-reconciliation.test.mjs": "817f6f296b2875cb16846311733e61f4242a8cad0602b5d07b6bb52203d7578c",
+-    "tests/economy-rpc.test.mjs": "06550ab5dc2dfea7d29d978226da6a1f558624ee1fbc03c81e2b0f6704e3d68f",
+-    "tests/economy-settlement.test.mjs": "46edff6b7aabb50afa932ccea757e3adcbf9c62dc51b4f8f6848e6e310dac65c",
+-    "tests/economy-snapshot-consistency.test.mjs": "7a97889be0cae1e296e96dfff06e69138be0a622531f45315e04f9caac5c1561",
+-    "tests/economy-staging.test.mjs": "2386e446f5aac0b542ce772f3730b50ab610ad55c46fe4ba558f0549e8755ec4",
+     "tests/economy-wallet-recovery.test.mjs": "3a85d2270fd53150d7c1b1f1d76629c23cc00d7fa6c429803a0d5caf282bcd79",
+-    "tests/economy-worker.test.mjs": "533b507f19095cc794792760a93e039d5b5f4e1c61f5d43bf8cf87b888c7a3d9",
+-    "tests/fixtures/wallet-panel.mjs": "c77e763f03c7f87db988669052e30425fdad7b8e3bed3c4784582d8167e3eac5",
+     "tests/gold-purchase-ui.test.mjs": "2979850728b995cfc443cabb8f19e84ccfbeffd27053f5d9c81c4b80eb928509",
+-    "tests/gold-purchase.test.mjs": "52f4b38bc67f69add0681bb0bf87755e80a3ed01ebe7490cf90bce814cc2f0ff",
+-    "tests/gold-review-record.test.mjs": "9e8aa00c4ed716fe38cf161e277a6be004e5367c7b7ce5601ffab93a6d46bccb",
++    "tests/mining-panel.test.mjs": "5460f8f39a2afbd66d8388b655ef0345e4c62ec7304988dbfedcc6cbf58b2e87",
+     "tests/pending-gold-credit.test.mjs": "d4a4af8b1302705b6d62b6ec6a240ade5e82f8427ce3b1cf0d797b2db1e6460f",
+-    "tests/research-pass-confirm.test.mjs": "d4af657dc03cd3de20c631511e6cf494addbb29bd70fc8f66c0fefc623522737",
+     "tests/research-pass-ui.test.mjs": "10c15cb2f4934433d3b7548c5b280c67f699dfcc081aa7b2b4fb799db90e6a58",
+-    "tests/research-pass.test.mjs": "a5adcea224d4c9d27393c104f0258b0c3220fd227177768f22c9bca10aca58df",
+-    "tests/wallet-balance-hud.test.mjs": "b0c4fd634eae23b7ad057e5f2f47b067db652aa15b3836ecccc409a3e68df800",
+-    "tests/wallet-client.test.mjs": "1c0d3d7056a76ffad01318521d1ed874d0db3df10c64447e9d1d87c6ec1aacc2",
+-    "tests/wallet-harness.mjs": "20d5e9b6e001cc2476f077a9ef7d4529860a28f73e675c00481a7c4be2b3ba26",
+-    "tests/wallet-lock.test.mjs": "27596a6e1e1d7f28e24caf8aaaafcb57d4a8beb7c8f5f01d2ded16996ebfb18c",
+-    "tests/world-gold-api.test.mjs": "d0c7166e4e1a7dfebc0fef17a0cd3472f91e9d9c5b98abd82ef80e12780286d8",
+-    "tests/world-gold-audit10.test.mjs": "72627a79026c2d4fb7f0dbf403e5a89e9bd3bf230831da4a053afe655533bac7",
+-    "tests/world-gold-audit11.test.mjs": "5fc04ed6e4dffee84df791e3136623cd1986c4782af75f6664d051714ee86794",
+-    "tests/world-gold-audit5-adversarial.test.mjs": "3150a06ce2e624a609ca8f6b485f6fa97d737d304084661ae028a250aab384ba",
+-    "tests/world-gold-audit5-fixture.mjs": "8ced5901213ef5fa062804564d7f5f2392cd207614a637e30b5a7889f5c2442c",
+-    "tests/world-gold-audit5.test.mjs": "7450f0fbd68e0867b5245c809323d02062ff5a9779d36d5ec3fa5f9f9b8b3d0a",
+-    "tests/world-gold-audit6-integration.test.mjs": "2a445504854920b4ea1168f6170b1930cd7286258f021ca88302bff75cb14212",
+-    "tests/world-gold-audit6-matrix.test.mjs": "f6bc66db702ffdf5e45b1121309fd73c5266f78419d28138af58da8e4006943b",
+-    "tests/world-gold-audit6.test.mjs": "63a5730b6d767965c4fca54d306912ffe5f023e2e2a9b53729482ec0271dd6c9",
+-    "tests/world-gold-audit7.test.mjs": "7b5178909de348bf2a974c0aff6c045f53b3b8c8ec92086e7ab1133fc101ed7d",
+-    "tests/world-gold-audit9.test.mjs": "99f7f7dc9a6b657f811eaf69f0e5536e000009833a1fe0b777809996ff423581",
++    "tests/session-compare.test.mjs": "cfc612d02f5166fd36529d6cabc51045cbe594657d5f09a68c4a55b9b62c974a",
+     "tests/world-gold-fast.test.mjs": "cdbed29408b5cd00bc9a35a0d8f7ab0ecb9e4fe1df417c2d13604b77625c0589",
+-    "tests/world-gold-native-journey.test.mjs": "55b34fe8885449e925eceaa0f3599513803192c278204c1f51cc84dfc065c2a6",
+-    "tests/world-gold.test.mjs": "89e479ae0616badcf87c65dbe9ef78ba2c76ae00cfbf61149288e2851be96aaa"
++    "scripts/deploy.mjs": "3a9ad00ef209c1d889c657b2f32c3e4587e087bea07aa61994e3954233eebe72",
++    "tests/deploy.test.mjs": "9360854e8ead8014c613ed346f38eb2ccb15e955ebd2c6967a99cbea39077f09",
++    "scripts/wallet-lock.mjs": "e2aa60462dad8fdb7e8cd774c71b64b5098b58bcf99dc790b20eacfd8c458f42",
++    "tests/wallet-lock.test.mjs": "eb7d0c2e2b634df8c4a26111ec9e64723dfc20e4c8259c450d2e499694f2a0b7"
+   },
+   "unlocks": [
+     {
+-      "date": "2026-10-27T22:47:26.102Z",
+-      "head": "7021b5b",
+-      "reason": "Initial lock by owner request (2026-10-28): wallet, sign-in and payment code as audited in f6bd50ad and fixed in 7021b5b (Worker a92a767c)",
++      "date": "2026-10-27T23:04:49.460Z",
++      "head": "ecd9050",
++      "reason": "Initial lock by owner request (2026-10-28): the wallet-related files reviewed by the Swarm audits (sign-in R5-R12; Submission13-18, last audit f6bd50ad), at 7021b5b (Worker a92a767c)",
+       "changed": [],
+       "missing": [],
+       "added": [
+         "migrations/0001_wallet_login.sql",
+-        "migrations/0010_world_economy.sql",
+-        "migrations/0011_world_economy_staging.sql",
+-        "migrations/0012_economy_reward_bindings.sql",
+-        "migrations/0013_economy_reconciliation.sql",
+-        "migrations/0014_world_gold_integration.sql",
+-        "migrations/0015_world_gold_audit_hardening.sql",
+-        "migrations/0016_world_gold_cross_path_guards.sql",
+-        "migrations/0018_wallet_mining.sql",
+-        "migrations/0019_celestao_wallet_bridge.sql",
+-        "migrations/0020_celestao_checkouts.sql",
+-        "migrations/0021_world_gold_fast_credit.sql",
+-        "scripts/deploy.mjs",
+-        "scripts/economy-recovery.mjs",
+-        "scripts/gold-topup-release.mjs",
+-        "scripts/wallet-lock.mjs",
+-        "server/aimarket-auth.ts",
+         "server/auth.ts",
+-        "server/celestao-auth.ts",
+-        "server/celestao-checkout.ts",
+-        "server/celestao-delivery.ts",
+-        "server/celestao-protocol.ts",
+-        "server/economy-config.ts",
+-        "server/economy-deployment.ts",
+-        "server/economy-ledger.ts",
+-        "server/economy-mining.ts",
+-        "server/economy-reconciliation.ts",
+-        "server/economy-recovery.ts",
+-        "server/economy-rewards.ts",
+-        "server/economy-rpc.ts",
+-        "server/economy-session.ts",
+-        "server/economy-staging.ts",
+-        "server/economy.ts",
+-        "server/research-pass.ts",
+-        "server/world-gold-api.ts",
+-        "server/world-gold-delivery.ts",
+-        "server/world-gold-fast.ts",
+-        "server/world-gold-inspection.ts",
+-        "server/world-gold-report.ts",
+-        "server/world-gold-result.ts",
+-        "server/world-gold-schema.ts",
+-        "server/world-gold.ts",
+-        "src/shared/celestaoProtocol.ts",
+-        "src/shared/fortunePricing.ts",
+-        "src/world/CelestaoCheckout.tsx",
+-        "src/world/EconomyPane.tsx",
+-        "src/world/GoldPurchase.tsx",
+-        "src/world/ResearchPassCard.tsx",
+-        "src/world/ResearchPassConfirm.tsx",
+-        "src/world/WalletBalanceHud.tsx",
+-        "src/world/WalletBalancesBlock.tsx",
+-        "src/world/WalletPanel.tsx",
+-        "src/world/WorldGoldPanel.tsx",
+         "src/world/auth.ts",
+         "src/world/authCleanup.ts",
+         "src/world/authLifecycle.ts",
+-        "src/world/celestaoCheckoutClient.ts",
+-        "src/world/economyClient.ts",
+-        "src/world/economyEntry.ts",
+-        "src/world/economyWallet.ts",
+-        "src/world/goldLocalPreview.tsx",
+-        "src/world/goldPurchasePreview.tsx",
+-        "src/world/goldPurchaseRules.ts",
+-        "src/world/goldReviewRecord.ts",
+-        "src/world/pendingGoldCredit.ts",
+-        "src/world/researchPassCopy.ts",
+         "src/world/siwe.ts",
+         "src/world/wallet.ts",
+         "src/world/walletView.ts",
+-        "src/world/worldGoldClient.ts",
+-        "tests/aimarket-auth.test.mjs",
++        "src/world/WalletPanel.tsx",
+         "tests/aud4-auth.test.mjs",
+         "tests/auth-artifacts.mjs",
+         "tests/auth-artifacts.test.mjs",
+@@ -251,64 +109,46 @@
+         "tests/auth-scheduler-driver.mjs",
+         "tests/auth-v11.test.mjs",
+         "tests/auth.test.mjs",
+-        "tests/celestao-auth.test.mjs",
+-        "tests/celestao-checkout-client.test.mjs",
+-        "tests/celestao-checkout.test.mjs",
+-        "tests/deploy-evidence.test.mjs",
+-        "tests/deploy-research.test.mjs",
+-        "tests/deploy.test.mjs",
+-        "tests/economy-adversarial.test.mjs",
+-        "tests/economy-api.test.mjs",
+-        "tests/economy-audit-regressions.test.mjs",
+-        "tests/economy-audit2-medium.test.mjs",
+-        "tests/economy-audit3-recovery.test.mjs",
+-        "tests/economy-audit4-recovery.test.mjs",
+-        "tests/economy-boundaries-audit10.test.mjs",
+-        "tests/economy-boundaries-audit11.test.mjs",
+-        "tests/economy-boundaries-audit9.test.mjs",
++        "tests/fixtures/wallet-panel.mjs",
++        "tests/wallet-client.test.mjs",
++        "tests/wallet-harness.mjs",
++        "migrations/0021_world_gold_fast_credit.sql",
++        "server/economy-recovery.ts",
++        "server/economy-rpc.ts",
++        "server/world-gold-api.ts",
++        "server/world-gold-fast.ts",
++        "server/world-gold.ts",
++        "src/world/AIMarketPane.tsx",
++        "src/world/CelestaoCheckout.tsx",
++        "src/world/celestaoCheckoutClient.ts",
++        "src/world/EconomyPane.tsx",
++        "src/world/economyClient.ts",
++        "src/world/economyWallet.ts",
++        "src/world/GoldPurchase.tsx",
++        "src/world/goldPurchasePreview.tsx",
++        "src/world/goldPurchaseRules.ts",
++        "src/world/memberBalancesClient.ts",
++        "src/world/MiningPanel.tsx",
++        "src/world/pendingGoldCredit.ts",
++        "src/world/ResearchPassCard.tsx",
++        "src/world/useMemberBalances.ts",
++        "src/world/WalletBalanceHud.tsx",
++        "src/world/WalletBalancesBlock.tsx",
++        "src/world/worldGoldClient.ts",
++        "src/world/WorldGoldPanel.tsx",
+         "tests/economy-client.test.mjs",
+-        "tests/economy-forwarder.test.mjs",
+-        "tests/economy-journey.test.mjs",
+-        "tests/economy-ledger.test.mjs",
+-        "tests/economy-migration.test.mjs",
+         "tests/economy-pane.test.mjs",
+-        "tests/economy-payload-roundtrip.test.mjs",
+-        "tests/economy-payment-timing.test.mjs",
+-        "tests/economy-provider-range.test.mjs",
+-        "tests/economy-read-session.test.mjs",
+-        "tests/economy-reconciliation.test.mjs",
+-        "tests/economy-rpc.test.mjs",
+-        "tests/economy-settlement.test.mjs",
+-        "tests/economy-snapshot-consistency.test.mjs",
+-        "tests/economy-staging.test.mjs",
+         "tests/economy-wallet-recovery.test.mjs",
+-        "tests/economy-worker.test.mjs",
+-        "tests/fixtures/wallet-panel.mjs",
+         "tests/gold-purchase-ui.test.mjs",
+-        "tests/gold-purchase.test.mjs",
+-        "tests/gold-review-record.test.mjs",
++        "tests/mining-panel.test.mjs",
+         "tests/pending-gold-credit.test.mjs",
+-        "tests/research-pass-confirm.test.mjs",
+         "tests/research-pass-ui.test.mjs",
+-        "tests/research-pass.test.mjs",
+-        "tests/wallet-balance-hud.test.mjs",
+-        "tests/wallet-client.test.mjs",
+-        "tests/wallet-harness.mjs",
+-        "tests/wallet-lock.test.mjs",
+-        "tests/world-gold-api.test.mjs",
+-        "tests/world-gold-audit10.test.mjs",
+-        "tests/world-gold-audit11.test.mjs",
+-        "tests/world-gold-audit5-adversarial.test.mjs",
+-        "tests/world-gold-audit5-fixture.mjs",
+-        "tests/world-gold-audit5.test.mjs",
+-        "tests/world-gold-audit6-integration.test.mjs",
+-        "tests/world-gold-audit6-matrix.test.mjs",
+-        "tests/world-gold-audit6.test.mjs",
+-        "tests/world-gold-audit7.test.mjs",
+-        "tests/world-gold-audit9.test.mjs",
++        "tests/session-compare.test.mjs",
+         "tests/world-gold-fast.test.mjs",
+-        "tests/world-gold-native-journey.test.mjs",
+-        "tests/world-gold.test.mjs"
++        "scripts/deploy.mjs",
++        "tests/deploy.test.mjs",
++        "scripts/wallet-lock.mjs",
++        "tests/wallet-lock.test.mjs"
+       ]
+     }
+   ]
+diff --git a/tests/wallet-lock.test.mjs b/tests/wallet-lock.test.mjs
+index a398c90..db5b8e0 100644
+--- a/tests/wallet-lock.test.mjs
++++ b/tests/wallet-lock.test.mjs
+@@ -1,30 +1,32 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {currentHashes,inZone,lockBroken,lockDiff,lockMessage,readManifest} from '../scripts/wallet-lock.mjs';
+-// The wallet lock (scripts/wallet-lock.mjs): the audited wallet, sign-in and payment files must match
+-// security/wallet-lock.json. The deploy tool runs this suite, so a change to the zone cannot ship until the owner approves
+-// it and the hashes are refreshed with a reason (and the change goes back to a Swarm audit).
+-test('the wallet lock zone matches the audited version',()=>{
++import {currentHashes,inZone,lockBroken,lockDiff,lockMessage,readManifest,LOCKED} from '../scripts/wallet-lock.mjs';
++// The wallet lock (scripts/wallet-lock.mjs): the wallet files the Swarm audits reviewed must match security/wallet-lock.json.
++// The deploy tool runs this suite, so a change to one of them cannot ship until the owner approves it and the hashes are
++// refreshed with a reason (the change then needs a new Swarm audit).
++test('the locked wallet files match the audited version',()=>{
+   const d=lockDiff(readManifest(),currentHashes());
+   assert.equal(lockBroken(d),false,lockMessage(d));
+ });
+-test('the zone covers the wallet controller, GOLD purchase, checkouts, sign-in, payment server code and their tests',()=>{
++test('the lock covers the audited wallet controller, GOLD purchase, checkouts, staking panel, sign-in and deploy tool only',()=>{
+   const locked=Object.keys(readManifest().files);
++  assert.deepEqual(locked.sort(),[...LOCKED].sort(),'the manifest names exactly the locked files');
+   for(const p of ['src/world/economyWallet.ts','src/world/pendingGoldCredit.ts','src/world/WorldGoldPanel.tsx','src/world/GoldPurchase.tsx',
+-    'src/world/goldPurchaseRules.ts','src/world/worldGoldClient.ts','src/world/EconomyPane.tsx','src/world/economyClient.ts','src/world/CelestaoCheckout.tsx',
+-    'src/world/auth.ts','src/world/siwe.ts','src/shared/fortunePricing.ts','server/world-gold.ts','server/world-gold-api.ts',
+-    'server/economy-rpc.ts','server/economy-recovery.ts','server/celestao-checkout.ts','server/research-pass.ts','server/auth.ts',
+-    'scripts/deploy.mjs','scripts/wallet-lock.mjs','tests/economy-wallet-recovery.test.mjs','tests/wallet-lock.test.mjs'])
+-    assert.ok(locked.includes(p),p);
+-  // A new payment file is caught by name; the world, houses and unrelated panels are not in the zone.
+-  assert.ok(inZone('src/world/economyWalletRetry.ts')&&inZone('server/world-gold-refund.ts')&&inZone('tests/gold-new.test.mjs'));
+-  for(const p of ['src/world/HomePanels.tsx','src/world/skin/houses.ts','worker/app.ts','server/ownership.ts','src/world/i18n.tsx'])
++    'src/world/goldPurchaseRules.ts','src/world/worldGoldClient.ts','src/world/economyClient.ts','src/world/EconomyPane.tsx',
++    'src/world/MiningPanel.tsx','src/world/CelestaoCheckout.tsx','src/world/auth.ts','src/world/siwe.ts','server/world-gold.ts',
++    'server/world-gold-api.ts','server/economy-rpc.ts','server/economy-recovery.ts','server/auth.ts','scripts/deploy.mjs',
++    'tests/economy-wallet-recovery.test.mjs','tests/wallet-lock.test.mjs'])
++    assert.ok(inZone(p),p);
++  // Not reviewed by a wallet audit, or not wallet code: free to change.
++  for(const p of ['src/world/HomePanels.tsx','src/world/skin/houses.ts','src/world/publicHalls/staking-mountain.ts','worker/app.ts',
++    'wrangler.jsonc','src/world/worldGold.css','integrations/celestao/celestao_world/paid.py','server/aimarket-delivery.ts',
++    'src/world/goldReviewRecord.ts'])
+     assert.equal(inZone(p),false,p);
+ });
+-test('a change, a removal and a new file in the zone are each reported',()=>{
++test('a change, a removal and a newly locked file are each reported',()=>{
+   const manifest={files:{'a.ts':'1','b.ts':'2'}};
+   const d=lockDiff(manifest,{'a.ts':'9','c.ts':'3'});
+   assert.deepEqual(d,{changed:['a.ts'],missing:['b.ts'],added:['c.ts']});
+-  assert.match(lockMessage(d),/改過 changed:\n  a\.ts\n不見 missing:\n  b\.ts\n新增 new:\n  c\.ts\n/);
++  assert.match(lockMessage(d),/改過 changed:\n  a\.ts\n不見 missing:\n  b\.ts\n新加入封鎖 new:\n  c\.ts\n/);
+   assert.equal(lockBroken(lockDiff(manifest,{...manifest.files})),false);
+ });
+-- 
+2.56.0.windows.4
+

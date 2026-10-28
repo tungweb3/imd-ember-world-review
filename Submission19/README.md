@@ -1,0 +1,18 @@
+# Submission19 — Genesis paid-mint GOLD ledger (not deployed), plus the live remediation of audit f6bd50ad
+
+World source `20b1d6a`, 4 commits after Submission18's `96858bf`:
+
+- `7021b5b` — remediation of job `f6bd50ad` (3 Low) and the GOLD panel's review record; **live** as Worker `a92a767c-bb89-4871-8439-916cded5bb6d` since 2026-10-27 19:34 UTC;
+- `ecd9050`, `943959c` — the wallet lock (a test that fails when an audited wallet file changes);
+- `20b1d6a` — **the GOLD ledger for paid Genesis NFT mints: not deployed**, production registry empty.
+
+`20b1d6a` changes one type line in a locked file (`server/world-gold.ts`), so the wallet-lock test fails on purpose until this review is done. Nothing here has been reviewed externally.
+
+Start with [AUDIT_REQUEST.md](AUDIT_REQUEST.md): what the ledger does, what was left and why, the questions to attack, and what is not verified. Then:
+
+- [patches/](patches/) — the four commits, plus the cumulative diff from `96858bf`
+- [source/](source/) — final versions of the 28 added or modified files ([SOURCE_MANIFEST.json](SOURCE_MANIFEST.json) gives blob ids)
+- [evidence/](evidence/) — full test results at `20b1d6a`, the Worker bundle's exports, the CPU measurement behind the cron page size
+- [REDACTIONS.md](REDACTIONS.md) — what differs from the private repository
+
+The Genesis contract is public at <https://github.com/tungweb3/ember-evo-genesis-review> (Submission5). Unchanged World files referred to here are in `Submission18/source/` and the earlier `SubmissionN/source/` folders. The public snapshot identity is the commit of this repository that contains this folder.

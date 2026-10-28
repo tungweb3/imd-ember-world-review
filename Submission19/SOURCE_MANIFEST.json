@@ -1,0 +1,234 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 19,
+ "privateBase": "96858bf",
+ "privateSource": "20b1d6a201361b3796f05a56565f44ee5bbcdb8d",
+ "files": [
+  {
+   "path": "CLAUDE.md",
+   "status": "A",
+   "bytes": 1424,
+   "sha256": "f5c3c90ed3d6b9f00ec414e18df361d93dd21965cffa1aa0bc5c24aac33f66ce",
+   "blob": "7b9fbb1ff2c5232603c3bd50d7be2dbb89e27f71",
+   "privateBlob": "7b9fbb1ff2c5232603c3bd50d7be2dbb89e27f71"
+  },
+  {
+   "path": "migrations/0022_genesis_gold_cursor.sql",
+   "status": "A",
+   "bytes": 409,
+   "sha256": "8e2f2d92de480d540e1afc1d606914b38fb3d186228972a10f4115cdc27a0475",
+   "blob": "4a0fe5ff93b9e6cb3879803dcfb0d63278033d6f",
+   "privateBlob": "4a0fe5ff93b9e6cb3879803dcfb0d63278033d6f"
+  },
+  {
+   "path": "package.json",
+   "status": "M",
+   "bytes": 1362,
+   "sha256": "4358b3f85a99f33176850ba9b7ae49b0fe9437858519830ca93b511dea922d1c",
+   "blob": "faea8d3e937989934faf35e9ffec8f15e1bf28a1",
+   "privateBlob": "faea8d3e937989934faf35e9ffec8f15e1bf28a1"
+  },
+  {
+   "path": "scripts/deploy.mjs",
+   "status": "M",
+   "bytes": 23803,
+   "sha256": "3a9ad00ef209c1d889c657b2f32c3e4587e087bea07aa61994e3954233eebe72",
+   "blob": "849e5ef6286946e7fe79d9e4228bc2f73d42ec8e",
+   "privateBlob": "849e5ef6286946e7fe79d9e4228bc2f73d42ec8e"
+  },
+  {
+   "path": "scripts/wallet-lock.mjs",
+   "status": "A",
+   "bytes": 6806,
+   "sha256": "e2aa60462dad8fdb7e8cd774c71b64b5098b58bcf99dc790b20eacfd8c458f42",
+   "blob": "1564599c89cf5b9379ac223a68b5c926512cc109",
+   "privateBlob": "1564599c89cf5b9379ac223a68b5c926512cc109"
+  },
+  {
+   "path": "security/wallet-lock.json",
+   "status": "A",
+   "bytes": 10383,
+   "sha256": "f0bd14d60d9456202796e777b0911b1a30d799496d5ccb90eea9522a5fbbe8e3",
+   "blob": "66445240ccb6827b565010d9b1addeaf93da2f5d",
+   "privateBlob": "66445240ccb6827b565010d9b1addeaf93da2f5d"
+  },
+  {
+   "path": "server/genesis-deployments.ts",
+   "status": "A",
+   "bytes": 923,
+   "sha256": "28c13baaa4f7150fec0ae9ab9b3aaf090120379a8e2b97cb87d0b618edd1780c",
+   "blob": "f46fcf8f4f9f236a81e27f8bc0ebebd151368779",
+   "privateBlob": "f46fcf8f4f9f236a81e27f8bc0ebebd151368779"
+  },
+  {
+   "path": "server/genesis-gold-reader.ts",
+   "status": "A",
+   "bytes": 11512,
+   "sha256": "44bac79590fd0fb7b0b59a24da961fcf475e087e92351cb31c1acd3de48db07d",
+   "blob": "cf1b8c799715c712e1d084c49a206dd9e0a66d45",
+   "privateBlob": "cf1b8c799715c712e1d084c49a206dd9e0a66d45"
+  },
+  {
+   "path": "server/genesis-gold-service.ts",
+   "status": "A",
+   "bytes": 4542,
+   "sha256": "fc56462ca5ad7d308cdbe78d97f196fe3be32672f0474161b8cb38154382ba0f",
+   "blob": "399b03c388b632ec043360e7dab72d0185513737",
+   "privateBlob": "399b03c388b632ec043360e7dab72d0185513737"
+  },
+  {
+   "path": "server/genesis-gold.ts",
+   "status": "A",
+   "bytes": 13952,
+   "sha256": "747b2159edcafb649b03c5cfe4fdf4c877be05328a9b8734279bacb2cfe84ec3",
+   "blob": "20534911b0d29caeaec5e9640a91b6d8bcabaf94",
+   "privateBlob": "20534911b0d29caeaec5e9640a91b6d8bcabaf94"
+  },
+  {
+   "path": "server/world-gold-result.ts",
+   "status": "M",
+   "bytes": 7391,
+   "sha256": "a1d278c5cc685ca44508de7ebea6d90b3c2a6ec6a69ba45f21bca23a37790e9a",
+   "blob": "7c0a5dd1276d780cfce622ca1be59f4492d75b06",
+   "privateBlob": "7c0a5dd1276d780cfce622ca1be59f4492d75b06"
+  },
+  {
+   "path": "server/world-gold.ts",
+   "status": "M",
+   "bytes": 34612,
+   "sha256": "c1aa457d77845f21d8c26dacf3b438710de87383da50300c56dd83238bd4f41e",
+   "blob": "25fa389169d195ae17cf34820cd0bd8865431e8c",
+   "privateBlob": "25fa389169d195ae17cf34820cd0bd8865431e8c"
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "M",
+   "bytes": 28409,
+   "sha256": "2d6edea6b41a8d606f65f2156c9e1de828f493c0a9e25ec71c6b9dfffc048b93",
+   "blob": "0b297c0387cc5b744500afa5ce3bdfafce934250",
+   "privateBlob": "0b297c0387cc5b744500afa5ce3bdfafce934250"
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "status": "M",
+   "bytes": 36762,
+   "sha256": "1dd7442fb852e4882ee72bb54490333d99552852689729faa907041937a39a04",
+   "blob": "507b7b9479127cc97d2c579f21fb2f8b2a9c0874",
+   "privateBlob": "507b7b9479127cc97d2c579f21fb2f8b2a9c0874"
+  },
+  {
+   "path": "src/world/goldReviewRecord.ts",
+   "status": "A",
+   "bytes": 4176,
+   "sha256": "fe888a1750b8017fa3755ce13c7d59f1256350ad9aec0e1465395d87feb8b08a",
+   "blob": "ac6e30d43dd171c9e3dfe373a7e17421986247da",
+   "privateBlob": "ac6e30d43dd171c9e3dfe373a7e17421986247da"
+  },
+  {
+   "path": "tests/deploy.test.mjs",
+   "status": "M",
+   "bytes": 37988,
+   "sha256": "9360854e8ead8014c613ed346f38eb2ccb15e955ebd2c6967a99cbea39077f09",
+   "blob": "651d20cce313eb6d1ca03cc16c9b86dbd8384a7f",
+   "privateBlob": "651d20cce313eb6d1ca03cc16c9b86dbd8384a7f"
+  },
+  {
+   "path": "tests/economy-wallet-recovery.test.mjs",
+   "status": "M",
+   "bytes": 43814,
+   "sha256": "3a85d2270fd53150d7c1b1f1d76629c23cc00d7fa6c429803a0d5caf282bcd79",
+   "blob": "9b0a5d96e155a2f3998106b751ec3a4ddf33af3c",
+   "privateBlob": "9b0a5d96e155a2f3998106b751ec3a4ddf33af3c"
+  },
+  {
+   "path": "tests/genesis-gold.test.mjs",
+   "status": "A",
+   "bytes": 24364,
+   "sha256": "fbe8660d856388837aaa6742fad9fbff924ba93918faf567dc308264a33a421e",
+   "blob": "67eab566b7cbc7425fff12503264d8f7aa863481",
+   "privateBlob": "67eab566b7cbc7425fff12503264d8f7aa863481"
+  },
+  {
+   "path": "tests/gold-review-record.test.mjs",
+   "status": "A",
+   "bytes": 3187,
+   "sha256": "9e8aa00c4ed716fe38cf161e277a6be004e5367c7b7ce5601ffab93a6d46bccb",
+   "blob": "fe2c91a11aa42767d1f0b0a5b8a0dda30e4a5ae5",
+   "privateBlob": "fe2c91a11aa42767d1f0b0a5b8a0dda30e4a5ae5"
+  },
+  {
+   "path": "tests/pending-gold-credit.test.mjs",
+   "status": "M",
+   "bytes": 18255,
+   "sha256": "d4a4af8b1302705b6d62b6ec6a240ade5e82f8427ce3b1cf0d797b2db1e6460f",
+   "blob": "be4bc9d9017c8e5ffe156b0a0a3dfa6973730e0b",
+   "privateBlob": "be4bc9d9017c8e5ffe156b0a0a3dfa6973730e0b"
+  },
+  {
+   "path": "tests/presence.test.mjs",
+   "status": "M",
+   "bytes": 21122,
+   "sha256": "590676d9b1e624f5d664c36b9c88a5d01dff06e66e3e9e5449786a3acab6b4ca",
+   "blob": "b7687c509cf48b84947c1131842fca45a7732f15",
+   "privateBlob": "b7687c509cf48b84947c1131842fca45a7732f15"
+  },
+  {
+   "path": "tests/wallet-lock.test.mjs",
+   "status": "A",
+   "bytes": 2440,
+   "sha256": "eb7d0c2e2b634df8c4a26111ec9e64723dfc20e4c8259c450d2e499694f2a0b7",
+   "blob": "db5b8e0a913eb61286486df380b7be595179aa05",
+   "privateBlob": "db5b8e0a913eb61286486df380b7be595179aa05"
+  },
+  {
+   "path": "tests/worker.test.mjs",
+   "status": "M",
+   "bytes": 25367,
+   "sha256": "38f5d009ebf745c6bb288d201fc08f01a0f8484a0ae2c5cc2cd36111adcd1a67",
+   "blob": "1b5a5197d7c4237e3f4aaddb98cfeb2f7c592a79",
+   "privateBlob": "1b5a5197d7c4237e3f4aaddb98cfeb2f7c592a79"
+  },
+  {
+   "path": "worker/app.ts",
+   "status": "M",
+   "bytes": 25882,
+   "sha256": "864f4f84343d1259544c974a196900c87e98df16df7ef9007fdc95292ade8e13",
+   "blob": "7636ba57135282ce2eafb49cdeded8f2a6d0de68",
+   "privateBlob": "7636ba57135282ce2eafb49cdeded8f2a6d0de68"
+  },
+  {
+   "path": "worker/cloudflare-workers.d.ts",
+   "status": "A",
+   "bytes": 428,
+   "sha256": "3413c50c42018bba1a5981b93daffe134d9d8460aef8cc3ace696d5e39d6945d",
+   "blob": "20212b861e1f3b46264860c43bacbafee9a59383",
+   "privateBlob": "20212b861e1f3b46264860c43bacbafee9a59383"
+  },
+  {
+   "path": "worker/entrypoint-node.ts",
+   "status": "A",
+   "bytes": 472,
+   "sha256": "57724da01ce738daabe0806992d063f0241bd045cb98e0b99c0fddf82e3729ba",
+   "blob": "f483a6b97e2a4de60a70f38408421d9cd0346d13",
+   "privateBlob": "f483a6b97e2a4de60a70f38408421d9cd0346d13"
+  },
+  {
+   "path": "worker/entrypoint-workerd.ts",
+   "status": "A",
+   "bytes": 160,
+   "sha256": "aa619abaafa693dac5c4f8473423bf140788f8ff3bcb982dc674245eaf968641",
+   "blob": "b63d32975e3b91c7e9e2af030ae5cc9d363d2a51",
+   "privateBlob": "b63d32975e3b91c7e9e2af030ae5cc9d363d2a51"
+  },
+  {
+   "path": "worker/index.ts",
+   "status": "M",
+   "bytes": 1215,
+   "sha256": "4cf88b2f49a3cde98f4b7f4d7812e45fb6b0859671acac8c4fb5f265f1cea87d",
+   "blob": "778db549d5f6e82fe94c7f7f0e0c6e717121590c",
+   "privateBlob": "778db549d5f6e82fe94c7f7f0e0c6e717121590c"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission18": "files not listed here are unchanged since Submission18/source (World 96858bf) or the earlier SubmissionN/source folders"
+}

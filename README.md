@@ -1,8 +1,8 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission18](Submission18/README.md) — final review of what is live: remediation of audit 1ac5269f plus a wording change · DEPLOYED (Worker `b08f59ef`, source `96858bf`; server code unchanged) · EXTERNAL REVIEW NOT YET DONE**
+**Current: [Submission19](Submission19/README.md) — Genesis paid-mint GOLD ledger (source `20b1d6a`, NOT DEPLOYED, production registry empty) plus the live remediation of audit f6bd50ad (`7021b5b`, Worker `a92a767c`) · EXTERNAL REVIEW NOT YET DONE**
 
-Read [Submission18/AUDIT_REQUEST.md](Submission18/AUDIT_REQUEST.md) first. [Submission17](Submission17/README.md) (the same remediation at source `be7d3b0`) was published for the record without a review request; [Submission16](Submission16/README.md) (GOLD panel recovery, renumbered nonce, source `38a21a3`) was reviewed in job `1ac5269f`; [Submission15](Submission15/README.md) (crediting note endings, deploy tool checks, source `fe8bc4b`) was reviewed in job `351b0573`; [Submission14](Submission14/README.md) (GOLD fast credit retired, source `64396ae`) in job `12e0525d`; [Submission13](Submission13/README.md) (wallet, GOLD fast credit and staking, source `ae1f640`) in job `e4a57f91`. They and the Submission12 text below are kept as history.
+Read [Submission19/AUDIT_REQUEST.md](Submission19/AUDIT_REQUEST.md) first. [Submission18](Submission18/README.md) (final review of what was live at source `96858bf`) was reviewed in job `f6bd50ad`; [Submission17](Submission17/README.md) was published for the record without a review request; [Submission16](Submission16/README.md) was reviewed in job `1ac5269f`; [Submission15](Submission15/README.md) in job `351b0573`; [Submission14](Submission14/README.md) in job `12e0525d`; [Submission13](Submission13/README.md) in job `e4a57f91`. They and the Submission12 text below are kept as history.
 
 **Submission12: TEAM SOURCE EVIDENCE PASS BOUNDED · EXTERNAL AUDIT12 UNKNOWN · RELEASE-READINESS UNKNOWN · NOT DEPLOYED**
 

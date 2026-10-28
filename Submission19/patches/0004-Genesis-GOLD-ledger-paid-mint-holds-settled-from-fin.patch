@@ -1,0 +1,985 @@
+From 20b1d6a201361b3796f05a56565f44ee5bbcdb8d Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Thu, 29 Oct 2026 01:33:07 +0800
+Subject: [PATCH 4/4] Genesis GOLD ledger: paid-mint holds settled from
+ finalized chain facts
+
+Port the Genesis paid-mint GOLD book from the Sepolia rehearsal into the
+World Worker, exposed only to the Genesis signer through the GenesisGold
+service binding (WorkerEntrypoint). The production registry is empty until
+the mainnet contract is deployed, so every hold is refused for now.
+
+- Bounded log search: only the order window [deadline-900-120s, deadline],
+  in eth_getLogs requests of at most 10 blocks (Alchemy Free).
+- Registry entries name their domain version and recipient; addresses and
+  code hash are normalized (pinnedDeployment).
+- Cron: Genesis step isolated, pages of 8, one bytecode check per finalized
+  block (cpu_ms 50), a malformed entry never stops the others.
+- Migration 0022: genesis_gold_cursors.
+
+server/world-gold.ts (wallet lock) changes by one type line; the lock hash
+is not updated, so wallet-lock fails until a new Swarm audit and the
+owner's approval.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ migrations/0022_genesis_gold_cursor.sql |   7 +
+ package.json                            |   6 +
+ server/genesis-deployments.ts           |  10 +
+ server/genesis-gold-reader.ts           | 144 +++++++++++
+ server/genesis-gold-service.ts          |  55 +++++
+ server/genesis-gold.ts                  | 161 +++++++++++++
+ server/world-gold-result.ts             |  15 +-
+ server/world-gold.ts                    |   4 +-
+ tests/genesis-gold.test.mjs             | 308 ++++++++++++++++++++++++
+ tests/presence.test.mjs                 |   2 +-
+ tests/worker.test.mjs                   |   6 +-
+ worker/app.ts                           |  23 +-
+ worker/cloudflare-workers.d.ts          |   9 +
+ worker/entrypoint-node.ts               |   7 +
+ worker/entrypoint-workerd.ts            |   2 +
+ worker/index.ts                         |  17 +-
+ 16 files changed, 765 insertions(+), 11 deletions(-)
+ create mode 100644 migrations/0022_genesis_gold_cursor.sql
+ create mode 100644 server/genesis-deployments.ts
+ create mode 100644 server/genesis-gold-reader.ts
+ create mode 100644 server/genesis-gold-service.ts
+ create mode 100644 server/genesis-gold.ts
+ create mode 100644 tests/genesis-gold.test.mjs
+ create mode 100644 worker/cloudflare-workers.d.ts
+ create mode 100644 worker/entrypoint-node.ts
+ create mode 100644 worker/entrypoint-workerd.ts
+
+diff --git a/migrations/0022_genesis_gold_cursor.sql b/migrations/0022_genesis_gold_cursor.sql
+new file mode 100644
+index 0000000..4a0fe5f
+--- /dev/null
++++ b/migrations/0022_genesis_gold_cursor.sql
+@@ -0,0 +1,7 @@
++-- Genesis paid orders (server/genesis-gold.ts): where the cron's bounded reconciliation page resumes, one row per
++-- pinned deployment, so orders after a long-pending one are still reached. Holds and settlements stay in 0014's tables.
++CREATE TABLE genesis_gold_cursors (
++ deployment TEXT PRIMARY KEY,
++ after TEXT NOT NULL,
++ updated_ms INTEGER NOT NULL CHECK(typeof(updated_ms)='integer' AND updated_ms>0)
++);
+diff --git a/package.json b/package.json
+index ec0fb81..faea8d3 100644
+--- a/package.json
++++ b/package.json
+@@ -3,6 +3,12 @@
+   "version": "0.1.0",
+   "private": true,
+   "type": "module",
++  "imports": {
++    "#worker-entrypoint": {
++      "workerd": "./worker/entrypoint-workerd.ts",
++      "default": "./worker/entrypoint-node.ts"
++    }
++  },
+   "engines": {
+     "node": ">=24 <25"
+   },
+diff --git a/server/genesis-deployments.ts b/server/genesis-deployments.ts
+new file mode 100644
+index 0000000..f46fcf8
+--- /dev/null
++++ b/server/genesis-deployments.ts
+@@ -0,0 +1,10 @@
++import type {GenesisDeployment} from './genesis-gold.ts';
++// Genesis deployments the GOLD book accepts paid orders for. Each entry pins chain, contract, runtime code hash, deploy
++// block, both immutable costs, the EIP-712 domain version and the payment recipient (read back from the deployed
++// contract before an entry is added).
++// Production is empty: the mainnet contract is not deployed and its payment token (imdUSD v1 or v2) is not decided, so
++// every reservation is refused (MINT_DEPLOYMENT_UNKNOWN) even if the mint control were switched on. The entry is added,
++// and this file re-reviewed, only after the mainnet deployment.
++// Append-only while any order of an entry is held: the cron settles holds only for entries listed here, so removing or
++// renaming an entry (or changing its pinned costs) would leave its holds reserved.
++export const GENESIS_DEPLOYMENTS:readonly GenesisDeployment[]=Object.freeze([]);
+diff --git a/server/genesis-gold-reader.ts b/server/genesis-gold-reader.ts
+new file mode 100644
+index 0000000..cf1b8c7
+--- /dev/null
++++ b/server/genesis-gold-reader.ts
+@@ -0,0 +1,144 @@
++import {keccak256,toHex} from 'viem';
++import type {MintProof,MintProofReader,StoredMintBinding} from './world-gold.ts';
++import {GENESIS_R5_AUTH_SCHEMA,GENESIS_MAX_TTL_S,type GenesisDeployment} from './genesis-gold.ts';
++// Finalized-chain reader for Genesis paid orders. Every fact comes from one finalized block of the pinned deployment
++// (chain id, runtime code hash); a missing, malformed or inconsistent answer throws, and reconcileHeldMintGold keeps the
++// order held. Wall-clock time, a wallet's "confirmed" or a caller's word never settles anything.
++
++export type JsonRpc=(method:string,params:unknown[])=>Promise<unknown>;
++export const GENESIS_RPC_METHODS=new Set(['eth_chainId','eth_getBlockByNumber','eth_getCode','eth_call','eth_getLogs','eth_getTransactionReceipt']);
++/** A test chain's RPC request gives up after this long, so a hanging endpoint cannot hold up the cron. */
++export const GENESIS_RPC_TIMEOUT_MS=8000;
++/** Plain JSON-RPC over fetch with a method allow-list. Any transport or RPC error (a timeout, a non-2xx reply too) is
++ *  MINT_CHAIN_UNAVAILABLE. */
++export function genesisRpc(url:string,fetcher:typeof fetch=fetch):JsonRpc{
++ let id=0;
++ return async(method,params)=>{
++  if(!GENESIS_RPC_METHODS.has(method))throw Error('RPC_METHOD_NOT_ALLOWED');
++  let reply:{result?:unknown;error?:unknown};
++  try{
++   const r=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params}),signal:AbortSignal.timeout(GENESIS_RPC_TIMEOUT_MS)});
++   if(!r.ok)throw Error();reply=await r.json() as typeof reply;
++  }
++  catch{throw Error('MINT_CHAIN_UNAVAILABLE');}
++  if(reply.error!==undefined||reply.result===undefined)throw Error('MINT_CHAIN_UNAVAILABLE');
++  return reply.result;
++ };
++}
++
++const topic=(sig:string)=>keccak256(toHex(sig));
++export const R5_TOPICS={consumed:topic('PaidOrderConsumed(bytes32,address,uint256,uint256)'),minted:topic('GenesisMinted(address,uint256,bytes32,uint8,uint8,bool,uint256)')};
++const SELECTOR={tokenId:topic('paidOrderTokenId(bytes32)').slice(0,10),revoked:topic('paidOrderRevoked(bytes32)').slice(0,10)};
++/** Seconds per slot of the proof-of-stake chains the search window is computed for: at most one block per slot, so
++ *  blocks k apart are at least k slots apart in time. A chain not listed (a local test chain) is searched from its
++ *  deploy block. If Ethereum ever shortens its slot, this table must change with it (the window would otherwise miss
++ *  the order's log and the order would stay held, never be settled wrongly). */
++export const GENESIS_SLOT_SECONDS:Readonly<Record<number,number>>=Object.freeze({1:12,11155111:12});
++/** Margin before the order window for clock differences between the book (which checked the deadline) and the chain. */
++export const GENESIS_WINDOW_MARGIN_S=120;
++/** Blocks per eth_getLogs request: the World's Alchemy Free endpoint accepts at most 10 (server/economy-rpc.ts). */
++export const GENESIS_LOG_BLOCK_RANGE=10;
++const fail=(s:string):never=>{throw Error(s);};
++type Json=Record<string,unknown>;
++const obj=(v:unknown):Json=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Json:fail('MINT_CHAIN_UNAVAILABLE');
++const qty=(v:unknown)=>typeof v==='string'&&/^0x(0|[1-9a-f][0-9a-f]*)$/i.test(v)?BigInt(v):fail('MINT_CHAIN_UNAVAILABLE');
++const h32=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{64}$/.test(v)?v.toLowerCase():fail('MINT_CHAIN_UNAVAILABLE');
++const wordAt=(data:string,i:number)=>BigInt('0x'+data.slice(2+64*i,2+64*(i+1)));
++const addrTopic=(t:string)=>/^0x0{24}[0-9a-f]{40}$/.test(t)?'0x'+t.slice(26):fail('MINT_PROOF_CONFLICT');
++const hex=(n:bigint)=>'0x'+n.toString(16);
++
++/** The blocks that can hold this order's consumption, all at or below the finalized block. The contract accepts the
++ *  order only until its deadline, and the book only held it at most GENESIS_MAX_TTL_S before that deadline, so the
++ *  consumption lies in [deadline - TTL - margin, deadline] in chain time. With at most one block per slot:
++ *  - block `fin - floor((finTime - start) / slot) - 1` is older than `start` (the blocks after it span more than that);
++ *  - from a block with timestamp t, no block later than `floor((deadline - t) / slot)` blocks on is at or before deadline.
++ *  When the first guess is far older than `start` (missed slots since the order), a binary search over timestamps finds
++ *  the last block before it, so the window stays about TTL / slot blocks however late the reconciliation runs. */
++async function orderWindow(rpc:JsonRpc,d:GenesisDeployment,deadlineS:bigint,fin:{number:bigint;time:bigint}){
++ const deploy=BigInt(d.deployBlock),slotN=GENESIS_SLOT_SECONDS[d.chainId];
++ if(!slotN)return {from:deploy,to:fin.number};
++ const slot=BigInt(slotN),start=deadlineS-BigInt(GENESIS_MAX_TTL_S+GENESIS_WINDOW_MARGIN_S);
++ const timeOf=async(n:bigint)=>{const b=obj(await rpc('eth_getBlockByNumber',[hex(n),false]));if(qty(b.number)!==n)fail('MINT_CHAIN_UNAVAILABLE');return qty(b.timestamp);};
++ if(fin.time<start)fail('MINT_CHAIN_UNAVAILABLE');
++ let lo=fin.number-(fin.time-start)/slot-1n;
++ if(lo<=deploy){const t=await timeOf(deploy);return {from:deploy,to:t>deadlineS?deploy:min(fin.number,deploy+(deadlineS-t)/slot)};}
++ let loTime=await timeOf(lo);
++ if(loTime>=start)fail('MINT_CHAIN_UNAVAILABLE');                              // the one-block-per-slot rule did not hold
++ if(start-loTime>16n*slot){
++  // invariant: timeOf(lo) < start <= timeOf(hi)
++  let hi=min(fin.number,lo+(start-loTime+slot-1n)/slot);
++  if(await timeOf(hi)<start)fail('MINT_CHAIN_UNAVAILABLE');
++  while(hi-lo>1n){const mid=(lo+hi)/2n,t=await timeOf(mid);if(t<start){lo=mid;loTime=t;}else hi=mid;}
++ }
++ return {from:lo,to:min(fin.number,lo+(deadlineS-loTime)/slot)};
++}
++const min=(a:bigint,b:bigint)=>a<b?a:b;
++
++/** hint.transactionHash (optional): where the consumption is, so no log search is needed. It is verified like a found
++ *  log. logBlockRange: blocks per eth_getLogs request (the provider's limit). */
++export function createGenesisR5Reader(d:GenesisDeployment,rpc:JsonRpc,hint:{transactionHash?:string}={},logBlockRange=GENESIS_LOG_BLOCK_RANGE):MintProofReader{
++ const contract=d.contract.toLowerCase();
++ if(!Number.isSafeInteger(logBlockRange)||logBlockRange<1)fail('MINT_CHAIN_UNAVAILABLE');
++ // The runtime code at a block is fixed by that block's hash, so one reader (one cron page) fetches and hashes the
++ // ~24 KB bytecode once per finalized block instead of once per order (review 2026-10-28: the cron's 50 ms CPU limit).
++ let codeVerifiedAt='';
++ return {chainId:d.chainId,contract,chainInstance:d.id,async read(m:StoredMintBinding):Promise<MintProof>{
++  if(m.chainId!==d.chainId||m.contract!==contract||m.chainInstance!==d.id)fail('MINT_SCOPE_MISMATCH');
++  const auth=obj(m.auth),order=obj(auth.order);
++  if(auth.schema!==GENESIS_R5_AUTH_SCHEMA||auth.deploymentId!==d.id||auth.codeHash!==d.codeHash||order.orderId!==m.id||order.wallet!==m.wallet||order.goldCost!==m.gold
++   ||typeof order.deadline!=='string'||BigInt(order.deadline)*1000n!==BigInt(m.deadline))fail('MINT_PROOF_CONFLICT');
++  if(qty(await rpc('eth_chainId',[]))!==BigInt(d.chainId))fail('MINT_SCOPE_MISMATCH');
++  const fin=obj(await rpc('eth_getBlockByNumber',['finalized',false])),finNumber=qty(fin.number),finHash=h32(fin.hash),finTime=qty(fin.timestamp);
++  const at=hex(finNumber);
++  if(codeVerifiedAt!==finHash){
++   const code=await rpc('eth_getCode',[contract,at]);
++   if(typeof code!=='string'||code==='0x'||keccak256(code as `0x${string}`)!==d.codeHash)fail('MINT_SCOPE_MISMATCH');
++   codeVerifiedAt=finHash;
++  }
++  const call=async(selector:string)=>{const r=await rpc('eth_call',[{to:contract,data:selector+m.id.slice(2)},at]);if(typeof r!=='string'||!/^0x[0-9a-f]{64}$/i.test(r))fail('MINT_CHAIN_UNAVAILABLE');return BigInt(r as string);};
++  const tokenId=await call(SELECTOR.tokenId),revokedWord=await call(SELECTOR.revoked);
++  if(revokedWord>1n)fail('MINT_CHAIN_UNAVAILABLE');
++  let transactionHash:string|undefined;
++  if(tokenId!==0n){
++   let txHash=hint.transactionHash;
++   if(!txHash){
++    // Bounded search (planned before mainnet in the Genesis audit notes): only the order's own window, in requests of
++    // at most logBlockRange blocks, stopping at the first one that holds the order's log.
++    const w=await orderWindow(rpc,d,BigInt(order.deadline as string),{number:finNumber,time:finTime});
++    for(let a=w.from;a<=w.to&&!txHash;a+=BigInt(logBlockRange)){
++     const b=min(w.to,a+BigInt(logBlockRange)-1n);
++     const logs=await rpc('eth_getLogs',[{address:contract,topics:[R5_TOPICS.consumed,m.id],fromBlock:hex(a),toBlock:hex(b)}]);
++     if(!Array.isArray(logs))fail('MINT_CHAIN_UNAVAILABLE');
++     const live=(logs as unknown[]).map(obj).filter(l=>l.removed!==true);
++     if(live.length>1)fail('MINT_PROOF_CONFLICT');if(live.length===1)txHash=h32(live[0].transactionHash);
++    }
++    if(!txHash)fail('MINT_PROOF_CONFLICT');
++   }
++   const receipt=obj(await rpc('eth_getTransactionReceipt',[txHash]));
++   const rBlock=qty(receipt.blockNumber),rHash=h32(receipt.blockHash);
++   // Not receipt.to: a Safe, an ERC-4337 bundle or an EIP-7702 batch calls the contract from inside its own transaction
++   // (Genesis audit 2026-10-27, finding 2). The logs below are checked by their emitting address instead.
++   if(qty(receipt.status)!==1n||rBlock>finNumber)fail('MINT_PROOF_CONFLICT');
++   if(h32(obj(await rpc('eth_getBlockByNumber',[hex(rBlock),false])).hash)!==rHash)fail('MINT_PROOF_CONFLICT');
++   const own=(Array.isArray(receipt.logs)?receipt.logs as unknown[]:[]).map(obj).filter(l=>String(l.address).toLowerCase()===contract&&l.removed!==true);
++   const topics=(l:Json)=>Array.isArray(l.topics)?(l.topics as unknown[]).map(h32):[];
++   const consumed=own.filter(l=>topics(l)[0]===R5_TOPICS.consumed&&topics(l)[1]===m.id);
++   // A transaction may mint several tokens (a batch, a bundle, a free mint next to the paid one): take this order's own
++   // GenesisMinted, the one for this wallet and token id.
++   const tokenTopic='0x'+tokenId.toString(16).padStart(64,'0');
++   const minted=own.filter(l=>{const t=topics(l);return t[0]===R5_TOPICS.minted&&t[2]===tokenTopic&&t[1]!==undefined&&addrTopic(t[1])===m.wallet;});
++   if(consumed.length!==1||minted.length!==1)fail('MINT_PROOF_CONFLICT');
++   const c=topics(consumed[0]),g=topics(minted[0]),cData=String(consumed[0].data),gData=String(minted[0].data);
++   if(!/^0x[0-9a-f]{64}$/i.test(cData)||!/^0x[0-9a-f]{256}$/i.test(gData)||c.length!==4||g.length!==4)fail('MINT_PROOF_CONFLICT');
++   // PaidOrderConsumed(orderId, wallet, tokenId; goldCost) and GenesisMinted(wallet, tokenId, lookKey; choice, skin, paid, cost)
++   if(addrTopic(c[2])!==m.wallet||BigInt(c[3])!==tokenId||wordAt(cData,0)!==BigInt(m.gold)
++    ||addrTopic(g[1])!==m.wallet||BigInt(g[2])!==tokenId||g[3]!==order.lookKey||wordAt(gData,0)!==BigInt(order.choice as number)
++    ||wordAt(gData,2)!==1n||wordAt(gData,3)!==BigInt(order.embeoCost as string))fail('MINT_PROOF_CONFLICT');
++   transactionHash=h32(receipt.transactionHash??txHash);
++  }
++  // The finalized block must still be the one every read above used.
++  if(h32(obj(await rpc('eth_getBlockByNumber',[at,false])).hash)!==finHash)fail('MINT_CHAIN_UNAVAILABLE');
++  return {schema:'ember-mint-proof-v1',mode:'finalized-chain',orderId:m.id,wallet:m.wallet,gold:m.gold,chainId:d.chainId,contract,chainInstance:d.id,
++   blockHash:finHash,blockNumber:String(finNumber),chainTimeMs:Number(finTime)*1000,tokenId:String(tokenId),revoked:revokedWord===1n,...transactionHash?{transactionHash}:{}};
++ }};
++}
+diff --git a/server/genesis-gold-service.ts b/server/genesis-gold-service.ts
+new file mode 100644
+index 0000000..399b03c
+--- /dev/null
++++ b/server/genesis-gold-service.ts
+@@ -0,0 +1,55 @@
++import type {D1Database} from './d1.ts';
++import {reserveGenesisGold,genesisGoldOrder,reconcileGenesisGold,reconcileGenesisDeployments,type GenesisDeployment} from './genesis-gold.ts';
++import {createGenesisR5Reader,genesisRpc,type JsonRpc} from './genesis-gold-reader.ts';
++// The GenesisGold service as the World Worker uses it (worker/index.ts, production registry, Alchemy mainnet transport
++// injected by worker/app.ts). The Sepolia rehearsal book keeps its own copy in its own workspace.
++
++type RateLimit={limit(options:{key:string}):Promise<{success:boolean}>};
++/** The bindings this service reads. ALCHEMY_API_KEY: mainnet reads; GENESIS_RPC_URL: a test chain's RPC (secret). */
++export type GenesisGoldEnv={DB?:D1Database;ALCHEMY_API_KEY?:string;GENESIS_RPC_URL?:string;ECONOMY_CHAIN_LIMITER?:RateLimit};
++/** Genesis R5 deployments this book serves, which environment of the registry it is (code, not env), and the chain-1
++ *  transport if this book may read mainnet at all. */
++export type GenesisGoldDeps={deployments:readonly GenesisDeployment[];environment:'production'|'sepolia'|'local';
++  mainnet?:(env:GenesisGoldEnv,chainFetch:typeof fetch)=>JsonRpc;
++  /** Blocks per eth_getLogs request of this book's provider (default GENESIS_LOG_BLOCK_RANGE, Alchemy Free's 10). */
++  logBlockRange?:number};
++
++/** Chain reads for the Genesis reader: the injected mainnet transport for chain 1, else GENESIS_RPC_URL (a test chain).
++ *  Shares ECONOMY_CHAIN_LIMITER (fails closed) under its own key. */
++export function genesisChainRpc(env:GenesisGoldEnv,chainFetch:typeof fetch,d:GenesisDeployment,genesis:GenesisGoldDeps):JsonRpc{
++  const none:JsonRpc=async()=>{throw Error('MINT_CHAIN_UNAVAILABLE');};
++  const base:JsonRpc=d.chainId===1?genesis.mainnet?.(env,chainFetch)??none:env.GENESIS_RPC_URL?genesisRpc(env.GENESIS_RPC_URL,chainFetch):none;
++  return async(method,params)=>{
++    if(!env.ECONOMY_CHAIN_LIMITER||!(await env.ECONOMY_CHAIN_LIMITER.limit({key:'genesis:rpc'})).success)throw Error('MINT_CHAIN_UNAVAILABLE');
++    return base(method,params);
++  };
++}
++/** Only short business codes cross the service boundary; storage text (SQL, stack traces) never does. */
++const GENESIS_SQL_CODES:[RegExp,string][]=[[/GOLD_INSUFFICIENT_OR_INVALID_HOLD/,'GOLD_INSUFFICIENT'],[/accepted\s*=\s*1/i,'FEATURE_PAUSED']];
++function genesisCode(error:unknown):Error{
++  // Trigger names first: D1 wraps them ("D1_ERROR: ...: SQLITE_CONSTRAINT"), node:sqlite reports them bare.
++  const message=error instanceof Error?error.message:'';
++  for(const [re,code] of GENESIS_SQL_CODES)if(re.test(message))return Error(code);
++  if(/^[A-Z][A-Z0-9_]{1,80}$/.test(message))return Error(message);
++  return Error('GOLD_UNAVAILABLE');
++}
++export const genesisReaderFor=(env:GenesisGoldEnv,chainFetch:typeof fetch,genesis:GenesisGoldDeps)=>
++  (d:GenesisDeployment,hint:{transactionHash?:string})=>createGenesisR5Reader(d,genesisChainRpc(env,chainFetch,d,genesis),hint,genesis.logBlockRange);
++/** What the GenesisGold service binding exposes to the Genesis signer of the same account. */
++export function createGenesisGoldService(env:GenesisGoldEnv,genesis:GenesisGoldDeps,chainFetch:typeof fetch=fetch,now:()=>number=Date.now){
++  const db=()=>env.DB??(()=>{throw Error('GOLD_NOT_CONFIGURED');})();
++  const reader=genesisReaderFor(env,chainFetch,genesis);
++  // Every failure (a missing binding too) becomes a rejected promise carrying only a code.
++  const guard=<T>(work:()=>Promise<T>)=>Promise.resolve().then(work).catch(error=>{throw genesisCode(error);});
++  return {
++    reserve:(request:unknown)=>guard(()=>reserveGenesisGold(db(),genesis.deployments,genesis.environment,request,now(),now)),
++    order:(request:unknown)=>guard(()=>genesisGoldOrder(db(),genesis.deployments,genesis.environment,request)),
++    reconcile:(request:unknown)=>guard(()=>reconcileGenesisGold(db(),genesis.deployments,genesis.environment,reader,request,now()))
++  };
++}
++/** The cron step: one bounded page per deployment of this environment. No deployment: nothing runs. */
++export async function maintainGenesisGold(env:GenesisGoldEnv,genesis:GenesisGoldDeps,chainFetch:typeof fetch,at:number){
++  if(!env.DB||!genesis.deployments.some(d=>d.environment===genesis.environment))return [];
++  const result=await reconcileGenesisDeployments(env.DB,genesis.deployments,genesis.environment,genesisReaderFor(env,chainFetch,genesis),at);
++  return result.flatMap<{id?:string;deployment?:string;status:string}>(r=>r.failed?[{deployment:r.deployment,status:r.failed}]:r.outcomes.filter(o=>o.status!=='pending'));
++}
+diff --git a/server/genesis-gold.ts b/server/genesis-gold.ts
+new file mode 100644
+index 0000000..2053491
+--- /dev/null
++++ b/server/genesis-gold.ts
+@@ -0,0 +1,161 @@
++import type {D1Database} from './d1.ts';
++import {recoverTypedDataAddress} from 'viem';
++import {economyAddress,economyDigest} from './economy-config.ts';
++import {reserveMintGold,storedMintGold,goldBalanceStatement,goldBalanceView,reconcileHeldMintGold,type MintProofReader,type StoredMintBinding} from './world-gold.ts';
++import {requireWorldGoldSchema} from './world-gold-schema.ts';
++// Genesis paid mint <-> shared GOLD book. The Genesis signer calls these through a same-account service binding
++// (worker/index.ts GenesisGold); there is no public URL. Costs come from the pinned deployment registry, never from the
++// caller, and a hold needs the wallet's own EIP-712 consent to exactly this order: a service credential is not consent.
++// Settlement stays with reconcileHeldMintGold and a finalized-chain reader (genesis-gold-reader.ts); no caller can
++// declare an order consumed or released.
++// Ported 2026-10-28 from the Sepolia rehearsal book (Genesis audits 31bb373a, 388b71cb, d726b1cd, b0b1d96a reviewed it
++// there as secondary scope). Difference: every registry entry names its domain version and payment recipient; there is
++// no default (the rehearsal defaulted to version 5 and the burn address for its first deployments).
++
++export const GENESIS_R5_AUTH_SCHEMA='genesis-r5-paid-v1';
++/** The contract's EIP-712 domain name; the version is each deployment's own (registry domainVersion). */
++export const GENESIS_DOMAIN_NAME='EmberEvoGenesisCandidate';
++/** Longest authorization window a hold accepts (seconds from now to the order deadline). The chain reader relies on it:
++ *  an order can only be consumed in the GENESIS_MAX_TTL_S seconds before its deadline. */
++export const GENESIS_MAX_TTL_S=900;
++/** A deployment the book accepts orders for. id is the persistent chainInstance stored with every hold.
++ *  domainVersion: the contract's EIP-712 domain version, written into every hold's document (Genesis audit 2026-10-27,
++ *  finding 10). recipient: the contract's immutable paymentRecipient (the treasury Safe on mainnet). embeoCost: the
++ *  contract's payment-token amount (named before the token became imdUSD). All are read back from the deployed contract
++ *  before an entry is added. */
++export type GenesisDeployment={id:string;environment:'production'|'sepolia'|'local';chainId:number;contract:string;codeHash:string;
++ deployBlock:string;embeoCost:string;goldCost:string;signer:string;domainVersion:string;recipient:string};
++export type GenesisOrder={orderId:string;wallet:string;lookKey:string;choice:number;uriHash:string;recipient:string;embeoCost:string;
++ goldCost:string;deadline:string;signerEpoch:string};
++export const GOLD_CONSENT_TYPES={GenesisGoldHold:[{name:'orderId',type:'bytes32'},{name:'wallet',type:'address'},{name:'goldCost',type:'uint256'},
++ {name:'genesis',type:'address'},{name:'lookKey',type:'bytes32'},{name:'choice',type:'uint8'},{name:'uriHash',type:'bytes32'},
++ {name:'embeoCost',type:'uint256'},{name:'deadline',type:'uint256'},{name:'signerEpoch',type:'uint256'}]} as const;
++/** What the wallet signs before any GOLD is held: domain "Ember World GOLD" v1 on the deployment's own chain. */
++export const goldConsentDomain=(d:GenesisDeployment)=>({name:'Ember World GOLD',version:'1',chainId:d.chainId});
++export const goldConsentMessage=(d:GenesisDeployment,o:GenesisOrder)=>({orderId:o.orderId as `0x${string}`,wallet:o.wallet as `0x${string}`,
++ goldCost:BigInt(o.goldCost),genesis:d.contract as `0x${string}`,lookKey:o.lookKey as `0x${string}`,choice:o.choice,uriHash:o.uriHash as `0x${string}`,
++ embeoCost:BigInt(o.embeoCost),deadline:BigInt(o.deadline),signerEpoch:BigInt(o.signerEpoch)});
++
++const fail=(s:string):never=>{throw Error(s);};
++const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
++const exact=(o:Record<string,unknown>,keys:string[])=>Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
++const word=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
++const dec=(v:unknown)=>typeof v==='string'&&/^(0|[1-9][0-9]{0,77})$/.test(v);
++const ORDER_KEYS=['orderId','wallet','lookKey','choice','uriHash','recipient','embeoCost','goldCost','deadline','signerEpoch'];
++
++/** A registry entry in the one form every comparison uses: addresses and the code hash lowercase (an EIP-55 address
++ *  copied from an explorer would otherwise make retries conflict and the reader never match). A malformed entry is
++ *  refused, never guessed at. */
++export function pinnedDeployment(d:GenesisDeployment):GenesisDeployment{
++ const lowAddr=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)?v.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
++ const codeHash=typeof d.codeHash==='string'&&/^0x[0-9a-fA-F]{64}$/.test(d.codeHash)?d.codeHash.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
++ if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
++  ||!Number.isSafeInteger(d.chainId)||d.chainId<1)fail('MINT_DEPLOYMENT_INVALID');
++ return {...d,contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
++}
++/** The deployments of this environment only: a Sepolia Worker never sees mainnet entries and the reverse. */
++export function genesisDeployment(list:readonly GenesisDeployment[],environment:string,id:unknown):GenesisDeployment{
++ const d=list.find(x=>x.id===id&&x.environment===environment);if(!d)fail('MINT_DEPLOYMENT_UNKNOWN');return pinnedDeployment(d!);
++}
++/** Every field fixed and normalized, in one key order, so a retry stores byte-identical JSON. */
++function parseOrder(d:GenesisDeployment,v:unknown,nowMs:number):GenesisOrder{
++ if(!record(v)||!exact(v,ORDER_KEYS))fail('INVALID_MINT_AUTH');const o=v as Record<string,unknown>;
++ let wallet='',recipient='';try{wallet=economyAddress(o.wallet);recipient=economyAddress(o.recipient);}catch{fail('INVALID_MINT_AUTH');}
++ if(!word(o.orderId)||o.orderId==='0x'+'0'.repeat(64)||!word(o.lookKey)||o.lookKey==='0x'+'0'.repeat(64)||!word(o.uriHash)
++  ||!Number.isInteger(o.choice)||(o.choice as number)<0||(o.choice as number)>3||!dec(o.embeoCost)||!dec(o.goldCost)||!dec(o.deadline)||!dec(o.signerEpoch)||o.signerEpoch==='0')fail('INVALID_MINT_AUTH');
++ if(recipient!==economyAddress(d.recipient)||o.embeoCost!==d.embeoCost||o.goldCost!==d.goldCost)fail('MINT_PRICE_MISMATCH');
++ const deadlineS=Number(o.deadline);
++ if(!Number.isSafeInteger(deadlineS*1000)||deadlineS*1000<=nowMs)fail('MINT_AUTH_EXPIRED');
++ if(deadlineS*1000-nowMs>GENESIS_MAX_TTL_S*1000)fail('INVALID_MINT_AUTH');
++ return {orderId:o.orderId as string,wallet,lookKey:o.lookKey as string,choice:o.choice as number,uriHash:o.uriHash as string,recipient,
++  embeoCost:o.embeoCost as string,goldCost:o.goldCost as string,deadline:o.deadline as string,signerEpoch:o.signerEpoch as string};
++}
++/** The stored auth document (world-gold-result.ts checks it against the typed binding). */
++export function genesisAuthDocument(d:GenesisDeployment,o:GenesisOrder,consentSignature:string){
++ return {schema:GENESIS_R5_AUTH_SCHEMA,deploymentId:d.id,codeHash:d.codeHash,
++  domain:{name:GENESIS_DOMAIN_NAME,version:d.domainVersion,chainId:d.chainId,verifyingContract:d.contract},
++  order:{orderId:o.orderId,wallet:o.wallet,lookKey:o.lookKey,choice:o.choice,uriHash:o.uriHash,recipient:o.recipient,embeoCost:o.embeoCost,
++   goldCost:o.goldCost,deadline:o.deadline,signerEpoch:o.signerEpoch},
++  consent:{signature:consentSignature}};
++}
++const withoutConsent=(json:string)=>{const doc=JSON.parse(json) as Record<string,unknown>;delete doc.consent;return JSON.stringify(doc);};
++async function view(db:D1Database,row:StoredMintBinding,auth:unknown){
++ const balance=goldBalanceView(await goldBalanceStatement(db,row.wallet).first<{book:string;reserved:string}>());
++ return {orderId:row.id,state:row.state,bindingDigest:await economyDigest(JSON.stringify(auth)),...balance};
++}
++
++export type GenesisReserveRequest={deploymentId:string;order:GenesisOrder;consentSignature:string};
++/** Holds goldCost for one order after verifying the wallet's consent. Retrying the same order returns its current
++ *  state (held, consumed or released) instead of holding twice; the same orderId with any other content conflicts. */
++export async function reserveGenesisGold(db:D1Database,deployments:readonly GenesisDeployment[],environment:string,req:unknown,nowMs:number,now:()=>number=Date.now){
++ await requireWorldGoldSchema(db);
++ if(!record(req)||!exact(req,['deploymentId','order','consentSignature']))fail('INVALID_MINT_AUTH');
++ const r=req as Record<string,unknown>,d=genesisDeployment(deployments,environment,r.deploymentId);
++ const sig=r.consentSignature;if(typeof sig!=='string'||!/^0x[0-9a-fA-F]{130}$/.test(sig))fail('INVALID_GOLD_CONSENT');
++ const existing=await storedMintGold(db,record(r.order)&&typeof r.order.orderId==='string'?r.order.orderId:'').catch(()=>null);
++ if(existing){
++  // An identical retry (any valid consent signature of the same wallet) is answered from the stored order, so a lost
++  // response never causes a second hold. Validation of the stored order happened when it was first held.
++  const o=parseOrder(d,r.order,Math.min(nowMs,existing.deadline-1));
++  const sameScope=existing.chainInstance===d.id&&existing.chainId===d.chainId&&existing.contract===d.contract;
++  const auth=genesisAuthDocument(d,o,sig as string),stored=JSON.stringify(existing.auth);
++  if(!sameScope||withoutConsent(stored)!==withoutConsent(JSON.stringify(auth)))fail('MINT_ORDER_CONFLICT');
++  await verifyConsent(d,o,sig as string);
++  return view(db,existing,existing.auth);
++ }
++ const o=parseOrder(d,r.order,nowMs);await verifyConsent(d,o,sig as string);
++ const auth=genesisAuthDocument(d,o,sig as string);
++ await reserveMintGold(db,{id:o.orderId,wallet:o.wallet,auth,gold:o.goldCost,chainId:d.chainId,contract:d.contract,chainInstance:d.id,deadline:Number(o.deadline)*1000,
++  domainVersion:d.domainVersion,recipient:economyAddress(d.recipient)},nowMs,now);
++ return view(db,await storedMintGold(db,o.orderId),auth);
++}
++async function verifyConsent(d:GenesisDeployment,o:GenesisOrder,signature:string){
++ let signer='';
++ try{signer=await recoverTypedDataAddress({domain:goldConsentDomain(d),types:GOLD_CONSENT_TYPES,primaryType:'GenesisGoldHold',message:goldConsentMessage(d,o),signature:signature as `0x${string}`});}
++ catch{fail('INVALID_GOLD_CONSENT');}
++ if(signer.toLowerCase()!==o.wallet)fail('INVALID_GOLD_CONSENT');
++}
++
++/** State of one order of this deployment (no consent signature or other wallet data is returned). */
++export async function genesisGoldOrder(db:D1Database,deployments:readonly GenesisDeployment[],environment:string,req:unknown){
++ if(!record(req)||!exact(req,['deploymentId','orderId'])||!word(req.orderId))fail('INVALID_MINT_AUTH');
++ const r=req as Record<string,unknown>,d=genesisDeployment(deployments,environment,r.deploymentId),row=await storedMintGold(db,r.orderId as string);
++ if(row.chainInstance!==d.id)fail('MINT_ORDER_MISSING');
++ return view(db,row,row.auth);
++}
++
++export type GenesisReaderFactory=(d:GenesisDeployment,hint:{transactionHash?:string})=>MintProofReader;
++/** Asks the book to settle one order from finalized chain facts. A chain failure leaves it held ('pending'). */
++export async function reconcileGenesisGold(db:D1Database,deployments:readonly GenesisDeployment[],environment:string,reader:GenesisReaderFactory,req:unknown,nowMs:number){
++ if(!record(req)||!(exact(req,['deploymentId','orderId'])||exact(req,['deploymentId','orderId','transactionHash']))||!word(req.orderId)
++  ||(req.transactionHash!==undefined&&!word(req.transactionHash)))fail('INVALID_MINT_AUTH');
++ const q=req as Record<string,unknown>,d=genesisDeployment(deployments,environment,q.deploymentId),row=await storedMintGold(db,q.orderId as string);
++ if(row.chainInstance!==d.id)fail('MINT_ORDER_MISSING');
++ let status=row.state;
++ if(row.state==='held'){const r=await reconcileHeldMintGold(db,reader(d,{transactionHash:q.transactionHash as string|undefined}),nowMs,{orderId:row.id});status=r.outcomes[0]?.status??'pending';}
++ const latest=await storedMintGold(db,row.id);
++ return {orderId:row.id,state:latest.state,reconciliation:latest.state==='held'?'pending':'settled',...latest.state==='held'&&status!=='pending'?{code:status}:{}};
++}
++
++/** Held orders one cron run reads per deployment. Small, so the Genesis step stays well inside the scheduled
++ *  invocation's CPU and subrequest limits it shares with the World's own GOLD work (review 2026-10-28). */
++export const GENESIS_CRON_PAGE=8;
++/** Cron: one bounded page of held orders per deployment, resuming from a persisted cursor so later orders are never
++ *  starved by earlier ones that stay pending. A deployment that fails (a malformed entry, storage) is reported by its
++ *  code and never stops the others. */
++export async function reconcileGenesisDeployments(db:D1Database,deployments:readonly GenesisDeployment[],environment:string,reader:GenesisReaderFactory,nowMs:number,limit=GENESIS_CRON_PAGE){
++ const out:{deployment:string;outcomes:{id:string;status:string}[];failed?:string}[]=[];
++ for(const entry of deployments.filter(x=>x.environment===environment)){
++  try{
++   const d=pinnedDeployment(entry);
++   const at=await db.prepare('SELECT after FROM genesis_gold_cursors WHERE deployment=?').bind(d.id).first<{after:string}>();
++   const r=await reconcileHeldMintGold(db,reader(d,{}),nowMs,{after:at?.after??'',limit});
++   await db.prepare('INSERT INTO genesis_gold_cursors(deployment,after,updated_ms) VALUES(?,?,?) ON CONFLICT(deployment) DO UPDATE SET after=excluded.after,updated_ms=excluded.updated_ms')
++    .bind(d.id,r.next??'',nowMs).run();
++   out.push({deployment:d.id,outcomes:r.outcomes.filter(o=>o.status!=='MINT_SCOPE_MISMATCH')});
++  }catch(error){
++   out.push({deployment:String(entry.id),outcomes:[],failed:error instanceof Error&&/^[A-Z][A-Z0-9_]{1,80}$/.test(error.message)?error.message:'GENESIS_GOLD_FAILED'});
++  }
++ }
++ return out;
++}
+diff --git a/server/world-gold-result.ts b/server/world-gold-result.ts
+index 9a6040e..7c0a5dd 100644
+--- a/server/world-gold-result.ts
++++ b/server/world-gold-result.ts
+@@ -42,7 +42,7 @@ export function encodeGoldResult(product:string,result:unknown):{json:string|nul
+  * Only lossless plain JSON objects are allowed. No coercion or silent removal
+  * of undefined/functions/symbols, custom serializers, cycles or nonfinite data.
+  * Existing JSON bytes/key order and full retry equality are preserved. */
+-export function encodeMintAuth(auth:unknown,binding:{id:string;wallet:string;gold:string;deadline:number;chainId:number;contract:string;chainInstance:string}):string{
++export function encodeMintAuth(auth:unknown,binding:{id:string;wallet:string;gold:string;deadline:number;chainId:number;contract:string;chainInstance:string;domainVersion?:string;recipient?:string}):string{
+  const seen=new Set<object>();
+  const visit=(v:unknown,depth:number):boolean=>{
+   if(depth>32)return false;
+@@ -66,7 +66,18 @@ export function encodeMintAuth(auth:unknown,binding:{id:string;wallet:string;gol
+   const sameAddress=(v:unknown,w:string)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)&&v.toLowerCase()===w;
+   const uint=(v:unknown)=>typeof v==='string'&&/^(0|[1-9][0-9]{0,77})$/.test(v);
+   const hash=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{64}$/.test(v);
+-  if(Object.hasOwn(doc,'auth')){
++  if(doc.schema==='genesis-r5-paid-v1'){
++   // Genesis paid order (server/genesis-gold.ts builds it): lookKey + choice replace R4's key. Domain version and
++   // recipient must be the deployment's own, which the binding carries from the registry: Genesis audit b0b1d96a,
++   // finding 3 (a binding without them is refused).
++   const o=doc.order,d=doc.domain,c=doc.consent,low=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v)&&!/^0x0{64}$/.test(v);
++   if(!record(o)||!record(d)||!record(c)||d.name!=='EmberEvoGenesisCandidate'||typeof binding.domainVersion!=='string'||d.version!==binding.domainVersion||d.chainId!==binding.chainId||!sameAddress(d.verifyingContract,binding.contract)
++    ||doc.deploymentId!==binding.chainInstance||!hash(doc.codeHash)||o.orderId!==binding.id||!low(o.orderId)||!sameAddress(o.wallet,binding.wallet)
++    ||o.goldCost!==binding.gold||!uint(o.deadline)||Number(o.deadline)*1000!==binding.deadline||!low(o.lookKey)||!hash(o.uriHash)
++    ||!Number.isInteger(o.choice)||(o.choice as number)<0||(o.choice as number)>3||typeof o.recipient!=='string'||!/^0x[0-9a-f]{40}$/.test(o.recipient)
++    ||typeof binding.recipient!=='string'||o.recipient!==binding.recipient
++    ||!uint(o.embeoCost)||!uint(o.signerEpoch)||o.signerEpoch==='0'||typeof c.signature!=='string'||!/^0x[0-9a-fA-F]{130}$/.test(c.signature))throw Error();
++  }else if(Object.hasOwn(doc,'auth')){
+    const a=doc.auth,p=doc.packet,anchor=doc.chainAnchor;
+    if(!record(a)||!record(p)||!record(p.domain)||!record(anchor)||!hash(anchor.genesisHash)||!hash(anchor.codeHash)
+     ||a.orderId!==binding.id||!sameAddress(a.wallet,binding.wallet)||a.goldCost!==binding.gold||!Number.isSafeInteger(a.deadline)||Number(a.deadline)*1000!==binding.deadline
+diff --git a/server/world-gold.ts b/server/world-gold.ts
+index b5158c0..25fa389 100644
+--- a/server/world-gold.ts
++++ b/server/world-gold.ts
+@@ -147,7 +147,9 @@ export async function finishGoldJob(db:D1Database,args:{orderId:string;attempt:s
+  const changed=await st(db,`UPDATE world_gold_jobs SET state=?,result_json=?,failure=?,delivery_evidence_json=?,lease_ms=NULL,updated_ms=? WHERE order_id=? AND state='working' AND attempt=? AND lease_ms>? RETURNING order_id`,done?'delivered':'failed',done?json:null,failure,evidence===null?null:JSON.stringify(evidence),finishedAt,args.orderId,args.attempt,finishedAt).run();
+  if(!changed.results.length)fail('STALE_DELIVERY');if(!done)await refundGold(db,args.orderId,finishedAt);
+ }
+-export type MintBinding={id:string;wallet:string;auth:unknown;gold:string;chainId:number;contract:string;chainInstance:string;deadline:number};
++/** domainVersion / recipient: only for Genesis holds, from the deployment registry (server/genesis-gold.ts; Genesis audit
++ * b0b1d96a, finding 3). They are checked against the stored document (world-gold-result.ts), not stored separately. */
++export type MintBinding={id:string;wallet:string;auth:unknown;gold:string;chainId:number;contract:string;chainInstance:string;deadline:number;domainVersion?:string;recipient?:string};
+ export async function reserveMintGold(db:D1Database,m:MintBinding,nowMs:number,now:()=>number|Promise<number>=Date.now){
+  at(nowMs);await requireWorldGoldSchema(db);const wallet=economyAddress(m.wallet),contract=economyAddress(m.contract),gold=economyUint(m.gold,WORLD_GOLD_MAX_PRODUCT);
+  if(!/^0x[0-9a-f]{64}$/.test(m.id)||!Number.isSafeInteger(m.deadline)||m.deadline<=nowMs||!Number.isSafeInteger(m.chainId)||m.chainId<1||typeof m.chainInstance!=='string'||!/^[A-Za-z0-9._:-]{1,128}$/.test(m.chainInstance))fail('INVALID_MINT_AUTH');
+diff --git a/tests/genesis-gold.test.mjs b/tests/genesis-gold.test.mjs
+new file mode 100644
+index 0000000..67eab56
+--- /dev/null
++++ b/tests/genesis-gold.test.mjs
+@@ -0,0 +1,308 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {keccak256,toHex,getAddress} from 'viem';
++import {privateKeyToAccount,generatePrivateKey} from 'viem/accounts';
++import {fixture,NOW,W,account,H} from './world-gold-audit5-fixture.mjs';
++import {reserveGenesisGold,genesisGoldOrder,reconcileGenesisGold,reconcileGenesisDeployments,goldConsentDomain,goldConsentMessage,GOLD_CONSENT_TYPES,GENESIS_CRON_PAGE} from '../server/genesis-gold.ts';
++import {createGenesisR5Reader,genesisRpc,R5_TOPICS,GENESIS_LOG_BLOCK_RANGE} from '../server/genesis-gold-reader.ts';
++import {maintainGenesisGold} from '../server/genesis-gold-service.ts';
++import {GENESIS_DEPLOYMENTS} from '../server/genesis-deployments.ts';
++import {encodeMintAuth} from '../server/world-gold-result.ts';
++import {createGenesisGoldService,PRODUCTION_GENESIS} from '../worker/app.ts';
++
++// Ported 2026-10-28 from the Sepolia rehearsal book's tests. Every registry entry names its domain version and recipient.
++const SAFE='0x29e7c208481f648795f677b55f6ecb2badc2f01e',DEAD='0x000000000000000000000000000000000000dead';
++const CODE='0x6080604052',CODE_HASH=keccak256(CODE),CONTRACT='0x'+'c'.repeat(40),EMBEO='300000000000000000000000';
++const DEP={id:'sepolia-r5-test-1',environment:'sepolia',chainId:11155111,contract:CONTRACT,codeHash:CODE_HASH,deployBlock:'100',embeoCost:EMBEO,goldCost:'8',signer:'0x'+'5'.repeat(40),domainVersion:'7',recipient:SAFE};
++const LIST=[DEP,{...DEP,id:'mainnet-other',environment:'production',chainId:1}];
++const DEADLINE=NOW/1000+300;
++const order=(patch={})=>({orderId:H(0xabc),wallet:W,lookKey:H(0x1001),choice:1,uriHash:keccak256(toHex('ipfs://looks/x/1')),recipient:SAFE,embeoCost:EMBEO,goldCost:'8',deadline:String(DEADLINE),signerEpoch:'1',...patch});
++const consent=(o,signer=account,d=DEP)=>signer.signTypedData({domain:goldConsentDomain(d),types:GOLD_CONSENT_TYPES,primaryType:'GenesisGoldHold',message:goldConsentMessage(d,o)});
++const request=async(o=order(),signer=account)=>({deploymentId:DEP.id,order:o,consentSignature:await consent(o,signer)});
++const reserve=(f,req,now=NOW)=>reserveGenesisGold(f.db,LIST,'sepolia',req,now,()=>now);
++/** A fresh test DB's migration seeds controls that may be on; every test sets the mint control it needs explicitly. */
++const mintControl=(f,enabled)=>f.admin({action:'control',feature:'mint',enabled,version:f.db.raw.prepare("SELECT version FROM world_gold_controls WHERE feature='mint'").get().version});
++async function setup({open=true,topups=1}={}){
++ const f=await fixture();for(let i=0;i<topups;i++)await f.topup();
++ await mintControl(f,open);
++ assert.equal(f.db.raw.prepare("SELECT enabled FROM world_gold_controls WHERE feature='mint'").get().enabled,open?1:0);
++ return f;
++}
++const codeOf=async(p,c)=>{await assert.rejects(p,e=>{assert.equal(e.message,c);return true;});};
++
++test('a wallet-consented hold reserves exactly the registry GOLD cost; a lost response retried returns the same hold',async()=>{
++ const f=await setup();try{
++  const req=await request(),a=await reserve(f,req);
++  assert.deepEqual([a.state,a.book,a.reserved,a.available],['held','10','8','2']);
++  const b=await reserve(f,req);assert.deepEqual(b,a);
++  assert.deepEqual([(await f.snapshot()).reserved],['8']);
++  const stored=f.db.raw.prepare('SELECT auth_json,chain_instance,deadline,amount FROM world_gold_mints WHERE id=?').get(order().orderId);
++  assert.equal(stored.chain_instance,DEP.id);assert.equal(stored.deadline,DEADLINE*1000);assert.equal(stored.amount,8);
++  assert.equal(JSON.parse(stored.auth_json).order.choice,1);
++  const q=await genesisGoldOrder(f.db,LIST,'sepolia',{deploymentId:DEP.id,orderId:order().orderId});assert.equal(q.state,'held');assert.equal(q.bindingDigest,a.bindingDigest);
++ }finally{f.close();}
++});
++test('the same orderId with any other content conflicts and holds nothing more',async()=>{
++ const f=await setup({topups:2});try{
++  await reserve(f,await request());
++  for(const patch of [{choice:2},{lookKey:H(0x1002)},{uriHash:H(5)},{deadline:String(DEADLINE+1)},{signerEpoch:'2'}])
++   await codeOf(reserve(f,await request(order(patch))),'MINT_ORDER_CONFLICT');
++  assert.equal((await f.snapshot()).reserved,'8');
++ }finally{f.close();}
++});
++test('consent must be the wallet’s own signature over this exact order',async()=>{
++ const f=await setup();try{
++  const other=privateKeyToAccount(generatePrivateKey());
++  await codeOf(reserve(f,await request(order(),other)),'INVALID_GOLD_CONSENT');
++  const signedOther={deploymentId:DEP.id,order:order(),consentSignature:await consent(order({choice:2}))};
++  await codeOf(reserve(f,signedOther),'INVALID_GOLD_CONSENT');
++  const otherChain={deploymentId:DEP.id,order:order(),consentSignature:await consent(order(),account,{...DEP,chainId:1})};
++  await codeOf(reserve(f,otherChain),'INVALID_GOLD_CONSENT');
++  await codeOf(reserve(f,{...await request(),consentSignature:'0x1234'}),'INVALID_GOLD_CONSENT');
++  assert.equal((await f.snapshot()).reserved,'0');
++ }finally{f.close();}
++});
++test('costs, recipient, deadline, choice and deployment come from the registry and the R5 rules, not the caller',async()=>{
++ const f=await setup({topups:3});try{
++  for(const [patch,code] of [[{goldCost:'7'},'MINT_PRICE_MISMATCH'],[{embeoCost:'1'},'MINT_PRICE_MISMATCH'],[{recipient:'0x'+'9'.repeat(40)},'MINT_PRICE_MISMATCH'],
++   [{deadline:String(NOW/1000+901)},'INVALID_MINT_AUTH'],[{deadline:String(NOW/1000)},'MINT_AUTH_EXPIRED'],[{orderId:'0x'+'0'.repeat(64)},'INVALID_MINT_AUTH'],
++   [{choice:4},'INVALID_MINT_AUTH'],[{signerEpoch:'0'},'INVALID_MINT_AUTH'],[{lookKey:'0x'+'0'.repeat(64)},'INVALID_MINT_AUTH']])
++   await codeOf(reserve(f,{deploymentId:DEP.id,order:order(patch),consentSignature:await consent(order())}),code);
++  await codeOf(reserve(f,{...await request(),deploymentId:'mainnet-other'}),'MINT_DEPLOYMENT_UNKNOWN');
++  await codeOf(reserveGenesisGold(f.db,LIST,'production',await request(),NOW,()=>NOW),'MINT_DEPLOYMENT_UNKNOWN');
++  await codeOf(reserve(f,{...await request(),extra:1}),'INVALID_MINT_AUTH');
++  assert.equal((await f.snapshot()).reserved,'0');
++ }finally{f.close();}
++});
++test('the stored document names the deployment’s own EIP-712 domain version (Genesis audit 2026-10-27, finding 10)',async()=>{
++ const f=await setup();try{
++  const V7={...DEP,id:'sepolia-r6-v8',domainVersion:'8'},o=order();
++  const r=await reserveGenesisGold(f.db,[V7],'sepolia',{deploymentId:V7.id,order:o,consentSignature:await consent(o,account,V7)},NOW,()=>NOW);
++  assert.equal(r.state,'held');
++  assert.equal(JSON.parse(f.db.raw.prepare('SELECT auth_json FROM world_gold_mints WHERE id=?').get(o.orderId).auth_json).domain.version,'8');
++ }finally{f.close();}
++});
++test('Genesis owner 2026-10-28: the recipient comes from the registry (the treasury Safe); any other address, the burn address too, is refused',async()=>{
++ const f=await setup();try{
++  const T=DEP;
++  const req=async o=>({deploymentId:T.id,order:o,consentSignature:await consent(o,account,T)});
++  await codeOf(reserveGenesisGold(f.db,[T],'sepolia',await req(order({recipient:DEAD})),NOW,()=>NOW),'MINT_PRICE_MISMATCH');
++  const ok=await reserveGenesisGold(f.db,[T],'sepolia',await req(order({recipient:'0x29e7c208481f648795f677b55F6ECb2bADc2F01E'})),NOW,()=>NOW);
++  assert.equal(ok.state,'held');assert.equal((await f.snapshot()).reserved,'8');
++ }finally{f.close();}
++});
++test('Genesis audit b0b1d96a finding 3: the stored-hold check takes domain version and recipient from the binding, not any of 5 / 7 and any address',()=>{
++ const doc=(version,recipient)=>({schema:'genesis-r5-paid-v1',deploymentId:DEP.id,codeHash:CODE_HASH,
++  domain:{name:'EmberEvoGenesisCandidate',version,chainId:DEP.chainId,verifyingContract:CONTRACT},
++  order:order({recipient}),consent:{signature:'0x'+'1'.repeat(130)}});
++ const bind=(domainVersion,recipient)=>({id:H(0xabc),wallet:W.toLowerCase(),gold:'8',deadline:DEADLINE*1000,chainId:DEP.chainId,contract:CONTRACT,chainInstance:DEP.id,domainVersion,recipient});
++ assert.equal(typeof encodeMintAuth(doc('5',DEAD),bind('5',DEAD)),'string');
++ assert.equal(typeof encodeMintAuth(doc('7',SAFE),bind('7',SAFE)),'string');
++ assert.throws(()=>encodeMintAuth(doc('7',DEAD),bind('5',DEAD)));   // the auditor's case: v7 document, v5 deployment
++ assert.throws(()=>encodeMintAuth(doc('7',SAFE),bind('7',DEAD)));            // another recipient than the deployment's
++ assert.throws(()=>encodeMintAuth(doc('5',DEAD),bind(undefined,undefined))); // no registry values: refused
++});
++test('closed mint control, missing GOLD and the empty production registry all refuse; SQL text never crosses the service',async()=>{
++ const f=await setup({open:false});try{
++  await codeOf(reserve(f,await request()),'FEATURE_PAUSED');
++  await mintControl(f,true);
++  await reserve(f,await request());
++  const svc=createGenesisGoldService({DB:f.db},{deployments:LIST,environment:'sepolia'},fetch,()=>NOW);
++  await codeOf(svc.reserve(await request(order({orderId:H(0xabd)}))),'GOLD_INSUFFICIENT');
++  assert.equal(GENESIS_DEPLOYMENTS.length,0);assert.equal(PRODUCTION_GENESIS.environment,'production');
++  await codeOf(createGenesisGoldService({DB:f.db}).reserve(await request(order({orderId:H(0xabe)}))),'MINT_DEPLOYMENT_UNKNOWN');
++  await codeOf(createGenesisGoldService({}).order({deploymentId:DEP.id,orderId:H(1)}),'GOLD_NOT_CONFIGURED');
++ }finally{f.close();}
++});
++
++// A JSON-RPC stand-in for one chain: logs and receipts are encoded the way the R5 contract emits them.
++const pad=v=>'0x'+BigInt(v).toString(16).padStart(64,'0');
++const word=v=>BigInt(v).toString(16).padStart(64,'0');
++function chain({tokenId=0n,revoked=false,finalTime=NOW/1000,code=CODE,minted={},consumed={},chainId=11155111,fail=null,receiptTo=CONTRACT,otherMints=[],finNumber=200,blockOfTx=150,timeOf=null,receiptBlockHash=H(0xb0),logList=null}={}){
++ const o=order(),tx=H(0x7777),fin={number:'0x'+finNumber.toString(16),hash:H(0xf1),timestamp:'0x'+finalTime.toString(16)};
++ const ts=n=>timeOf?timeOf(n):finalTime-12*(finNumber-n);
++ const logRanges=[];
++ const consumedLog={address:CONTRACT,removed:false,transactionHash:tx,topics:[R5_TOPICS.consumed,o.orderId,pad(W),pad(tokenId)],data:'0x'+word(consumed.gold??8)};
++ const mintedLog={address:CONTRACT,removed:false,transactionHash:tx,topics:[R5_TOPICS.minted,pad(minted.wallet??W),pad(tokenId),minted.lookKey??o.lookKey],
++  data:'0x'+word(minted.choice??o.choice)+word(minted.skin??1)+word(minted.paid??1)+word(minted.cost??EMBEO)};
++ // other tokens minted in the same transaction (a batch or a bundle): [wallet, tokenId]
++ const others=otherMints.map(([w,id])=>({address:CONTRACT,removed:false,transactionHash:tx,topics:[R5_TOPICS.minted,pad(w),pad(id),o.lookKey],data:'0x'+word(0)+word(0)+word(0)+word(0)}));
++ const calls=[];
++ const rpc=async(method,params)=>{calls.push(method);if(fail===method)throw Error('MINT_CHAIN_UNAVAILABLE');
++  switch(method){
++   case 'eth_chainId':return '0x'+chainId.toString(16);
++   case 'eth_getBlockByNumber':return params[0]==='finalized'||params[0]===fin.number?fin:{number:params[0],hash:H(0xb0),timestamp:'0x'+ts(Number(params[0])).toString(16)};
++   case 'eth_getCode':return code;
++   case 'eth_call':{const sel=params[0].data.slice(0,10);return sel===keccak256(toHex('paidOrderTokenId(bytes32)')).slice(0,10)?pad(tokenId):pad(revoked?1:0);}
++   case 'eth_getLogs':{
++    // a real node filters by address and topics: a reader asking with the wrong ones finds nothing
++    const q=params[0],from=Number(q.fromBlock),to=Number(q.toBlock);logRanges.push([from,to]);
++    const match=q.address===CONTRACT&&q.topics?.length===2&&q.topics[0]===R5_TOPICS.consumed&&q.topics[1]===o.orderId;
++    return match&&tokenId&&from<=blockOfTx&&blockOfTx<=to?logList??[consumedLog]:[];}
++   case 'eth_getTransactionReceipt':return {transactionHash:tx,status:'0x1',to:receiptTo,blockNumber:'0x'+blockOfTx.toString(16),blockHash:receiptBlockHash,logs:[...others,mintedLog,consumedLog]};
++  }throw Error('unexpected '+method);};
++ return {rpc,calls,logRanges,consumedLog};
++}
++const settle=(f,c,extra={})=>reconcileGenesisGold(f.db,LIST,'sepolia',(d,hint)=>createGenesisR5Reader(d,c.rpc,hint),{deploymentId:DEP.id,orderId:order().orderId,...extra},NOW);
++
++test('a finalized PaidOrderConsumed with its GenesisMinted spends the hold once',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const r=await settle(f,chain({tokenId:7n}));
++  assert.deepEqual([r.state,r.reconciliation],['consumed','settled']);
++  const s=await f.snapshot();assert.deepEqual([s.book,s.reserved,s.available],['2','0','2']);
++  assert.equal((await settle(f,chain({tokenId:7n}))).state,'consumed');assert.equal((await f.snapshot()).book,'2');
++  const proof=JSON.parse(f.db.raw.prepare('SELECT evidence_json FROM world_gold_mints WHERE id=?').get(order().orderId).evidence_json);
++  assert.deepEqual([proof.mode,proof.tokenId,proof.transactionHash,proof.blockNumber],['finalized-chain','7',H(0x7777),'200']);
++ }finally{f.close();}
++});
++test('Genesis audit 2026-10-27 finding 2: a paid mint sent through a smart-contract wallet or a bundle (receipt.to is not the contract, other tokens minted in the same transaction) still settles; a second mint of this same token does not',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const conflict=await settle(f,chain({tokenId:7n,receiptTo:'0x'+'5a'.repeat(20),otherMints:[[W,7n]]}));
++  assert.deepEqual([conflict.state,conflict.code],['held','MINT_PROOF_CONFLICT']);
++  const r=await settle(f,chain({tokenId:7n,receiptTo:'0x'+'5a'.repeat(20),otherMints:[['0x'+'e'.repeat(40),8n],[W,9n]]}));
++  assert.deepEqual([r.state,r.reconciliation],['consumed','settled']);
++  const s=await f.snapshot();assert.deepEqual([s.book,s.reserved],['2','0']);
++ }finally{f.close();}
++});
++test('release needs a finalized unused order that is revoked or strictly past its deadline',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const atDeadline=await settle(f,chain({finalTime:DEADLINE}));assert.deepEqual([atDeadline.state,atDeadline.reconciliation],['held','pending']);
++  const released=await settle(f,chain({finalTime:DEADLINE+1}));assert.equal(released.state,'released');
++  const s=await f.snapshot();assert.deepEqual([s.book,s.reserved,s.available],['10','0','10']);
++ }finally{f.close();}
++ const g=await setup();try{await reserve(g,await request());assert.equal((await settle(g,chain({revoked:true}))).state,'released');}finally{g.close();}
++});
++test('wrong chain, code, events or an RPC failure keep the hold; nothing is released on a guess',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const cases=[[{chainId:1},'MINT_SCOPE_MISMATCH'],[{code:'0x60aa'},'MINT_SCOPE_MISMATCH'],[{tokenId:7n,minted:{lookKey:H(0x1002)}},'MINT_PROOF_CONFLICT'],
++   [{tokenId:7n,minted:{choice:3}},'MINT_PROOF_CONFLICT'],[{tokenId:7n,minted:{cost:'1'}},'MINT_PROOF_CONFLICT'],[{tokenId:7n,minted:{paid:0}},'MINT_PROOF_CONFLICT'],
++   [{tokenId:7n,consumed:{gold:9}},'MINT_PROOF_CONFLICT'],[{tokenId:7n,minted:{wallet:'0x'+'e'.repeat(40)}},'MINT_PROOF_CONFLICT'],
++   [{finalTime:DEADLINE+1,fail:'eth_call'},'MINT_CHAIN_UNAVAILABLE'],[{tokenId:7n,fail:'eth_getTransactionReceipt'},'MINT_CHAIN_UNAVAILABLE']];
++  for(const [opt,code] of cases){const r=await settle(f,chain(opt));assert.deepEqual([r.state,r.reconciliation,r.code],['held','pending',code],JSON.stringify(opt,(k,v)=>typeof v==='bigint'?String(v):v));}
++  assert.equal((await f.snapshot()).reserved,'8');
++  // A transaction hint is verified like a found log: it cannot point at another order's mint.
++  const c=chain({tokenId:7n});const r=await settle(f,c,{transactionHash:H(0x7777)});assert.equal(r.state,'consumed');assert.ok(!c.calls.includes('eth_getLogs'));
++ }finally{f.close();}
++});
++test('cron pages through held orders of its deployments with a persisted cursor, checking the bytecode once per finalized block',async()=>{
++ const n=GENESIS_CRON_PAGE+2,f=await setup({topups:n});try{
++  const ids=[];for(let i=0;i<n;i++){const o=order({orderId:H(0x500+i)});ids.push(o.orderId);await reserve(f,{deploymentId:DEP.id,order:o,consentSignature:await consent(o)});}
++  const cursor=()=>f.db.raw.prepare('SELECT after FROM genesis_gold_cursors WHERE deployment=?').get(DEP.id).after;
++  // still before the deadline: every order stays pending, so only the cursor moves the next run on
++  const wait=chain({finalTime:DEADLINE}),waitReader=(d,hint)=>createGenesisR5Reader(d,wait.rpc,hint);
++  const first=await reconcileGenesisDeployments(f.db,LIST,'sepolia',waitReader,NOW);
++  assert.deepEqual(first[0].outcomes.map(o=>o.id),ids.slice(0,GENESIS_CRON_PAGE));assert.equal(cursor(),ids[GENESIS_CRON_PAGE-1]);
++  assert.equal(wait.calls.filter(m=>m==='eth_getCode').length,1);
++  const second=await reconcileGenesisDeployments(f.db,LIST,'sepolia',waitReader,NOW);
++  assert.deepEqual(second[0].outcomes.map(o=>o.id),ids.slice(GENESIS_CRON_PAGE));assert.equal(cursor(),'');
++  const c=chain({finalTime:DEADLINE+1}),reader=(d,hint)=>createGenesisR5Reader(d,c.rpc,hint);
++  const out=await reconcileGenesisDeployments(f.db,LIST,'sepolia',reader,NOW);
++  assert.equal(out.length,1);assert.equal(out[0].outcomes.filter(o=>o.status==='released').length,GENESIS_CRON_PAGE);
++  await reconcileGenesisDeployments(f.db,LIST,'sepolia',reader,NOW);
++  assert.equal((await f.snapshot()).reserved,'0');
++  assert.deepEqual(await reconcileGenesisDeployments(f.db,LIST,'local',reader,NOW),[]);
++ }finally{f.close();}
++});
++test('review 2026-10-28: a malformed registry entry is reported by its code and the other deployments are still settled',async()=>{
++ const list=[{...DEP,id:'sepolia-broken',codeHash:'0x12'},DEP];
++ const f=await setup();try{
++  await reserve(f,await request());
++  const c=chain({finalTime:DEADLINE+1}),reader=(d,hint)=>createGenesisR5Reader(d,c.rpc,hint);
++  const out=await reconcileGenesisDeployments(f.db,list,'sepolia',reader,NOW);
++  assert.deepEqual(out.map(r=>[r.deployment,r.failed??null]),[['sepolia-broken','MINT_DEPLOYMENT_INVALID'],[DEP.id,null]]);
++  assert.equal(out[1].outcomes[0].status,'released');
++ }finally{f.close();}
++ const g=await setup();try{
++  await reserve(g,await request());
++  // the cron's own step logs the broken entry by code and still reads the working one (a chain that answers nothing: held)
++  const logged=await maintainGenesisGold({DB:g.db,GENESIS_RPC_URL:'https://rpc.test',ECONOMY_CHAIN_LIMITER:{limit:async()=>({success:true})}},{deployments:list,environment:'sepolia'},
++   async()=>new Response(JSON.stringify({jsonrpc:'2.0',id:1,result:null})),NOW);
++  assert.deepEqual(logged,[{deployment:'sepolia-broken',status:'MINT_DEPLOYMENT_INVALID'},{id:order().orderId,status:'MINT_CHAIN_UNAVAILABLE'}]);
++  assert.equal((await g.snapshot()).reserved,'8');
++ }finally{g.close();}
++});
++test('review 2026-10-28: a test chain RPC request has a timeout, and a non-2xx reply is a chain failure',async()=>{
++ let signal;
++ const ok=genesisRpc('https://rpc.test',async(url,init)=>{signal=init.signal;return new Response(JSON.stringify({jsonrpc:'2.0',id:1,result:'0x1'}));});
++ assert.equal(await ok('eth_chainId',[]),'0x1');assert.ok(signal instanceof AbortSignal);
++ const bad=genesisRpc('https://rpc.test',async()=>new Response(JSON.stringify({jsonrpc:'2.0',id:1,result:'0x1'}),{status:502}));
++ await codeOf(bad('eth_chainId',[]),'MINT_CHAIN_UNAVAILABLE');
++ const hang=genesisRpc('https://rpc.test',async()=>{throw new DOMException('timed out','TimeoutError');});
++ await codeOf(hang('eth_chainId',[]),'MINT_CHAIN_UNAVAILABLE');
++});
++test('review 2026-10-28: a receipt from a block that is no longer canonical, a removed log or two live logs never settle',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const reorged=await settle(f,chain({tokenId:7n,receiptBlockHash:H(0xb1)}));
++  assert.deepEqual([reorged.state,reorged.code],['held','MINT_PROOF_CONFLICT']);
++  const base=chain({tokenId:7n}).consumedLog;
++  const removed=await settle(f,chain({tokenId:7n,logList:[{...base,removed:true}]}));
++  assert.deepEqual([removed.state,removed.code],['held','MINT_PROOF_CONFLICT']);
++  const two=await settle(f,chain({tokenId:7n,logList:[base,{...base,transactionHash:H(0x7778)}]}));
++  assert.deepEqual([two.state,two.code],['held','MINT_PROOF_CONFLICT']);
++  assert.equal((await f.snapshot()).reserved,'8');
++  assert.equal((await settle(f,chain({tokenId:7n}))).state,'consumed');
++ }finally{f.close();}
++});
++
++// Bounded search (2026-10-28, before mainnet): without a transaction hint the reader looks only at the order's own
++// window, in requests the World's Alchemy Free endpoint accepts (10 blocks each).
++const searched=c=>c.logRanges.reduce((n,[a,b])=>n+b-a+1,0);
++test('without a hint the log search covers only the order window, in requests of at most 10 blocks, and settles',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const c=chain({tokenId:7n});
++  const r=await settle(f,c);assert.deepEqual([r.state,r.reconciliation],['consumed','settled']);
++  assert.ok(c.logRanges.length>0&&c.logRanges.every(([a,b])=>b-a+1<=GENESIS_LOG_BLOCK_RANGE&&a<=b&&b<=200));
++  // the window starts before the earliest block the order could be consumed in and the search stopped at the log
++  const deadline=DEADLINE,earliest=deadline-900;assert.ok(NOW/1000-12*(200-c.logRanges[0][0])<earliest);
++  assert.equal(c.logRanges.at(-1)[0]<=150&&150<=c.logRanges.at(-1)[1],true);
++ }finally{f.close();}
++});
++test('a reconciliation a month late, with missed slots since the order, still searches about one order window',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  // block B0 is at NOW; every 20th slot after it is missed (a block every 12.6 s on average)
++  const B0=5_000_000,T0=NOW/1000,timeOf=n=>T0+12*(n-B0)+12*Math.floor((n-B0)/20);
++  const finNumber=B0+205_000,c=chain({tokenId:7n,finNumber,finalTime:timeOf(finNumber),blockOfTx:B0+10,timeOf});
++  const r=await settle(f,c);assert.equal(r.state,'consumed');
++  assert.ok(searched(c)<=130,'searched '+searched(c)+' blocks');
++  assert.ok(c.calls.filter(m=>m==='eth_getBlockByNumber').length<=30);
++  assert.ok(c.logRanges.every(([a,b])=>b-a+1<=GENESIS_LOG_BLOCK_RANGE));
++ }finally{f.close();}
++});
++test('a consumption outside the window, or timestamps that break one block per slot, keep the hold; a verified hint still settles',async()=>{
++ const f=await setup();try{
++  await reserve(f,await request());
++  const outside=await settle(f,chain({tokenId:7n,blockOfTx:120}));
++  assert.deepEqual([outside.state,outside.code],['held','MINT_PROOF_CONFLICT']);
++  const dense=await settle(f,chain({tokenId:7n,timeOf:n=>NOW/1000-(200-n)}));   // one block per second
++  assert.deepEqual([dense.state,dense.code],['held','MINT_CHAIN_UNAVAILABLE']);
++  assert.equal((await f.snapshot()).reserved,'8');
++  const hinted=chain({tokenId:7n,blockOfTx:120});
++  assert.equal((await settle(f,hinted,{transactionHash:H(0x7777)})).state,'consumed');assert.equal(hinted.logRanges.length,0);
++ }finally{f.close();}
++});
++test('the production registry is empty and every entry type names its domain version and recipient',async()=>{
++ assert.deepEqual([...GENESIS_DEPLOYMENTS],[]);
++ const {readFileSync}=await import('node:fs');
++ const src=readFileSync(new URL('../server/genesis-gold.ts',import.meta.url),'utf8');
++ assert.match(src,/domainVersion:string;recipient:string\}/);assert.doesNotMatch(src,/\?\?\s*GENESIS_DEAD|0x0{36}dead/i);
++});
++
++test('review 2026-10-28: a registry entry with EIP-55 capitals or an uppercase code hash still retries and settles; a malformed entry is refused',async()=>{
++ const f=await setup();try{
++  const UP={...DEP,contract:getAddress(CONTRACT),codeHash:CODE_HASH.toUpperCase().replace('0X','0x'),recipient:'0x29e7c208481f648795f677b55F6ECb2bADc2F01E'};
++  const req={deploymentId:UP.id,order:order(),consentSignature:await consent(order(),account,UP)};
++  const a=await reserveGenesisGold(f.db,[UP],'sepolia',req,NOW,()=>NOW);assert.equal(a.state,'held');
++  assert.deepEqual(await reserveGenesisGold(f.db,[UP],'sepolia',req,NOW,()=>NOW),a);                 // retry: no MINT_ORDER_CONFLICT
++  const c=chain({tokenId:7n});
++  const r=await reconcileGenesisGold(f.db,[UP],'sepolia',(d,hint)=>createGenesisR5Reader(d,c.rpc,hint),{deploymentId:UP.id,orderId:order().orderId},NOW);
++  assert.equal(r.state,'consumed');
++  await codeOf(reserveGenesisGold(f.db,[{...DEP,codeHash:'0x12'}],'sepolia',req,NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
++ }finally{f.close();}
++});
+diff --git a/tests/presence.test.mjs b/tests/presence.test.mjs
+index 4ff6082..b7687c5 100644
+--- a/tests/presence.test.mjs
++++ b/tests/presence.test.mjs
+@@ -16,7 +16,7 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
+ const owners=map=>Object.assign(Array(2000).fill(null),map);
+ 
+ test('migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes',()=>{
+-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql','0017_world_inventory.sql','0018_wallet_mining.sql','0019_celestao_wallet_bridge.sql','0020_celestao_checkouts.sql','0021_world_gold_fast_credit.sql']);
++  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql','0017_world_inventory.sql','0018_wallet_mining.sql','0019_celestao_wallet_bridge.sql','0020_celestao_checkouts.sql','0021_world_gold_fast_credit.sql','0022_genesis_gold_cursor.sql']);
+   // Exact legacy identity schema; additive financial preservation is exercised
+   // separately against all migrations by economy-migration/world-gold tests.
+   const db=openD1(migrationFiles().filter(f=>Number(f.slice(0,4))<10)),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
+diff --git a/tests/worker.test.mjs b/tests/worker.test.mjs
+index 6421fe1..1b5a519 100644
+--- a/tests/worker.test.mjs
++++ b/tests/worker.test.mjs
+@@ -189,8 +189,10 @@ test('the deployed worker sends upstream reads with edge-cache TTLs and an ident
+   } finally {globalThis.fetch=real;}
+ });
+ 
+-test('the Worker entry module exports only its default handler (workerd rejects any other export)',()=>{
+-  assert.deepEqual(Object.keys(entry),['default']);assert.equal(typeof entry.default.fetch,'function');
++test('the Worker entry module exports its default handler and the GenesisGold RPC entrypoint only (workerd rejects any other export)',()=>{
++  // 2026-10-28: a WorkerEntrypoint class is the one other export workerd accepts (the Genesis signer's service binding).
++  assert.deepEqual(Object.keys(entry).sort(),['GenesisGold','default']);assert.equal(typeof entry.default.fetch,'function');
++  assert.deepEqual(Object.getOwnPropertyNames(entry.GenesisGold.prototype).sort(),['constructor','order','reconcile','reserve']);
+ });
+ 
+ test('the Vite dev adapter runs the same handler and passes other paths on',async()=>{
+diff --git a/worker/app.ts b/worker/app.ts
+index 84f8a8e..7636ba5 100644
+--- a/worker/app.ts
++++ b/worker/app.ts
+@@ -22,11 +22,14 @@ import {handleCelestaoCheckout} from '../server/celestao-checkout.ts';
+ import {handleWorldGoldReport} from '../server/world-gold-report.ts';
+ import {createEconomyRpc,syncEconomyChain,EconomyRpcError,ECONOMY_PROVIDER_LOG_BLOCK_RANGE,type EconomyRpc} from '../server/economy-rpc.ts';
+ import type {EconomyConfig} from '../server/economy-config.ts';
+-import {Ownership,type ChainAccess} from '../server/ownership.ts';
++import {Ownership,rpc as ownershipRpc,type ChainAccess} from '../server/ownership.ts';
+ import {recordPresence} from '../server/presence.ts';
+ import {mockChainFetch,parseMockOwners} from '../server/chain-mock.ts';
+ import {CHARACTER_COLLECTIONS} from '../src/world/collections.ts';
+ import type {D1Database} from '../server/d1.ts';
++import {createGenesisGoldService as genesisService,maintainGenesisGold,type GenesisGoldDeps} from '../server/genesis-gold-service.ts';
++import {GENESIS_RPC_METHODS,type JsonRpc} from '../server/genesis-gold-reader.ts';
++import {GENESIS_DEPLOYMENTS} from '../server/genesis-deployments.ts';
+ // Cloudflare Worker for imdember.com (entry: worker/index.ts). wrangler.jsonc routes only /api/world/* and the wallet
+ // routes (/api/auth/*, /api/me/*, /api/wallet/*) and /api/aimarket-auth/* to it (assets.run_worker_first); every other path is served by Workers
+ // Static Assets from dist/ without running this code. The cron trigger runs `scheduled` (presence, M1 and probe cleanup).
+@@ -149,9 +152,20 @@ export function chainAccess(request:Request,env:Env,chainFetch:typeof fetch):Cha
+   return mock?{key:'local-mock',fetch:mockChainFetch(mock)}:{key:env.ALCHEMY_API_KEY||undefined,fetch:chainFetch};
+ }
+ type ScheduledController={scheduledTime:number;cron:string};
++/** Chain 1 reads for the Genesis reader: the World's Alchemy transport with the Worker secret (Genesis GOLD book). */
++const mainnetGenesisRpc=(env:{ALCHEMY_API_KEY?:string},chainFetch:typeof fetch):JsonRpc=>async(method,params)=>{
++  if(!GENESIS_RPC_METHODS.has(method))throw Error('RPC_METHOD_NOT_ALLOWED');
++  let reply;try{reply=await ownershipRpc({key:env.ALCHEMY_API_KEY||undefined,fetch:chainFetch},method,params);}catch{throw Error('MINT_CHAIN_UNAVAILABLE');}
++  if(reply.error!==undefined||reply.result===undefined)throw Error('MINT_CHAIN_UNAVAILABLE');return reply.result;
++};
++/** The production Genesis book: its registry (empty until the mainnet contract is deployed) and mainnet reads. */
++export const PRODUCTION_GENESIS:GenesisGoldDeps={deployments:GENESIS_DEPLOYMENTS,environment:'production',mainnet:mainnetGenesisRpc};
++/** The GenesisGold service binding of this Worker (worker/index.ts): the production registry, reads via upstreamFetch. */
++export const createGenesisGoldService=(env:Env,genesis:GenesisGoldDeps=PRODUCTION_GENESIS,chainFetch:typeof fetch=upstreamFetch,now:()=>number=Date.now)=>
++  genesisService(env,genesis,chainFetch,now);
+ /** Internal test seam. The deployed entry passes no override; requests and
+  * environment values cannot supply a deployment record or an RPC endpoint. */
+-export type EconomyWorkerDeps={config:()=>Promise<EconomyConfig|null>;rpc?:(env:Env)=>EconomyRpc;delivery?:GoldDeliveryProvider};
++export type EconomyWorkerDeps={config:()=>Promise<EconomyConfig|null>;rpc?:(env:Env)=>EconomyRpc;delivery?:GoldDeliveryProvider;genesis?:GenesisGoldDeps};
+ /** chainFetch reaches Alchemy for the wallet routes (Authorization is set, so upstreamFetch never edge-caches it).
+  *  edgeCache: the location's Cache API for the gateway's shared copy (none outside workerd). */
+ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstreamFetch,now:()=>number=Date.now,collections=CHARACTER_COLLECTIONS,
+@@ -175,6 +189,11 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+     if(!env.DB)return;
+     if(!await sharedGoldSchemaPresent(env.DB))return;
+     if(!await worldGoldSchemaReady(env.DB)){console.log('gold_maintenance',JSON.stringify({status:'deferred',code:'SCHEMA_INCOMPLETE'}));return;}
++    // Genesis paid-mint holds first and on their own: settle from finalized chain facts only (no deployment in the
++    // registry: nothing runs). An error here never stops the World's GOLD work below, nor the reverse; the page is small
++    // (GENESIS_CRON_PAGE orders, one bytecode check per finalized block) to stay well inside this run's CPU limit.
++    try{const settled=await maintainGenesisGold(env,economy.genesis??PRODUCTION_GENESIS,chainFetch,at);if(settled.length)console.log('genesis_gold',JSON.stringify(settled));}
++    catch(error){console.log('genesis_gold',JSON.stringify({status:'failed',code:error instanceof Error&&/^[A-Z][A-Z0-9_]{1,80}$/.test(error.message)?error.message:'GENESIS_GOLD_FAILED'}));}
+     const result=await reconcileWorldGold(env.DB,at);if(result.failures.length)console.log('gold_reconcile',JSON.stringify(result.failures));
+     if(result.rewards.some(r=>r.status!=='credited'))console.log('gold_rewards',JSON.stringify(result.rewards));
+     // GOLD fast credit was retired on 2026-10-27 with every fast credit settled, so no credit is left to follow.
+diff --git a/worker/cloudflare-workers.d.ts b/worker/cloudflare-workers.d.ts
+new file mode 100644
+index 0000000..20212b8
+--- /dev/null
++++ b/worker/cloudflare-workers.d.ts
+@@ -0,0 +1,9 @@
++// Type of the one workerd runtime export this repo uses (worker/entrypoint-workerd.ts), declared here because the
++// project does not depend on @cloudflare/workers-types.
++declare module 'cloudflare:workers'{
++  export abstract class WorkerEntrypoint<Env=unknown>{
++    protected ctx:{waitUntil(promise:Promise<unknown>):void};
++    protected env:Env;
++    constructor(ctx:{waitUntil(promise:Promise<unknown>):void},env:Env);
++  }
++}
+diff --git a/worker/entrypoint-node.ts b/worker/entrypoint-node.ts
+new file mode 100644
+index 0000000..f483a6b
+--- /dev/null
++++ b/worker/entrypoint-node.ts
+@@ -0,0 +1,7 @@
++// Node (tests, scripts) cannot load cloudflare:workers. Same shape as workerd's WorkerEntrypoint, so the entry module
++// imports under node:test; package.json "imports" #worker-entrypoint picks this file for every non-workerd condition.
++export abstract class WorkerEntrypoint<Env=unknown>{
++  protected ctx:{waitUntil(promise:Promise<unknown>):void};
++  protected env:Env;
++  constructor(ctx:{waitUntil(promise:Promise<unknown>):void},env:Env){this.ctx=ctx;this.env=env;}
++}
+diff --git a/worker/entrypoint-workerd.ts b/worker/entrypoint-workerd.ts
+new file mode 100644
+index 0000000..b63d329
+--- /dev/null
++++ b/worker/entrypoint-workerd.ts
+@@ -0,0 +1,2 @@
++// Resolved for the deployed bundle only (package.json "imports" #worker-entrypoint, condition "workerd").
++export {WorkerEntrypoint} from 'cloudflare:workers';
+diff --git a/worker/index.ts b/worker/index.ts
+index 7d9e249..778db54 100644
+--- a/worker/index.ts
++++ b/worker/index.ts
+@@ -1,5 +1,16 @@
++import {WorkerEntrypoint} from '#worker-entrypoint';
+ import {ReadGateway} from '../server/gateway.ts';
+-import {createWorker,upstreamFetch} from './app.ts';
+-// Worker entry: only a default export (see worker/app.ts). Module scope means one gateway per isolate, so its caches
+-// serve every request that isolate handles; they hold plain JSON only, never Response objects.
++import {createWorker,upstreamFetch,createGenesisGoldService,type Env} from './app.ts';
++// Worker entry: the default export plus one named RPC entrypoint (see worker/app.ts: every named export of the entry is
++// an entrypoint, so helpers stay out of this file). Module scope means one gateway per isolate, so its caches serve
++// every request that isolate handles; they hold plain JSON only, never Response objects.
+ export default createWorker(new ReadGateway(upstreamFetch));
++
++/** Service binding for the Genesis signer of the same Cloudflare account (no public route). A binding can only be
++ *  configured inside the account, which is the caller's authentication; the wallet's own EIP-712 consent is still
++ *  required for every hold, and settlement only follows finalized chain facts. */
++export class GenesisGold extends WorkerEntrypoint<Env>{
++  reserve(request:unknown){return createGenesisGoldService(this.env).reserve(request);}
++  order(request:unknown){return createGenesisGoldService(this.env).order(request);}
++  reconcile(request:unknown){return createGenesisGoldService(this.env).reconcile(request);}
++}
+-- 
+2.56.0.windows.4
+
