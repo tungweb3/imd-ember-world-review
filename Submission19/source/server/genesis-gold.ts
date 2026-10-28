@@ -21,10 +21,13 @@ export const GENESIS_MAX_TTL_S=900;
 /** A deployment the book accepts orders for. id is the persistent chainInstance stored with every hold.
  *  domainVersion: the contract's EIP-712 domain version, written into every hold's document (Genesis audit 2026-10-27,
  *  finding 10). recipient: the contract's immutable paymentRecipient (the treasury Safe on mainnet). embeoCost: the
- *  contract's payment-token amount (named before the token became imdUSD). All are read back from the deployed contract
- *  before an entry is added. */
+ *  contract's payment-token amount (named before the token became imdUSD). goldCost: the GOLD price of the deployment's
+ *  payment token (imdUSD); addedTokenGoldCosts: the GOLD prices of the tokens added with addPaymentToken (owner
+ *  2026-10-29: USDC 1,600 GOLD, imdUSD v2 1,200; imdUSD is the discounted price), at most two. The order names no token:
+ *  the contract checks the signed goldCost against the token actually paid and reports it in PaidOrderConsumed, which
+ *  the reader compares with the GOLD held. All are read back from the deployed contract before an entry is added. */
 export type GenesisDeployment={id:string;environment:'production'|'sepolia'|'local';chainId:number;contract:string;codeHash:string;
- deployBlock:string;embeoCost:string;goldCost:string;signer:string;domainVersion:string;recipient:string};
+ deployBlock:string;embeoCost:string;goldCost:string;addedTokenGoldCosts:readonly string[];signer:string;domainVersion:string;recipient:string};
 export type GenesisOrder={orderId:string;wallet:string;lookKey:string;choice:number;uriHash:string;recipient:string;embeoCost:string;
  goldCost:string;deadline:string;signerEpoch:string};
 export const GOLD_CONSENT_TYPES={GenesisGoldHold:[{name:'orderId',type:'bytes32'},{name:'wallet',type:'address'},{name:'goldCost',type:'uint256'},
@@ -49,9 +52,10 @@ const ORDER_KEYS=['orderId','wallet','lookKey','choice','uriHash','recipient','e
 export function pinnedDeployment(d:GenesisDeployment):GenesisDeployment{
  const lowAddr=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)?v.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
  const codeHash=typeof d.codeHash==='string'&&/^0x[0-9a-fA-F]{64}$/.test(d.codeHash)?d.codeHash.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
- if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
+ const added=Array.isArray(d.addedTokenGoldCosts)?d.addedTokenGoldCosts:fail('MINT_DEPLOYMENT_INVALID');
+ if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||added.length>2||!added.every(g=>dec(g)&&g!=='0')||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
   ||!Number.isSafeInteger(d.chainId)||d.chainId<1)fail('MINT_DEPLOYMENT_INVALID');
- return {...d,contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
+ return {...d,addedTokenGoldCosts:[...added],contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
 }
 /** The deployments of this environment only: a Sepolia Worker never sees mainnet entries and the reverse. */
 export function genesisDeployment(list:readonly GenesisDeployment[],environment:string,id:unknown):GenesisDeployment{
@@ -63,7 +67,7 @@ function parseOrder(d:GenesisDeployment,v:unknown,nowMs:number):GenesisOrder{
  let wallet='',recipient='';try{wallet=economyAddress(o.wallet);recipient=economyAddress(o.recipient);}catch{fail('INVALID_MINT_AUTH');}
  if(!word(o.orderId)||o.orderId==='0x'+'0'.repeat(64)||!word(o.lookKey)||o.lookKey==='0x'+'0'.repeat(64)||!word(o.uriHash)
   ||!Number.isInteger(o.choice)||(o.choice as number)<0||(o.choice as number)>3||!dec(o.embeoCost)||!dec(o.goldCost)||!dec(o.deadline)||!dec(o.signerEpoch)||o.signerEpoch==='0')fail('INVALID_MINT_AUTH');
- if(recipient!==economyAddress(d.recipient)||o.embeoCost!==d.embeoCost||o.goldCost!==d.goldCost)fail('MINT_PRICE_MISMATCH');
+ if(recipient!==economyAddress(d.recipient)||o.embeoCost!==d.embeoCost||(o.goldCost!==d.goldCost&&!d.addedTokenGoldCosts.includes(o.goldCost as string)))fail('MINT_PRICE_MISMATCH');
  const deadlineS=Number(o.deadline);
  if(!Number.isSafeInteger(deadlineS*1000)||deadlineS*1000<=nowMs)fail('MINT_AUTH_EXPIRED');
  if(deadlineS*1000-nowMs>GENESIS_MAX_TTL_S*1000)fail('INVALID_MINT_AUTH');

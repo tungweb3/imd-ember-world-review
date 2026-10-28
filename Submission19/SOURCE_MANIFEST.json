@@ -2,7 +2,7 @@
  "schema": "imd-ember-world-review-selected-source/v1",
  "submission": 19,
  "privateBase": "96858bf",
- "privateSource": "20b1d6a201361b3796f05a56565f44ee5bbcdb8d",
+ "privateSource": "21df62be3a694ee06e85e597279e49870e3315b5",
  "files": [
   {
    "path": "CLAUDE.md",
@@ -55,10 +55,10 @@
   {
    "path": "server/genesis-deployments.ts",
    "status": "A",
-   "bytes": 923,
-   "sha256": "28c13baaa4f7150fec0ae9ab9b3aaf090120379a8e2b97cb87d0b618edd1780c",
-   "blob": "f46fcf8f4f9f236a81e27f8bc0ebebd151368779",
-   "privateBlob": "f46fcf8f4f9f236a81e27f8bc0ebebd151368779"
+   "bytes": 1235,
+   "sha256": "d53a20e818fa96c7a5dba4f88dbd58a0f7a0fd5020f51fa2af8c8a1c0e18e7db",
+   "blob": "324565de9b5f6e08a149e9c95579df4599542081",
+   "privateBlob": "324565de9b5f6e08a149e9c95579df4599542081"
   },
   {
    "path": "server/genesis-gold-reader.ts",
@@ -79,10 +79,10 @@
   {
    "path": "server/genesis-gold.ts",
    "status": "A",
-   "bytes": 13952,
-   "sha256": "747b2159edcafb649b03c5cfe4fdf4c877be05328a9b8734279bacb2cfe84ec3",
-   "blob": "20534911b0d29caeaec5e9640a91b6d8bcabaf94",
-   "privateBlob": "20534911b0d29caeaec5e9640a91b6d8bcabaf94"
+   "bytes": 14672,
+   "sha256": "b8f1c489913a9380ca82e07bd6fa1b5cd18fcd6c69292bac05e8ef8a526ffa4e",
+   "blob": "e2b5f62860ad3652692d407bd87aff8bfe0c2345",
+   "privateBlob": "e2b5f62860ad3652692d407bd87aff8bfe0c2345"
   },
   {
    "path": "server/world-gold-result.ts",
@@ -143,10 +143,10 @@
   {
    "path": "tests/genesis-gold.test.mjs",
    "status": "A",
-   "bytes": 24364,
-   "sha256": "fbe8660d856388837aaa6742fad9fbff924ba93918faf567dc308264a33a421e",
-   "blob": "67eab566b7cbc7425fff12503264d8f7aa863481",
-   "privateBlob": "67eab566b7cbc7425fff12503264d8f7aa863481"
+   "bytes": 26408,
+   "sha256": "2844c5fdfb5a4ed989c48eacf5b76d92de2c324d2e2f99d939111bae7dc6e9cb",
+   "blob": "90c50aa9f1d10645da373bb3bf5f4ac8802bdd03",
+   "privateBlob": "90c50aa9f1d10645da373bb3bf5f4ac8802bdd03"
   },
   {
    "path": "tests/gold-review-record.test.mjs",

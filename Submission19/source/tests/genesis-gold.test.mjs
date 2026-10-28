@@ -13,7 +13,7 @@ import {createGenesisGoldService,PRODUCTION_GENESIS} from '../worker/app.ts';
 // Ported 2026-10-28 from the Sepolia rehearsal book's tests. Every registry entry names its domain version and recipient.
 const SAFE='0x29e7c208481f648795f677b55f6ecb2badc2f01e',DEAD='0x000000000000000000000000000000000000dead';
 const CODE='0x6080604052',CODE_HASH=keccak256(CODE),CONTRACT='0x'+'c'.repeat(40),EMBEO='300000000000000000000000';
-const DEP={id:'sepolia-r5-test-1',environment:'sepolia',chainId:11155111,contract:CONTRACT,codeHash:CODE_HASH,deployBlock:'100',embeoCost:EMBEO,goldCost:'8',signer:'0x'+'5'.repeat(40),domainVersion:'7',recipient:SAFE};
+const DEP={id:'sepolia-r5-test-1',environment:'sepolia',chainId:11155111,contract:CONTRACT,codeHash:CODE_HASH,deployBlock:'100',embeoCost:EMBEO,goldCost:'8',addedTokenGoldCosts:['9'],signer:'0x'+'5'.repeat(40),domainVersion:'7',recipient:SAFE};
 const LIST=[DEP,{...DEP,id:'mainnet-other',environment:'production',chainId:1}];
 const DEADLINE=NOW/1000+300;
 const order=(patch={})=>({orderId:H(0xabc),wallet:W,lookKey:H(0x1001),choice:1,uriHash:keccak256(toHex('ipfs://looks/x/1')),recipient:SAFE,embeoCost:EMBEO,goldCost:'8',deadline:String(DEADLINE),signerEpoch:'1',...patch});
@@ -304,5 +304,31 @@ test('review 2026-10-28: a registry entry with EIP-55 capitals or an uppercase c
   const r=await reconcileGenesisGold(f.db,[UP],'sepolia',(d,hint)=>createGenesisR5Reader(d,c.rpc,hint),{deploymentId:UP.id,orderId:order().orderId},NOW);
   assert.equal(r.state,'consumed');
   await codeOf(reserveGenesisGold(f.db,[{...DEP,codeHash:'0x12'}],'sepolia',req,NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
+ }finally{f.close();}
+});
+
+test('owner 2026-10-29: every payment token has its own GOLD price (imdUSD discounted, USDC higher); a hold is the price the wallet consented to and settles only at that price',async()=>{
+ const f=await setup();try{
+  // GOLD 8 stands for imdUSD's 1,200, 9 for USDC's 1,600: an order at either price is held at exactly that price
+  const o=order({goldCost:'9'}),a=await reserve(f,{deploymentId:DEP.id,order:o,consentSignature:await consent(o)});
+  assert.deepEqual([a.state,a.book,a.reserved,a.available],['held','10','9','1']);
+  // the chain must report the same GOLD price for the token actually paid: the imdUSD price on a USDC hold is a conflict
+  const cheap=await settle(f,chain({tokenId:7n,consumed:{gold:8}}));assert.deepEqual([cheap.state,cheap.code],['held','MINT_PROOF_CONFLICT']);
+  const r=await settle(f,chain({tokenId:7n,consumed:{gold:9}}));assert.deepEqual([r.state,r.reconciliation],['consumed','settled']);
+  assert.deepEqual([(await f.snapshot()).book,(await f.snapshot()).reserved],['1','0']);
+  // a price on no token of the deployment is refused before anything is held
+  const g=order({orderId:H(0xabd),goldCost:'10'});
+  await codeOf(reserve(f,{deploymentId:DEP.id,order:g,consentSignature:await consent(g)}),'MINT_PRICE_MISMATCH');
+ }finally{f.close();}
+});
+test('owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer; a malformed list refuses the entry',async()=>{
+ const f=await setup();try{
+  for(const addedTokenGoldCosts of [undefined,'9',['0'],['9','9','9'],['09'],[9]]){
+   const bad={...DEP,addedTokenGoldCosts};
+   await codeOf(reserveGenesisGold(f.db,[bad],'sepolia',await request(),NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
+  }
+  const none={...DEP,addedTokenGoldCosts:[]},o=order({goldCost:'9'});
+  await codeOf(reserveGenesisGold(f.db,[none],'sepolia',{deploymentId:DEP.id,order:o,consentSignature:await consent(o)},NOW,()=>NOW),'MINT_PRICE_MISMATCH');
+  assert.equal((await f.snapshot()).reserved,'0');
  }finally{f.close();}
 });

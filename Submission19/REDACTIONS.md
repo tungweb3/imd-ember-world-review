@@ -1,10 +1,10 @@
 # Submission19 — what differs from the private repository
 
-Private source `20b1d6a`. [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json) lists every file in `source/` with its SHA-256 and git blob id; all 28 are byte-identical to the private blobs.
+Private source `21df62b`. [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json) lists every file in `source/` with its SHA-256 and git blob id; all 28 are byte-identical to the private blobs.
 
 | Item | Treatment |
 |---|---|
 | `source/` | The 28 files added or modified after `96858bf`, unmasked. `CLAUDE.md` is the repository's note on the wallet lock. `security/wallet-lock.json` holds file paths and SHA-256 values only. No media, 3D model or presentation file is among them. |
-| `patches/` | `git format-patch 96858bf..20b1d6a`, plus `git diff 96858bf 20b1d6a`. Author e-mail → `operator@imdember.invalid`; otherwise unchanged. |
+| `patches/` | `git format-patch 96858bf..21df62b`, plus `git diff 96858bf 21df62b`. Author e-mail → `operator@imdember.invalid`; otherwise unchanged. |
 | `evidence/` | Local paths in the test summary are shown as `<local>`. The bundle excerpt is from a `wrangler deploy --dry-run` (nothing uploaded) and holds no account identifiers. |
 | Not included | Git history, the rest of the repository, 3D models and scenes, media, the Celestao fortune service, D1 data, backups, secrets, deploy credentials, the Genesis signer Worker. |

@@ -323,15 +323,18 @@ index 0000000..6644524
 +}
 diff --git a/server/genesis-deployments.ts b/server/genesis-deployments.ts
 new file mode 100644
-index 0000000..f46fcf8
+index 0000000..324565d
 --- /dev/null
 +++ b/server/genesis-deployments.ts
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,13 @@
 +import type {GenesisDeployment} from './genesis-gold.ts';
 +// Genesis deployments the GOLD book accepts paid orders for. Each entry pins chain, contract, runtime code hash, deploy
-+// block, both immutable costs, the EIP-712 domain version and the payment recipient (read back from the deployed
-+// contract before an entry is added).
-+// Production is empty: the mainnet contract is not deployed and its payment token (imdUSD v1 or v2) is not decided, so
++// block, both immutable costs, the GOLD price of every added payment token, the EIP-712 domain version and the payment
++// recipient (read back from the deployed contract before an entry is added).
++// Owner 2026-10-29: mainnet pays in imdUSD v1 (1,200 GOLD); USDC (1,600 GOLD) is added right after deployment and
++// imdUSD v2 (1,200 GOLD) when it exists. The entry is added after USDC is added on chain, so it lists both prices from
++// the start; v2 has imdUSD's price already listed, so adding it changes nothing here.
++// Production is empty: the mainnet contract is not deployed, so
 +// every reservation is refused (MINT_DEPLOYMENT_UNKNOWN) even if the mint control were switched on. The entry is added,
 +// and this file re-reviewed, only after the mainnet deployment.
 +// Append-only while any order of an entry is held: the cron settles holds only for entries listed here, so removing or
@@ -550,10 +553,10 @@ index 0000000..399b03c
 +}
 diff --git a/server/genesis-gold.ts b/server/genesis-gold.ts
 new file mode 100644
-index 0000000..2053491
+index 0000000..e2b5f62
 --- /dev/null
 +++ b/server/genesis-gold.ts
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,165 @@
 +import type {D1Database} from './d1.ts';
 +import {recoverTypedDataAddress} from 'viem';
 +import {economyAddress,economyDigest} from './economy-config.ts';
@@ -577,10 +580,13 @@ index 0000000..2053491
 +/** A deployment the book accepts orders for. id is the persistent chainInstance stored with every hold.
 + *  domainVersion: the contract's EIP-712 domain version, written into every hold's document (Genesis audit 2026-10-27,
 + *  finding 10). recipient: the contract's immutable paymentRecipient (the treasury Safe on mainnet). embeoCost: the
-+ *  contract's payment-token amount (named before the token became imdUSD). All are read back from the deployed contract
-+ *  before an entry is added. */
++ *  contract's payment-token amount (named before the token became imdUSD). goldCost: the GOLD price of the deployment's
++ *  payment token (imdUSD); addedTokenGoldCosts: the GOLD prices of the tokens added with addPaymentToken (owner
++ *  2026-10-29: USDC 1,600 GOLD, imdUSD v2 1,200; imdUSD is the discounted price), at most two. The order names no token:
++ *  the contract checks the signed goldCost against the token actually paid and reports it in PaidOrderConsumed, which
++ *  the reader compares with the GOLD held. All are read back from the deployed contract before an entry is added. */
 +export type GenesisDeployment={id:string;environment:'production'|'sepolia'|'local';chainId:number;contract:string;codeHash:string;
-+ deployBlock:string;embeoCost:string;goldCost:string;signer:string;domainVersion:string;recipient:string};
++ deployBlock:string;embeoCost:string;goldCost:string;addedTokenGoldCosts:readonly string[];signer:string;domainVersion:string;recipient:string};
 +export type GenesisOrder={orderId:string;wallet:string;lookKey:string;choice:number;uriHash:string;recipient:string;embeoCost:string;
 + goldCost:string;deadline:string;signerEpoch:string};
 +export const GOLD_CONSENT_TYPES={GenesisGoldHold:[{name:'orderId',type:'bytes32'},{name:'wallet',type:'address'},{name:'goldCost',type:'uint256'},
@@ -605,9 +611,10 @@ index 0000000..2053491
 +export function pinnedDeployment(d:GenesisDeployment):GenesisDeployment{
 + const lowAddr=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)?v.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
 + const codeHash=typeof d.codeHash==='string'&&/^0x[0-9a-fA-F]{64}$/.test(d.codeHash)?d.codeHash.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
-+ if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
++ const added=Array.isArray(d.addedTokenGoldCosts)?d.addedTokenGoldCosts:fail('MINT_DEPLOYMENT_INVALID');
++ if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||added.length>2||!added.every(g=>dec(g)&&g!=='0')||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
 +  ||!Number.isSafeInteger(d.chainId)||d.chainId<1)fail('MINT_DEPLOYMENT_INVALID');
-+ return {...d,contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
++ return {...d,addedTokenGoldCosts:[...added],contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
 +}
 +/** The deployments of this environment only: a Sepolia Worker never sees mainnet entries and the reverse. */
 +export function genesisDeployment(list:readonly GenesisDeployment[],environment:string,id:unknown):GenesisDeployment{
@@ -619,7 +626,7 @@ index 0000000..2053491
 + let wallet='',recipient='';try{wallet=economyAddress(o.wallet);recipient=economyAddress(o.recipient);}catch{fail('INVALID_MINT_AUTH');}
 + if(!word(o.orderId)||o.orderId==='0x'+'0'.repeat(64)||!word(o.lookKey)||o.lookKey==='0x'+'0'.repeat(64)||!word(o.uriHash)
 +  ||!Number.isInteger(o.choice)||(o.choice as number)<0||(o.choice as number)>3||!dec(o.embeoCost)||!dec(o.goldCost)||!dec(o.deadline)||!dec(o.signerEpoch)||o.signerEpoch==='0')fail('INVALID_MINT_AUTH');
-+ if(recipient!==economyAddress(d.recipient)||o.embeoCost!==d.embeoCost||o.goldCost!==d.goldCost)fail('MINT_PRICE_MISMATCH');
++ if(recipient!==economyAddress(d.recipient)||o.embeoCost!==d.embeoCost||(o.goldCost!==d.goldCost&&!d.addedTokenGoldCosts.includes(o.goldCost as string)))fail('MINT_PRICE_MISMATCH');
 + const deadlineS=Number(o.deadline);
 + if(!Number.isSafeInteger(deadlineS*1000)||deadlineS*1000<=nowMs)fail('MINT_AUTH_EXPIRED');
 + if(deadlineS*1000-nowMs>GENESIS_MAX_TTL_S*1000)fail('INVALID_MINT_AUTH');
@@ -910,10 +917,10 @@ index 2f2afb6..9b0a5d9 100644
    assert.deepEqual({phase:f.controller.state.phase,error:f.controller.state.error,store:f.store.size},{phase:'unknown',error:'TRANSACTION_MISMATCH',store:1},name);f.controller.dispose();
 diff --git a/tests/genesis-gold.test.mjs b/tests/genesis-gold.test.mjs
 new file mode 100644
-index 0000000..67eab56
+index 0000000..90c50aa
 --- /dev/null
 +++ b/tests/genesis-gold.test.mjs
-@@ -0,0 +1,308 @@
+@@ -0,0 +1,334 @@
 +import test from 'node:test';
 +import assert from 'node:assert/strict';
 +import {keccak256,toHex,getAddress} from 'viem';
@@ -929,7 +936,7 @@ index 0000000..67eab56
 +// Ported 2026-10-28 from the Sepolia rehearsal book's tests. Every registry entry names its domain version and recipient.
 +const SAFE='0x29e7c208481f648795f677b55f6ecb2badc2f01e',DEAD='0x000000000000000000000000000000000000dead';
 +const CODE='0x6080604052',CODE_HASH=keccak256(CODE),CONTRACT='0x'+'c'.repeat(40),EMBEO='300000000000000000000000';
-+const DEP={id:'sepolia-r5-test-1',environment:'sepolia',chainId:11155111,contract:CONTRACT,codeHash:CODE_HASH,deployBlock:'100',embeoCost:EMBEO,goldCost:'8',signer:'0x'+'5'.repeat(40),domainVersion:'7',recipient:SAFE};
++const DEP={id:'sepolia-r5-test-1',environment:'sepolia',chainId:11155111,contract:CONTRACT,codeHash:CODE_HASH,deployBlock:'100',embeoCost:EMBEO,goldCost:'8',addedTokenGoldCosts:['9'],signer:'0x'+'5'.repeat(40),domainVersion:'7',recipient:SAFE};
 +const LIST=[DEP,{...DEP,id:'mainnet-other',environment:'production',chainId:1}];
 +const DEADLINE=NOW/1000+300;
 +const order=(patch={})=>({orderId:H(0xabc),wallet:W,lookKey:H(0x1001),choice:1,uriHash:keccak256(toHex('ipfs://looks/x/1')),recipient:SAFE,embeoCost:EMBEO,goldCost:'8',deadline:String(DEADLINE),signerEpoch:'1',...patch});
@@ -1220,6 +1227,32 @@ index 0000000..67eab56
 +  const r=await reconcileGenesisGold(f.db,[UP],'sepolia',(d,hint)=>createGenesisR5Reader(d,c.rpc,hint),{deploymentId:UP.id,orderId:order().orderId},NOW);
 +  assert.equal(r.state,'consumed');
 +  await codeOf(reserveGenesisGold(f.db,[{...DEP,codeHash:'0x12'}],'sepolia',req,NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
++ }finally{f.close();}
++});
++
++test('owner 2026-10-29: every payment token has its own GOLD price (imdUSD discounted, USDC higher); a hold is the price the wallet consented to and settles only at that price',async()=>{
++ const f=await setup();try{
++  // GOLD 8 stands for imdUSD's 1,200, 9 for USDC's 1,600: an order at either price is held at exactly that price
++  const o=order({goldCost:'9'}),a=await reserve(f,{deploymentId:DEP.id,order:o,consentSignature:await consent(o)});
++  assert.deepEqual([a.state,a.book,a.reserved,a.available],['held','10','9','1']);
++  // the chain must report the same GOLD price for the token actually paid: the imdUSD price on a USDC hold is a conflict
++  const cheap=await settle(f,chain({tokenId:7n,consumed:{gold:8}}));assert.deepEqual([cheap.state,cheap.code],['held','MINT_PROOF_CONFLICT']);
++  const r=await settle(f,chain({tokenId:7n,consumed:{gold:9}}));assert.deepEqual([r.state,r.reconciliation],['consumed','settled']);
++  assert.deepEqual([(await f.snapshot()).book,(await f.snapshot()).reserved],['1','0']);
++  // a price on no token of the deployment is refused before anything is held
++  const g=order({orderId:H(0xabd),goldCost:'10'});
++  await codeOf(reserve(f,{deploymentId:DEP.id,order:g,consentSignature:await consent(g)}),'MINT_PRICE_MISMATCH');
++ }finally{f.close();}
++});
++test('owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer; a malformed list refuses the entry',async()=>{
++ const f=await setup();try{
++  for(const addedTokenGoldCosts of [undefined,'9',['0'],['9','9','9'],['09'],[9]]){
++   const bad={...DEP,addedTokenGoldCosts};
++   await codeOf(reserveGenesisGold(f.db,[bad],'sepolia',await request(),NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
++  }
++  const none={...DEP,addedTokenGoldCosts:[]},o=order({goldCost:'9'});
++  await codeOf(reserveGenesisGold(f.db,[none],'sepolia',{deploymentId:DEP.id,order:o,consentSignature:await consent(o)},NOW,()=>NOW),'MINT_PRICE_MISMATCH');
++  assert.equal((await f.snapshot()).reserved,'0');
 + }finally{f.close();}
 +});
 diff --git a/tests/gold-review-record.test.mjs b/tests/gold-review-record.test.mjs

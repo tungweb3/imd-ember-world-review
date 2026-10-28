@@ -1,7 +1,7 @@
 From 943959cad55bb3245e62fe703d636d3d328f3b3f Mon Sep 17 00:00:00 2001
 From: IMD Ember <operator@imdember.invalid>
 Date: Wed, 28 Oct 2026 07:10:47 +0800
-Subject: [PATCH 3/4] Wallet lock: lock only the wallet files the Swarm audits
+Subject: [PATCH 3/5] Wallet lock: lock only the wallet files the Swarm audits
  reviewed (owner clarification)
 
 The owner asked for the lock to cover only what would invalidate a wallet audit. scripts/wallet-lock.mjs now names an

@@ -5,12 +5,13 @@ Prepared 2026-10-29. A request for review, not a claim that anything is safe. No
 ## 0. Scope and identity
 
 - Previous public snapshot: Submission18 (World source `96858bf`), reviewed in job `f6bd50ad` (3 Low).
-- This submission: World source `20b1d6a`, **not deployed**. Four commits after `96858bf`:
+- This submission: World source `21df62b`, **not deployed**. Five commits after `96858bf`:
   - `7021b5b` — remediation of `f6bd50ad` (3 Low) plus the "GOLD payment review record" panel section. **Live** as Worker `a92a767c-bb89-4871-8439-916cded5bb6d` since 2026-10-27 19:34 UTC. Published here for the first time.
   - `ecd9050`, `943959c` — the wallet lock: `scripts/wallet-lock.mjs`, `security/wallet-lock.json` (SHA-256 of the wallet files the earlier audits reviewed) and `tests/wallet-lock.test.mjs`, which fails when a locked file changes. Tests and tooling only.
   - **`20b1d6a` — the subject of this review**: the GOLD ledger for paid Genesis NFT mints, ported from the Sepolia rehearsal Worker.
-- **Expected failure:** `server/world-gold.ts` is locked and `20b1d6a` changes one type line in it (`MintBinding` gains two optional fields). The lock hash was deliberately not refreshed, so `tests/wallet-lock.test.mjs` fails and the deploy tool refuses to upload until this review is done and the owner approves. See `evidence/full_suite_20b1d6a_summary.txt`.
-- No Solidity changed. The Genesis contract the ledger reads is public at <https://github.com/tungweb3/ember-evo-genesis-review> (Submission5, `EmberEvoGenesisCandidate.sol`); its mainnet deployment has not happened yet.
+  - **`21df62b`** — each Genesis payment token has its own GOLD price (§1b).
+- **Expected failure:** `server/world-gold.ts` is locked and `20b1d6a` changes one type line in it (`MintBinding` gains two optional fields). The lock hash was deliberately not refreshed, so `tests/wallet-lock.test.mjs` fails and the deploy tool refuses to upload until this review is done and the owner approves. See `evidence/full_suite_20b1d6a_summary.txt` and `evidence/full_suite_21df62b_summary.txt`.
+- No Solidity is in this submission. The Genesis contract the ledger reads is public at <https://github.com/tungweb3/ember-evo-genesis-review> (Submission5, `EmberEvoGenesisCandidate.sol`); its mainnet deployment has not happened yet. The version to be deployed adds the payment tokens of §1b; it gets its own Genesis review.
 
 ## 1. What `20b1d6a` does
 
@@ -23,6 +24,15 @@ The Genesis mint signer is a separate Worker of the same Cloudflare account. Whe
 5. **Production registry is empty**: every reserve is refused (`MINT_DEPLOYMENT_UNKNOWN`) and the cron does nothing until the mainnet contract is deployed and its entry is added.
 
 Two internal reviews before this submission found and fixed: EIP-55 or upper-case registry values making retries conflict and the reader never match (now normalized by `pinnedDeployment`); the Genesis step being blocked by other cron failures; the per-order bytecode hash (32 × 24 KB ≈ 37 ms against the 50 ms CPU limit of the scheduled run); no timeout or status check on the test-chain RPC; one bad registry entry stopping all deployments.
+
+## 1b. What `21df62b` does: one GOLD price per payment token
+
+Owner decision 2026-10-29. The Genesis contract to be deployed takes imdUSD v1 (its deployment token, 1,200 GOLD); the owner Safe adds USDC right after deployment (1,600 GOLD) and imdUSD v2 later (1,200 GOLD); at most two added tokens, each once, usable two days after being added, never removed. Every token pays the same $20, so paying in imdUSD is a 400 GOLD discount. On chain, `mintPaid` takes the GOLD price of the token actually paid, checks the signed `PaidAuthorization.goldCost` against it and reports it in `PaidOrderConsumed.goldCost`.
+
+- `GenesisDeployment` gains `addedTokenGoldCosts` (at most two positive decimal strings; anything else refuses the entry with `MINT_DEPLOYMENT_INVALID`).
+- `parseOrder` accepts an order whose `goldCost` is the deployment token's or one of the added tokens' (else `MINT_PRICE_MISMATCH`). The order names no token; the wallet's consent covers the exact `goldCost` held.
+- The reader is unchanged: it already settles a hold only when the stored order's `goldCost`, the held amount and `PaidOrderConsumed.goldCost` are equal, so an order held at the imdUSD price and paid in USDC (which the contract refuses anyway) would stay held, never settle at the wrong price.
+- The mainnet entry is added only after USDC is added on chain, with the prices read back from `paymentTokens(token)`; imdUSD v2 has imdUSD's price, so adding it later changes nothing in the registry.
 
 ## 2. Left as they are
 
@@ -37,10 +47,11 @@ Two internal reviews before this submission found and fixed: EIP-55 or upper-cas
 2. **`orderWindow`**: off-by-one at either end, the binary search invariant, missed slots, a reconciliation long after the order, `fin.time < start`. Can it return a window that misses a real consumption while still reporting "not consumed"? (It should only ever keep the hold.)
 3. **reserve**: can a caller with the service binding hold GOLD without the wallet's consent, with other costs or recipient than the registry's, with a longer deadline, or make a retry hold twice? Is the `encodeMintAuth` branch binding domain version and recipient from the registry sufficient?
 4. **Worker wiring**: `package.json` `imports` (`#worker-entrypoint`: `workerd` → `cloudflare:workers`, otherwise a Node stub for tests), the extra named export in `worker/index.ts`, cron isolation and limits (CPU, subrequests, `ECONOMY_CHAIN_LIMITER` key `genesis:rpc`), and any secret (the Alchemy key, a test RPC URL) reaching an error, log or the service boundary.
-5. **`7021b5b`** (live): the three `f6bd50ad` fixes — lower-nonce payment must have status 0x1, a failed note is dropped only by order id and hash, `ESBUILD_BINARY_PATH` / `NAPI_RS_NATIVE_LIBRARY_PATH` refused by the deploy tool.
+5. **`21df62b`**: can an order be held at one deployment's price list and settle at another price, can a registry entry carry a price list that lets a caller hold an amount no token of the contract charges, or can the price check be bypassed on retry (the stored-order path of `reserveGenesisGold`)?
+6. **`7021b5b`** (live): the three `f6bd50ad` fixes — lower-nonce payment must have status 0x1, a failed note is dropped only by order id and hash, `ESBUILD_BINARY_PATH` / `NAPI_RS_NATIVE_LIBRARY_PATH` refused by the deploy tool.
 
 ## 4. Not verified
 
-- Nothing in `20b1d6a` has run in production or against mainnet; the Sepolia rehearsal of the same book ran with a different (unbounded) log search.
+- Nothing in `20b1d6a` or `21df62b` has run in production or against mainnet; the Sepolia rehearsal of the same book ran with a different (unbounded) log search.
 - The tests use a JSON-RPC stand-in, not a real node.
 - CPU time was measured in Node 24 on a desktop, not in workerd.
