@@ -321,9 +321,9 @@ test('owner 2026-10-29: every payment token has its own GOLD price (imdUSD disco
   await codeOf(reserve(f,{deploymentId:DEP.id,order:g,consentSignature:await consent(g)}),'MINT_PRICE_MISMATCH');
  }finally{f.close();}
 });
-test('owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer; a malformed list refuses the entry',async()=>{
+test('owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer, no repeats; a malformed list refuses the entry',async()=>{
  const f=await setup();try{
-  for(const addedTokenGoldCosts of [undefined,'9',['0'],['9','9','9'],['09'],[9]]){
+  for(const addedTokenGoldCosts of [undefined,'9',['0'],['9','9','9'],['9','9'],['09'],[9]]){
    const bad={...DEP,addedTokenGoldCosts};
    await codeOf(reserveGenesisGold(f.db,[bad],'sepolia',await request(),NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
   }
@@ -331,4 +331,7 @@ test('owner 2026-10-29: a registry entry lists at most two added-token GOLD pric
   await codeOf(reserveGenesisGold(f.db,[none],'sepolia',{deploymentId:DEP.id,order:o,consentSignature:await consent(o)},NOW,()=>NOW),'MINT_PRICE_MISMATCH');
   assert.equal((await f.snapshot()).reserved,'0');
  }finally{f.close();}
+});
+test('review 2026-10-29: every registry entry id is unique within its environment (the cron keeps one cursor per id)',()=>{
+ const keys=GENESIS_DEPLOYMENTS.map(d=>d.environment+':'+d.id);assert.equal(new Set(keys).size,keys.length);
 });
