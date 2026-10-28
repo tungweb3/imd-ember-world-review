@@ -1,7 +1,7 @@
 From ecd905020284ec5f0a18e969161e32333f57fef5 Mon Sep 17 00:00:00 2001
 From: IMD Ember <operator@imdember.invalid>
 Date: Wed, 28 Oct 2026 06:55:03 +0800
-Subject: [PATCH 2/5] Wallet lock: freeze the audited wallet, sign-in and
+Subject: [PATCH 2/6] Wallet lock: freeze the audited wallet, sign-in and
  payment code (owner request)
 
 scripts/wallet-lock.mjs names the zone (page wallet controller, GOLD purchase, checkouts, sign-in; server economy,

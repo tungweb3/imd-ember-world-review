@@ -1,7 +1,7 @@
 From 7021b5bb1dd5815e3055ec4b674075d5de7dcce9 Mon Sep 17 00:00:00 2001
 From: IMD Ember <operator@imdember.invalid>
 Date: Wed, 28 Oct 2026 03:34:18 +0800
-Subject: [PATCH 1/5] Swarm audit f6bd50ad: lower-nonce payment must succeed,
+Subject: [PATCH 1/6] Swarm audit f6bd50ad: lower-nonce payment must succeed,
  drop a failed note by hash, refuse bundler overrides; GOLD review record
 
 - Finding 1: the lower-nonce exception accepts only a successful payment (a revert uses no order id).

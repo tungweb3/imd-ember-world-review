@@ -1,7 +1,7 @@
 From 20b1d6a201361b3796f05a56565f44ee5bbcdb8d Mon Sep 17 00:00:00 2001
 From: IMD Ember <operator@imdember.invalid>
 Date: Thu, 29 Oct 2026 01:33:07 +0800
-Subject: [PATCH 4/5] Genesis GOLD ledger: paid-mint holds settled from
+Subject: [PATCH 4/6] Genesis GOLD ledger: paid-mint holds settled from
  finalized chain facts
 
 Port the Genesis paid-mint GOLD book from the Sepolia rehearsal into the

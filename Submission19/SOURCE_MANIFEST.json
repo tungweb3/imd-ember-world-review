@@ -2,7 +2,7 @@
  "schema": "imd-ember-world-review-selected-source/v1",
  "submission": 19,
  "privateBase": "96858bf",
- "privateSource": "21df62be3a694ee06e85e597279e49870e3315b5",
+ "privateSource": "7939c37a995b06e17cb1b7fc420485bb5bec21cf",
  "files": [
   {
    "path": "CLAUDE.md",
@@ -79,10 +79,10 @@
   {
    "path": "server/genesis-gold.ts",
    "status": "A",
-   "bytes": 14672,
-   "sha256": "b8f1c489913a9380ca82e07bd6fa1b5cd18fcd6c69292bac05e8ef8a526ffa4e",
-   "blob": "e2b5f62860ad3652692d407bd87aff8bfe0c2345",
-   "privateBlob": "e2b5f62860ad3652692d407bd87aff8bfe0c2345"
+   "bytes": 14698,
+   "sha256": "6146a4e776df3178f2e343e9653dca208e7792604adfe8e3c3a8f781c916d2d6",
+   "blob": "b24cadd2db3ddcf26dc7c42b4a552a6425c63129",
+   "privateBlob": "b24cadd2db3ddcf26dc7c42b4a552a6425c63129"
   },
   {
    "path": "server/world-gold-result.ts",
@@ -143,10 +143,10 @@
   {
    "path": "tests/genesis-gold.test.mjs",
    "status": "A",
-   "bytes": 26408,
-   "sha256": "2844c5fdfb5a4ed989c48eacf5b76d92de2c324d2e2f99d939111bae7dc6e9cb",
-   "blob": "90c50aa9f1d10645da373bb3bf5f4ac8802bdd03",
-   "privateBlob": "90c50aa9f1d10645da373bb3bf5f4ac8802bdd03"
+   "bytes": 26667,
+   "sha256": "505376973a547be8e4f0dc037d8648fb345b8b33a8840b057af14558762cd00c",
+   "blob": "47e0bf8026abdf44e930f179a978cd520bb4076a",
+   "privateBlob": "47e0bf8026abdf44e930f179a978cd520bb4076a"
   },
   {
    "path": "tests/gold-review-record.test.mjs",

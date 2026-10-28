@@ -1,7 +1,7 @@
 From 21df62be3a694ee06e85e597279e49870e3315b5 Mon Sep 17 00:00:00 2001
 From: IMD Ember <operator@imdember.invalid>
 Date: Thu, 29 Oct 2026 03:41:28 +0800
-Subject: [PATCH 5/5] Genesis GOLD: each payment token has its own GOLD price
+Subject: [PATCH 5/6] Genesis GOLD: each payment token has its own GOLD price
  (imdUSD discount)
 
 Owner 2026-10-29: the Genesis contract takes imdUSD v1 (1,200 GOLD), USDC added

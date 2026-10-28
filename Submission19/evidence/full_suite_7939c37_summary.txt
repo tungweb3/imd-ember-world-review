@@ -1,15 +1,15 @@
-Full test suite of World source 21df62b (clean tree, git status empty), Node v24.22.1 on Windows, 2026-10-29.
+Full test suite of World source 7939c37 (clean tree, git status empty), Node v24.22.1 on Windows, 2026-10-29.
 Command: node --test --test-concurrency=2 tests/*.test.mjs
 
 Totals:
-ℹ tests 3663
+ℹ tests 3664
 ℹ suites 0
-ℹ pass 3657
+ℹ pass 3658
 ℹ fail 1
 ℹ cancelled 0
 ℹ skipped 5
 ℹ todo 0
-ℹ duration_ms 308175.94
+ℹ duration_ms 313105.2436
 
 Skipped (Windows cannot create file symlinks for this user; same as earlier submissions):
 ﹣ Audit9 minimization CLI rejects a dangling final file symlink without creating its target
@@ -18,9 +18,9 @@ Skipped (Windows cannot create file symlinks for this user; same as earlier subm
 ﹣ deterministic target substitution during serialization is rejected at finalization
 ﹣ existing output file symlink is rejected and its outside bytes stay exact
 
-The one failure is expected (AUDIT_REQUEST.md section 0): server/world-gold.ts is in the wallet lock and 20b1d6a changes one type line in it; 21df62b does not touch it. The lock hash was not refreshed.
+The one failure is expected (AUDIT_REQUEST.md section 0): server/world-gold.ts is in the wallet lock and 20b1d6a changes one type line in it; 21df62b and 7939c37 do not touch it. The lock hash was not refreshed.
 
-tests/genesis-gold.test.mjs on its own at 21df62b:
+tests/genesis-gold.test.mjs on its own at 7939c37:
 ✔ a wallet-consented hold reserves exactly the registry GOLD cost; a lost response retried returns the same hold
 ✔ the same orderId with any other content conflicts and holds nothing more
 ✔ consent must be the wallet’s own signature over this exact order
@@ -43,7 +43,8 @@ tests/genesis-gold.test.mjs on its own at 21df62b:
 ✔ the production registry is empty and every entry type names its domain version and recipient
 ✔ review 2026-10-28: a registry entry with EIP-55 capitals or an uppercase code hash still retries and settles; a malformed entry is refused
 ✔ owner 2026-10-29: every payment token has its own GOLD price (imdUSD discounted, USDC higher); a hold is the price the wallet consented to and settles only at that price
-✔ owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer; a malformed list refuses the entry
-ℹ tests 23
-ℹ pass 23
+✔ owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer, no repeats; a malformed list refuses the entry
+✔ review 2026-10-29: every registry entry id is unique within its environment (the cron keeps one cursor per id)
+ℹ tests 24
+ℹ pass 24
 ℹ fail 0

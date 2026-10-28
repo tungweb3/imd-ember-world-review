@@ -53,7 +53,7 @@ export function pinnedDeployment(d:GenesisDeployment):GenesisDeployment{
  const lowAddr=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)?v.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
  const codeHash=typeof d.codeHash==='string'&&/^0x[0-9a-fA-F]{64}$/.test(d.codeHash)?d.codeHash.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
  const added=Array.isArray(d.addedTokenGoldCosts)?d.addedTokenGoldCosts:fail('MINT_DEPLOYMENT_INVALID');
- if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||added.length>2||!added.every(g=>dec(g)&&g!=='0')||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
+ if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||added.length>2||!added.every((g,i)=>dec(g)&&g!=='0'&&added.indexOf(g)===i)||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
   ||!Number.isSafeInteger(d.chainId)||d.chainId<1)fail('MINT_DEPLOYMENT_INVALID');
  return {...d,addedTokenGoldCosts:[...added],contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
 }

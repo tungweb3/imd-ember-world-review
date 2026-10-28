@@ -1,0 +1,51 @@
+From 7939c37a995b06e17cb1b7fc420485bb5bec21cf Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Thu, 29 Oct 2026 04:13:40 +0800
+Subject: [PATCH 6/6] genesis-gold: refuse repeated added-token GOLD prices;
+ test registry ids are unique
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/genesis-gold.ts      | 2 +-
+ tests/genesis-gold.test.mjs | 7 +++++--
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/server/genesis-gold.ts b/server/genesis-gold.ts
+index e2b5f62..b24cadd 100644
+--- a/server/genesis-gold.ts
++++ b/server/genesis-gold.ts
+@@ -53,7 +53,7 @@ export function pinnedDeployment(d:GenesisDeployment):GenesisDeployment{
+  const lowAddr=(v:unknown)=>typeof v==='string'&&/^0x[0-9a-fA-F]{40}$/.test(v)?v.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
+  const codeHash=typeof d.codeHash==='string'&&/^0x[0-9a-fA-F]{64}$/.test(d.codeHash)?d.codeHash.toLowerCase():fail('MINT_DEPLOYMENT_INVALID');
+  const added=Array.isArray(d.addedTokenGoldCosts)?d.addedTokenGoldCosts:fail('MINT_DEPLOYMENT_INVALID');
+- if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||added.length>2||!added.every(g=>dec(g)&&g!=='0')||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
++ if(!dec(d.deployBlock)||!dec(d.embeoCost)||!dec(d.goldCost)||d.goldCost==='0'||added.length>2||!added.every((g,i)=>dec(g)&&g!=='0'&&added.indexOf(g)===i)||typeof d.domainVersion!=='string'||!/^[0-9]{1,8}$/.test(d.domainVersion)
+   ||!Number.isSafeInteger(d.chainId)||d.chainId<1)fail('MINT_DEPLOYMENT_INVALID');
+  return {...d,addedTokenGoldCosts:[...added],contract:lowAddr(d.contract),codeHash,recipient:lowAddr(d.recipient),signer:lowAddr(d.signer)};
+ }
+diff --git a/tests/genesis-gold.test.mjs b/tests/genesis-gold.test.mjs
+index 90c50aa..47e0bf8 100644
+--- a/tests/genesis-gold.test.mjs
++++ b/tests/genesis-gold.test.mjs
+@@ -321,9 +321,9 @@ test('owner 2026-10-29: every payment token has its own GOLD price (imdUSD disco
+   await codeOf(reserve(f,{deploymentId:DEP.id,order:g,consentSignature:await consent(g)}),'MINT_PRICE_MISMATCH');
+  }finally{f.close();}
+ });
+-test('owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer; a malformed list refuses the entry',async()=>{
++test('owner 2026-10-29: a registry entry lists at most two added-token GOLD prices, each a positive integer, no repeats; a malformed list refuses the entry',async()=>{
+  const f=await setup();try{
+-  for(const addedTokenGoldCosts of [undefined,'9',['0'],['9','9','9'],['09'],[9]]){
++  for(const addedTokenGoldCosts of [undefined,'9',['0'],['9','9','9'],['9','9'],['09'],[9]]){
+    const bad={...DEP,addedTokenGoldCosts};
+    await codeOf(reserveGenesisGold(f.db,[bad],'sepolia',await request(),NOW,()=>NOW),'MINT_DEPLOYMENT_INVALID');
+   }
+@@ -332,3 +332,6 @@ test('owner 2026-10-29: a registry entry lists at most two added-token GOLD pric
+   assert.equal((await f.snapshot()).reserved,'0');
+  }finally{f.close();}
+ });
++test('review 2026-10-29: every registry entry id is unique within its environment (the cron keeps one cursor per id)',()=>{
++ const keys=GENESIS_DEPLOYMENTS.map(d=>d.environment+':'+d.id);assert.equal(new Set(keys).size,keys.length);
++});
+-- 
+2.56.0.windows.4
+
