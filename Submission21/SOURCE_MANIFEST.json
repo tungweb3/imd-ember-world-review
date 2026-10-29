@@ -1,0 +1,34 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 21,
+ "privateBase": "0727200",
+ "privateSource": "6be9ef3df921937d092fd6420b652948252d9f4b",
+ "files": [
+  {
+   "path": "server/genesis-gold-reader.ts",
+   "status": "M",
+   "bytes": 12784,
+   "sha256": "62ef67296701d76ea0125df042447f229b7965be7832f03073ee1c841f4b7ba4",
+   "blob": "6faed3e6153551a72053fb23381b7ccf2f261822",
+   "privateBlob": "6faed3e6153551a72053fb23381b7ccf2f261822"
+  },
+  {
+   "path": "server/genesis-gold.ts",
+   "status": "M",
+   "bytes": 18115,
+   "sha256": "02ab28b645c9484dfa1db9e62bbd76220ab82572b963b17a06dab3e5f587cc53",
+   "blob": "4dcf6165521e08b63261ab0807ee30b64d8a8924",
+   "privateBlob": "4dcf6165521e08b63261ab0807ee30b64d8a8924"
+  },
+  {
+   "path": "tests/genesis-gold.test.mjs",
+   "status": "M",
+   "bytes": 39304,
+   "sha256": "7c2df74cf20df49c0163663ce021b8a0ac571c5d6238c7d98cf5b12ab10901a3",
+   "blob": "db44fedcc50ecdaa5b52e88fe83cd3df97eb6247",
+   "privateBlob": "db44fedcc50ecdaa5b52e88fe83cd3df97eb6247"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission20": "files not listed here are unchanged since Submission20/source (World 0727200) or the earlier SubmissionN/source folders"
+}

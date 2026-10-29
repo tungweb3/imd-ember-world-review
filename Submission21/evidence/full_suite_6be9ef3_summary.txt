@@ -1,0 +1,58 @@
+Full test suite of World source 6be9ef3 (the working tree equalled 6be9ef3 when it ran; committed right after), Node v24.22.1 on Windows, 2026-10-29.
+Command: node --test --test-concurrency=2 tests/*.test.mjs
+
+Totals:
+ℹ tests 3673
+ℹ suites 0
+ℹ pass 3667
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 377763.485
+
+Skipped (Windows cannot create file symlinks for this user; same as earlier submissions):
+﹣ dangling output file symlink is observed and rejected without creating its outside target
+﹣ existing output file symlink is rejected and its outside bytes stay exact
+﹣ deterministic target substitution during serialization is rejected at finalization
+﹣ Audit9 minimization CLI rejects a dangling final file symlink without creating its target
+﹣ Audit9 minimization CLI rejects an existing final file symlink and preserves target bytes
+
+The one failure is expected (AUDIT_REQUEST.md, top): server/world-gold.ts is in the wallet lock and 20b1d6a (Submission19) changes one type line in it; 6be9ef3 does not touch it. The lock hash was not refreshed.
+
+npx tsc --noEmit -p . : exit 0
+
+tests/genesis-gold.test.mjs on its own at 6be9ef3:
+✔ a wallet-consented hold reserves exactly the registry GOLD cost; a lost response retried returns the same hold
+✔ the same orderId with any other content conflicts and holds nothing more
+✔ consent must be the wallet’s own signature over this exact order
+✔ costs, recipient, deadline, choice and deployment come from the registry and the R5 rules, not the caller
+✔ the stored document names the deployment’s own EIP-712 domain version (Genesis audit 2026-10-27, finding 10)
+✔ Genesis owner 2026-10-28: the recipient comes from the registry (the treasury Safe); any other address, the burn address too, is refused
+✔ Genesis audit b0b1d96a finding 3: the stored-hold check takes domain version and recipient from the binding, not any of 5 / 7 and any address
+✔ closed mint control, missing GOLD and the empty production registry all refuse; SQL text never crosses the service
+✔ a finalized PaidOrderConsumed with its GenesisMinted spends the hold once
+✔ Genesis audit 2026-10-27 finding 2: a paid mint sent through a smart-contract wallet or a bundle (receipt.to is not the contract, other tokens minted in the same transaction) still settles; a second mint of this same token does not
+✔ release needs a finalized unused order that is revoked or strictly past its deadline
+✔ wrong chain, code, events or an RPC failure keep the hold; nothing is released on a guess
+✔ cron pages through held orders of its deployments with a persisted cursor, checking the bytecode once per finalized block
+✔ review 2026-10-28: a malformed registry entry is reported by its code and the other deployments are still settled
+✔ review 2026-10-28: a test chain RPC request has a timeout, and a non-2xx reply is a chain failure
+✔ review 2026-10-28: a receipt from a block that is no longer canonical, a removed log or two live logs never settle
+✔ without a hint the log search covers only the order window, in requests of at most 10 blocks, and settles
+✔ a reconciliation a month late, with missed slots since the order, still searches about one order window
+✔ World audit 8febfeed finding 2: deployed long before the order and reconciled much later, the search still covers about one order window
+✔ World audit 8febfeed finding 3: the cron page holds only its own deployment's orders, so another entry's holds never delay it
+✔ World audit 8febfeed finding 5: the signer's reconcile calls and the cron spend separate rate-limit keys
+✔ a consumption outside the window, or timestamps that break one block per slot, keep the hold; a verified hint still settles
+✔ the production registry is empty and every entry type names its domain version and recipient
+✔ review 2026-10-28: a registry entry with EIP-55 capitals or an uppercase code hash still retries and settles; a malformed entry is refused
+✔ owner 2026-10-29: every payment token has its own GOLD price (imdUSD discounted, USDC higher); a hold is the price the wallet consented to and settles only at that price
+✔ Genesis audit 944905c3 finding 1: the order names its token and is held only at the GOLD price listed for that token
+✔ World audit 8febfeed finding 4: an identical retry is answered from the stored order after the registry changes; another order still conflicts
+✔ owner 2026-10-29: a registry entry lists at most two added tokens, each a distinct token other than paymentToken with a positive GOLD price; a malformed list refuses the entry
+✔ review 2026-10-29: every registry entry id is unique within its environment (the cron keeps one cursor per id)
+✔ World audit e3e9b712 finding 1: on the cron path a wrong chain or a code that does not match the registry is reported, not dropped
+✔ World audit e3e9b712 finding 2: exactly one page of held orders is released the next run, without an empty run in between
+✔ World audit e3e9b712 finding 3: a hold settles only on a receipt where its own token paid the wallet’s money to the recipient
+✔ World audit e3e9b712 finding 5: a retry of a held order needs the wallet’s own valid consent, and any changed field conflicts
