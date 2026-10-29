@@ -1,0 +1,58 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 20,
+ "privateBase": "7939c37",
+ "privateSource": "07272002d146caea70950bee609c7cc7ab451074",
+ "files": [
+  {
+   "path": "server/genesis-deployments.ts",
+   "status": "M",
+   "bytes": 1598,
+   "sha256": "be8073bc65e1bd2c84291eed3c648d0c60b9dbc9cd467b9b7489e87c58697008",
+   "blob": "5a4d7ed2f2e1d18f492d02636be9fc97e3b19456",
+   "privateBlob": "5a4d7ed2f2e1d18f492d02636be9fc97e3b19456"
+  },
+  {
+   "path": "server/genesis-gold-reader.ts",
+   "status": "M",
+   "bytes": 11825,
+   "sha256": "57be44246ca341ac4b9b89810b2662b11f093f308c1e0495dbac4483a1345da2",
+   "blob": "e02b3a28e7447706739e242d5fa47ee18fab6250",
+   "privateBlob": "e02b3a28e7447706739e242d5fa47ee18fab6250"
+  },
+  {
+   "path": "server/genesis-gold-service.ts",
+   "status": "M",
+   "bytes": 4958,
+   "sha256": "c84598d9cdb897a7b1b43048b9e412cfb46b12b5f123f55d017b601c22b36e66",
+   "blob": "d2440d541487e4b35607502e9cff1c141b7cc759",
+   "privateBlob": "d2440d541487e4b35607502e9cff1c141b7cc759"
+  },
+  {
+   "path": "server/genesis-gold.ts",
+   "status": "M",
+   "bytes": 17153,
+   "sha256": "3d8f473c5569bd9a7889a3054c44e8cf51680c45366933446ce2352240f7f53d",
+   "blob": "b2a919523b0d5128b4a268bd699de3c657e4764f",
+   "privateBlob": "b2a919523b0d5128b4a268bd699de3c657e4764f"
+  },
+  {
+   "path": "server/world-gold-result.ts",
+   "status": "M",
+   "bytes": 7517,
+   "sha256": "ab0dbada15d021d2bf71bc4406695156141c147a6fe6b93ab4c84265c38fc9b4",
+   "blob": "2f53b634deb632b2d7bd1c1701f6fac9f6342c0d",
+   "privateBlob": "2f53b634deb632b2d7bd1c1701f6fac9f6342c0d"
+  },
+  {
+   "path": "tests/genesis-gold.test.mjs",
+   "status": "M",
+   "bytes": 33586,
+   "sha256": "608b3f63b2e96af55dcf4b1b411b7a10cbad2ed8882196b08e9b147779eff731",
+   "blob": "b5b853fdcce2ac9b5f6532ca55a985c6bee170ab",
+   "privateBlob": "b5b853fdcce2ac9b5f6532ca55a985c6bee170ab"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission19": "files not listed here are unchanged since Submission19/source (World 7939c37) or the earlier SubmissionN/source folders"
+}
