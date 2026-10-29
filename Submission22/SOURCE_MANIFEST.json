@@ -1,0 +1,42 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 22,
+ "privateBase": "6be9ef3",
+ "privateSource": "7d09bda17d56810f27dfe9383aad11c616d81db9",
+ "files": [
+  {
+   "path": "server/genesis-deployments.ts",
+   "status": "M",
+   "bytes": 1620,
+   "sha256": "d011e7d26c374538b4483060d7e66a3a9d68874af3a412971e7b8b7a8f6fecb6",
+   "blob": "0d1e4ae865b57fba1f3b2828403105370aeabb3b",
+   "privateBlob": "0d1e4ae865b57fba1f3b2828403105370aeabb3b"
+  },
+  {
+   "path": "server/genesis-gold-reader.ts",
+   "status": "M",
+   "bytes": 13391,
+   "sha256": "ca4a082249b3e3e0d84b3576d85faa24c58c353db5a51ad12e73d5d796638929",
+   "blob": "348fbda27d5ae0851d211cd20a853689fd434e7b",
+   "privateBlob": "348fbda27d5ae0851d211cd20a853689fd434e7b"
+  },
+  {
+   "path": "server/genesis-gold.ts",
+   "status": "M",
+   "bytes": 18809,
+   "sha256": "e83d60254a55c76cc9c53141fa2cdf5ef5c3e061b67108649b29c239aa6d5924",
+   "blob": "64093282f23a2c0778a1a76dde48fe2eacdc30e9",
+   "privateBlob": "64093282f23a2c0778a1a76dde48fe2eacdc30e9"
+  },
+  {
+   "path": "tests/genesis-gold.test.mjs",
+   "status": "M",
+   "bytes": 41661,
+   "sha256": "2e0cd4da92cb0740d70278f38b76b3e369d12a5d55aef8dde50eeeb49722884b",
+   "blob": "bff691dae39f2659d4eb51f923dfe782ef674f44",
+   "privateBlob": "bff691dae39f2659d4eb51f923dfe782ef674f44"
+  }
+ ],
+ "removed": [],
+ "unchangedSinceSubmission21": "files not listed here are unchanged since Submission21/source (World 6be9ef3) or the earlier SubmissionN/source folders"
+}
