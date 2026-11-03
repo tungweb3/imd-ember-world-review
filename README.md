@@ -1,6 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission22](Submission22/README.md) — remediation of audit 93dae57f of the Genesis paid-mint GOLD ledger; the payment Transfer must carry the registry amount (source `7d09bda`, NOT DEPLOYED, production registry empty) · published for the record, no further review requested**
+**Current: [Submission23](Submission23/README.md) — the annual reading as the sixth Celestao GOLD product, with the Celestao payment path public for the first time (World `754ef44`, not deployed).**
+
+Read [Submission23/AUDIT_REQUEST.md](Submission23/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission22](Submission22/README.md) — remediation of audit 93dae57f of the Genesis paid-mint GOLD ledger; the payment Transfer must carry the registry amount (source `7d09bda`, NOT DEPLOYED, production registry empty) · published for the record, no further review requested**
 
 Read [Submission22/REMEDIATION.md](Submission22/REMEDIATION.md) first. [Submission21](Submission21/README.md) (settlement checks the paying token, `6be9ef3`) was reviewed in job `93dae57f`; [Submission20](Submission20/README.md) (the paid order names its payment token, `0727200`) was reviewed in job `e3e9b712`; [Submission19](Submission19/README.md) (the Genesis GOLD ledger at `7939c37`, plus the live remediation of audit f6bd50ad, `7021b5b`, Worker `a92a767c`) was reviewed in job `8febfeed`; [Submission18](Submission18/README.md) (final review of what was live at source `96858bf`) was reviewed in job `f6bd50ad`; [Submission17](Submission17/README.md) was published for the record without a review request; [Submission16](Submission16/README.md) was reviewed in job `1ac5269f`; [Submission15](Submission15/README.md) in job `351b0573`; [Submission14](Submission14/README.md) in job `12e0525d`; [Submission13](Submission13/README.md) in job `e4a57f91`. They and the Submission12 text below are kept as history.
 
