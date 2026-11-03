@@ -1,0 +1,59 @@
+{
+  "version": "celestao-gold-v1-20261025",
+  "products": [
+    {
+      "system": "bazi",
+      "product": "fortune-bazi",
+      "nameZh": "四柱八字",
+      "nameEn": "Four Pillars",
+      "gold": "1000",
+      "listGold": "1000",
+      "version": 1
+    },
+    {
+      "system": "ziwei",
+      "product": "fortune-ziwei",
+      "nameZh": "紫微斗數",
+      "nameEn": "Zi Wei Dou Shu",
+      "gold": "1000",
+      "listGold": "1000",
+      "version": 1
+    },
+    {
+      "system": "annual_ziwei",
+      "product": "fortune-annual-ziwei",
+      "nameZh": "流年運勢",
+      "nameEn": "Zi Wei Year",
+      "gold": "1000",
+      "listGold": "1000",
+      "version": 1
+    },
+    {
+      "system": "western",
+      "product": "fortune-western",
+      "nameZh": "西洋星盤",
+      "nameEn": "Western astrology",
+      "gold": "800",
+      "listGold": "800",
+      "version": 1
+    },
+    {
+      "system": "human",
+      "product": "fortune-human",
+      "nameZh": "人類圖",
+      "nameEn": "Human Design",
+      "gold": "600",
+      "listGold": "600",
+      "version": 1
+    },
+    {
+      "system": "profile",
+      "product": "fortune-profile",
+      "nameZh": "完整解讀",
+      "nameEn": "Complete reading",
+      "gold": "3000",
+      "listGold": "3400",
+      "version": 1
+    }
+  ]
+}

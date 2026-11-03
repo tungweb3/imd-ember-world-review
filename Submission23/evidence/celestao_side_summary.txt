@@ -1,0 +1,17 @@
+Celestao side, read-only containers, no network, real chart engines where noted.
+
+integrations/celestao/tests (unit): 34 tests, 5 skipped because they need the native tree; those 5 pass in the next line.
+tests/test_native_annual.py on the real engines: 5 pass.
+Native tests of the merged service, before the two fixes below: 2,313 pass, 1 fail.
+ The failure, test_no_fake_finance_completion, also fails on the tree now live and is unrelated to payment.
+Native tests after the fixes, annual reading and wording pass only: 123 pass. The full native run was not repeated.
+Deployment candidate smoke with six systems (1 CPU, 1 GB, 128 pids), before the fixes: pass.
+
+Random Zi Wei charts over all ages after the fix:
+95 charts, 81 edited, 14 kept the composed text because a reading year lies past the last ten-year stage (no other failure), 0 placeholder stages printed.
+
+Mutations (each fix undone once, its test then fails):
+ - name rule in the annual request model: test_a_name_the_reader_would_refuse_is_refused_before_any_report,
+   test_a_name_the_reader_would_refuse_is_refused_before_payment
+ - last-stage guard in the wording pass: test_a_year_past_the_last_ten_year_stage_keeps_the_composed_report
+ - bridge product id: test_prepare_checkout_expects_the_product_id_world_answers_with

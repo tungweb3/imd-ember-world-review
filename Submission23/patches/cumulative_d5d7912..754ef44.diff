@@ -1,0 +1,581 @@
+diff --git a/integrations/celestao/celestao_world/app.py b/integrations/celestao/celestao_world/app.py
+index 92cb93b..03c0904 100644
+--- a/integrations/celestao/celestao_world/app.py
++++ b/integrations/celestao/celestao_world/app.py
+@@ -62,7 +62,7 @@ def make_app(baseline_app,settings:Settings,*,bridge=None,clock=None,processor=N
+     @app.middleware('http')
+     async def guards(request:Request,call_next):
+         path=request.url.path
+-        if billing and path.rstrip('/') in ('/api/charts','/api/reports','/api/reports/profile'):
++        if billing and path.rstrip('/') in ('/api/charts','/api/reports','/api/reports/profile','/api/reports/annual-ziwei'):
+             return JSONResponse({'error':'WORLD_CHECKOUT_REQUIRED'},402,headers=HEADERS)
+         own=path.startswith('/api/world/') or path.startswith('/api/holder/world/')
+         if own and request.method not in ('GET','HEAD'):
+diff --git a/integrations/celestao/celestao_world/bridge.py b/integrations/celestao/celestao_world/bridge.py
+index 6da11c9..b6a2f8c 100644
+--- a/integrations/celestao/celestao_world/bridge.py
++++ b/integrations/celestao/celestao_world/bridge.py
+@@ -65,7 +65,7 @@ class WorldBridge:
+                     if response.status_code in (401,403) and isinstance(value,dict) and value.get('error')=='AUTH_REQUIRED':raise AuthDenied('WORLD_AUTH_REQUIRED')
+                     if response.status_code!=200:raise BridgeUnavailable('CHECKOUT_UNAVAILABLE')
+                     if self.clock()<started or not verified(self.settings.delivery_secret,'response',PREPARE,response.headers.get('x-celestao-signature'),bytes(body),self.clock()):raise BridgeUnavailable('CHECKOUT_UNAVAILABLE')
+-            if not isinstance(value,dict) or set(value)!={'schema','runId','wallet','product','inputHash','expiresMs'} or value['schema']!=SCHEMA or value['runId']!=run['id'] or value['wallet']!=grant['address'] or value['product']!='fortune-'+run['system'] or value['inputHash']!=run['input_hash'] or type(value['expiresMs']) is not int:raise BridgeUnavailable('CHECKOUT_UNAVAILABLE')
++            if not isinstance(value,dict) or set(value)!={'schema','runId','wallet','product','inputHash','expiresMs'} or value['schema']!=SCHEMA or value['runId']!=run['id'] or value['wallet']!=grant['address'] or value['product']!='fortune-'+run['system'].replace('_','-') or value['inputHash']!=run['input_hash'] or type(value['expiresMs']) is not int:raise BridgeUnavailable('CHECKOUT_UNAVAILABLE')
+             return value
+         except (AuthDenied,BridgeUnavailable):raise
+         except (httpx.HTTPError,ValueError,UnicodeError):raise BridgeUnavailable('CHECKOUT_UNAVAILABLE') from None
+diff --git a/integrations/celestao/celestao_world/native.py b/integrations/celestao/celestao_world/native.py
+index 527e512..b4beb18 100644
+--- a/integrations/celestao/celestao_world/native.py
++++ b/integrations/celestao/celestao_world/native.py
+@@ -12,25 +12,43 @@ class NativeUnavailable(ValueError):pass
+ class NativeInputError(ValueError):pass
+ class NativeNondelivery(ValueError):pass
+ 
++ANNUAL_ROUTE='/api/reports/annual-ziwei'
++
+ class NativeEngine:
+     def __init__(self,baseline):
+         from backend.models import ChartRequest,resolve_offset,TimeResolutionError
+-        from backend.app import charts,configured_engine
++        from backend.app import configured_engine
++        from backend.chart_editorial.endpoint import charts
+         from backend.report_profile.request import ProfileReportRequest
+         from backend.report_review12.preflight import inspect,CapabilityRequest
+-        self.chart_model=ChartRequest;self.profile_model=ProfileReportRequest
++        from backend.annual_ziwei.request import AnnualZiweiRequest
++        from backend.annual_ziwei.lunar_new_year import first_report_year
++        from backend.report_annual_release.app import make_app as annual_release
++        self.chart_model=ChartRequest;self.profile_model=ProfileReportRequest;self.annual_model=AnnualZiweiRequest
+         self.offset=resolve_offset;self.time_error=TimeResolutionError;self.configured=configured_engine
+-        self.inspect=inspect;self.capability=CapabilityRequest;self.charts=charts
++        self.inspect=inspect;self.capability=CapabilityRequest;self.charts=charts;self.first_year=first_report_year
+         matches=[r.endpoint for r in baseline.router.routes if getattr(r,'path',None)=='/api/reports/profile' and 'POST' in getattr(r,'methods',())]
+         if len(matches)!=1:raise RuntimeError('CANONICAL_PROFILE_ENDPOINT_REQUIRED')
+         self.profile=matches[0]
++        # Paid only: the annual route is taken from a release app that is never mounted,
++        # so the public site has no free path to it. Rate limit and capacity are shared.
++        annual=[r.endpoint for r in annual_release(baseline).router.routes if getattr(r,'path',None)==ANNUAL_ROUTE and 'POST' in getattr(r,'methods',())]
++        if len(annual)!=1:raise RuntimeError('ANNUAL_ZIWEI_ENDPOINT_REQUIRED')
++        self.annual=annual[0]
++    def model(self,system):
++        return self.profile_model if system=='profile' else self.annual_model if system=='annual_ziwei' else self.chart_model
+     async def validate(self,system,payload):
+         try:
+-            model=(self.profile_model if system=='profile' else self.chart_model).model_validate(payload)
++            model=self.model(system).model_validate(payload)
+             if system=='profile':
+                 if set(model.requested_sources)!={'ziwei','bazi','western','human'} or len(model.requested_sources)!=4:raise NativeInputError('ALL_FOUR_SOURCES_REQUIRED')
+                 scope=self.inspect(self.capability(**{k:getattr(model,k) for k in ('date','time','timezone','dst_fold','requested_sources','consent')}))
+                 if not scope['can_compute_primary'] or scope['requires_partial_acknowledgement']:raise NativeInputError('ALL_FOUR_SOURCES_UNAVAILABLE')
++            elif system=='annual_ziwei':
++                # The request model says system 'ziwei'; refuse a year that starts before the birth before any payment.
++                try:first_year=self.first_year(model.date)
++                except ValueError:raise NativeInputError('INVALID_CHART_INPUT') from None
++                if model.year<first_year:raise NativeInputError('YEAR_BEFORE_BIRTH')
+             elif model.system!=system:raise NativeInputError('SYSTEM_MISMATCH')
+             self.offset(model)
+         except (ValidationError,self.time_error):raise NativeInputError('INVALID_CHART_INPUT') from None
+@@ -39,8 +57,8 @@ class NativeEngine:
+             if await asyncio.to_thread(self.configured,family) is None:raise NativeUnavailable('ENGINE_UNAVAILABLE')
+         return model.model_dump(mode='json')
+     async def compute(self,system,payload,owner):
+-        model=(self.profile_model if system=='profile' else self.chart_model).model_validate(payload)
+-        endpoint=self.profile if system=='profile' else self.charts
++        model=self.model(system).model_validate(payload)
++        endpoint=self.profile if system=='profile' else self.annual if system=='annual_ziwei' else self.charts
+         # The existing capacity lock and rate limit remain in force. Use the
+         # authenticated opaque owner, not a forged XFF or one shared server IP.
+         request=Request({'type':'http','method':'POST','path':'/internal-paid-calculation','headers':[],
+@@ -57,4 +75,7 @@ class NativeEngine:
+             document=result.get('document',{})
+             if set(document.get('used_sources',[]))!={'ziwei','bazi','western','human'} or document.get('unavailable_sources'):
+                 raise NativeNondelivery('CHART_NOT_GENERATED')
++        if system=='annual_ziwei':
++            document=result.get('document')
++            if not isinstance(result.get('html'),str) or not isinstance(document,dict) or not document.get('cover'):raise NativeNondelivery('CHART_NOT_GENERATED')
+         return result
+diff --git a/integrations/celestao/celestao_world/paid.py b/integrations/celestao/celestao_world/paid.py
+index ec446cf..7fe47bb 100644
+--- a/integrations/celestao/celestao_world/paid.py
++++ b/integrations/celestao/celestao_world/paid.py
+@@ -65,7 +65,7 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+             b=json.loads(raw)
+             if not isinstance(b,dict) or set(b)!={'schema','orderId','wallet','product','runId','inputHash'} or b['schema']!=SCHEMA or not valid(b['runId']) or not re.fullmatch(r'0x[0-9a-f]{64}',b['orderId']) or not re.fullmatch(r'0x[0-9a-f]{40}',b['wallet']):raise ValueError()
+             run=vault.run(b['wallet'],b['runId'])
+-            if b['product']!='fortune-'+run['system'] or b['inputHash']!=run['input_hash']:raise ValueError()
++            if b['product']!='fortune-'+run['system'].replace('_','-') or b['inputHash']!=run['input_hash']:raise ValueError()
+             vault.bind_order(b['wallet'],b['runId'],b['orderId'])
+         except (ValueError,TypeError,KeyError):raise HTTPException(409,'ORDER_BINDING_REQUIRED') from None
+         claim=vault.claim(b['wallet'],b['runId'],b['orderId'],clock())
+diff --git a/integrations/celestao/celestao_world/vault.py b/integrations/celestao/celestao_world/vault.py
+index 5d7bcca..f475854 100644
+--- a/integrations/celestao/celestao_world/vault.py
++++ b/integrations/celestao/celestao_world/vault.py
+@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+ from cryptography.hazmat.primitives.hashes import SHA256
+ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+ 
+-SYSTEMS=frozenset(('bazi','ziwei','western','human','profile'))
++SYSTEMS=frozenset(('bazi','ziwei','annual_ziwei','western','human','profile'))
+ MAX_REPORT_BYTES=20_000_000
+ class VaultError(ValueError): pass
+ class Missing(VaultError): pass
+diff --git a/integrations/celestao/fortune_catalog.json b/integrations/celestao/fortune_catalog.json
+index df24ec6..e566f69 100644
+--- a/integrations/celestao/fortune_catalog.json
++++ b/integrations/celestao/fortune_catalog.json
+@@ -19,6 +19,15 @@
+       "listGold": "1000",
+       "version": 1
+     },
++    {
++      "system": "annual_ziwei",
++      "product": "fortune-annual-ziwei",
++      "nameZh": "流年運勢",
++      "nameEn": "Zi Wei Year",
++      "gold": "1000",
++      "listGold": "1000",
++      "version": 1
++    },
+     {
+       "system": "western",
+       "product": "fortune-western",
+diff --git a/integrations/celestao/tests/test_api.py b/integrations/celestao/tests/test_api.py
+index 4b2519c..9b32d8e 100644
+--- a/integrations/celestao/tests/test_api.py
++++ b/integrations/celestao/tests/test_api.py
+@@ -11,6 +11,9 @@ from test_sessions import grant
+ from celestao_world.app import make_app
+ from celestao_world.config import Settings
+ from celestao_world.bridge import WorldBridge,AuthDenied,BridgeUnavailable
++from celestao_world.protocol import PREPARE,SCHEMA,signature
++import celestao_world,json
++from pathlib import Path
+ 
+ class IdentityStub:
+     def __init__(self,settings):self.client=WorldBridge(settings);self.mode='ok';self.wallet=A
+@@ -104,12 +107,34 @@ class APITests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+         catalog=(await self.client.get('/api/world/catalog')).json()
+         self.assertFalse(catalog['paymentsEnabled'])
+         self.assertEqual(next(x for x in catalog['products'] if x['system']=='profile')['gold'],'3000')
++        self.assertEqual([x['system'] for x in catalog['products']],['bazi','ziwei','annual_ziwei','western','human','profile'])
++        annual=next(x for x in catalog['products'] if x['system']=='annual_ziwei')
++        self.assertEqual((annual['product'],annual['gold'],annual['listGold']),('fortune-annual-ziwei','1000','1000'))
+         h={'origin':'https://celestao.com','x-requested-with':'CelestialAtlas','content-type':'application/json'}
+         r=await self.client.post('/api/holder/world/start',content=b'x'*32769,headers=h);self.assertEqual(r.status_code,413)
+         for _ in range(19):self.assertEqual((await self.client.post('/api/holder/world/start',json={'language':'en'},headers=h)).status_code,200)
+         self.assertEqual((await self.client.post('/api/holder/world/start',json={'language':'en'},headers=h)).status_code,429)
+ 
+ class BridgeTests(unittest.IsolatedAsyncioTestCase):
++    async def test_prepare_checkout_expects_the_product_id_world_answers_with(self):
++        now=1792000000000;secret='delivery-fixture-secret-0123456789-abcdefgh'
++        def answer(product):
++            def respond(request):
++                run=json.loads(request.content)
++                raw=json.dumps({'schema':SCHEMA,'runId':run['runId'],'wallet':A,'product':product,'inputHash':run['inputHash'],'expiresMs':now+900000},separators=(',',':')).encode()
++                return httpx.Response(200,content=raw,headers={'content-type':'application/json','x-celestao-signature':signature(secret,'response',PREPARE,str(now//1000),raw)})
++            return respond
++        run={'id':'r'*43,'system':'annual_ziwei','input_hash':'1'*64};session={'bridge_session':'g'*43,'address':A}
++        settings=Settings(delivery_secret=secret)
++        accepted=await WorldBridge(settings,transport=httpx.MockTransport(answer('fortune-annual-ziwei')),clock=lambda:now).prepare_checkout(session,run)
++        self.assertEqual(accepted['product'],'fortune-annual-ziwei')
++        with self.assertRaises(BridgeUnavailable):
++            await WorldBridge(settings,transport=httpx.MockTransport(answer('fortune-annual_ziwei')),clock=lambda:now).prepare_checkout(session,run)
++    def test_every_catalogue_id_is_what_the_bridge_and_delivery_derive_from_its_system(self):
++        catalogue=json.loads((Path(celestao_world.__file__).resolve().parents[1]/'fortune_catalog.json').read_text(encoding='utf-8'))
++        for product in catalogue['products']:
++            self.assertEqual(product['product'],'fortune-'+product['system'].replace('_','-'))
++            self.assertRegex(product['product'],r'^[a-z][a-z0-9-]{0,63}$')
+     async def test_real_http_client_uses_fixed_server_secret_no_browser_origin_and_denies_bad_identity(self):
+         settings=Settings();observed=[]
+         def responder(request):
+diff --git a/integrations/celestao/tests/test_native_annual.py b/integrations/celestao/tests/test_native_annual.py
+new file mode 100644
+index 0000000..63ea5dc
+--- /dev/null
++++ b/integrations/celestao/tests/test_native_annual.py
+@@ -0,0 +1,41 @@
++"""NativeEngine and the paid 流年運勢 report; synthetic birth data, no GOLD, needs the site tree and node."""
++import asyncio,os,unittest
++from pathlib import Path
++
++ROOT=Path(__file__).resolve().parents[2]
++BODY={'system':'ziwei','name':'合成旅人','date':'1990-06-15','time':'10:30','gender':'女','timezone':'Asia/Taipei','lat':25.033,'lon':121.5654,
++      'city':'Taipei, Taiwan','target':'2027-07-01','ziwei_day_divide':'forward','dst_fold':None,'consent':True,'year':2027,'lang':'zh'}
++
++@unittest.skipUnless((ROOT/'backend'/'annual_ziwei').is_dir() and os.getenv('LIFE_ENGINE_DIR'),'needs the native tree and a configured engine')
++class NativeAnnualTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        from backend.report_plain_release.app import app
++        from celestao_world.native import NativeEngine,NativeInputError
++        cls.published=app;cls.engine=NativeEngine(app);cls.input_error=NativeInputError
++    def test_public_release_has_no_annual_route(self):
++        # Paid only: the published app the site mounts does not serve the annual report.
++        self.assertFalse([r for r in self.published.router.routes if getattr(r,'path',None)=='/api/reports/annual-ziwei'])
++    def test_a_name_the_reader_would_refuse_is_refused_before_payment(self):
++        with self.assertRaisesRegex(self.input_error,'INVALID_CHART_INPUT'):
++            asyncio.run(self.engine.validate('annual_ziwei',{**BODY,'name':'Ann onset=1'}))
++    def test_a_birth_before_the_lunar_table_is_refused_as_input_not_an_error(self):
++        with self.assertRaisesRegex(self.input_error,'INVALID_CHART_INPUT'):
++            asyncio.run(self.engine.validate('annual_ziwei',{**BODY,'date':'1900-01-15','target':'1901-07-01','year':1901}))
++    def test_validate_accepts_year_and_language_and_refuses_before_birth(self):
++        saved=asyncio.run(self.engine.validate('annual_ziwei',BODY))
++        self.assertEqual((saved['system'],saved['year'],saved['lang']),('ziwei',2027,'zh'))
++        late={**BODY,'date':'2026-08-01','target':'2026-08-01','year':2026}
++        with self.assertRaisesRegex(self.input_error,'YEAR_BEFORE_BIRTH'):asyncio.run(self.engine.validate('annual_ziwei',late))
++        for patch in [{'target':'2028-07-01'},{'lang':'fr'},{'year':'2027'},{'requested_sources':['ziwei']}]:
++            with self.assertRaisesRegex(self.input_error,'INVALID_CHART_INPUT'):asyncio.run(self.engine.validate('annual_ziwei',{**BODY,**patch}))
++        # The plain Zi Wei product still refuses the annual fields.
++        with self.assertRaisesRegex(self.input_error,'INVALID_CHART_INPUT'):asyncio.run(self.engine.validate('ziwei',BODY))
++    def test_compute_returns_the_annual_report(self):
++        payload=asyncio.run(self.engine.validate('annual_ziwei',BODY))
++        result=asyncio.run(self.engine.compute('annual_ziwei',payload,'fixture'))
++        self.assertEqual((result['system'],result['mode'],result['schema_version']),('annual_ziwei','live','annual-ziwei-1.0'))
++        self.assertEqual(result['document']['cover']['year'],2027)
++        self.assertIn('流年',result['html']);self.assertNotIn('<script',result['html'].lower())
++
++if __name__=='__main__':unittest.main()
+diff --git a/integrations/celestao/tests/test_paid.py b/integrations/celestao/tests/test_paid.py
+index f84c15b..5e22506 100644
+--- a/integrations/celestao/tests/test_paid.py
++++ b/integrations/celestao/tests/test_paid.py
+@@ -69,7 +69,7 @@ class PaidTests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+         self.processor.mode='offline';self.assertEqual((await self.prepare()).status_code,503)
+         self.assertEqual(self.world.prepares,0);self.assertEqual(self.processor.calls,0)
+         self.assertEqual(self.vault.db.execute('SELECT count(*) FROM runs').fetchone()[0],0)
+-        for path in ['/api/charts','/api/charts/','/api/reports','/api/reports/profile','/api/reports/profile/']:
++        for path in ['/api/charts','/api/charts/','/api/reports','/api/reports/profile','/api/reports/profile/','/api/reports/annual-ziwei','/api/reports/annual-ziwei/']:
+             r=await self.client.post(path,json=INPUT,headers=self.headers);self.assertEqual(r.status_code,402)
+     async def test_signed_delivery_persists_one_original_report_and_slim_receipt(self):
+         run=await self.run_fixture();self.assertEqual(self.processor.calls,0)
+@@ -88,6 +88,15 @@ class PaidTests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+         self.assertEqual(status.json()['state'],'complete');self.assertEqual(status.json()['recordId'],record)
+         self.assertEqual((await self.deliver(run,patch={'orderId':'0x'+'2'*64})).status_code,409)
+         self.assertEqual(self.processor.calls,1)
++    async def test_annual_ziwei_is_its_own_paid_product(self):
++        response=await self.prepare(system='annual_ziwei');self.assertEqual(response.status_code,200)
++        run=self.vault.run(A,response.json()['runId']);self.assertEqual(run['system'],'annual_ziwei')
++        # The Zi Wei chart product cannot pay for the annual report, and the reverse.
++        self.assertEqual((await self.deliver(run,patch={'product':'fortune-ziwei'})).status_code,409)
++        self.assertEqual(self.processor.calls,0)
++        delivered=await self.deliver(run,patch={'product':'fortune-annual-ziwei'});self.assertEqual(delivered.json()['kind'],'delivered')
++        saved=await self.client.get('/api/world/collections/'+delivered.json()['result']['recordId'],headers=self.headers)
++        self.assertEqual(saved.json()['result']['system'],'annual_ziwei')
+     async def test_unknown_failure_is_pending_and_original_order_recovers_after_lease(self):
+         run=await self.run_fixture();self.processor.mode='offline'
+         first=await self.deliver(run);self.assertEqual(first.json()['kind'],'pending');self.assertNotIn('proof',first.json())
+diff --git a/integrations/celestao/web/world-wallet.js b/integrations/celestao/web/world-wallet.js
+index a67bc84..2cf8048 100644
+--- a/integrations/celestao/web/world-wallet.js
++++ b/integrations/celestao/web/world-wallet.js
+@@ -6,7 +6,7 @@
+  const attempts=new Map(),say=(a,b)=>lang==='en'?b:a,opaque=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{43}$/.test(v);
+  const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
+  const button=(text,action)=>{const b=node('button',text,'btn secondary small');b.type='button';b.addEventListener('click',action);return b;};
+- function errorText(error){const code=error?.message;return ({FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted wallet storage.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
++ function errorText(error){const code=error?.message;return ({FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted wallet storage.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
+  function invalidate(){epoch++;identity=null;currentRecord=null;currentResult=null;document.getElementById('world-wallet-library')?.remove();document.querySelectorAll('[data-world-identity]').forEach(n=>n.replaceChildren(node('p',say('正在確認錢包…','Checking wallet…'))));clearReader?.();}
+  async function session(){const attempt=++sessionAttempt;
+   try{const response=await fetch('/api/world/session',{cache:'no-store',credentials:'same-origin',redirect:'error',headers:{'X-Requested-With':'CelestialAtlas'}}),value=await response.json();if(attempt!==sessionAttempt)return;
+@@ -70,7 +70,8 @@
+   }catch(e){p.textContent=errorText(e);}
+  }
+  async function mount(){if(!catalog?.walletEnabled)return;mountIdentity();
+-  if(catalog.billingInstalled){document.querySelectorAll('a[href^="#/system/"],a[href="#/annual"]').forEach(a=>{if(a.querySelector('.world-price-badge'))return;const system=a.getAttribute('href')==='#/annual'?'profile':a.getAttribute('href').split('/')[2],p=product(system);if(p)a.append(node('small',p.gold!==p.listGold?say('合計 3,400 · 特價 3,000 GOLD／次','3,400 combined · Special 3,000 GOLD/reading'):priceText(p),'world-price-badge'));});}
++  // Prices belong in the chart menu and the confirmation step; the reception (desk signs and welcome buttons) stays price-free.
++  if(catalog.billingInstalled){document.querySelectorAll('a[href^="#/system/"],a[href="#/annual"]').forEach(a=>{if(a.closest('#world-choices,.reception-welcome')){a.querySelector('.world-price-badge')?.remove();return;}if(a.querySelector('.world-price-badge'))return;const system=a.getAttribute('href')==='#/annual'?'profile':a.getAttribute('href').split('/')[2],p=product(system);if(p)a.append(node('small',p.gold!==p.listGold?say('合計 3,400 · 特價 3,000 GOLD／次','3,400 combined · Special 3,000 GOLD/reading'):priceText(p),'world-price-badge'));});}
+   if(route==='/saved'){const main=[...document.querySelectorAll('#main > .container')].at(-1)||document.querySelector('#main');if(!main||document.getElementById('world-wallet-library'))return;
+    const section=node('section',undefined,'panel world-wallet-library');section.id='world-wallet-library';const heading=node('h2',say('我的錢包收藏','My wallet collection')),account=node('div'),list=node('div');list.id='world-wallet-records';account.dataset.worldIdentity='';section.append(heading,account);identityBox(account);
+    const controls=node('div',undefined,'world-wallet-controls');controls.append(button(say('重新連接／切換錢包','Reconnect / switch wallet'),()=>void connect()),button(trashed?say('回到收藏','Back to collection'):say('查看垃圾桶','View trash'),()=>{trashed=!trashed;section.remove();void mount();}));section.append(controls);
+@@ -98,7 +99,7 @@
+    const bar=node('nav',undefined,'world-pdf-toolbar'),back=node('a',say('返回我的收藏','Back to my collection'),'btn secondary small');back.href='/#/saved';bar.append(node('p',say('完整報告 · 在列印視窗選擇「另存為 PDF」','Complete report · Choose “Save as PDF” in the print dialog')),button(say('列印／另存 PDF','Print / save PDF'),()=>window.print()),back);document.body.prepend(bar);
+    try{if(!identity)throw Error('AUTH_REQUIRED');await openRecord(id);const metadata=node('header',undefined,'world-pdf-metadata'),input=currentResult.input||{},p=product(currentResult.system);metadata.append(node('h1',(input.name||say('旅人','Traveler'))+' · '+(p?(lang==='en'?p.nameEn:p.nameZh):'')),node('p',[input.date,input.time,input.city,input.timezone].filter(Boolean).join(' · ')),node('p',say('報告版本：','Report version: ')+(currentResult.document?.ruleset||currentResult.report?.rule_set||currentResult.engine?.commit||currentResult.schema_version)));document.getElementById('main').prepend(metadata);}catch(e){document.getElementById('main').replaceChildren(node('p',errorText(e)));}
+   }};
+- async function boot(){try{const r=await fetch('/api/world/catalog',{cache:'no-store',credentials:'same-origin',redirect:'error'});catalog=await r.json();if(!r.ok||!Array.isArray(catalog.products)||catalog.products.length!==5)throw Error('CATALOG_UNAVAILABLE');const local=location.hostname==='127.0.0.1'&&/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}$/.test(catalog.localWorldOrigin);catalog.worldOrigin=local?catalog.localWorldOrigin:'https://imdember.com';if(local)document.body.prepend(node('aside','本機測試｜合成報告；未連接真實錢包或 GOLD','world-local-banner'));if(catalog.walletEnabled)await session();
++ async function boot(){try{const r=await fetch('/api/world/catalog',{cache:'no-store',credentials:'same-origin',redirect:'error'});catalog=await r.json();if(!r.ok||!Array.isArray(catalog.products)||catalog.products.length!==6)throw Error('CATALOG_UNAVAILABLE');const local=location.hostname==='127.0.0.1'&&/^http:\/\/127\.0\.0\.1:[1-9][0-9]{0,4}$/.test(catalog.localWorldOrigin);catalog.worldOrigin=local?catalog.localWorldOrigin:'https://imdember.com';if(local)document.body.prepend(node('aside','本機測試｜合成報告；未連接真實錢包或 GOLD','world-local-banner'));if(catalog.walletEnabled)await session();
+    const script=document.createElement('script');script.src='/world-assets/app.js';script.onload=()=>void window.EmberWorld.afterLoad();script.onerror=()=>document.getElementById('main').replaceChildren(node('p',say('介面未能載入，請重新整理。','The interface could not load. Refresh to retry.')));document.head.append(script);
+   }catch(error){document.getElementById('main').replaceChildren(node('p',say('暫時無法確認服務狀態，請重新整理；沒有建立訂單。','Service status is unavailable. Refresh to retry; no order was created.')));}}
+  void boot();
+diff --git a/migrations/0023_celestao_annual_ziwei.sql b/migrations/0023_celestao_annual_ziwei.sql
+new file mode 100644
+index 0000000..abf2070
+--- /dev/null
++++ b/migrations/0023_celestao_annual_ziwei.sql
+@@ -0,0 +1,24 @@
++-- Let a Celestao run bind to the annual reading, the sixth paid product.
++-- SQLite cannot change a CHECK in place, so the table is rebuilt with its rows.
++-- celestao_release_enable stays as it was, because that one-time action has already
++-- installed the first five. This product is added here rather than from the admin
++-- panel because the checkout accepts only version 1 at the catalogue price and
++-- product rows are immutable, so one mistyped form could never be repaired. Nobody can
++-- buy it until the Celestao overlay offers it: a quote needs a run signed by that backend.
++CREATE TABLE celestao_checkouts_next (
++ id TEXT PRIMARY KEY CHECK(length(id)=43),
++ wallet TEXT NOT NULL CHECK(length(wallet)=42 AND wallet=lower(wallet)),
++ product TEXT NOT NULL CHECK(product IN ('fortune-bazi','fortune-ziwei','fortune-annual-ziwei','fortune-western','fortune-human','fortune-profile')),
++ input_hash TEXT NOT NULL CHECK(length(input_hash)=64),
++ created_ms INTEGER NOT NULL,
++ expires_ms INTEGER NOT NULL CHECK(expires_ms>created_ms),
++ order_id TEXT UNIQUE REFERENCES economy_orders(id)
++);
++INSERT INTO celestao_checkouts_next(id,wallet,product,input_hash,created_ms,expires_ms,order_id)
++ SELECT id,wallet,product,input_hash,created_ms,expires_ms,order_id FROM celestao_checkouts;
++DROP TABLE celestao_checkouts;
++ALTER TABLE celestao_checkouts_next RENAME TO celestao_checkouts;
++CREATE INDEX celestao_checkouts_expiry ON celestao_checkouts(expires_ms);
++INSERT INTO world_gold_products(id,product,version,kind,title,gold,embeo,enabled,created_ms)
++ SELECT 'fortune-annual-ziwei-v1','fortune-annual-ziwei',1,'service','流年運勢',1000,NULL,1,CAST(strftime('%s','now') AS INTEGER)*1000
++ WHERE EXISTS(SELECT 1 FROM celestao_release_actions);
+diff --git a/src/shared/fortunePricing.ts b/src/shared/fortunePricing.ts
+index bc09f86..ff67fe6 100644
+--- a/src/shared/fortunePricing.ts
++++ b/src/shared/fortunePricing.ts
+@@ -1,15 +1,16 @@
+ /** Initial versioned Celestao prices. Product provisioning and charging remain
+  * separate release gates; importing this catalogue never enables a service. */
+ export const FORTUNE_PRICING_VERSION='celestao-gold-v1-20261025';
+-export const FORTUNE_SYSTEMS=['bazi','ziwei','western','human','profile'] as const;
++export const FORTUNE_SYSTEMS=['bazi','ziwei','annual_ziwei','western','human','profile'] as const;
+ export type FortuneSystem=typeof FORTUNE_SYSTEMS[number];
+ export type FortuneProduct=Readonly<{system:FortuneSystem;product:string;nameZh:string;nameEn:string;gold:string;listGold:string;version:1}>;
+ const singlePrices=Object.freeze({bazi:'1000',ziwei:'1000',western:'800',human:'600'});
+ const total=Object.values(singlePrices).reduce((sum,value)=>sum+BigInt(value),0n).toString();
+-const product=(system:FortuneSystem,nameZh:string,nameEn:string,gold:string,listGold=gold):FortuneProduct=>Object.freeze({system,product:'fortune-'+system,nameZh,nameEn,gold,listGold,version:1});
++const product=(system:FortuneSystem,nameZh:string,nameEn:string,gold:string,listGold=gold):FortuneProduct=>Object.freeze({system,product:'fortune-'+system.replace('_','-'),nameZh,nameEn,gold,listGold,version:1});
+ export const FORTUNE_PRODUCTS:readonly FortuneProduct[]=Object.freeze([
+  product('bazi','四柱八字','Four Pillars',singlePrices.bazi),
+  product('ziwei','紫微斗數','Zi Wei Dou Shu',singlePrices.ziwei),
++ product('annual_ziwei','流年運勢','Zi Wei Year','1000'),
+  product('western','西洋星盤','Western astrology',singlePrices.western),
+  product('human','人類圖','Human Design',singlePrices.human),
+  product('profile','完整解讀','Complete reading','3000',total)
+diff --git a/tests/celestao-checkout.test.mjs b/tests/celestao-checkout.test.mjs
+index 498e3f3..22defe9 100644
+--- a/tests/celestao-checkout.test.mjs
++++ b/tests/celestao-checkout.test.mjs
+@@ -97,3 +97,33 @@ test('the browser accepts real SQL delivery and refund states and retains the or
+   assert.equal((await (await browser(f,'quote')).json()).orderId,id);
+  }
+ });
++
++test('the annual reading binds, charges and delivers as its own product under a World-valid id',async t=>{const f=await setup(t);
++ await f.admin({action:'product',product:'fortune-annual-ziwei',kind:'service',title:'流年運勢',gold:'1000',enabled:true,version:1});
++ const response=await prepare(f,{system:'annual_ziwei'});assert.equal(response.status,200);
++ assert.equal(JSON.parse(await response.text()).product,'fortune-annual-ziwei');
++ assert.equal(f.db.raw.prepare('SELECT product FROM celestao_checkouts').get().product,'fortune-annual-ziwei');
++ await assert.rejects(()=>f.quote('fortune-annual-ziwei'),/FORTUNE_CHECKOUT_REQUIRED/);
++ const r=await browser(f,'quote'),id=(await r.json()).orderId;assert.equal(r.status,200);
++ const state=await (await browser(f)).json();assert.equal(state.product.system,'annual_ziwei');assert.equal(state.order.amount,'1000');
++ await f.pay(id);assert.equal((await f.snapshot()).available,'9000');
++ const receipt={schema:'celestao-receipt/v1',provider:'celestao-v1',system:'annual_ziwei',recordId:'r'.repeat(43),documentHash:'a'.repeat(64),createdMs:NOW};
++ assert.equal(encodeGoldResult('fortune-annual-ziwei',receipt).failure,null);
++ assert.notEqual(encodeGoldResult('fortune-annual-ziwei',{...receipt,system:'ziwei'}).failure,null);
++});
++
++test('the annual reading stays closed until its product is published, without charging or binding an order',async t=>{const f=await setup(t);
++ assert.equal((await prepare(f,{system:'annual_ziwei'})).status,200);
++ assert.notEqual((await browser(f,'quote')).status,200);
++ assert.equal(f.db.raw.prepare('SELECT order_id FROM celestao_checkouts').get().order_id,null);
++ assert.equal((await f.snapshot()).available,'10000');
++ await f.admin({action:'product',product:'fortune-annual-ziwei',kind:'service',title:'流年運勢',gold:'999',enabled:true,version:1});
++ assert.notEqual((await browser(f,'quote')).status,200);
++ assert.equal((await f.snapshot()).available,'10000');
++});
++
++test('the rebuilt checkout table keeps its index and still refuses any other product',async t=>{const f=await setup(t);await prepare(f);
++ assert.equal(f.db.raw.prepare('SELECT product FROM celestao_checkouts').get().product,'fortune-bazi');
++ for(const product of ['fortune-annual_ziwei','research'])assert.throws(()=>f.db.raw.prepare('INSERT INTO celestao_checkouts(id,wallet,product,input_hash,created_ms,expires_ms) VALUES(?,?,?,?,?,?)').run('z'.repeat(43),W,product,'1'.repeat(64),1,2),/CHECK/);
++ assert.ok(f.db.raw.prepare("SELECT 1 FROM sqlite_master WHERE type='index' AND name='celestao_checkouts_expiry'").get());
++});
+diff --git a/tests/celestao-home-prices.test.mjs b/tests/celestao-home-prices.test.mjs
+new file mode 100644
+index 0000000..f2ab01b
+--- /dev/null
++++ b/tests/celestao-home-prices.test.mjs
+@@ -0,0 +1,109 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import vm from 'node:vm';
++import {readFileSync} from 'node:fs';
++
++// Runs the real integrations/celestao/web/world-wallet.js against a minimal fake DOM that mirrors the native reception page:
++//   home:  nav#world-choices (four desk signs) and section.reception-welcome (annual-report button)
++//   menu:  section#chart-picker > nav#chart-picker-links (shown after "choose a chart")
++// Prices belong in the menu (and the confirmation step); the home view must stay price-free.
++const source=readFileSync(new URL('../integrations/celestao/web/world-wallet.js',import.meta.url),'utf8');
++
++function matches(el,selector){
++ let rest=selector.trim(),m;
++ if((m=/^[a-z][a-z0-9]*/i.exec(rest))){if(el.tagName!==m[0].toUpperCase())return false;rest=rest.slice(m[0].length);}
++ while(rest){
++  if((m=/^#([\w-]+)/.exec(rest))){if(el.id!==m[1])return false;}
++  else if((m=/^\.([\w-]+)/.exec(rest))){if(!el.className.split(/\s+/).includes(m[1]))return false;}
++  else if((m=/^\[([\w-]+)(?:(\^?=)"([^"]*)")?\]/.exec(rest))){const v=el.getAttribute(m[1]);if(v===null)return false;if(m[2]==='='&&v!==m[3])return false;if(m[2]==='^='&&!v.startsWith(m[3]))return false;}
++  else throw Error('fake DOM does not support selector '+selector);
++  rest=rest.slice(m[0].length);
++ }
++ return true;
++}
++const matchesAny=(el,list)=>list.split(',').some(part=>matches(el,part));
++class El{
++ constructor(tag){this.tagName=tag.toUpperCase();this.id='';this.className='';this.children=[];this.parent=null;this.attrs={};this.dataset={};this.listeners={};this.textContent='';this.role='';}
++ getAttribute(name){return name==='id'?(this.id||null):name==='class'?(this.className||null):name in this.attrs?this.attrs[name]:null;}
++ setAttribute(name,value){this.attrs[name]=String(value);}
++ set href(value){this.attrs.href=String(value);}
++ get href(){return this.attrs.href;}
++ get isConnected(){let e=this;while(e.parent)e=e.parent;return e.tagName==='HTML';}
++ adopt(child){child.remove();child.parent=this;return child;}
++ append(...nodes){for(const n of nodes)this.children.push(this.adopt(n));}
++ prepend(...nodes){this.children.unshift(...nodes.map(n=>this.adopt(n)));}
++ replaceChildren(...nodes){for(const c of this.children)c.parent=null;this.children=[];this.append(...nodes);}
++ remove(){if(this.parent){this.parent.children=this.parent.children.filter(c=>c!==this);this.parent=null;}}
++ descendants(){return this.children.flatMap(c=>[c,...c.descendants()]);}
++ querySelectorAll(selector){return this.descendants().filter(e=>matchesAny(e,selector));}
++ querySelector(selector){return this.querySelectorAll(selector)[0]??null;}
++ closest(selector){for(let e=this;e;e=e.parent)if(matchesAny(e,selector))return e;return null;}
++ addEventListener(type,fn){(this.listeners[type]??=[]).push(fn);}
++ get text(){return this.textContent+this.children.map(c=>c.text).join('');}
++}
++const el=(tag,{id='',cls='',href,children=[]}={})=>{const e=new El(tag);e.id=id;e.className=cls;if(href!==undefined)e.attrs.href=href;e.append(...children);return e;};
++const link=(id,href,cls='')=>el('a',{id,href,cls});
++
++const CATALOG={walletEnabled:true,paymentsEnabled:true,billingInstalled:true,products:[
++ {system:'bazi',gold:'1000',listGold:'1000',nameZh:'八字',nameEn:'BaZi'},{system:'ziwei',gold:'1000',listGold:'1000',nameZh:'紫微',nameEn:'Zi Wei'},
++ {system:'annual_ziwei',gold:'1000',listGold:'1000',nameZh:'流年運勢',nameEn:'Zi Wei Year'},
++{system:'western',gold:'800',listGold:'800',nameZh:'西洋',nameEn:'Western'},{system:'human',gold:'600',listGold:'600',nameZh:'人類圖',nameEn:'Human Design'},
++ {system:'profile',gold:'3000',listGold:'3400',nameZh:'年度',nameEn:'Annual'}]};
++
++async function load({catalog=CATALOG,page}){
++ const html=el('html'),head=el('head'),body=el('body'),main=el('main',{id:'main'});html.append(head,body);body.append(main);
++ const {home,menu}=page(main);
++ const windowListeners={};
++ const document={head,body,createElement:tag=>new El(tag),getElementById:id=>[html,...html.descendants()].find(e=>e.id===id)??null,
++  querySelectorAll:selector=>html.querySelectorAll(selector),querySelector:selector=>html.querySelector(selector),addEventListener(){},visibilityState:'visible'};
++ const window={addEventListener:(type,fn)=>{(windowListeners[type]??=[]).push(fn);}};
++ const fetch=async url=>url==='/api/world/catalog'?{ok:true,status:200,json:async()=>catalog}:{ok:false,status:401,json:async()=>({error:'AUTH_REQUIRED'})};
++ vm.runInNewContext(source,{document,window,fetch,location:{hostname:'celestao.com',search:'',assign(){}},URLSearchParams,URL,console,setTimeout,clearTimeout,Date,Number,Error,WeakMap,Map});
++ await new Promise(r=>setTimeout(r,10));   // boot(): catalog + session fetches, then the app script is injected
++ const route=(path='/',lang='zh')=>{for(const fn of windowListeners['celestial:route']??[])fn({detail:{lang,path}});};
++ return {route,home,menu,main,badgesIn:root=>root.querySelectorAll('.world-price-badge').map(b=>b.text)};
++}
++
++// Mirrors the native reception markup observed in the running site.
++function receptionPage(main){
++ const signs=el('nav',{id:'world-choices',children:[link('world-bazi','#/system/bazi','world-choice'),link('world-ziwei','#/system/ziwei','world-choice'),link('world-western','#/system/western','world-choice'),link('world-human','#/system/human','world-choice')]});
++ const welcome=el('section',{cls:'reception-welcome',children:[el('div',{cls:'reception-secondary',children:[link('','#/annual','btn primary small')]})]});
++ const picker=el('section',{id:'chart-picker',cls:'chart-picker',children:[el('nav',{id:'chart-picker-links',children:[link('picker-bazi','#/system/bazi'),link('picker-ziwei','#/system/ziwei'),link('picker-western','#/system/western'),link('picker-human','#/system/human')]})]});
++ main.append(signs,welcome,picker);return {home:[signs,welcome],menu:picker};
++}
++
++test('the reception home shows no GOLD price: desk signs and the annual-report button stay clean',async()=>{
++ const w=await load({page:receptionPage});w.route('/');
++ for(const part of w.home)assert.deepEqual(w.badgesIn(part),[],part.id||part.className);
++ assert.equal(w.main.querySelectorAll('.world-price-badge').length,4);   // nothing else on the page lost its badge
++});
++
++test('the chart menu keeps the per-reading GOLD prices',async()=>{
++ const w=await load({page:receptionPage});w.route('/');
++ assert.deepEqual(w.badgesIn(w.menu),['1,000 GOLD／次','1,000 GOLD／次','800 GOLD／次','600 GOLD／次']);
++});
++
++test('prices follow the language and are not added twice when the route event repeats',async()=>{
++ const w=await load({page:receptionPage});w.route('/','en');w.route('/','en');
++ assert.deepEqual(w.badgesIn(w.menu),['1,000 GOLD／reading','1,000 GOLD／reading','800 GOLD／reading','600 GOLD／reading']);
++ for(const part of w.home)assert.deepEqual(w.badgesIn(part),[]);
++});
++
++test('a price badge that is already sitting in the home view is removed, not just skipped',async()=>{
++ const w=await load({page:receptionPage});
++ const sign=w.main.querySelector('#world-bazi'),cta=w.main.querySelector('a[href="#/annual"]');
++ for(const a of [sign,cta]){const stale=el('small',{cls:'world-price-badge'});stale.textContent='stale';a.append(stale);}
++ w.route('/');
++ for(const part of w.home)assert.deepEqual(w.badgesIn(part),[]);
++});
++
++test('an annual-report link outside the reception view (for example inside the menu) still shows its special price',async()=>{
++ const w=await load({page:main=>{const page=receptionPage(main);const annual=link('picker-annual','#/annual');page.menu.querySelector('#chart-picker-links').append(annual);return page;}});
++ w.route('/');
++ assert.deepEqual(w.badgesIn(w.menu).at(-1),'合計 3,400 · 特價 3,000 GOLD／次');
++});
++
++test('without billing no price appears anywhere',async()=>{
++ const w=await load({catalog:{...CATALOG,billingInstalled:false},page:receptionPage});w.route('/');
++ assert.equal(w.main.querySelectorAll('.world-price-badge').length,0);
++});
+diff --git a/tests/celestao-release.test.mjs b/tests/celestao-release.test.mjs
+index 9f649fa..cce08e5 100644
+--- a/tests/celestao-release.test.mjs
++++ b/tests/celestao-release.test.mjs
+@@ -1,5 +1,6 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
+ import {openD1} from './d1-sqlite.mjs';
+ import {FORTUNE_PRODUCTS,FORTUNE_PRICING_VERSION} from '../src/shared/fortunePricing.ts';
+ const controls=db=>JSON.stringify(db.prepare('SELECT feature,enabled,version FROM world_gold_controls ORDER BY feature').all());
+@@ -7,7 +8,7 @@ function fixture(t){const d=openD1();t.after(()=>d.raw.close());d.raw.exec("UPDA
+ function enable(db,before=controls(db)){db.prepare('INSERT INTO celestao_release_actions(id,actor,catalogue,created_ms,before_json) VALUES(?,?,?,?,?)').run('synthetic-release','authorized-deployment',FORTUNE_PRICING_VERSION,1792886400000,before);}
+ test('release activation atomically enables exactly the approved catalogue while leaving topup, mint and all balances intact',t=>{
+  const db=fixture(t);enable(db);
+- assert.deepEqual(db.prepare('SELECT product,CAST(gold AS TEXT) gold,version,kind,enabled FROM world_gold_products ORDER BY product').all().map(r=>({...r})),FORTUNE_PRODUCTS.map(p=>({product:p.product,gold:p.gold,version:p.version,kind:'service',enabled:1})).sort((a,b)=>a.product.localeCompare(b.product)));
++ assert.deepEqual(db.prepare('SELECT product,CAST(gold AS TEXT) gold,version,kind,enabled FROM world_gold_products ORDER BY product').all().map(r=>({...r})),FORTUNE_PRODUCTS.filter(p=>p.system!=='annual_ziwei').map(p=>({product:p.product,gold:p.gold,version:p.version,kind:'service',enabled:1})).sort((a,b)=>a.product.localeCompare(b.product)));
+  assert.deepEqual(db.prepare('SELECT feature,enabled FROM world_gold_controls ORDER BY feature').all().map(r=>({...r})),[{feature:'mint',enabled:0},{feature:'service',enabled:1},{feature:'topup',enabled:1}]);
+  for(const name of ['economy_orders','economy_gold_accounts','economy_gold_journal','world_gold_entries'])assert.equal(db.prepare('SELECT COUNT(*) n FROM '+name).get().n,0);
+  assert.throws(()=>enable(db),/CELESTAO_RELEASE_BASELINE_CHANGED/);
+@@ -21,3 +22,11 @@ test('stale control snapshots and an enabled unrelated service abort the complet
+  assert.equal(db.prepare("SELECT enabled FROM world_gold_controls WHERE feature='service'").get().enabled,0);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM celestao_release_actions').get().n,0);
+ });
++test('the annual product is installed by its migration only where the first five already are, exactly as the checkout accepts it',t=>{
++ const db=fixture(t),sql=readFileSync(new URL('../migrations/0023_celestao_annual_ziwei.sql',import.meta.url),'utf8').match(/INSERT INTO world_gold_products[^;]+;/)[0];
++ const row=()=>db.prepare("SELECT product,CAST(gold AS TEXT) gold,version,kind,enabled FROM world_gold_products WHERE product='fortune-annual-ziwei'").all().map(r=>({...r}));
++ db.exec(sql);assert.deepEqual(row(),[]);
++ enable(db);db.exec(sql);
++ const p=FORTUNE_PRODUCTS.find(x=>x.system==='annual_ziwei');
++ assert.deepEqual(row(),[{product:p.product,gold:p.gold,version:p.version,kind:'service',enabled:1}]);
++});
+diff --git a/tests/fortune-pricing.test.mjs b/tests/fortune-pricing.test.mjs
+index aa0740e..e530e32 100644
+--- a/tests/fortune-pricing.test.mjs
++++ b/tests/fortune-pricing.test.mjs
+@@ -10,9 +10,9 @@ test('World and the Celestao backend publish the identical approved versioned ca
+ 
+ test('the reviewed four single-system prices and complete-reading promotion use exact integer GOLD',()=>{
+  assert.deepEqual(FORTUNE_PRODUCTS.map(p=>[p.system,p.gold,p.listGold]),[
+-  ['bazi','1000','1000'],['ziwei','1000','1000'],['western','800','800'],['human','600','600'],['profile','3000','3400']
++  ['bazi','1000','1000'],['ziwei','1000','1000'],['annual_ziwei','1000','1000'],['western','800','800'],['human','600','600'],['profile','3000','3400']
+  ]);
+- const total=FORTUNE_PRODUCTS.filter(p=>p.system!=='profile').reduce((sum,p)=>sum+BigInt(p.gold),0n);
++ const total=FORTUNE_PRODUCTS.filter(p=>!['profile','annual_ziwei'].includes(p.system)).reduce((sum,p)=>sum+BigInt(p.gold),0n);
+  assert.equal(total,3400n);assert.equal(BigInt(fortuneProduct('profile').gold),3000n);
+  assert.equal(total-BigInt(fortuneProduct('profile').gold),400n);
+  assert.equal(fortuneProduct('fortune-profile'),fortuneProduct('profile'));
+@@ -21,5 +21,12 @@ test('the reviewed four single-system prices and complete-reading promotion use
+ 
+ test('unrecognised systems and inherited names cannot select a paid product or silently fall back to complete reading',()=>{
+  for(const value of [null,undefined,0,1000,{},[],{system:'bazi'},'constructor','__proto__','toString','Bazi','bazi?gold=1','annual','fortune','research'])assert.equal(fortuneProduct(value),null);
+- assert.equal(new Set(FORTUNE_PRODUCTS.map(p=>p.product)).size,5);
++ assert.equal(new Set(FORTUNE_PRODUCTS.map(p=>p.product)).size,6);
++});
++
++test('every product id passes the id rule the quote, the order parser and the admin form all apply',()=>{
++ for(const p of FORTUNE_PRODUCTS)assert.match(p.product,/^[a-z][a-z0-9-]{0,63}$/);
++ assert.equal(fortuneProduct('annual_ziwei').product,'fortune-annual-ziwei');
++ assert.equal(fortuneProduct('fortune-annual-ziwei').system,'annual_ziwei');
++ assert.equal(fortuneProduct('fortune-annual_ziwei'),null);
+ });
+diff --git a/tests/presence.test.mjs b/tests/presence.test.mjs
+index 4ff6082..4fcc5e6 100644
+--- a/tests/presence.test.mjs
++++ b/tests/presence.test.mjs
+@@ -16,7 +16,7 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
+ const owners=map=>Object.assign(Array(2000).fill(null),map);
+ 
+ test('migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes',()=>{
+-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql','0017_world_inventory.sql','0018_wallet_mining.sql','0019_celestao_wallet_bridge.sql','0020_celestao_checkouts.sql','0021_world_gold_fast_credit.sql']);
++  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql','0017_world_inventory.sql','0018_wallet_mining.sql','0019_celestao_wallet_bridge.sql','0020_celestao_checkouts.sql','0021_world_gold_fast_credit.sql','0023_celestao_annual_ziwei.sql']);
+   // Exact legacy identity schema; additive financial preservation is exercised
+   // separately against all migrations by economy-migration/world-gold tests.
+   const db=openD1(migrationFiles().filter(f=>Number(f.slice(0,4))<10)),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);

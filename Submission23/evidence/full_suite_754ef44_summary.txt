@@ -1,0 +1,8 @@
+World source 754ef449ab3084002689b547afe8406c00a4ded2
+node --test --test-concurrency=2 tests/*.test.mjs
+ℹ tests 3858
+ℹ pass 3853
+ℹ fail 0
+ℹ skipped 5
+tsc --noEmit: 0 errors
+scripts/wallet-lock.mjs: 70 files match the audited version
