@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission23](Submission23/README.md) — the annual reading as the sixth Celestao GOLD product, with the Celestao payment path public for the first time (World `754ef44`, not deployed).**
+**Current: [Submission24](Submission24/README.md) — fixes for audit 521bc017 and an administrator GOLD grant (World `fd46d69`, not deployed).**
 
-Read [Submission23/AUDIT_REQUEST.md](Submission23/AUDIT_REQUEST.md) first.
+Read [Submission24/AUDIT_REQUEST.md](Submission24/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission23](Submission23/README.md) — the annual reading as the sixth Celestao GOLD product, with the Celestao payment path public for the first time (World `754ef44`, not deployed).**
 
 **Previous: [Submission22](Submission22/README.md) — remediation of audit 93dae57f of the Genesis paid-mint GOLD ledger; the payment Transfer must carry the registry amount (source `7d09bda`, NOT DEPLOYED, production registry empty) · published for the record, no further review requested**
 

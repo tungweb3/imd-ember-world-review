@@ -1,0 +1,8 @@
+Each safeguard removed once in a working copy, then the relevant tests run. A check is "caught" when a test fails.
+
+World payment fixes: 18 removals, 18 caught (run at bce6bf6; those files did not change after it).
+Celestao overlay, first and second fixes: 39 removals, 38 caught. The one survivor is equivalent: the old refusal when the limit table is full can no longer happen, because the entry before it always makes room.
+Administrator grant: 81 removals, 81 caught.
+
+Four checks first survived and led to changes. A test for the "fresh" condition in paid.py was added. The race test could not fail on the test database, and now forces the race. The count guard was hidden by the trigger, and is now tested without it. The look-back of the count trigger now has its own test. A redundant "id IS NULL" clause was removed.
+A removal that fails a test proves that test can fail. It does not prove the code is correct.

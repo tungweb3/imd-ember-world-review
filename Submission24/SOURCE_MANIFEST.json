@@ -1,0 +1,396 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 24,
+ "privateBase": "754ef44",
+ "privateSource": "fd46d69ca2d59bcd442aba5cd9990f53f93870c3",
+ "files": [
+  {
+   "path": "docs/world-gold-audit6-remediation.md",
+   "status": "M",
+   "bytes": 13080,
+   "sha256": "cf5383278f367fe2907c69704d7821f634403eda3563530878736e21df63025e",
+   "blob": "f6895c0625589fd9bdf38b07f85d7e8d6c356908",
+   "privateBlob": "f6895c0625589fd9bdf38b07f85d7e8d6c356908"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/app.py",
+   "status": "M",
+   "bytes": 12159,
+   "sha256": "52693913581b4230537fd95f63c5aad067a1815ef3582793807940dc7587e5d6",
+   "blob": "567f2fed079f596dd551b2ffd4a46b58148f3354",
+   "privateBlob": "567f2fed079f596dd551b2ffd4a46b58148f3354"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/limits.py",
+   "status": "M",
+   "bytes": 2679,
+   "sha256": "1b8398a61219d4012c2eca1796a3002fce95ded5c67760291ddc3d93c7f6fce6",
+   "blob": "e78571f12943cc7faf693f714f77749095ea03ef",
+   "privateBlob": "e78571f12943cc7faf693f714f77749095ea03ef"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/paid.py",
+   "status": "M",
+   "bytes": 7517,
+   "sha256": "2228b2f0aa20ed49fef576b3442fe3fe5751a3b286550b8c037c165863c117db",
+   "blob": "8ba710ab4621063ee3e4aa2e0361d05ef30cab7a",
+   "privateBlob": "8ba710ab4621063ee3e4aa2e0361d05ef30cab7a"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/sessions.py",
+   "status": "M",
+   "bytes": 7018,
+   "sha256": "8a2d4a2ffbccf03c6ea26793582029c5cfc32b180500d84f3815fbe969efe643",
+   "blob": "6d6bdc98f344ce745903270918d7cd8bd83d31cb",
+   "privateBlob": "6d6bdc98f344ce745903270918d7cd8bd83d31cb"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/vault.py",
+   "status": "M",
+   "bytes": 14396,
+   "sha256": "b5364e82bfcf4a949375b63608f2344516a06b58acd2cb049eaa70ccffd47e5a",
+   "blob": "1111a11f763c5b20e3c092da693d033b324b8d5d",
+   "privateBlob": "1111a11f763c5b20e3c092da693d033b324b8d5d"
+  },
+  {
+   "path": "integrations/celestao/tests/test_api.py",
+   "status": "M",
+   "bytes": 13230,
+   "sha256": "5f4cf0fbe78408cd7b632ee543f3aa47566e7956efac0d826e256c9a30f377d0",
+   "blob": "2e453ce3b7ee9e55519b7bcb5ad686151f33365b",
+   "privateBlob": "2e453ce3b7ee9e55519b7bcb5ad686151f33365b"
+  },
+  {
+   "path": "integrations/celestao/tests/test_limits.py",
+   "status": "A",
+   "bytes": 2910,
+   "sha256": "ecd8a7204b92718afde495e6ad238cd3b1639dd44c6617dcd88078ff778685cf",
+   "blob": "09e2e774d4cfbe09ed71d9ccd8389b0bc7986f00",
+   "privateBlob": "09e2e774d4cfbe09ed71d9ccd8389b0bc7986f00"
+  },
+  {
+   "path": "integrations/celestao/tests/test_paid.py",
+   "status": "M",
+   "bytes": 18997,
+   "sha256": "4b718fe66ec2336ea0f4597f21b2dd77edcbe5ca39c5f506df1dc62c9ada5987",
+   "blob": "45e63a560cb1cd4fc25dfdd9ed09a04f78ac3bc3",
+   "privateBlob": "45e63a560cb1cd4fc25dfdd9ed09a04f78ac3bc3"
+  },
+  {
+   "path": "integrations/celestao/tests/test_sessions.py",
+   "status": "M",
+   "bytes": 4165,
+   "sha256": "60ce9bab1d304db88ea347f6f73bee23dd614a4fd4b2ecbf50ebacd8edcc2bdb",
+   "blob": "5d5842816aaf3408013947e843fb37b89c953ec5",
+   "privateBlob": "5d5842816aaf3408013947e843fb37b89c953ec5"
+  },
+  {
+   "path": "integrations/celestao/tests/test_vault.py",
+   "status": "M",
+   "bytes": 10963,
+   "sha256": "396f938376082e5832d77126cbcc891e69ee6421d4852447284e7278508a048c",
+   "blob": "51d1114f9ce1784832dae35a08481ab404deb24d",
+   "privateBlob": "51d1114f9ce1784832dae35a08481ab404deb24d"
+  },
+  {
+   "path": "migrations/0023_celestao_annual_ziwei.sql",
+   "status": "M",
+   "bytes": 2338,
+   "sha256": "fb8a4fc3dcfc7232a30528fbd7c45e02e1b192b3c568c96a8f9b06b654433409",
+   "blob": "283130906eb488d9f3db986671636d4e8e26ebac",
+   "privateBlob": "283130906eb488d9f3db986671636d4e8e26ebac"
+  },
+  {
+   "path": "migrations/0024_world_gold_grants.sql",
+   "status": "A",
+   "bytes": 3322,
+   "sha256": "73d730c32c36ef5cbb790c77ec077473c98e1905fb992f2f5b35dd17b84030f8",
+   "masked": true
+  },
+  {
+   "path": "server/celestao-auth.ts",
+   "status": "M",
+   "bytes": 11325,
+   "sha256": "f45a6aed7af37d4ca7381128178a408c3e0a8560fcb0900fff2c137841fc49c4",
+   "blob": "766526f175581dac4b29ffbb22570d50fcb8d176",
+   "privateBlob": "766526f175581dac4b29ffbb22570d50fcb8d176"
+  },
+  {
+   "path": "server/celestao-checkout.ts",
+   "status": "M",
+   "bytes": 7804,
+   "sha256": "22dbc402f223117f5d1543cb0ee0b567822aac437db809a52858bc71affdac1f",
+   "blob": "f307ae8c4d82338592964283deb6353b439e3726",
+   "privateBlob": "f307ae8c4d82338592964283deb6353b439e3726"
+  },
+  {
+   "path": "server/celestao-delivery.ts",
+   "status": "M",
+   "bytes": 3445,
+   "sha256": "8aefc9c32eb62460b6c87167c53fcf6e53b5e2f3b17d8252901e9eb7ba9ed020",
+   "blob": "029f1165c736768c8f506f6b07faf4b5bb26042b",
+   "privateBlob": "029f1165c736768c8f506f6b07faf4b5bb26042b"
+  },
+  {
+   "path": "server/economy-recovery.ts",
+   "status": "M",
+   "bytes": 34091,
+   "sha256": "66f37566637c642e0462445d3b2206ed80f09f6d2ed9069a5a8436134790b736",
+   "blob": "9de0544ded245d164bf800964785343eff91fb9b",
+   "privateBlob": "9de0544ded245d164bf800964785343eff91fb9b"
+  },
+  {
+   "path": "server/world-gold-api.ts",
+   "status": "M",
+   "bytes": 11290,
+   "sha256": "fed60aa5dd53ab4173c08551e3e9e1aa11830f1f9e3d52fbe56d392d8cefa4e0",
+   "blob": "02e78a1c629cfb2e034867c50169b3258e9c83ee",
+   "privateBlob": "02e78a1c629cfb2e034867c50169b3258e9c83ee"
+  },
+  {
+   "path": "server/world-gold.ts",
+   "status": "M",
+   "bytes": 37638,
+   "sha256": "3ba0cc7f10c0b8c5d30a586aa27a3614f34e27918fe464b4e891525975bc1cb3",
+   "masked": true
+  },
+  {
+   "path": "src/shared/fortunePricing.ts",
+   "status": "M",
+   "bytes": 1652,
+   "sha256": "15db0c6464debda009ae6cf0fd9fbae76b9c847dab06141736ed6e443b11f05a",
+   "blob": "0e8d62aa06c6353552c7c355ab48fc5ad19d5ab6",
+   "privateBlob": "0e8d62aa06c6353552c7c355ab48fc5ad19d5ab6"
+  },
+  {
+   "path": "src/shared/goldGrants.ts",
+   "status": "A",
+   "bytes": 430,
+   "sha256": "372919a083d4e249be81371718e428c314d6bc713fb20d85f21cab3118f0062d",
+   "blob": "c283cfec439c3ecf0ce14d0fdb8fe880a65ff0fd",
+   "privateBlob": "c283cfec439c3ecf0ce14d0fdb8fe880a65ff0fd"
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "M",
+   "bytes": 30831,
+   "sha256": "5f6ff88e29aeb360135c88eb35bee661b2f6daf4ab0d105a2cb0d4fac920d83b",
+   "blob": "3cfce14285d2ef7c49f3a2a46dc135126e916583",
+   "privateBlob": "3cfce14285d2ef7c49f3a2a46dc135126e916583"
+  },
+  {
+   "path": "src/world/goldGrantRules.ts",
+   "status": "A",
+   "bytes": 1425,
+   "sha256": "ad98b2ea984e38db70ef75eaaa92278668d30c3db782af7d7405aad1c199bece",
+   "blob": "f28c97678caf75e895a1e902161d309548a907a7",
+   "privateBlob": "f28c97678caf75e895a1e902161d309548a907a7"
+  },
+  {
+   "path": "src/world/worldGoldClient.ts",
+   "status": "M",
+   "bytes": 4147,
+   "sha256": "9f2fe11067211f16938afa2fe1bb2607f3ff7ebb07341258d69312f79878845d",
+   "blob": "c040fafd9941400019adddcd0b7e82244b97019e",
+   "privateBlob": "c040fafd9941400019adddcd0b7e82244b97019e"
+  },
+  {
+   "path": "tests/bridge-budget.test.mjs",
+   "status": "M",
+   "bytes": 2033,
+   "sha256": "a5da141cb8a65bd669919518af2fbce80e182a40dc5a4a5b1a86de4b36a82878",
+   "blob": "57c3c405c9447e7894e63814582bed50c7f0c956",
+   "privateBlob": "57c3c405c9447e7894e63814582bed50c7f0c956"
+  },
+  {
+   "path": "tests/celestao-auth.test.mjs",
+   "status": "M",
+   "bytes": 9504,
+   "sha256": "657f36065240d0f392bd80db912e827be65e19f16fe6a776e4d9fdf92bef143d",
+   "blob": "a26f5714595afca2a12407a2da1262178bb0386e",
+   "privateBlob": "a26f5714595afca2a12407a2da1262178bb0386e"
+  },
+  {
+   "path": "tests/celestao-checkout.test.mjs",
+   "status": "M",
+   "bytes": 16251,
+   "sha256": "174f37ffe6f6147f15d3fd23a7cc22fe7c82f60ce8dffcea1b860573daca0516",
+   "blob": "31309450789e0113cd76c73ee826e83aa078325d",
+   "privateBlob": "31309450789e0113cd76c73ee826e83aa078325d"
+  },
+  {
+   "path": "tests/celestao-release.test.mjs",
+   "status": "M",
+   "bytes": 4865,
+   "sha256": "e9ddf98c96fe1a125b14f3ed430bb27ab0bda2bda4b109a529892a64048ec815",
+   "blob": "73609b32ca549f3007d765b41b97fb93b13fc620",
+   "privateBlob": "73609b32ca549f3007d765b41b97fb93b13fc620"
+  },
+  {
+   "path": "tests/fortune-pricing.test.mjs",
+   "status": "M",
+   "bytes": 2418,
+   "sha256": "3cf603192c2c2cae07b6531bca0f6bc0c9abb06b6599db5ebce149ef7ecc25af",
+   "blob": "7f374e2210a123e29628022a3ce671c569b5b74f",
+   "privateBlob": "7f374e2210a123e29628022a3ce671c569b5b74f"
+  },
+  {
+   "path": "tests/presence.test.mjs",
+   "status": "M",
+   "bytes": 21153,
+   "sha256": "27b0092faea4f43732a2ed12e60e8010c30aa15206a3cac2a95acacf03b4ac43",
+   "blob": "280b56e7748f22e7a9a4309039e4ae49a0cdadbb",
+   "privateBlob": "280b56e7748f22e7a9a4309039e4ae49a0cdadbb"
+  },
+  {
+   "path": "tests/world-gold-grants-recovery.test.mjs",
+   "status": "A",
+   "bytes": 3328,
+   "sha256": "fca5a311d9a3619489372a6543fdb394522168fa39cd36609e964fd127223e11",
+   "masked": true
+  },
+  {
+   "path": "tests/world-gold-grants-ui.test.mjs",
+   "status": "A",
+   "bytes": 1926,
+   "sha256": "f1d075145c6b4250c9cc0e460248a4a2b5e6ad3662007fa76b2ad80635bc9f15",
+   "blob": "9cbe3a0cebaaa7f8d70ea4fcf3ec00eca3be88ae",
+   "privateBlob": "9cbe3a0cebaaa7f8d70ea4fcf3ec00eca3be88ae"
+  },
+  {
+   "path": "tests/world-gold-grants.test.mjs",
+   "status": "A",
+   "bytes": 23502,
+   "sha256": "0d44f1d28546521bc49599677d16030425d7f5ff7c34fded23e483942ef9a9c6",
+   "masked": true
+  },
+  {
+   "path": "worker/app.ts",
+   "status": "M",
+   "bytes": 25573,
+   "sha256": "88d8c308b45f7809aa1f112de4a8f42ca4524cc0c759ec00e743cf57e6fd522d",
+   "blob": "559c4664b84290e02579af0528cc10a2552351a9",
+   "privateBlob": "559c4664b84290e02579af0528cc10a2552351a9"
+  },
+  {
+   "path": "server/world-gold-delivery.ts",
+   "status": "context",
+   "bytes": 3812,
+   "sha256": "ce741691ab8fdfc0402ed8f9e7634488d442fbc11be6c6a891b664c8fa078e09",
+   "blob": "867853f82908c48d108e65ca49b76ad8ef1996b0",
+   "privateBlob": "867853f82908c48d108e65ca49b76ad8ef1996b0"
+  },
+  {
+   "path": "server/celestao-protocol.ts",
+   "status": "context",
+   "bytes": 2440,
+   "sha256": "350e7744bcfc1e9440c9469722cded974fc4a9d8d64b9ab1eb0836d159f297d5",
+   "blob": "df9c4c67358fb7e6d14fcdc96deef5e15699e314",
+   "privateBlob": "df9c4c67358fb7e6d14fcdc96deef5e15699e314"
+  },
+  {
+   "path": "server/world-gold-fast.ts",
+   "status": "context",
+   "bytes": 14452,
+   "sha256": "d0da654bb0fdd0aaae5d10fcae21476dedcc7cfd2023a385123f8bdd4d300a3b",
+   "blob": "7db61d2b2f12df820bd085f24d0fe2b5b654dccd",
+   "privateBlob": "7db61d2b2f12df820bd085f24d0fe2b5b654dccd"
+  },
+  {
+   "path": "server/world-gold-schema.ts",
+   "status": "context",
+   "bytes": 10928,
+   "sha256": "fb22864a7e7f23885f33a336d63084e7c939b1694498dc356f8d9933f6ddfebb",
+   "blob": "ca377450b00a300509fda36c8a8bb3702c2f5000",
+   "privateBlob": "ca377450b00a300509fda36c8a8bb3702c2f5000"
+  },
+  {
+   "path": "server/world-gold-result.ts",
+   "status": "context",
+   "bytes": 5988,
+   "sha256": "0a99619dfcef3941d1e868eaa5601b1e85b3cabcbf581f2d36eeecf439cd7185",
+   "blob": "9a6040eeaff474b6de11257121a35466139fa9d5",
+   "privateBlob": "9a6040eeaff474b6de11257121a35466139fa9d5"
+  },
+  {
+   "path": "migrations/0014_world_gold_integration.sql",
+   "status": "context",
+   "bytes": 8653,
+   "sha256": "d53d121ed6a919a2e5399f8d42a3d7121bdf5530701abd92d53f83801f7c6a7b",
+   "blob": "5368ca19a8eff119b168295779d21badb61f98ac",
+   "privateBlob": "5368ca19a8eff119b168295779d21badb61f98ac"
+  },
+  {
+   "path": "migrations/0015_world_gold_audit_hardening.sql",
+   "status": "context",
+   "bytes": 5034,
+   "sha256": "e801cb9cdb212b0567d8514ddecb79b3c9c6cd6c2c2755fac4447352d03038e5",
+   "blob": "f38845244cb8f35fe01ef1937edc45f4ebd5613d",
+   "privateBlob": "f38845244cb8f35fe01ef1937edc45f4ebd5613d"
+  },
+  {
+   "path": "migrations/0021_world_gold_fast_credit.sql",
+   "status": "context",
+   "bytes": 9118,
+   "sha256": "f619dd23adc964bb1f49f7c82d0508d51e6e81fb24eb381e551bc23bac4e2240",
+   "blob": "396260e1226c7042702dfcb7e6b97c167ea67020",
+   "privateBlob": "396260e1226c7042702dfcb7e6b97c167ea67020"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/bridge.py",
+   "status": "context",
+   "bytes": 6635,
+   "sha256": "0cca1959eae1f7c0c07cbd8b22309fdf48547c29c752da3e7f2f77163a7a6738",
+   "blob": "b6a2f8ceea7c5963cc0f094bed44a7325766d7bc",
+   "privateBlob": "b6a2f8ceea7c5963cc0f094bed44a7325766d7bc"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/config.py",
+   "status": "context",
+   "bytes": 3252,
+   "sha256": "1777d2989ca6952230f318aa9fdceaf82f84b1da15cdf4ce629c89e26670334b",
+   "blob": "e406085aca4f27efe43010342455bca7dcb77b80",
+   "privateBlob": "e406085aca4f27efe43010342455bca7dcb77b80"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/native.py",
+   "status": "context",
+   "bytes": 5588,
+   "sha256": "1b3b8b8bc619449cff68ef9df7c3a25ff913d331234ec186d02cadf9932ee92e",
+   "blob": "b4beb18522824146acffdaf4f6fff445799a513d",
+   "privateBlob": "b4beb18522824146acffdaf4f6fff445799a513d"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/production.py",
+   "status": "context",
+   "bytes": 577,
+   "sha256": "b84bcc9ac77ef95954a62fc9054f6594bf19e98041bcfac684b912e190c7dc30",
+   "blob": "f2250c44ca10bf3381ca22c2197c6b2b78647d29",
+   "privateBlob": "f2250c44ca10bf3381ca22c2197c6b2b78647d29"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/protocol.py",
+   "status": "context",
+   "bytes": 852,
+   "sha256": "1be1af9afd9dd4fec9371fd9a56933fb731ee16fb9227c23776b1029a1ca0393",
+   "blob": "aaed9dc5e6c77f1acc1b656c5543deee4f25899c",
+   "privateBlob": "aaed9dc5e6c77f1acc1b656c5543deee4f25899c"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/relay_transport.py",
+   "status": "context",
+   "bytes": 1378,
+   "sha256": "867ee01cd26ed233bba5859f26c6c6032eb17dd1af30d82276d36ef83710380a",
+   "blob": "596e97e867eeb69165bb8559c4a4b2f6a8b49b36",
+   "privateBlob": "596e97e867eeb69165bb8559c4a4b2f6a8b49b36"
+  },
+  {
+   "path": "tests/world-gold-audit5-fixture.mjs",
+   "status": "context",
+   "bytes": 3428,
+   "sha256": "8ced5901213ef5fa062804564d7f5f2392cd207614a637e30b5a7889f5c2442c",
+   "blob": "56bb268d62392331c38182dadca51f2822a5edab",
+   "privateBlob": "56bb268d62392331c38182dadca51f2822a5edab"
+  }
+ ]
+}
