@@ -1,0 +1,9 @@
+World source fd46d69ca2d59bcd442aba5cd9990f53f93870c3
+node --test --test-concurrency=2 tests/*.test.mjs, from a clean checkout
+ℹ tests 3904
+ℹ pass 3898
+ℹ fail 1
+ℹ skipped 5
+The one failure is "the locked wallet files match the audited version": server/economy-recovery.ts, server/world-gold-api.ts, server/world-gold.ts, src/world/WorldGoldPanel.tsx, src/world/worldGoldClient.ts changed.
+The manifest of audited hashes was not refreshed. That is deliberate: the deploy tool runs this suite, so this source cannot ship until the audit is done and the owner approves a refresh.
+tsc --noEmit: 0 errors

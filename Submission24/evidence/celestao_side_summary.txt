@@ -1,0 +1,6 @@
+Celestao side, read-only containers, no network.
+
+integrations/celestao/tests (unit): 55 tests, 5 skipped because they need the native tree; those 5 pass on the real engines:
+tests/test_native_annual.py on the real engines: 5 pass.
+deployment/test_deployment.py: 2 pass.
+The full native test run (about 37 minutes) was last run for Submission23 and was not repeated. No native engine or report code changed after it.
