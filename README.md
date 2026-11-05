@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission24](Submission24/README.md) — fixes for audit 521bc017 and an administrator GOLD grant (World `fd46d69`, not deployed).**
+**Current: [Submission25](Submission25/README.md) — per-grant wallet signature, fixes for audit 37a926e3, and pre-sale payment fixes (World `580190a`, not deployed).**
 
-Read [Submission24/AUDIT_REQUEST.md](Submission24/AUDIT_REQUEST.md) first.
+Read [Submission25/AUDIT_REQUEST.md](Submission25/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission24](Submission24/README.md) — fixes for audit 521bc017 and an administrator GOLD grant (World `fd46d69`, not deployed).**
 
 **Previous: [Submission23](Submission23/README.md) — the annual reading as the sixth Celestao GOLD product, with the Celestao payment path public for the first time (World `754ef44`, not deployed).**
 
