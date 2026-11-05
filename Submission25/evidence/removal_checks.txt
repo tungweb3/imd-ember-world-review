@@ -1,0 +1,12 @@
+Each safeguard removed once in a working copy, then the relevant tests run. A check is "caught" when a test fails. Each script first confirmed its unmodified baseline passed; one first run of the signature script had an incomplete copy, failed at baseline, was discarded and was run again.
+
+Signature and audit fixes, World (at 3dc9c55): 65 removals, 65 caught.
+Reload and oversize, World (at 9124eb3): 6 removals, 6 caught.
+Celestao overlay, one growing list, Python:
+  reload and oversize (at 9124eb3): 26 of 26 caught
+  stuck orders added (at 163d222): 58 of 58 caught
+  polar added (at 74cb24a): 66 of 66 caught
+  retention (at b0f9182): the 17 new rows only, 17 of 17 caught
+
+The rows were NOT all rerun at the final source 580190a. The 66 older Python rows were not rerun after the retention commit, and the World rows were not rerun after their commits. Commit 580190a changes wording only.
+A removal that fails a test proves that test can fail. It does not prove the code is correct.

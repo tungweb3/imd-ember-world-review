@@ -1,0 +1,9 @@
+Celestao side, read-only containers, no network, at Celestao 333715e and World 580190a.
+
+Overlay unit tests (integrations/celestao/tests): 116 run, OK, 7 skipped because they need the native tree.
+tests/test_native_annual.py and tests/test_native_location.py on the real engines: 11 run, OK.
+deployment/test_deployment.py: 2 run, OK. deployment/ is not in this package.
+tests/test_production_config.py, in the private Celestao tree and not in this package: 29 passed. It includes the check that the server runs one worker.
+Real engine at latitude +/-66.5, 40,000 random times from 1900 to 2100 (at 74cb24a): none refused.
+
+The full native test run (about 26 to 37 minutes) was NOT run for this round, although native.py changed in it.
