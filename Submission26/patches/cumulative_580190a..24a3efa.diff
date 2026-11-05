@@ -1,0 +1,366 @@
+diff --git a/integrations/celestao/README.md b/integrations/celestao/README.md
+index 8b6bcc5..d6b1888 100644
+--- a/integrations/celestao/README.md
++++ b/integrations/celestao/README.md
+@@ -24,7 +24,7 @@ package_release.py 只包公開程式、合成測試、固定 Linux wheels 和
+ 
+ World 的 prepare 回應多了 `lapsed`，玄曜的 `bridge.py` 會嚴格檢查欄位，所以 World 和玄曜必須一起部署。
+ 
+-已付款但沒有報告的訂單：引擎回傳不能用的結果、資料庫拒收或發生未預期錯誤，緯度超過 66.5 度的西洋和完整報告，在付款前就回 `LOCATION_UNSUPPORTED`（`HOUSE_LATITUDE_LIMIT`）；完整報告的 `analysis_timezone` 不是 `Asia/Taipei` 也在付款前拒絕。人類圖和紫微不受影響。至少失敗 3 次、而且離第一次失敗滿 1 小時（`FAILED_ATTEMPTS_LIMIT`、`FAILED_ATTEMPTS_SPAN_MS`），才判定失敗，World 自動退款。這 1 小時是留給人看 `delivery_pending` 記錄並修好部署。run 已被本系統清除（`pruned_runs` 有紀錄）的已付款訂單也直接退款；只是找不到 run 則回 409，因為可能是資料庫掛錯。引擎暫時無法服務（429、502、503）、硬碟或資料庫出錯、計算卡住，都不會自動退款，因為之後可能還能交付。
++已付款但沒有報告的訂單：引擎回傳不能用的結果、資料庫拒收或發生未預期錯誤，緯度超過 66.5 度的西洋和完整報告，在付款前就回 `LOCATION_UNSUPPORTED`（`HOUSE_LATITUDE_LIMIT`）；完整報告的 `analysis_timezone` 不是 `Asia/Taipei` 也在付款前拒絕。人類圖和紫微不受影響。至少失敗 3 次、而且離第一次失敗滿 1 小時（`FAILED_ATTEMPTS_LIMIT`、`FAILED_ATTEMPTS_SPAN_MS`），才判定失敗，World 自動退款。這 1 小時是留給人看 `delivery_pending` 記錄並修好部署。run 已被本系統清除（`pruned_runs` 有紀錄）的已付款訂單也直接退款；只是找不到 run 則回 409，因為可能是資料庫掛錯。引擎暫時無法服務（408、429、502、503、504）、硬碟或資料庫出錯、計算超過 15 分鐘，一開始不算失敗，因為之後可能還能交付；但從第一次碰到起滿 24 小時（`WAIT_LIMIT_MS`）還沒交付，就判定失敗並退款，記錄是 `delivery_failed ... waited_too_long`。所以引擎停擺超過一天，開放中的單會全部退款，買家可以再買。引擎固定拒絕（400、409、422）會立刻退款；其他狀態（例如 404、500）算一次失敗。
+ 
+ 站主決定不等時，在玄曜容器內執行：
+ 
+diff --git a/integrations/celestao/celestao_world/native.py b/integrations/celestao/celestao_world/native.py
+index 57194f7..a5ce320 100644
+--- a/integrations/celestao/celestao_world/native.py
++++ b/integrations/celestao/celestao_world/native.py
+@@ -5,6 +5,7 @@ not forge an HTTP Origin or weaken the public application's same-origin guard.
+ """
+ import asyncio,json
+ from fastapi import Request
++from starlette.exceptions import HTTPException
+ from starlette.responses import Response
+ from pydantic import ValidationError
+ 
+@@ -14,6 +15,10 @@ class NativeInputError(ValueError):pass
+ class NativeNondelivery(ValueError):pass
+ 
+ ANNUAL_ROUTE='/api/reports/annual-ziwei'
++# The engine is away or busy: the order waits.
++ENGINE_AWAY=frozenset((408,429,502,503,504))
++# The engine refuses this input and always will: the order is refunded at once.
++ENGINE_REFUSED=frozenset((400,409,422))
+ # Past the polar circle (about 66.56) Placidus houses have no answer for many birth times. Measured: none refused at or under this line.
+ HOUSE_LATITUDE_LIMIT=66.5
+ # The profile endpoint refuses every other analysis timezone.
+@@ -71,10 +76,14 @@ class NativeEngine:
+         # authenticated opaque owner, not a forged XFF or one shared server IP.
+         request=Request({'type':'http','method':'POST','path':'/internal-paid-calculation','headers':[],
+             'client':('paid-'+owner,0),'server':('celestao-internal',0),'scheme':'https','query_string':b''})
+-        response=await endpoint(model,request)
++        try:response=await endpoint(model,request)
++        # These endpoints return their status today. One that raises it means the same.
++        except HTTPException as exc:response=Response(status_code=exc.status_code)
+         if isinstance(response,Response):
+-            if response.status_code in (429,502,503):raise NativeUnavailable('ENGINE_TEMPORARILY_UNAVAILABLE')
+-            if response.status_code!=200:raise NativeNondelivery('CHART_NOT_GENERATED')
++            if response.status_code in ENGINE_AWAY:raise NativeUnavailable('ENGINE_TEMPORARILY_UNAVAILABLE')
++            if response.status_code in ENGINE_REFUSED:raise NativeNondelivery('CHART_NOT_GENERATED')
++            # Any other status, such as 404 or 500, could be a bad deployment. It counts as an attempt, which leaves time to catch one.
++            if response.status_code!=200:raise NativeUnusable('UNEXPECTED_ENGINE_STATUS')
+             value=json.loads(response.body)
+         else:value=response
+         result=value.get('result') if isinstance(value,dict) else None
+diff --git a/integrations/celestao/celestao_world/paid.py b/integrations/celestao/celestao_world/paid.py
+index 27c99db..cb63d35 100644
+--- a/integrations/celestao/celestao_world/paid.py
++++ b/integrations/celestao/celestao_world/paid.py
+@@ -80,6 +80,14 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+         if ended:log.error('delivery_failed order=%s reason=%s attempts_used',b['orderId'],reason)
+         else:log.error('delivery_pending order=%s reason=%s',b['orderId'],reason)
+ 
++    def note_wait(b,attempt,reason):
++        log=logging.getLogger('celestao.delivery')
++        try:ended=vault.note_wait(b['wallet'],b['runId'],attempt,clock())
++        # The database itself may be the fault: the order waits, and this is counted next time.
++        except Exception as error:log.warning('delivery_pending order=%s reason=%s',b['orderId'],type(error).__name__);return
++        if ended:log.error('delivery_failed order=%s reason=%s waited_too_long',b['orderId'],reason)
++        else:log.warning('delivery_pending order=%s reason=%s',b['orderId'],reason)
++
+     def answer(b,**outcome):
+         envelope={k:b[k] for k in ('schema','orderId','wallet','product','runId','inputHash')}
+         envelope.update(outcome)
+@@ -99,8 +107,8 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+             try:vault.fail(b['wallet'],b['runId'],claim['attempt'],'CHART_NOT_GENERATED')
+             except VaultError:pass
+         except NativeUnusable as error:strike(b,claim,type(error).__name__)
+-        # The engine, the disk or the database is away or full: this says nothing about the order, which waits however long that takes.
+-        except (NativeUnavailable,sqlite3.Error,OSError,MemoryError) as error:logging.getLogger('celestao.delivery').warning('delivery_pending order=%s reason=%s',b['orderId'],type(error).__name__)
++        # The engine, the disk or the database is away or full: this says nothing about the order, which waits up to a day.
++        except (NativeUnavailable,sqlite3.Error,OSError,MemoryError) as error:note_wait(b,claim['attempt'],type(error).__name__)
+         # An attempt that ended here saved no report, so it can be tried again after its lease. After a few, over an hour, the order is refunded.
+         except Exception as error:strike(b,claim,type(error).__name__)
+ 
+@@ -128,12 +136,14 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+         running=active.get(b['runId'])
+         if running and clock()-running[1]>=COMPUTE_LIMIT_MS:
+             logging.getLogger('celestao.delivery').error('delivery_pending reason=compute_limit')
++            # Counted first: a hang that cannot be cancelled never reaches calculate's own handling.
++            note_wait(b,running[2],'compute_limit')
+             running[0].cancel()
+             await asyncio.wait({running[0]},timeout=CANCEL_WAIT_SECONDS)
+             running=active.get(b['runId'])
+         claim=None if running else vault.claim(b['wallet'],b['runId'],b['orderId'],clock())
+         if claim:
+-            run_id=b['runId'];task=asyncio.create_task(calculate(b,claim));active[run_id]=(task,clock())
++            run_id=b['runId'];task=asyncio.create_task(calculate(b,claim));active[run_id]=(task,clock(),claim['attempt'])
+             tasks.add(task);task.add_done_callback(tasks.discard)
+             def release(done,run_id=run_id):
+                 if active.get(run_id,(None,))[0] is done:del active[run_id]
+diff --git a/integrations/celestao/celestao_world/vault.py b/integrations/celestao/celestao_world/vault.py
+index 28e918e..2b2bb13 100644
+--- a/integrations/celestao/celestao_world/vault.py
++++ b/integrations/celestao/celestao_world/vault.py
+@@ -22,6 +22,8 @@ UNPAID_GRACE_MS=30*86400000
+ FAILED_ATTEMPTS_LIMIT=3
+ # And not before this long after the first of them, so a bad deployment or an outage can be seen and fixed before it refunds every open order.
+ FAILED_ATTEMPTS_SPAN_MS=3600000
++# A fault that says nothing about the order waits, but not for ever: a buyer who paid gets the report or the money back.
++WAIT_LIMIT_MS=24*3600000
+ # A refunded order's birth details stay this long, so problems can be handled. The privacy page states this number.
+ FAILED_RETENTION_MS=30*86400000
+ PRUNE_BATCH=50
+@@ -68,6 +70,8 @@ class Vault:
+             self.db.execute('ALTER TABLE runs ADD COLUMN first_failed_ms INTEGER')
+         if 'failed_ms' not in {r['name'] for r in self.db.execute('PRAGMA table_info(runs)')}:
+             self.db.execute('ALTER TABLE runs ADD COLUMN failed_ms INTEGER')
++        if 'first_waited_ms' not in {r['name'] for r in self.db.execute('PRAGMA table_info(runs)')}:
++            self.db.execute('ALTER TABLE runs ADD COLUMN first_waited_ms INTEGER')
+         self.db.execute('CREATE INDEX IF NOT EXISTS runs_input ON runs(owner,system,input_hash)')
+     def close(self):
+         with self._lock: self.db.close()
+@@ -217,6 +221,15 @@ class Vault:
+             if row['failed_attempts']<FAILED_ATTEMPTS_LIMIT or now-row['first_failed_ms']<FAILED_ATTEMPTS_SPAN_MS:return False
+             self.db.execute("UPDATE runs SET state='failed',failure='CHART_NOT_GENERATED' WHERE id=?",(rid,))
+             return True
++    def note_wait(self,wallet,rid,attempt,now):
++        """This attempt hit a fault that says nothing about the order. True once the first such fault is WAIT_LIMIT_MS old, which fails the run and refunds the order."""
++        at(now)
++        with self._transaction():
++            if self.db.execute("UPDATE runs SET first_waited_ms=COALESCE(first_waited_ms,?) WHERE id=? AND owner=? AND state='working' AND attempt=? AND result_id IS NULL",(now,rid,self.owner(wallet),attempt)).rowcount!=1:return False
++            first=self.db.execute('SELECT first_waited_ms FROM runs WHERE id=?',(rid,)).fetchone()['first_waited_ms']
++            if now-first<WAIT_LIMIT_MS:return False
++            self.db.execute("UPDATE runs SET state='failed',failure='CHART_NOT_GENERATED' WHERE id=?",(rid,))
++            return True
+     def stuck(self):
+         """Paid orders this vault has heard of and has no report for, oldest first. No wallet or birth data."""
+         with self._lock:
+diff --git a/integrations/celestao/tests/test_paid.py b/integrations/celestao/tests/test_paid.py
+index 71eb1ee..a434643 100644
+--- a/integrations/celestao/tests/test_paid.py
++++ b/integrations/celestao/tests/test_paid.py
+@@ -1,17 +1,18 @@
+ """Paid protocol and durable retry tests; synthetic engine, no real GOLD."""
+ import asyncio,contextlib,io,os,sqlite3,subprocess,sys,unittest,json
+-from fastapi import FastAPI
++from fastapi import FastAPI,HTTPException
++from fastapi.responses import JSONResponse
+ import httpx
+ from test_vault import VaultFixture,A,B,KEY,INPUT,RESULT,ORDER
+ from celestao_world.app import make_app
+ from celestao_world.config import Settings
+ from celestao_world import paid,orders
+ from celestao_world.bridge import WorldBridge,BridgeUnavailable
+-from celestao_world.native import NativeInputError,NativeUnavailable,NativeUnusable,NativeNondelivery
++from celestao_world.native import NativeEngine,NativeInputError,NativeUnavailable,NativeUnusable,NativeNondelivery
+ from celestao_world.protocol import SCHEMA,DELIVER,signature,verified
+ from celestao_world import vault as vault_module
+ from pathlib import Path
+-from celestao_world.vault import Missing,UNPAID_GRACE_MS,FAILED_RETENTION_MS,PRUNE_BATCH
++from celestao_world.vault import Missing,UNPAID_GRACE_MS,FAILED_RETENTION_MS,PRUNE_BATCH,WAIT_LIMIT_MS
+ 
+ NOW=1780000000000
+ SECRET='dedicated-fixture-delivery-secret-0123456789'
+@@ -34,11 +35,38 @@ class Processor:
+         if self.mode=='unusable':raise NativeUnusable('INVALID_NATIVE_RESULT')
+         if self.mode=='busy-db':raise sqlite3.OperationalError('database is locked')
+         if self.mode=='disk':raise OSError('no space')
++        if self.mode=='timeout':raise asyncio.TimeoutError()
++        if self.mode=='no-file':raise FileNotFoundError('engine data')
++        if self.mode=='connection':raise ConnectionError('engine')
+         if self.mode=='crash':raise RuntimeError('boom')
+         if self.mode=='wrong-system':return {**RESULT,'system':'ziwei','input':payload}
+         if self.mode=='rejected':raise NativeNondelivery('CHART_NOT_GENERATED')
+         return {**RESULT,'system':system,'input':payload}
+ 
++def engine_answering(*answers):
++    """The real adapter around a stub endpoint, which gives each answer in turn: a status, an exception, or the report."""
++    engine=NativeEngine.__new__(NativeEngine);left=list(answers)
++    async def endpoint(model,request):
++        answer=left.pop(0)
++        if isinstance(answer,Exception):raise answer
++        if answer==200:return JSONResponse({'result':{**RESULT,'system':'bazi','input':model}})
++        return JSONResponse({'detail':'x'},status_code=answer)
++    engine.charts=endpoint
++    engine.model=lambda system:type('Model',(),{'model_validate':staticmethod(lambda payload:payload)})
++    return engine
++
++class EngineStatusTests(unittest.IsolatedAsyncioTestCase):
++    async def outcome(self,answer):
++        try:await engine_answering(answer).compute('bazi',{},'owner');return 'report'
++        except ValueError as error:return type(error)
++    async def test_each_engine_status_means_what_it_says_for_the_order(self):
++        for statuses,expected in (((200,),'report'),((408,429,502,503,504),NativeUnavailable),((400,409,422),NativeNondelivery),((403,404,500,507),NativeUnusable)):
++            for status in statuses:
++                with self.subTest(status):self.assertEqual(await self.outcome(status),expected)
++    async def test_an_engine_that_raises_its_status_means_the_same_as_one_that_returns_it(self):
++        for status,expected in ((429,NativeUnavailable),(503,NativeUnavailable),(422,NativeNondelivery),(500,NativeUnusable)):
++            with self.subTest(status):self.assertEqual(await self.outcome(HTTPException(status,'x')),expected)
++
+ class PaidTests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+     async def test_pausing_new_orders_preserves_paid_delivery_and_private_readback(self):
+         from dataclasses import replace
+@@ -363,6 +391,88 @@ class PaidTests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+         for _ in range(count):
+             kinds.append((await self.deliver(run,patch={'orderId':order})).json()['kind']);self.time+=1900000
+         return kinds
++    def waited(self,rid):
++        return self.vault.db.execute('SELECT state,failure,failed_attempts,first_waited_ms FROM runs WHERE id=?',(rid,)).fetchone()
++    async def test_a_fault_that_never_counts_ends_after_a_day(self):
++        for number,mode in enumerate(('offline','busy-db','disk','timeout','no-file','connection')):
++            with self.subTest(mode):
++                self.time=NOW;self.processor.mode='ok'
++                response=await self.prepare(requestId='fixture_wait_request_'+str(number),input={**INPUT,'name':mode});run=self.vault.run(A,response.json()['runId'])
++                order='0x'+format(number+900,'064x');self.processor.mode=mode
++                self.assertEqual((await self.deliver(run,patch={'orderId':order})).json()['kind'],'pending')
++                self.time=NOW+WAIT_LIMIT_MS-1
++                self.assertEqual((await self.deliver(run,patch={'orderId':order})).json()['kind'],'pending')
++                self.time+=121000
++                answer=(await self.deliver(run,patch={'orderId':order})).json()
++                self.assertEqual((answer['kind'],answer['code']),('terminal-failure','CHART_NOT_GENERATED'))
++                self.assertEqual(self.waited(run['id'])['failed_attempts'],0);self.assertEqual(self.waited(run['id'])['state'],'failed')
++    async def test_the_wait_is_measured_from_the_first_fault_to_the_millisecond(self):
++        run=await self.run_fixture();self.vault.bind_order(A,run['id'],ORDER)
++        attempt=self.vault.claim(A,run['id'],ORDER,NOW)['attempt']
++        self.assertIs(self.vault.note_wait(A,run['id'],attempt,NOW),False)
++        self.assertIs(self.vault.note_wait(A,run['id'],attempt,NOW+WAIT_LIMIT_MS-1),False)
++        self.assertEqual(self.waited(run['id'])['first_waited_ms'],NOW);self.assertEqual(self.waited(run['id'])['state'],'working')
++        self.assertIs(self.vault.note_wait(A,run['id'],attempt,NOW+WAIT_LIMIT_MS),True)
++        self.assertEqual(self.waited(run['id'])['state'],'failed');self.assertEqual(self.waited(run['id'])['failure'],'CHART_NOT_GENERATED')
++        self.assertEqual(WAIT_LIMIT_MS,86400000)
++    async def test_a_wait_counts_only_for_the_attempt_still_running(self):
++        run=await self.run_fixture();self.vault.bind_order(A,run['id'],ORDER)
++        attempt=self.vault.claim(A,run['id'],ORDER,NOW)['attempt'];far=NOW+WAIT_LIMIT_MS*2
++        self.assertIs(self.vault.note_wait(A,run['id'],'other',NOW),False)
++        self.assertIs(self.vault.note_wait(B,run['id'],attempt,NOW),False)
++        self.assertIsNone(self.waited(run['id'])['first_waited_ms'])
++        self.assertIs(self.vault.note_wait(A,run['id'],attempt,NOW),False)
++        self.vault.complete(A,run['id'],attempt,{**RESULT,'system':'bazi','input':INPUT},NOW)
++        self.assertIs(self.vault.note_wait(A,run['id'],attempt,far),False);self.assertEqual(self.waited(run['id'])['state'],'complete')
++    async def test_a_report_that_saves_late_in_the_wait_is_delivered_and_not_refunded(self):
++        run=await self.run_fixture();self.processor.mode='offline'
++        self.assertEqual((await self.deliver(run)).json()['kind'],'pending');self.time+=WAIT_LIMIT_MS-1
++        self.processor.mode='ok';self.assertEqual((await self.deliver(run)).json()['kind'],'delivered');self.assertEqual(len(self.vault.list(A)),1)
++    async def test_a_database_that_cannot_count_the_wait_leaves_the_order_pending(self):
++        run=await self.run_fixture();self.processor.mode='offline';note=self.vault.note_wait
++        def broken(*args):raise sqlite3.OperationalError('database is locked')
++        self.vault.note_wait=broken
++        try:self.assertEqual((await self.deliver(run)).json()['kind'],'pending')
++        finally:self.vault.note_wait=note
++    async def test_a_status_nobody_expects_is_an_attempt_not_a_refund(self):
++        run=await self.run_fixture();self.processor.compute=engine_answering(500,200).compute
++        self.assertEqual((await self.deliver(run)).json()['kind'],'pending');self.assertEqual(self.waited(run['id'])['failed_attempts'],1)
++        self.time+=121000;self.assertEqual((await self.deliver(run)).json()['kind'],'delivered')
++    async def test_an_engine_refusal_is_refunded_at_once(self):
++        run=await self.run_fixture();self.processor.compute=engine_answering(422).compute
++        answer=(await self.deliver(run)).json();self.assertEqual(answer['kind'],'terminal-failure');self.assertEqual(self.waited(run['id'])['failed_attempts'],0)
++    async def test_an_engine_raising_busy_never_counts_against_the_order(self):
++        run=await self.run_fixture();self.processor.compute=engine_answering(HTTPException(429,'x'),HTTPException(503,'x'),200).compute
++        self.assertEqual((await self.deliver(run)).json()['kind'],'pending');self.time+=121000
++        self.assertEqual((await self.deliver(run)).json()['kind'],'pending');self.time+=121000
++        self.assertEqual((await self.deliver(run)).json()['kind'],'delivered');self.assertEqual(self.waited(run['id'])['failed_attempts'],0)
++    async def test_a_computation_that_can_be_cancelled_still_ends_after_a_day_of_hanging(self):
++        run=await self.run_fixture();wait=paid.DELIVERY_WAIT_SECONDS;paid.DELIVERY_WAIT_SECONDS=0.01
++        async def hang(system,payload,owner):await asyncio.Event().wait()
++        self.processor.compute=hang
++        try:
++            self.assertEqual((await self.deliver(run)).json()['kind'],'pending');self.time+=paid.COMPUTE_LIMIT_MS
++            self.assertEqual((await self.deliver(run)).json()['kind'],'pending');first=self.waited(run['id'])['first_waited_ms'];self.assertEqual(first,self.time)
++            self.time=first+WAIT_LIMIT_MS-1;self.assertEqual((await self.deliver(run)).json()['kind'],'pending')
++            self.time+=paid.COMPUTE_LIMIT_MS;self.assertEqual((await self.deliver(run)).json()['kind'],'terminal-failure')
++            self.assertEqual(self.waited(run['id'])['state'],'failed')
++        finally:paid.DELIVERY_WAIT_SECONDS=wait
++        await asyncio.sleep(0)
++    async def test_a_computation_that_cannot_be_cancelled_ends_after_a_day_and_its_late_report_is_dropped(self):
++        run=await self.run_fixture();wait,cancel=paid.DELIVERY_WAIT_SECONDS,paid.CANCEL_WAIT_SECONDS;paid.DELIVERY_WAIT_SECONDS=paid.CANCEL_WAIT_SECONDS=0.01;gate=asyncio.Event();compute=self.processor.compute
++        async def thread(system,payload,owner):
++            while not gate.is_set():
++                try:await gate.wait()
++                except asyncio.CancelledError:pass
++            return await compute(system,payload,owner)
++        self.processor.compute=thread
++        try:
++            self.assertEqual((await self.deliver(run)).json()['kind'],'pending');self.time+=paid.COMPUTE_LIMIT_MS
++            self.assertEqual((await self.deliver(run)).json()['kind'],'pending');first=self.waited(run['id'])['first_waited_ms']
++            self.time=first+WAIT_LIMIT_MS;self.assertEqual((await self.deliver(run)).json()['kind'],'terminal-failure')
++        finally:paid.DELIVERY_WAIT_SECONDS,paid.CANCEL_WAIT_SECONDS=wait,cancel;gate.set()
++        await asyncio.sleep(0.05)
++        self.assertEqual(self.vault.list(A),[]);self.assertEqual(self.waited(run['id'])['state'],'failed')
+     async def test_a_report_that_saves_after_failed_attempts_is_delivered_normally(self):
+         run=await self.run_fixture();self.processor.mode='crash'
+         self.assertEqual(await self.attempts(run,2),['pending','pending'])
+diff --git a/integrations/celestao/web/world-wallet.css b/integrations/celestao/web/world-wallet.css
+index b13d737..372b920 100644
+--- a/integrations/celestao/web/world-wallet.css
++++ b/integrations/celestao/web/world-wallet.css
+@@ -6,3 +6,4 @@
+ @media print{@page{size:A4;margin:17mm 15mm 18mm}html:has(.world-pdf-mode),body.world-pdf-mode{height:auto!important;overflow:visible!important;background:#fff!important;color:#111!important}.world-pdf-mode #main{position:static!important;inset:auto!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;transform:none!important;border:0!important;box-shadow:none!important}.world-pdf-mode .profile-result-toolbar,.world-pdf-mode .result-toolbar,.world-pdf-mode .cr-header,.world-pdf-mode .cr-chapters,.world-pdf-mode .cr-time{display:none!important}.world-complete-export{background:#fff!important;color:#111!important;padding:0!important}.world-export-chapter{break-before:page}.world-complete-export h2,.world-complete-export h3,.world-complete-export h4{break-after:avoid}.world-complete-export p{orphans:3;widows:3}}
+ @media print{html:root,body.world-pdf-mode{background-color:#fff!important;background-image:none!important}body.world-pdf-mode::before,body.world-pdf-mode::after{display:none!important}@page{background:#fff}}
+ @media print{.world-local-banner,.world-pdf-toolbar,.world-wallet-library,.world-wallet-confirm,.world-price-badge{display:none!important}.world-pdf-mode #main{overflow:visible!important;max-height:none!important;height:auto!important}.world-pdf-mode .profile-reader-mount{overflow:visible!important}}
++.birth-time-pick{display:grid;gap:8px}.birth-time-pick select:disabled{opacity:.4}
+diff --git a/integrations/celestao/web/world-wallet.js b/integrations/celestao/web/world-wallet.js
+index 37777ad..f2305ea 100644
+--- a/integrations/celestao/web/world-wallet.js
++++ b/integrations/celestao/web/world-wallet.js
+@@ -6,7 +6,7 @@
+  const attempts=new Map(),say=(a,b)=>lang==='en'?b:a,opaque=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{43}$/.test(v);
+  const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
+  const button=(text,action)=>{const b=node('button',text,'btn secondary small');b.type='button';b.addEventListener('click',action);return b;};
+- function errorText(error){const code=error?.message;return ({FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted wallet storage.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),LOCATION_UNSUPPORTED:say('這個出生地緯度超過 66.5 度，西洋占星算不出宮位，所以無法製作這份解讀；沒有建立付款。','This birthplace is beyond 66.5° latitude, where western astrology houses cannot be calculated, so this reading is unavailable. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
++ function errorText(error){const code=error?.message;return ({FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted storage in your wallet collection.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),LOCATION_UNSUPPORTED:say('這個出生地緯度超過 66.5 度，西洋占星算不出宮位，所以無法製作這份解讀；沒有建立付款。','This birthplace is beyond 66.5° latitude, where western astrology houses cannot be calculated, so this reading is unavailable. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
+  function invalidate(){epoch++;identity=null;currentRecord=null;currentResult=null;document.getElementById('world-wallet-library')?.remove();document.querySelectorAll('[data-world-identity]').forEach(n=>n.replaceChildren(node('p',say('正在確認錢包…','Checking wallet…'))));clearReader?.();}
+  async function session(){const attempt=++sessionAttempt;
+   try{const response=await fetch('/api/world/session',{cache:'no-store',credentials:'same-origin',redirect:'error',headers:{'X-Requested-With':'CelestialAtlas'}}),value=await response.json();if(attempt!==sessionAttempt)return;
+@@ -36,7 +36,7 @@
+  function mountIdentity(){document.querySelectorAll('[data-world-identity]').forEach(identityBox);}
+  function confirmation(system){if(!catalog?.billingInstalled)return '';const p=product(system);if(!p)return '';
+   const full=p.gold!==p.listGold;
+-  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜，綁定此 World 錢包；之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report in Celestial Atlas, bound to this World wallet. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p></section>`;
++  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p></section>`;
+  }
+  async function compute({system,input,showError}){if(busy)return;busy=true;const b=document.getElementById('compute-button');if(b)b.disabled=true;
+   try{if(catalog.paymentsEnabled!==true)throw Error('FEATURE_PAUSED');if(!identity)throw Error('AUTH_REQUIRED');if(!document.getElementById('world-save-consent')?.checked)throw Error('SAVE_CONSENT_REQUIRED');
+@@ -89,8 +89,9 @@
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void recheck();});
+  document.addEventListener('click',event=>{const target=event.target.closest?.('[data-action="print"]');if(target&&currentRecord&&!pdf){event.preventDefault();event.stopImmediatePropagation();openPdf(currentRecord);}},true);
+  function privacy(){const sections=[[say('錢包身分與 GOLD','Wallet identity and GOLD'),say('登入經 World 驗證；玄曜不會取得你的錢包私鑰。GOLD 付款在 World 逐筆核對並簽名，登入收藏不等於付款。','World verifies sign-in. Celestial Atlas does not receive wallet private keys. Each GOLD payment is reviewed and signed in World; connecting collections is not payment.')],
+-  [say('出生資料與錢包收藏','Birth details and wallet collections'),say('勾選保存同意後，出生資料與完整報告會在玄曜伺服器加密保存，僅限有效登入的相同錢包讀取。World 帳本接收服務、訂單及交付憑據，不接收出生資料與完整報告正文。','After explicit storage consent, birth details and complete reports are encrypted on the Celestial Atlas server and can be read only by the same signed-in wallet. World receives the service, order and delivery receipt, not birth details or the complete report.')],
+-  [say('資料保存多久','How long data is kept'),say('未完成付款的出生資料：如果 World 沒有接受這筆結帳，會在結帳期限（15 分鐘）過後的下一次清理時刪除；如果 World 已接受但你沒有付款，會在期限過後保留至少 30 天，之後由系統清理。已付款的報告和出生資料會加密保存在你的錢包收藏；移到垃圾桶可以還原，目前沒有永久刪除的功能。如果付款後報告做不出來而退款，這筆訂單的出生資料會在判定失敗後保留至少 30 天，以便處理問題，之後由系統清理。這種情況和上面「World 已接受但你沒有付款」的情況，清理後，玄曜伺服器上只留下不含出生資料的結帳代碼和錢包雜湊值，用來辨認之後收到的付款通知，這兩項會一直保留。World 的訂單和退款紀錄另外保留，不會跟著清理；其中有一個由出生資料算出、經過加密的雜湊值，無法直接還原出生資料。已清理的資料，備份檔裡最多再留 30 天。','Birth details from an unfinished payment: if World does not accept the checkout, they are deleted at the next cleanup after the checkout window (15 minutes) ends; if World accepted it but you did not pay, they are kept for at least 30 days after the window ends and then cleaned up by the system. Paid reports and birth details stay encrypted in your wallet collection; records moved to trash can be restored, and permanent deletion is not available yet. If a report cannot be made after payment and the order is refunded, its birth details are kept for at least 30 days after the failure is confirmed, so problems can be handled, and then cleaned up by the system. After that cleanup, and after the cleanup of a checkout World accepted but you did not pay, only a checkout code and a digest of your wallet remain on the Celestial Atlas server, with no birth details. These two are kept indefinitely to recognize later payment notices. World keeps its own order and refund records separately, and they are not cleaned up with this data. They include an encrypted digest calculated from the birth details, which cannot be directly turned back into them. Cleared data may remain in backup files for up to 30 more days.')],
++  [say('出生資料與錢包收藏','Birth details and wallet collections'),say('勾選保存同意後，出生資料與完整報告會在玄曜伺服器加密保存，網站只會顯示給有效登入的相同錢包。加密金鑰由玄曜伺服器保管，不在你的錢包裡，所以管理伺服器的人，或入侵伺服器的人，在技術上都能讀取。World 帳本接收服務、訂單及交付憑據，不接收出生資料與完整報告正文。','After explicit storage consent, birth details and complete reports are encrypted on the Celestial Atlas server, and the site shows them only to the same signed-in wallet. The encryption key is held by the Celestial Atlas server, not by your wallet, so people who manage the server, or anyone who breaks into it, could technically read them. World receives the service, order and delivery receipt, not birth details or the complete report.')],
++  [say('資料保存多久','How long data is kept'),say('未完成付款的出生資料：如果 World 沒有接受這筆結帳，會在結帳期限（15 分鐘）過後的下一次清理時刪除；如果 World 已接受但你沒有付款，會在期限過後保留至少 30 天，之後由系統清理。已付款的報告和出生資料會加密保存在玄曜伺服器上的錢包收藏；移到垃圾桶可以還原，目前沒有永久刪除的功能。如果付款後報告做不出來而退款，這筆訂單的出生資料會在判定失敗後保留至少 30 天，以便處理問題，之後由系統清理。這種情況和上面「World 已接受但你沒有付款」的情況，清理後，玄曜伺服器上只留下不含出生資料的結帳代碼和錢包雜湊值，用來辨認之後收到的付款通知，這兩項會一直保留。World 的訂單和退款紀錄另外保留，不會跟著清理；其中有一個由出生資料和玄曜伺服器的密鑰算出的雜湊值。只看這個值無法還原出生資料，但同時拿到這把密鑰和 World 紀錄的人，可以拿猜測的出生資料來比對。已清理的資料，備份檔裡最多再留 30 天。','Birth details from an unfinished payment: if World does not accept the checkout, they are deleted at the next cleanup after the checkout window (15 minutes) ends; if World accepted it but you did not pay, they are kept for at least 30 days after the window ends and then cleaned up by the system. Paid reports and birth details stay encrypted in your wallet collection on the Celestial Atlas server; records moved to trash can be restored, and permanent deletion is not available yet. If a report cannot be made after payment and the order is refunded, its birth details are kept for at least 30 days after the failure is confirmed, so problems can be handled, and then cleaned up by the system. After that cleanup, and after the cleanup of a checkout World accepted but you did not pay, only a checkout code and a digest of your wallet remain on the Celestial Atlas server, with no birth details. These two are kept indefinitely to recognize later payment notices. World keeps its own order and refund records separately, and they are not cleaned up with this data. They include a digest calculated from the birth details and a secret key held by the Celestial Atlas server. The digest alone cannot be turned back into the birth details, but someone with both that key and World’s records could test guessed birth details against it. Cleared data may remain in backup files for up to 30 more days.')],
++  [say('公開網站的資料流與連線紀錄','Public-site data flow and connection logs'),say('celestao.com 使用 HTTPS。你送出後，出生日期、時間、地點及其他已填欄位會經 Cloudflare 反向代理傳到本站 VPS，由伺服器上安裝的排盤引擎處理。Cloudflare、VPS 主機與反向代理可能處理或保存 IP、請求時間、路徑及狀態碼等連線資訊；其記錄內容與保存期限依服務政策及部署設定而定。','celestao.com uses HTTPS. After you submit, your birth date, time, place and other completed fields pass through the Cloudflare reverse proxy to our VPS, where installed chart engines process them. Cloudflare, VPS hosting and the reverse proxy may process or retain connection information such as IP addresses, request times, paths and status codes. Their logging and retention depend on service policies and deployment settings.')],
+   [say('舊收藏、移除與 PDF','Older collections, removal and PDF'),say('舊的瀏覽器收藏不會自動上傳；其本機保存方式維持原樣。錢包收藏可移到垃圾桶後還原。重看及匯出不重新排盤、不另扣 GOLD。匯出的 PDF 是由你自行保存的未加密檔案。','Older browser collections are not uploaded automatically and retain their original local storage. Wallet records can be moved to trash and restored. Reopening and export do not recompute or charge GOLD. Exported PDFs are unencrypted files under your control.')],
+   [say('其他探索功能','Other exploration tools'),say('易經問題與原始擲卦值維持頁面記憶體暫存；其後端短期保留識別摘要以供限流及核對。網站未接入第三方個人化 AI 解讀。請勿把命理解讀當作醫療或投資建議。','I Ching questions and raw casting values remain in page memory; its backend briefly retains identifier digests for rate limiting and verification. No third-party personalized AI interpretation is connected. Readings are not medical or investment advice.')]];
+   return '<div class="container"><section class="panel"><h1>'+say('資料與隱私','Data and privacy')+'</h1>'+sections.map(([h,p])=>'<h2>'+h+'</h2><p>'+p+'</p>').join('')+'</section></div>';}
+diff --git a/src/world/CelestaoCheckout.tsx b/src/world/CelestaoCheckout.tsx
+index e03af22..fafc481 100644
+--- a/src/world/CelestaoCheckout.tsx
++++ b/src/world/CelestaoCheckout.tsx
+@@ -35,7 +35,7 @@ export default function CelestaoCheckout(){
+    {!identity&&<>{options.options.length>1&&<fieldset><legend>{t('選擇錢包','Choose a wallet')}</legend>{options.options.map((o,i)=><button type="button" key={i} aria-pressed={options.chosen===o} onClick={()=>registry.choose(o)}>{o.info.name}</button>)}</fieldset>}<button className="celestao-gateway-primary" disabled={!auth.sessionKnown||auth.phase!=='idle'||options.needsChoice} onClick={()=>void authClient.signIn()}>{t('登入原本的 World 錢包','Sign in to the original World wallet')}</button></>}
+    {auth.notice&&<p role="status">{noticeText(auth.notice,t)}</p>}
+    {data&&<><p className="celestao-gateway-address">{data.wallet}</p><h2>{zh?data.product.nameZh:data.product.nameEn}</h2>{data.product.listGold!==data.product.gold&&<p>{t('四項合計','Four systems combined')} <s>3,400 GOLD／{t('次','reading')}</s></p>}<p className="celestao-checkout-price">{data.product.listGold!==data.product.gold?t('特價','Special price')+' ':''}{Number(data.product.gold).toLocaleString('en-US')} GOLD／{t('次','reading')}</p>
+-    {data.order?<><p className="celestao-gateway-note">{t('原始訂單','Original order')}<br/><code>{data.order.id}</code></p>{data.order.status==='paid'?<p role="status">{data.order.delivery==='delivered'?t('報告已保存到錢包收藏。','Your report is saved to your wallet collection.'):['failed','refunded'].includes(data.order.delivery??'')?t('此筆解讀未完成，請至 World 的「購買 GOLD／查看紀錄」確認退款。','This reading did not complete. Check the original refund in the World ledger.'):t('已付款，正在產生報告；請保留原單，不需再次付款。','Paid. Your report is being prepared; keep this original order and do not pay again.')}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready||data.order.expiresMs<=Date.now()} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.product.gold+' GOLD'}</button>}</>:<button className="celestao-gateway-primary" disabled={busy||!data.ready||data.expiresMs<=Date.now()} onClick={()=>void operate()}>{t('建立此筆 GOLD 訂單','Create this GOLD order')}</button>}
++    {data.order?<><p className="celestao-gateway-note">{t('原始訂單','Original order')}<br/><code>{data.order.id}</code></p>{data.order.status==='paid'?<p role="status">{data.order.delivery==='delivered'?t('報告已保存到錢包收藏。','Your report is saved to your wallet collection.'):['failed','refunded'].includes(data.order.delivery??'')?t('此筆解讀未完成，請至 World 的「購買 GOLD／查看紀錄」確認退款。','This reading did not complete. Check the original refund in the World ledger.'):t('已付款，正在產生報告；請保留原單，不需再次付款。','Paid. Your report is being prepared; keep this original order and do not pay again.')}</p>:data.order.expiresMs<=Date.now()?<p role="alert">{ERRORS.ORDER_EXPIRED[zh?0:1]}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.product.gold+' GOLD'}</button>}</>:<button className="celestao-gateway-primary" disabled={busy||!data.ready||data.expiresMs<=Date.now()} onClick={()=>void operate()}>{t('建立此筆 GOLD 訂單','Create this GOLD order')}</button>}
+     <p className="celestao-gateway-note">{t('已收藏報告的重看及 PDF 匯出不另扣 GOLD。','Reopening saved reports and PDF export cost no additional GOLD.')}</p></>}
+    {error&&<p role="alert">{ERRORS[error]?.[zh?0:1]??t('暫時無法確認，請稍後查詢原訂單。','Unable to confirm. Check the original order again shortly.')} <small>({error})</small></p>}
+    {identity&&<button type="button" disabled={busy} onClick={()=>void refresh()}>{t('查詢原訂單','Check original order')}</button>}
+diff --git a/tests/celestao-lapse-page.test.mjs b/tests/celestao-lapse-page.test.mjs
+new file mode 100644
+index 0000000..7f8d564
+--- /dev/null
++++ b/tests/celestao-lapse-page.test.mjs
+@@ -0,0 +1,12 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++
++// A source check: the page needs a wallet session and is not rendered here.
++const page=readFileSync(new URL('../src/world/CelestaoCheckout.tsx',import.meta.url),'utf8');
++
++test('a buyer whose unpaid quote ran out is told to wait, and is not left with a dead button',()=>{
++  assert.match(page,/data\.order\.status==='paid'\?[\s\S]*?:data\.order\.expiresMs<=Date\.now\(\)\?<p role="alert">\{ERRORS\.ORDER_EXPIRED\[zh\?0:1\]\}<\/p>:<button/);
++  assert.match(page,/ORDER_EXPIRED:\['[^']*等 5 分鐘[^']*','[^']*Wait 5 minutes[^']*'\]/);
++  assert.doesNotMatch(page,/data\.order\.expiresMs<=Date\.now\(\)\} onClick/);
++});

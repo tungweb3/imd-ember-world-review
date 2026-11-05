@@ -1,0 +1,13 @@
+Celestao side, read-only containers, no network, at Celestao c940698 and World 24a3efa.
+
+Overlay unit tests (integrations/celestao/tests): 128 run, OK, 7 skipped because they need the native tree.
+tests/test_native_annual.py and tests/test_native_location.py on the real engines: 11 run, OK.
+deployment/test_deployment.py: 2 run, OK. deployment/ is not in this package.
+tests/test_production_config.py, in the private Celestao tree and not in this package: 29 passed. It includes the check that the server runs one worker.
+Real engine at latitude +/-66.5, 40,000 random times from 1900 to 2100 (at 74cb24a): none refused.
+
+Overlay builder: prepare_overlay.py rebuilt from the private web/ tree. app.js, index.html, index-pdf.html, annual-report.js, profile-reading.js and world-wallet.js are byte-identical to the Celestao tree's world_wallet_web/. world-wallet.css and world-pdf.js differ in line endings only.
+
+Birth-time form, as reported by the Celestao session and not rerun here: on a local production entry, not signed in, with EmberWorld.compute replaced by a stub, 17/30, 23/05 and 00/00 reached compute as 17:30, 23:05 and 00:00, with no time_hour or time_minute. Back keeps the choice, an unset minute stops at step one, and the six forms show the new fields. All 24 hour labels were compared with the backend's time_index, with no mismatch.
+
+The full native test run (about 26 to 37 minutes) was NOT run for this round, although native.py changed in it. No real engine failure was produced: the status sorting was tested with stub endpoints.
