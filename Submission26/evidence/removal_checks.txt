@@ -1,0 +1,12 @@
+Each safeguard removed once in a working copy, then the relevant tests run. A check is "caught" when a test fails. Each script first confirmed its unmodified baseline passed.
+
+Celestao overlay, Python, at 60ba12b:
+  wait limit and engine status sorting, new: 23 of 23 caught. One row was missed on the first run; a test was added and it was then caught.
+  older rows: 83 of 83 caught. Four rows gave no match at first because their text now appears twice; each occurrence was run separately.
+
+World, TypeScript, NOT rerun in this round:
+  signature and audit fixes (at 3dc9c55): 65 of 65 caught
+  reload and oversize (at 9124eb3): 6 of 6 caught
+
+`3d14551` and `24a3efa` changed wording, the birth-time form and the overlay builder. No removal check covers those.
+A removal that fails a test proves that test can fail. It does not prove the code is correct.

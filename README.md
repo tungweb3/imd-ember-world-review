@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission25](Submission25/README.md) — per-grant wallet signature, fixes for audit 37a926e3, and pre-sale payment fixes (World `580190a`, not deployed).**
+**Current: [Submission26](Submission26/README.md) — the Submission25 scope again after job 6fc92ac1 gave no final report, plus its reviewers' fixes, privacy wording and the birth-time form (World `24a3efa`, not deployed).**
 
-Read [Submission25/AUDIT_REQUEST.md](Submission25/AUDIT_REQUEST.md) first.
+Read [Submission26/AUDIT_REQUEST.md](Submission26/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission25](Submission25/README.md) — per-grant wallet signature, fixes for audit 37a926e3, and pre-sale payment fixes (World `580190a`, not deployed).**
 
 **Previous: [Submission24](Submission24/README.md) — fixes for audit 521bc017 and an administrator GOLD grant (World `fd46d69`, not deployed).**
 

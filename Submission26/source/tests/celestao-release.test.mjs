@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {openD1,migrationFiles} from './d1-sqlite.mjs';
+import {FORTUNE_PRODUCTS,FORTUNE_PRICING_VERSION} from '../src/shared/fortunePricing.ts';
+const controls=db=>JSON.stringify(db.prepare('SELECT feature,enabled,version FROM world_gold_controls ORDER BY feature').all());
+function fixture(t){const d=openD1();t.after(()=>d.raw.close());d.raw.exec("UPDATE world_gold_controls SET enabled=CASE WHEN feature='topup' THEN 1 ELSE 0 END");return d.raw;}
+function enable(db,before=controls(db)){db.prepare('INSERT INTO celestao_release_actions(id,actor,catalogue,created_ms,before_json) VALUES(?,?,?,?,?)').run('synthetic-release','authorized-deployment',FORTUNE_PRICING_VERSION,1792886400000,before);}
+test('release activation atomically enables exactly the approved catalogue while leaving topup, mint and all balances intact',t=>{
+ const db=fixture(t);enable(db);
+ assert.deepEqual(db.prepare('SELECT product,CAST(gold AS TEXT) gold,version,kind,enabled FROM world_gold_products ORDER BY product').all().map(r=>({...r})),FORTUNE_PRODUCTS.map(p=>({product:p.product,gold:p.gold,version:p.version,kind:'service',enabled:1})).sort((a,b)=>a.product.localeCompare(b.product)));
+ assert.deepEqual(db.prepare('SELECT feature,enabled FROM world_gold_controls ORDER BY feature').all().map(r=>({...r})),[{feature:'mint',enabled:0},{feature:'service',enabled:1},{feature:'topup',enabled:1}]);
+ for(const name of ['economy_orders','economy_gold_accounts','economy_gold_journal','world_gold_entries'])assert.equal(db.prepare('SELECT COUNT(*) n FROM '+name).get().n,0);
+ assert.throws(()=>enable(db),/CELESTAO_RELEASE_BASELINE_CHANGED/);
+ assert.throws(()=>db.exec("DELETE FROM celestao_release_actions"),/IMMUTABLE_RELEASE_ACTION/);
+});
+test('stale control snapshots and an enabled unrelated service abort the complete release without partial products or activation',t=>{
+ const db=fixture(t);assert.throws(()=>enable(db,'[]'),/CELESTAO_RELEASE_BASELINE_CHANGED/);
+ db.prepare("INSERT INTO world_gold_products VALUES('research-v1','research',1,'service','Unrelated',1,NULL,1,1)").run();
+ assert.throws(()=>enable(db),/CELESTAO_RELEASE_BASELINE_CHANGED/);
+ assert.equal(db.prepare("SELECT COUNT(*) n FROM world_gold_products WHERE product LIKE 'fortune-%'").get().n,0);
+ assert.equal(db.prepare("SELECT enabled FROM world_gold_controls WHERE feature='service'").get().enabled,0);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM celestao_release_actions').get().n,0);
+});
+test('the annual product is installed in either order, exactly as the checkout accepts it',t=>{
+ const row=db=>db.prepare("SELECT product,CAST(gold AS TEXT) gold,version,kind,enabled FROM world_gold_products WHERE product='fortune-annual-ziwei'").all().map(r=>({...r}));
+ const p=FORTUNE_PRODUCTS.find(x=>x.system==='annual_ziwei'),want=[{product:p.product,gold:p.gold,version:p.version,kind:'service',enabled:1}];
+ const count=db=>db.prepare("SELECT COUNT(*) n FROM world_gold_products WHERE product LIKE 'fortune-%'").get().n;
+ // Production: the release action ran before 0023.
+ const earlier=openD1(migrationFiles().filter(f=>f<'0023'));t.after(()=>earlier.raw.close());
+ earlier.raw.exec("UPDATE world_gold_controls SET enabled=CASE WHEN feature='topup' THEN 1 ELSE 0 END");enable(earlier.raw);
+ assert.deepEqual(row(earlier.raw),[]);earlier.raw.exec(readFileSync(new URL('../migrations/0023_celestao_annual_ziwei.sql',import.meta.url),'utf8'));
+ assert.deepEqual(row(earlier.raw),want);assert.equal(count(earlier.raw),6);
+ // A new or rebuilt database: 0023 ran before the release action.
+ const db=fixture(t);assert.deepEqual(row(db),[]);enable(db);assert.deepEqual(row(db),want);assert.equal(count(db),6);
+ // A row published by hand before the migration is left as it is, in place of a failed migration.
+ const hand=openD1(migrationFiles().filter(f=>f<'0023'));t.after(()=>hand.raw.close());
+ hand.raw.exec("UPDATE world_gold_controls SET enabled=CASE WHEN feature='topup' THEN 1 ELSE 0 END");enable(hand.raw);
+ hand.raw.prepare("INSERT INTO world_gold_products(id,product,version,kind,title,gold,embeo,enabled,created_ms) VALUES('fortune-annual-ziwei-v1','fortune-annual-ziwei',1,'service','流年運勢',1000,NULL,1,1)").run();
+ hand.raw.exec(readFileSync(new URL('../migrations/0023_celestao_annual_ziwei.sql',import.meta.url),'utf8'));assert.deepEqual(row(hand.raw),want);
+ // The same for a paused row published before the release action: the release leaves it paused.
+ const paused=fixture(t);paused.prepare("INSERT INTO world_gold_products(id,product,version,kind,title,gold,embeo,enabled,created_ms) VALUES('fortune-annual-ziwei-v1','fortune-annual-ziwei',1,'service','流年運勢',1000,NULL,0,1)").run();
+ enable(paused);assert.deepEqual(row(paused),[{...want[0],enabled:0}]);
+});
