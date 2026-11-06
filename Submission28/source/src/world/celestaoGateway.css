@@ -1,0 +1,9 @@
+body:has(.celestao-gateway-page){margin:0}
+.celestao-gateway-page{box-sizing:border-box;min-height:100dvh;padding:clamp(24px,8vh,80px) 20px;background:#101310;color:#f0ede3;font:16px/1.7 "Segoe UI","Microsoft JhengHei",sans-serif}
+.celestao-gateway{max-width:600px;margin:auto;padding:clamp(24px,5vw,48px);background:#171c18;border:1px solid #cfb17a55;border-radius:14px}
+.celestao-gateway h1{margin:20px 0;font:32px/1.3 Baskerville,"Noto Serif TC","PMingLiU",serif;color:#e3c998}.celestao-gateway p{margin:16px 0}.celestao-gateway-brand{color:#cfb17a}.celestao-gateway-note{font-size:14px;color:#a4ada3}.celestao-gateway-address{overflow-wrap:anywhere;font-size:14px}
+.celestao-gateway fieldset{border:1px solid #cfb17a55;margin:24px 0;padding:14px}.celestao-gateway fieldset button{display:block;min-height:44px;width:100%;margin:8px 0;background:#1c231e;border:1px solid #cfb17a55;color:inherit;font:inherit;cursor:pointer}.celestao-gateway fieldset button[aria-pressed=true]{border-color:#e3c998}
+.celestao-gateway-primary{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:12px 18px;margin-top:28px;background:#cfb17a;color:#171c18;border:0;border-radius:5px;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.celestao-gateway-primary:disabled{opacity:.55;cursor:wait}
+.celestao-gateway-back{display:inline-block;margin-top:24px;color:#e3c998}.celestao-gateway a:focus-visible,.celestao-gateway button:focus-visible{outline:3px solid #e3c998;outline-offset:4px}
+.celestao-gateway code{overflow-wrap:anywhere;font-size:12px}.celestao-gateway .celestao-checkout-price{font-size:28px;color:#e3c998}.celestao-gateway s{color:#a4ada3}
+.celestao-gateway-note a{color:#e3c998}

@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission27](Submission27/README.md) — fixes for audit 447bb70d on Submission26 (World `a3abbf7`, not deployed).**
+**Current: [Submission28](Submission28/README.md) — fixes for audit 447bb70d, two links to 鼠道修仙, and the 鼠道修仙 GOLD cosmetic store (World `e93e55a`, not deployed).**
 
-Read [Submission27/AUDIT_REQUEST.md](Submission27/AUDIT_REQUEST.md) first.
+Read [Submission28/AUDIT_REQUEST.md](Submission28/AUDIT_REQUEST.md) first.
+
+**Not sent: [Submission27](Submission27/README.md) — prepared for the 447bb70d fixes only; replaced by Submission28.**
 
 **Previous: [Submission26](Submission26/README.md) — the Submission25 scope again after job 6fc92ac1 gave no final report, plus its reviewers' fixes, privacy wording and the birth-time form (World `24a3efa`, not deployed).**
 
