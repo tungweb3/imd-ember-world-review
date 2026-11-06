@@ -1,0 +1,8 @@
+Celestao side, at Celestao dd679fe and World e93e55a.
+
+Overlay Python (integrations/celestao/celestao_world and its tests, byte-identical in both trees) has not changed since World a3abbf7 / Celestao 6560ad4. At that point it was run in read-only containers with no network, once from each tree: 131 run each, OK, 7 skipped because they need the native tree. deployment/test_deployment.py: 2 run, OK. tests/test_production_config.py (private Celestao tree): 29 passed.
+The Celestao session reports the same 131 OK on the live image with its patches 0017 and 0018 applied (not rerun here).
+
+Overlay builder: prepare_overlay.py changed only in 6b15dfa and 0ad7677 (see REDACTIONS.md). Rebuilt from the private web/ tree after each, its app.js, index.html, index-pdf.html, annual-report.js, profile-reading.js, world-wallet.js and squeek-banner.jpg are byte-identical to the Celestao tree's world_wallet_web/. world-wallet.css and world-pdf.js differ in line endings only. The world-wallet.js?v= tag is still d8993093805a.
+
+Not rerun for this round: the real-engine tests and the full native run. No engine code changed.

@@ -1,0 +1,16 @@
+World source e93e55ac0f0305fc7e22469c7efd139fc825ea7f
+node --test --test-concurrency=2 tests/*.test.mjs, on these exact file contents
+✖ the locked wallet files match the audited version (12.5908ms)
+ℹ tests 3938
+ℹ pass 3932
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+✖ failing tests:
+✖ the locked wallet files match the audited version (12.5908ms)
+The one failure is "the locked wallet files match the audited version": server/economy-recovery.ts, server/world-gold-api.ts, server/world-gold.ts, src/world/CelestaoCheckout.tsx, src/world/WorldGoldPanel.tsx, src/world/economyWallet.ts, src/world/worldGoldClient.ts, tests/economy-client.test.mjs differ from the audited hashes.
+The manifest of audited hashes was not refreshed. That is deliberate: the deploy tool runs this suite, so this source cannot ship until the audit is done and the owner approves a refresh.
+tsc --noEmit: 0 errors
+tests/squeek-store.test.mjs alone: 12 tests, 12 pass.
+A removal check was run once for the store: with the one-time condition taken out of the GOLD debit batch, the PAY-04 test fails; with it back, it passes.
