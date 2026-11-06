@@ -1,0 +1,233 @@
+diff --git a/integrations/celestao/celestao_world/paid.py b/integrations/celestao/celestao_world/paid.py
+index cb63d35..bfd9f02 100644
+--- a/integrations/celestao/celestao_world/paid.py
++++ b/integrations/celestao/celestao_world/paid.py
+@@ -27,6 +27,13 @@ class PrepareRequest(BaseModel):
+ 
+ def install(app,settings,vault,world,processor,clock,checked,still_current,headers):
+     tasks=set();app.state.delivery_tasks=tasks;active={}
++    def start(ident,value,payload):
++        # A request the page must not repeat as it is: not a storage outage, so no 503 that invites a retry.
++        try:return vault.prepare(ident.wallet,value.requestId,value.system,payload,True,clock())
++        except VaultError as exc:
++            if str(exc)=='IDEMPOTENCY_CONFLICT':raise HTTPException(409,'IDEMPOTENCY_CONFLICT') from None
++            if str(exc) in ('INVALID_REQUEST','INPUT_TOO_LARGE','DOCUMENT_TOO_LARGE','SAVE_CONSENT_REQUIRED'):raise HTTPException(422,str(exc)) from None
++            raise
+     @app.post('/api/world/runs')
+     async def prepare(value:PrepareRequest,ident=Depends(checked)):
+         if not settings.paid_enabled:raise HTTPException(503,'FEATURE_PAUSED')
+@@ -36,7 +43,7 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+         except NativeInputError as exc:raise HTTPException(422,str(exc)) from None
+         except NativeUnavailable:raise HTTPException(503,'ENGINE_UNAVAILABLE') from None
+         still_current(ident)
+-        run=vault.prepare(ident.wallet,value.requestId,value.system,payload,True,clock())
++        run=start(ident,value,payload)
+         for _ in range(LAPSED_RUN_TRIES):
+             try:checkout=await world.prepare_checkout(ident.grant,run)
+             except (AuthDenied,BridgeUnavailable) as error:
+@@ -49,7 +56,7 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+             try:vault.retire_lapsed(ident.wallet,run['id'])
+             except Missing:pass
+             except VaultError:raise HTTPException(503,'CHECKOUT_UNAVAILABLE') from None
+-            run=vault.prepare(ident.wallet,value.requestId,value.system,payload,True,clock())
++            run=start(ident,value,payload)
+         else:raise HTTPException(503,'CHECKOUT_UNAVAILABLE')
+         # Checked first: a run whose buyer got no link goes at the end of its window.
+         still_current(ident)
+diff --git a/integrations/celestao/celestao_world/vault.py b/integrations/celestao/celestao_world/vault.py
+index 2b2bb13..7824b11 100644
+--- a/integrations/celestao/celestao_world/vault.py
++++ b/integrations/celestao/celestao_world/vault.py
+@@ -108,7 +108,11 @@ class Vault:
+             old=self.db.execute('SELECT * FROM runs WHERE owner=? AND request_id=?',(owner,request_id)).fetchone()
+             if old:
+                 if old['system']!=system or old['input_hash']!=digest: raise VaultError('IDEMPOTENCY_CONFLICT')
+-            else:
++                if old['state']=='failed':
++                    # Refunded, so the page's kept request may buy again. The old row keeps its id and order for a late delivery or refund.
++                    self.db.execute("UPDATE runs SET request_id=request_id||'~'||id WHERE id=?",(old['id'],))
++                    old=None
++            if not old:
+                 # A reload loses the page's request id. The same reading keeps its run, and so its one World order, so it cannot be paid for twice.
+                 # A failed run was refunded, so that reading can be bought again. A retired run that did get an order still counts.
+                 old=self.db.execute("SELECT * FROM runs WHERE owner=? AND system=? AND input_hash=? AND state<>'failed' AND (retired IS NULL OR order_id IS NOT NULL) ORDER BY state='complete' DESC,order_id IS NOT NULL DESC,created_ms DESC,id LIMIT 1",(owner,system,digest)).fetchone()
+diff --git a/integrations/celestao/tests/test_paid.py b/integrations/celestao/tests/test_paid.py
+index a434643..f03d005 100644
+--- a/integrations/celestao/tests/test_paid.py
++++ b/integrations/celestao/tests/test_paid.py
+@@ -309,6 +309,31 @@ class PaidTests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+         run=await self.run_fixture();self.processor.mode='rejected'
+         self.assertEqual((await self.deliver(run)).json()['kind'],'terminal-failure')
+         self.assertNotEqual((await self.prepare(requestId='fixture_paid_reloaded_02')).json()['runId'],run['id'])
++    async def test_a_refunded_reading_can_be_bought_again_with_the_request_the_page_kept(self):
++        # Audit 447bb70d: a page restored from history keeps its request id.
++        run=await self.run_fixture();self.processor.mode='rejected'
++        self.assertEqual((await self.deliver(run)).json()['kind'],'terminal-failure')
++        again=await self.prepare();self.assertEqual(again.status_code,200);self.assertNotEqual(again.json()['runId'],run['id'])
++        self.assertEqual((await self.prepare()).json()['runId'],again.json()['runId'])
++        self.assertEqual(self.vault.run(A,run['id'])['state'],'failed')
++        late=await self.deliver(run);self.assertEqual((late.json()['kind'],late.json()['code']),('terminal-failure','CHART_NOT_GENERATED'))
++    async def test_a_request_the_page_must_not_repeat_is_not_reported_as_a_storage_outage(self):
++        # Audit 447bb70d: a conflict is permanent, so it is 409, not the 503 that invites a retry.
++        self.assertEqual((await self.prepare()).status_code,200)
++        for _ in range(2):
++            conflict=await self.prepare(system='ziwei');self.assertEqual((conflict.status_code,conflict.json()),(409,{'detail':'IDEMPOTENCY_CONFLICT'}))
++        original=self.vault.prepare
++        def busy(*_):raise vault_module.VaultError('STORAGE_BUSY')
++        self.vault.prepare=busy
++        try:
++            outage=await self.prepare(requestId='fixture_paid_storage_01');self.assertEqual((outage.status_code,outage.json()['error']),(503,'STORAGE_UNAVAILABLE'))
++        finally:self.vault.prepare=original
++        for code in ('INVALID_REQUEST','INPUT_TOO_LARGE','DOCUMENT_TOO_LARGE'):
++            def refuse(*_,code=code):raise vault_module.VaultError(code)
++            self.vault.prepare=refuse
++            try:
++                refused=await self.prepare(requestId='fixture_paid_refused_01');self.assertEqual((refused.status_code,refused.json()),(422,{'detail':code}))
++            finally:self.vault.prepare=original
+     async def test_a_lapsed_quote_gets_a_new_run_for_the_same_request_and_any_later_reload(self):
+         old=await self.run_fixture();self.world.lapsed=(old['id'],)
+         fresh=await self.prepare();self.assertEqual(fresh.status_code,200);new=fresh.json()['runId'];self.assertNotEqual(new,old['id'])
+diff --git a/integrations/celestao/tests/test_vault.py b/integrations/celestao/tests/test_vault.py
+index 290c5e1..ee3ebe7 100644
+--- a/integrations/celestao/tests/test_vault.py
++++ b/integrations/celestao/tests/test_vault.py
+@@ -173,6 +173,18 @@ class VaultTests(VaultFixture):
+         run=self.vault.prepare(A,'request_upgrade_0001','bazi',INPUT,True,1000);self.vault.db.execute('DROP INDEX runs_input');self.vault.db.execute('ALTER TABLE runs DROP COLUMN retired');self.vault.db.execute('ALTER TABLE runs DROP COLUMN failed_attempts');self.vault.db.execute('ALTER TABLE runs DROP COLUMN first_failed_ms');self.vault.db.execute('DROP TABLE pruned_runs');self.vault.close()
+         self.vault=Vault(self.path,KEY);self.assertEqual(self.vault.prepare(A,'request_upgrade_0002','bazi',INPUT,True,1000)['id'],run['id'])
+         self.vault.bind_order(A,run['id'],ORDER);claim=self.vault.claim(A,run['id'],ORDER,2000);self.assertFalse(self.vault.strike(A,run['id'],claim['attempt'],2000));self.assertFalse(self.vault.was_pruned(A,run['id']))
++    def test_a_failed_run_gives_its_request_to_a_new_run_and_keeps_its_order(self):
++        # Audit 447bb70d: a page restored from history still sends the request id of the refunded run.
++        r,c=self.prepared();self.vault.fail(A,r['id'],c['attempt'],'CHART_NOT_GENERATED')
++        with self.assertRaisesRegex(VaultError,'IDEMPOTENCY_CONFLICT'):self.vault.prepare(A,'request_fixture_0001','bazi',{**INPUT,'time':'04:00'},True,2000)
++        self.assertEqual(self.vault.run(A,r['id'])['state'],'failed')
++        new=self.vault.prepare(A,'request_fixture_0001','bazi',INPUT,True,2000)
++        self.assertNotEqual(new['id'],r['id']);self.assertTrue(new['fresh'])
++        self.assertEqual(self.vault.prepare(A,'request_fixture_0001','bazi',INPUT,True,2001)['id'],new['id'])
++        old=self.vault.run(A,r['id']);self.assertEqual((old['state'],old['order_id'],old['input_hash']),('failed',ORDER,r['input_hash']))
++        self.assertEqual(self.vault.db.execute('SELECT request_id FROM runs WHERE id=?',(r['id'],)).fetchone()['request_id'],'request_fixture_0001~'+r['id'])
++        with self.assertRaisesRegex(VaultError,'IDEMPOTENCY_CONFLICT'):self.vault.prepare(A,'request_fixture_0001','bazi',{**INPUT,'time':'04:00'},True,2002)
++        self.assertEqual(self.vault.prepare(B,'request_fixture_0001','bazi',INPUT,True,2003)['fresh'],True)
+     def test_reopen_and_wallet_isolation(self):
+         r,c,record=self.saved()
+         self.vault.close();self.vault=Vault(self.path,KEY)
+diff --git a/integrations/celestao/web/world-wallet.js b/integrations/celestao/web/world-wallet.js
+index f2305ea..72732b0 100644
+--- a/integrations/celestao/web/world-wallet.js
++++ b/integrations/celestao/web/world-wallet.js
+@@ -6,7 +6,7 @@
+  const attempts=new Map(),say=(a,b)=>lang==='en'?b:a,opaque=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{43}$/.test(v);
+  const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
+  const button=(text,action)=>{const b=node('button',text,'btn secondary small');b.type='button';b.addEventListener('click',action);return b;};
+- function errorText(error){const code=error?.message;return ({FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted storage in your wallet collection.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),LOCATION_UNSUPPORTED:say('這個出生地緯度超過 66.5 度，西洋占星算不出宮位，所以無法製作這份解讀；沒有建立付款。','This birthplace is beyond 66.5° latitude, where western astrology houses cannot be calculated, so this reading is unavailable. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
++ function errorText(error){const code=error?.message;return ({IDEMPOTENCY_CONFLICT:say('這次送出的資料和先前的請求不一致，沒有建立付款；請再按一次。','This request did not match the earlier one, so no payment was created. Press the button again.'),FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted storage in your wallet collection.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),LOCATION_UNSUPPORTED:say('這個出生地緯度超過 66.5 度，西洋占星算不出宮位，所以無法製作這份解讀；沒有建立付款。','This birthplace is beyond 66.5° latitude, where western astrology houses cannot be calculated, so this reading is unavailable. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
+  function invalidate(){epoch++;identity=null;currentRecord=null;currentResult=null;document.getElementById('world-wallet-library')?.remove();document.querySelectorAll('[data-world-identity]').forEach(n=>n.replaceChildren(node('p',say('正在確認錢包…','Checking wallet…'))));clearReader?.();}
+  async function session(){const attempt=++sessionAttempt;
+   try{const response=await fetch('/api/world/session',{cache:'no-store',credentials:'same-origin',redirect:'error',headers:{'X-Requested-With':'CelestialAtlas'}}),value=await response.json();if(attempt!==sessionAttempt)return;
+@@ -47,7 +47,7 @@
+    // Navigation follows the explicit compute action. The World scene lives in
+    // its existing tab; this Celestao tab becomes the light payment page.
+    location.assign(url.href);
+-  }catch(error){showError(errorText(error));}finally{busy=false;if(b?.isConnected)b.disabled=!document.getElementById('consent')?.checked;}
++  }catch(error){if(error?.message==='IDEMPOTENCY_CONFLICT')attempts.delete(system+'|'+JSON.stringify(input));showError(errorText(error));}finally{busy=false;if(b?.isConnected)b.disabled=!document.getElementById('consent')?.checked;}
+  }
+  function openPdf(id){if(!opaque(id))return;const url=new URL(location.origin+'/');url.searchParams.set('world_pdf',id);url.searchParams.set('world_lang',lang);location.assign(url.href);}
+  async function openRecord(id){try{const response=await api('/api/world/collections/'+id);if(typeof reader!=='function')throw Error('READER_NOT_READY');if(!reader(response.result))throw Error('INVALID_RESULT');currentRecord=id;currentResult=response.result;}catch(error){console.warn('wallet_reader_failure',/^[A-Z_]{3,64}$/.test(error?.message)?error.message:error?.name||'UNAVAILABLE');throw error;}}
+@@ -90,7 +90,7 @@
+  document.addEventListener('click',event=>{const target=event.target.closest?.('[data-action="print"]');if(target&&currentRecord&&!pdf){event.preventDefault();event.stopImmediatePropagation();openPdf(currentRecord);}},true);
+  function privacy(){const sections=[[say('錢包身分與 GOLD','Wallet identity and GOLD'),say('登入經 World 驗證；玄曜不會取得你的錢包私鑰。GOLD 付款在 World 逐筆核對並簽名，登入收藏不等於付款。','World verifies sign-in. Celestial Atlas does not receive wallet private keys. Each GOLD payment is reviewed and signed in World; connecting collections is not payment.')],
+   [say('出生資料與錢包收藏','Birth details and wallet collections'),say('勾選保存同意後，出生資料與完整報告會在玄曜伺服器加密保存，網站只會顯示給有效登入的相同錢包。加密金鑰由玄曜伺服器保管，不在你的錢包裡，所以管理伺服器的人，或入侵伺服器的人，在技術上都能讀取。World 帳本接收服務、訂單及交付憑據，不接收出生資料與完整報告正文。','After explicit storage consent, birth details and complete reports are encrypted on the Celestial Atlas server, and the site shows them only to the same signed-in wallet. The encryption key is held by the Celestial Atlas server, not by your wallet, so people who manage the server, or anyone who breaks into it, could technically read them. World receives the service, order and delivery receipt, not birth details or the complete report.')],
+-  [say('資料保存多久','How long data is kept'),say('未完成付款的出生資料：如果 World 沒有接受這筆結帳，會在結帳期限（15 分鐘）過後的下一次清理時刪除；如果 World 已接受但你沒有付款，會在期限過後保留至少 30 天，之後由系統清理。已付款的報告和出生資料會加密保存在玄曜伺服器上的錢包收藏；移到垃圾桶可以還原，目前沒有永久刪除的功能。如果付款後報告做不出來而退款，這筆訂單的出生資料會在判定失敗後保留至少 30 天，以便處理問題，之後由系統清理。這種情況和上面「World 已接受但你沒有付款」的情況，清理後，玄曜伺服器上只留下不含出生資料的結帳代碼和錢包雜湊值，用來辨認之後收到的付款通知，這兩項會一直保留。World 的訂單和退款紀錄另外保留，不會跟著清理；其中有一個由出生資料和玄曜伺服器的密鑰算出的雜湊值。只看這個值無法還原出生資料，但同時拿到這把密鑰和 World 紀錄的人，可以拿猜測的出生資料來比對。已清理的資料，備份檔裡最多再留 30 天。','Birth details from an unfinished payment: if World does not accept the checkout, they are deleted at the next cleanup after the checkout window (15 minutes) ends; if World accepted it but you did not pay, they are kept for at least 30 days after the window ends and then cleaned up by the system. Paid reports and birth details stay encrypted in your wallet collection on the Celestial Atlas server; records moved to trash can be restored, and permanent deletion is not available yet. If a report cannot be made after payment and the order is refunded, its birth details are kept for at least 30 days after the failure is confirmed, so problems can be handled, and then cleaned up by the system. After that cleanup, and after the cleanup of a checkout World accepted but you did not pay, only a checkout code and a digest of your wallet remain on the Celestial Atlas server, with no birth details. These two are kept indefinitely to recognize later payment notices. World keeps its own order and refund records separately, and they are not cleaned up with this data. They include a digest calculated from the birth details and a secret key held by the Celestial Atlas server. The digest alone cannot be turned back into the birth details, but someone with both that key and World’s records could test guessed birth details against it. Cleared data may remain in backup files for up to 30 more days.')],
++  [say('資料保存多久','How long data is kept'),say('未完成付款的出生資料：如果 World 沒有接受這筆結帳，會在結帳期限（15 分鐘）過後的下一次清理時刪除；如果 World 已接受但你沒有付款，會在期限過後保留至少 30 天，之後由系統清理。已付款的報告和出生資料會加密保存在玄曜伺服器上的錢包收藏；移到垃圾桶可以還原，目前沒有永久刪除的功能。如果付款後報告做不出來而退款，這筆訂單的出生資料會在判定失敗後保留至少 30 天，以便處理問題，之後由系統清理。這種情況和上面「World 已接受但你沒有付款」的情況，清理後，玄曜伺服器上只留下不含出生資料的結帳代碼和錢包雜湊值，用來辨認之後收到的付款通知，這兩項會一直保留。World 的訂單和退款紀錄另外保留，不會跟著清理；其中有一個由出生資料和玄曜伺服器的密鑰算出的雜湊值。只看這個值無法還原出生資料，但同時拿到這把密鑰和 World 紀錄的人，可以拿猜測的出生資料來比對。已清理的資料可能還留在備份檔裡；備份不會自動刪除，由管理員手動刪除，最多再留 30 天。','Birth details from an unfinished payment: if World does not accept the checkout, they are deleted at the next cleanup after the checkout window (15 minutes) ends; if World accepted it but you did not pay, they are kept for at least 30 days after the window ends and then cleaned up by the system. Paid reports and birth details stay encrypted in your wallet collection on the Celestial Atlas server; records moved to trash can be restored, and permanent deletion is not available yet. If a report cannot be made after payment and the order is refunded, its birth details are kept for at least 30 days after the failure is confirmed, so problems can be handled, and then cleaned up by the system. After that cleanup, and after the cleanup of a checkout World accepted but you did not pay, only a checkout code and a digest of your wallet remain on the Celestial Atlas server, with no birth details. These two are kept indefinitely to recognize later payment notices. World keeps its own order and refund records separately, and they are not cleaned up with this data. They include a digest calculated from the birth details and a secret key held by the Celestial Atlas server. The digest alone cannot be turned back into the birth details, but someone with both that key and World’s records could test guessed birth details against it. Cleared data may remain in backup files. Backups are not deleted automatically; the operator deletes them by hand within 30 more days.')],
+   [say('公開網站的資料流與連線紀錄','Public-site data flow and connection logs'),say('celestao.com 使用 HTTPS。你送出後，出生日期、時間、地點及其他已填欄位會經 Cloudflare 反向代理傳到本站 VPS，由伺服器上安裝的排盤引擎處理。Cloudflare、VPS 主機與反向代理可能處理或保存 IP、請求時間、路徑及狀態碼等連線資訊；其記錄內容與保存期限依服務政策及部署設定而定。','celestao.com uses HTTPS. After you submit, your birth date, time, place and other completed fields pass through the Cloudflare reverse proxy to our VPS, where installed chart engines process them. Cloudflare, VPS hosting and the reverse proxy may process or retain connection information such as IP addresses, request times, paths and status codes. Their logging and retention depend on service policies and deployment settings.')],
+   [say('舊收藏、移除與 PDF','Older collections, removal and PDF'),say('舊的瀏覽器收藏不會自動上傳；其本機保存方式維持原樣。錢包收藏可移到垃圾桶後還原。重看及匯出不重新排盤、不另扣 GOLD。匯出的 PDF 是由你自行保存的未加密檔案。','Older browser collections are not uploaded automatically and retain their original local storage. Wallet records can be moved to trash and restored. Reopening and export do not recompute or charge GOLD. Exported PDFs are unencrypted files under your control.')],
+   [say('其他探索功能','Other exploration tools'),say('易經問題與原始擲卦值維持頁面記憶體暫存；其後端短期保留識別摘要以供限流及核對。網站未接入第三方個人化 AI 解讀。請勿把命理解讀當作醫療或投資建議。','I Ching questions and raw casting values remain in page memory; its backend briefly retains identifier digests for rate limiting and verification. No third-party personalized AI interpretation is connected. Readings are not medical or investment advice.')]];
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index e6101f6..76d5027 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -1,6 +1,6 @@
+ import {fortuneProduct} from '../shared/fortunePricing.ts';
+ import {GOLD_GRANT_MAX} from '../shared/goldGrants.ts';
+-import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand} from './goldGrantRules.ts';
++import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand,withinGrantLeft} from './goldGrantRules.ts';
+ import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react';
+ import type {AuthState} from './auth.ts';
+ import {WorldGoldClient,goldPriceInputAtomic,type GoldState,type GoldOrder} from './worldGoldClient.ts';
+@@ -61,7 +61,8 @@ export function Admin({client,data,refresh,zh,signGrant}:{client:WorldGoldClient
+  <label className="gold-purchase-ack"><input type="checkbox" checked={grantChecked} onChange={e=>setGrantChecked(e.target.checked)}/>{zh?'我已核對地址和數量':'I checked the address and the amount'}</label>
+  <small>{zh?'收款方要是一般錢包，合約錢包收到也花不掉。全小寫的地址無法核對校驗碼，請從原始來源複製。':'The recipient must be an ordinary wallet: a contract wallet could not spend it. An all-lowercase address has no checksum to verify, so copy it from the source.'}</small>
+  {!signGrant&&<small role="status">{zh?'錢包還沒準備好（讀不到付款設定），暫時不能發放。請重新整理頁面。':'The wallet is not ready (payment settings could not be read), so grants are closed for now. Reload the page.'}</small>}
+- <button disabled={!grantFormReady({to:grantTo,gold:grantGold,checked:grantChecked})||data.grantLeft==='0'||!signGrant} onClick={()=>void sendGrant()}>{zh?'確認發放':'Send GOLD'}</button>
++ {/^[1-9][0-9]{0,8}$/.test(grantGold)&&!withinGrantLeft(grantGold,data.grantLeft,data.grantsLeft)&&<small role="status">{zh?`超過 24 小時內還可發的數量（${data.grantLeft} GOLD、${data.grantsLeft} 筆），這筆不能發。`:`More than is left for the last 24 hours (${data.grantLeft} GOLD, ${data.grantsLeft} grants), so this grant cannot be sent.`}</small>}
++ <button disabled={!grantFormReady({to:grantTo,gold:grantGold,checked:grantChecked,left:data.grantLeft,count:data.grantsLeft})||data.grantLeft==='0'||!signGrant} onClick={()=>void sendGrant()}>{zh?'確認發放':'Send GOLD'}</button>
+  {data.recentGrants?.length?<><p>{zh?'最近發放（最多 10 筆）：':'Recent grants (latest 10):'}</p><ul className="gold-history">{data.recentGrants.map(g=><li key={g.id}><span>{g.wallet}</span><b>{g.gold} GOLD</b><small>{new Date(g.created_ms).toISOString()}</small></li>)}</ul></>:null}</fieldset>}
+  <fieldset disabled={busy||reason.trim().length<3}><legend>{zh?'AIMarket 免費活動（UTC）':'AIMarket free trial (UTC)'}</legend><p>{data.campaign.active?(zh?'進行中':'Active'):zh?'未開放':'Inactive'}</p>
+  <label>{zh?'開始時間 UTC':'Starts UTC'}<input type="datetime-local" value={starts} onChange={e=>setStarts(e.target.value)}/></label><label>{zh?'結束時間 UTC':'Ends UTC'}<input type="datetime-local" value={ends} onChange={e=>setEnds(e.target.value)}/></label>
+diff --git a/src/world/goldGrantRules.ts b/src/world/goldGrantRules.ts
+index 50e0e68..85b9d72 100644
+--- a/src/world/goldGrantRules.ts
++++ b/src/world/goldGrantRules.ts
+@@ -1,8 +1,14 @@
+ import {GOLD_GRANT_MAX,GOLD_GRANT_SIGNATURE_ASK_MS,goldGrantMessage} from '../shared/goldGrants.ts';
+ 
+-export function grantFormReady({to,gold,checked}:{to:string;gold:string;checked:boolean}){
++export function grantFormReady({to,gold,checked,left,count}:{to:string;gold:string;checked:boolean;left?:string;count?:string}){
+  const address=to.trim();
+- return checked&&/^0x[0-9a-fA-F]{40}$/.test(address)&&!/^0x0{40}$/.test(address)&&/^[1-9][0-9]{0,8}$/.test(gold)&&Number(gold)<=GOLD_GRANT_MAX;
++ return checked&&/^0x[0-9a-fA-F]{40}$/.test(address)&&!/^0x0{40}$/.test(address)&&/^[1-9][0-9]{0,8}$/.test(gold)&&Number(gold)<=GOLD_GRANT_MAX&&withinGrantLeft(gold,left,count);
++}
++/** False when the amount is above the GOLD left for the last 24 hours, or no grant is left, so no signature is asked for a grant the server must refuse.
++ * A value the panel did not get does not block: the server checks the limit either way. */
++export function withinGrantLeft(gold:string,left?:string,count?:string){
++ if(typeof count==='string'&&/^[0-9]+$/.test(count)&&BigInt(count)===BigInt(0))return false;
++ return !(typeof left==='string'&&/^[0-9]+$/.test(left)&&/^[1-9][0-9]{0,8}$/.test(gold)&&BigInt(gold)>BigInt(left));
+ }
+ export type GrantAttempt={key:string;id:string};
+ /** The same grant keeps its request id, so resending after a lost answer cannot pay twice; a different one gets a new id. */
+@@ -28,7 +34,7 @@ const WALLET_REFUSALS:Record<string,[string,string]>={
+ export function grantError(code:string,zh:boolean){
+  const wallet=Object.hasOwn(WALLET_REFUSALS,code)?WALLET_REFUSALS[code]:null;if(wallet)return wallet[zh?0:1];
+  if(code==='GRANT_DUPLICATE_RECENT')return zh?'這個地址 10 分鐘內已發過相同數量，請先看下方最近紀錄，避免重複發放。':'This wallet got the same amount in the last 10 minutes. Check the recent grants below.';
+- if(code==='GRANT_DAILY_LIMIT')return zh?'已達 24 小時發放上限（20,000 GOLD 或 100 筆）。':'The 24-hour grant limit is reached (20,000 GOLD or 100 grants).';
++ if(code==='GRANT_DAILY_LIMIT')return zh?'這筆會超過 24 小時發放上限（20,000 GOLD 或 100 筆），請看上方還可發的數量。':'This grant would go over the 24-hour limit (20,000 GOLD or 100 grants). Check what is left above.';
+  if(code==='INVALID_ADDRESS_CHECKSUM')return zh?'地址的大小寫對不上，可能打錯字了，請重新複製。':'The address fails its checksum, so it may be mistyped. Copy it again.';
+  if(code==='RECIPIENT_NOT_EOA')return zh?'這個地址曾用合約錢包登入，收到也花不掉，請改用一般錢包。':'This address has signed in as a contract wallet and could not spend the GOLD. Use an ordinary wallet.';
+  if(code==='GRANT_SIGNATURE_EXPIRED')return zh?'簽章已過期，或電腦時間不對，請再發一次。':'The signature expired, or this computer\'s clock is off. Send it again.';
+diff --git a/tests/world-gold-grants.test.mjs b/tests/world-gold-grants.test.mjs
+index 8622ae9..b072e22 100644
+--- a/tests/world-gold-grants.test.mjs
++++ b/tests/world-gold-grants.test.mjs
+@@ -13,7 +13,7 @@ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+ import {createHash} from 'node:crypto';
+ import {GOLD_GRANT_DAILY,GOLD_GRANT_DAILY_COUNT,GOLD_GRANT_DUPLICATE_MS,GOLD_GRANT_MAX,GOLD_GRANT_SIGNATURE_ASK_MS,GOLD_GRANT_SIGNATURE_MS,goldGrantMessage} from '../src/shared/goldGrants.ts';
+ import {createCelestaoDelivery} from '../server/celestao-delivery.ts';
+-import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand} from '../src/world/goldGrantRules.ts';
++import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand,withinGrantLeft} from '../src/world/goldGrantRules.ts';
+ 
+ const NOW=Date.UTC(2026,9,18),DAY=86400000,ROOT='https://imdember.com',TOKEN='s'.repeat(43),RECIPIENT='0x'+'c'.repeat(40);
+ const [GRANT_A,THIRD_ADMIN,GRANT_B]=AIMARKET_ACTIVITY_ADMIN_WALLETS,ORDINARY='0x'+'a'.repeat(40);
+@@ -184,12 +184,23 @@ test('the form rules: a complete checked grant within the limit, and one id per
+  assert.equal(first.id,'id1');assert.equal(grantAttemptFor(first,'a',make).id,'id1');assert.equal(grantAttemptFor(first,'b',make).id,'id2');
+  assert.match(grantError('GRANT_DUPLICATE_RECENT',true),/10 分鐘/);assert.equal(grantError('OTHER',true),'OTHER');
+ });
++test('the form asks for no signature above what is left in the last 24 hours (audit 447bb70d)',()=>{
++ const good={to:RECIPIENT,gold:'2',checked:true};
++ assert.equal(grantFormReady({...good,left:'1',count:'96'}),false);assert.equal(grantFormReady({...good,gold:'1',left:'1',count:'96'}),true);
++ assert.equal(grantFormReady({...good,left:'20000',count:'0'}),false);assert.equal(grantFormReady({...good,left:'0',count:'5'}),false);
++ assert.equal(grantFormReady({...good,gold:'5000',left:'5000',count:'1'}),true);assert.equal(grantFormReady({...good,gold:'4999',left:'04999',count:'1'}),true);
++ assert.equal(grantFormReady(good),true,'no allowance read: the server still checks');assert.equal(grantFormReady({...good,left:'?',count:''}),true);
++ assert.equal(withinGrantLeft('19999','20000','100'),true);assert.equal(withinGrantLeft('6000','20000','100'),true,'above one grant is grantFormReady\'s job');assert.equal(withinGrantLeft('20000','19999','100'),false);
++ for(const zh of [true,false])assert.doesNotMatch(grantError('GRANT_DAILY_LIMIT',zh),/已達|is reached/);
++ const panel=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++ assert.match(panel,/!withinGrantLeft\(grantGold,data\.grantLeft,data\.grantsLeft\)&&<small role="status">/);
++});
+ test('the client accepts the grant fields and the panel offers the form only when the server says so',async t=>{
+  const f=await fixture(t),state=await f.state();
+  assert.equal(parseWorldGold(state,GRANT_A).canGrant,true);assert.equal(parseWorldGold(state,GRANT_A).grantLeft,'20000');
+  const panel=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
+  assert.match(panel,/\{data\.canGrant&&<fieldset/);
+- assert.match(panel,/disabled=\{!grantFormReady\(\{to:grantTo,gold:grantGold,checked:grantChecked\}\)\|\|data\.grantLeft==='0'\|\|!signGrant\}/);
++ assert.match(panel,/disabled=\{!grantFormReady\(\{to:grantTo,gold:grantGold,checked:grantChecked,left:data\.grantLeft,count:data\.grantsLeft\}\)\|\|data\.grantLeft==='0'\|\|!signGrant\}/);
+  assert.match(panel,/grantAttempt\.current=grantAttemptFor\(grantAttempt\.current,key,economyRequestId\)/);
+  assert.match(panel,/run\(\(\)=>signedGrantCommand\(\{[^}]*\}\),id\)/);
+  assert.match(panel,/signedGrantCommand\(\{origin:location\.origin,admin:data\.wallet,to,gold:grantGold,reason,requestId:id,now:Date\.now\(\),sign:signGrant\}\)/);
