@@ -1,0 +1,10 @@
+Celestao side, read-only containers, no network, at Celestao 6560ad4 and World a3abbf7.
+
+Overlay unit tests, run twice: once from World's integrations/celestao/tests and once from the Celestao tree's world_wallet/tests. 131 run each, OK, 7 skipped because they need the native tree. Both copies of celestao_world/ and the tests are byte-identical.
+deployment/test_deployment.py: 2 run, OK. deployment/ is not in this package and did not change.
+tests/test_production_config.py, in the private Celestao tree and not in this package: 29 passed.
+
+Overlay builder: prepare_overlay.py did not change. Rebuilt from the private web/ tree, its app.js, index.html, index-pdf.html, annual-report.js, profile-reading.js and world-wallet.js are byte-identical to the Celestao tree's world_wallet_web/. world-wallet.css and world-pdf.js differ in line endings only. The world-wallet.js?v= tag is now d8993093805a.
+
+Not rerun for this round: the real-engine tests and the full native run. No engine code changed.
+No removal checks were run for these fixes.
