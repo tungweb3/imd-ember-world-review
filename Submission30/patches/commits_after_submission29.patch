@@ -1,0 +1,204 @@
+From 0cba66284df8eed064909d93ca6f3bc3753570f9 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Sat, 7 Nov 2026 22:51:26 +0800
+Subject: [PATCH] Fix audit 85163d96: consent only for same-origin, decided
+ before budget; notice for browsers without Fetch Metadata; spend malformed
+ codes; revoke on reuse; no payment button for owned cosmetic
+
+Narrow fixes only; the login design is unchanged.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/squeek-store.ts       | 22 +++++++-----
+ src/world/SqueekCheckout.tsx |  4 +--
+ src/world/SqueekConnect.tsx  |  4 +--
+ tests/squeek-store.test.mjs  | 69 +++++++++++++++++++++++++++++++++---
+ 4 files changed, 83 insertions(+), 16 deletions(-)
+
+diff --git a/server/squeek-store.ts b/server/squeek-store.ts
+index 8bb6b88..6818165 100644
+--- a/server/squeek-store.ts
++++ b/server/squeek-store.ts
+@@ -108,15 +108,15 @@ async function authorize(request:Request,url:URL,deps:SqueekDeps,cfg:Config,db:D
+  const q:Record<string,string>={},keys=['client_id','redirect_uri','response_type','code_challenge_method','code_challenge','state','lang'];
+  for(const [k,v]of url.searchParams){if(!keys.includes(k)||Object.hasOwn(q,k))return reply(400,{error:'BAD_REQUEST'});q[k]=v;}
+  if(q.client_id!==SQUEEK_CLIENT_ID||q.redirect_uri!==cfg.redirect||q.response_type!=='code'||q.code_challenge_method!=='S256'||!OPAQUE.test(q.code_challenge??'')||!STATE.test(q.state??'')||!['zh','en'].includes(q.lang??''))return reply(400,{error:'BAD_REQUEST'});
++ // A code is issued only to a navigation the user made on World itself: Continue on /squeek-connect/. Any other request,
++ // a typed URL or one handed over by another app included, goes to that page first. This is decided from headers alone,
++ // before any budget or database read. A browser that sends no Fetch Metadata is told on that page that it cannot sign in.
++ const site=request.headers.get('sec-fetch-site'),page=request.headers.get('accept')?.includes('text/html')===true&&(request.headers.get('sec-fetch-mode')??'navigate')==='navigate';
++ const consent=()=>reply(303,null,{Location:'/squeek-connect/?next='+encodeURIComponent(url.pathname+url.search)+'&lang='+q.lang+(site===null?'&browser=unsupported':'')});
++ if(site!=='same-origin')return page?consent():reply(403,{error:'CONSENT_REQUIRED'});
+  if(!await deps.allow!('squeek:authorize:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},{'Retry-After':'60'});
+  const start=clock(deps),session=await readSession(request,db,start);
+- // A code is issued only to a navigation the user made on World itself (Continue on /squeek-connect/) or typed. A link or
+- // redirect from any other site, the game included, goes through that page first, so no site can mint a code silently.
+- const site=request.headers.get('sec-fetch-site'),consented=site==='same-origin'||site==='none';
+- if(typeof session==='string'||!consented){
+-  if(request.headers.get('sec-fetch-mode')==='navigate'&&request.headers.get('accept')?.includes('text/html'))return reply(303,null,{Location:'/squeek-connect/?next='+encodeURIComponent(url.pathname+url.search)+'&lang='+q.lang});
+-  return typeof session==='string'?reply(401,{error:'AUTH_REQUIRED'}):reply(403,{error:'CONSENT_REQUIRED'});
+- }
++ if(typeof session==='string')return page?consent():reply(401,{error:'AUTH_REQUIRED'});
+  const code=opaque(),hash=await sha256(code),now=clock(deps);if(now<start)return reply(503,{error:'SQUEEK_UNAVAILABLE'});
+  const row=await db.prepare(`INSERT INTO squeek_auth_codes(code_hash,source_session_hash,address,code_challenge,redirect_uri,issued_at,expires_at)
+   SELECT ?1,token_hash,address,?2,?3,?4,MIN(expires_at,?5) FROM sessions WHERE token_hash=?6 AND address=?7 AND revoked_at IS NULL AND expires_at>?4 RETURNING code_hash`)
+@@ -128,7 +128,11 @@ async function token(request:Request,deps:SqueekDeps,cfg:Config,db:D1Database,he
+  // Per client first: a caller-chosen code must not open a fresh budget.
+  if(!await deps.allow!('squeek:token-client:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},{...headers,'Retry-After':'60'});
+  const b=await body(request,['grant_type','client_id','redirect_uri','code','code_verifier']);
+- if(!b||b.grant_type!=='authorization_code'||b.client_id!==SQUEEK_CLIENT_ID||b.redirect_uri!==cfg.redirect||typeof b.code!=='string'||!OPAQUE.test(b.code)||typeof b.code_verifier!=='string'||!OPAQUE.test(b.code_verifier))return reply(400,{error:'BAD_REQUEST'},headers);
++ if(!b||b.grant_type!=='authorization_code'||b.client_id!==SQUEEK_CLIENT_ID||b.redirect_uri!==cfg.redirect||typeof b.code!=='string'||!OPAQUE.test(b.code)||typeof b.code_verifier!=='string'||!OPAQUE.test(b.code_verifier)){
++  // A well-formed code that arrives with anything else wrong is spent as well: one attempt per code.
++  if(b&&typeof b.code==='string'&&OPAQUE.test(b.code))await db.prepare(`UPDATE squeek_auth_codes SET consumed_at=?1,token_hash='rejected' WHERE code_hash=?2 AND consumed_at IS NULL`).bind(clock(deps),await sha256(b.code)).run();
++  return reply(400,{error:'BAD_REQUEST'},headers);
++ }
+  const [hash,challenge]=await Promise.all([sha256(b.code),squeekPkce(b.code_verifier)]);
+  if(!await deps.allow!('squeek:token:'+hash.slice(0,32)))return reply(429,{error:'RATE_LIMITED'},{...headers,'Retry-After':'60'});
+  const grant=opaque(),grantHash=await sha256(grant),now=clock(deps);
+@@ -144,6 +148,8 @@ async function token(request:Request,deps:SqueekDeps,cfg:Config,db:D1Database,he
+    .bind(now,now+SQUEEK_TOKEN_TTL_MS,hash,grantHash)
+  ]);
+  const row=rows[1]?.results[0] as {address:string;expires_at:number}|undefined;
++ // A code presented again after it was used means it leaked: revoke the grant issued on it (RFC 6749 4.1.2).
++ if(rows[0]?.results.length===0)await db.prepare(`UPDATE squeek_tokens SET revoked_at=?1 WHERE revoked_at IS NULL AND token_hash=(SELECT token_hash FROM squeek_auth_codes WHERE code_hash=?2 AND token_hash<>'rejected')`).bind(now,hash).run();
+  if(rows[0]?.results.length!==1||(rows[0].results[0] as {token_hash:string}).token_hash!==grantHash||!row)return reply(401,{error:'INVALID_GRANT'},headers);
+  return reply(200,{token_type:'Bearer',access_token:grant,scope:'squeek:read',expires_at:row.expires_at,subject_id:await squeekSubject(cfg.subjectKey,row.address)},headers);
+ }
+diff --git a/src/world/SqueekCheckout.tsx b/src/world/SqueekCheckout.tsx
+index 786e40c..bfbe50e 100644
+--- a/src/world/SqueekCheckout.tsx
++++ b/src/world/SqueekCheckout.tsx
+@@ -34,7 +34,7 @@ export default function SqueekCheckout(){
+  useEffect(()=>{if(!identity)return;const onFocus=()=>void refresh(),timer=setInterval(onFocus,15000);window.addEventListener('focus',onFocus);return()=>{clearInterval(timer);window.removeEventListener('focus',onFocus);};},[identity,refresh]);
+  const operate=async(pay=false)=>{if(lock.current||!valid)return;lock.current=true;setBusy(true);setError('');const g=generation.current;
+   try{const latest=await client.state(sku,requestKey);if(g!==generation.current)throw Error('CONTEXT_CHANGED');
+-   if(pay){if(!controller||!latest.order||latest.order.status!=='pending')throw Error('CONTEXT_CHANGED');const order=squeekEconomyOrder(latest.order,latest.item),rid=economyRequestId(),challenge=await new EconomyClient({auth:()=>authRef.current}).goldChallenge(order,rid,location.origin);await controller.payGold(order,rid,challenge);if(controller.state.error)throw Error(controller.state.error);}
++   if(pay){if(!controller||!latest.order||latest.order.status!=='pending')throw Error('CONTEXT_CHANGED');if(latest.owned)throw Error('ALREADY_OWNED');const order=squeekEconomyOrder(latest.order,latest.item),rid=economyRequestId(),challenge=await new EconomyClient({auth:()=>authRef.current}).goldChallenge(order,rid,location.origin);await controller.payGold(order,rid,challenge);if(controller.state.error)throw Error(controller.state.error);}
+    else await client.quote(sku,requestKey);
+   }catch(e){if(g===generation.current)setError(e instanceof Error?e.message:'UNAVAILABLE');}
+   finally{if(g===generation.current){lock.current=false;setBusy(false);void refresh();}}
+@@ -53,7 +53,7 @@ export default function SqueekCheckout(){
+     <p className="celestao-checkout-price">{Number(data.item.gold).toLocaleString('en-US')} GOLD　<small>{t('一次付款，不能重複購買','One-time payment; cannot be bought twice')}</small></p>
+     <p className="celestao-gateway-note">{t('目前可用 GOLD：','Available GOLD: ')}{Number(data.balanceGold).toLocaleString('en-US')}</p>
+     {order?<><p className="celestao-gateway-note">{t('原始訂單','Original order')}<br/><code>{order.orderId}</code></p>
+-     {status?<p role="status">{status}</p>:order.expiresAt<=Date.now()?<p role="alert">{ERRORS.ORDER_EXPIRED[zh?0:1]}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.item.gold+' GOLD'}</button>}</>
++     {status?<p role="status">{status}</p>:data.owned?<p role="status">{ERRORS.ALREADY_OWNED[zh?0:1]}</p>:order.expiresAt<=Date.now()?<p role="alert">{ERRORS.ORDER_EXPIRED[zh?0:1]}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.item.gold+' GOLD'}</button>}</>
+     :data.owned?<p role="status">{ERRORS.ALREADY_OWNED[zh?0:1]}</p>
+     :!data.ready?<p role="status">{ERRORS.SALES_CLOSED[zh?0:1]}</p>
+     :<button className="celestao-gateway-primary" disabled={busy} onClick={()=>void operate()}>{t('建立這筆 GOLD 訂單','Create this GOLD order')}</button>}</>}
+diff --git a/src/world/SqueekConnect.tsx b/src/world/SqueekConnect.tsx
+index 67bc990..5fb01aa 100644
+--- a/src/world/SqueekConnect.tsx
++++ b/src/world/SqueekConnect.tsx
+@@ -10,7 +10,7 @@ import './celestaoGateway.css';
+  * The authorize endpoint rechecks the real World session cookie. */
+ export default function SqueekConnect(){
+  const zh=new URLSearchParams(location.search).get('lang')!=='en',say=(a:string,b:string)=>zh?a:b;
+- const next=squeekResume(new URLSearchParams(location.search).get('next'));
++ const next=squeekResume(new URLSearchParams(location.search).get('next')),unsupported=new URLSearchParams(location.search).get('browser')==='unsupported';
+  const registry=wallets(),options=useSyncExternalStore(registry.subscribe,()=>registry.state,()=>registry.state);
+  const client=useMemo(()=>createAuth(registry),[registry]),state=useAuth(client,false),[now,setNow]=useState(Date.now);
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
+@@ -20,7 +20,7 @@ export default function SqueekConnect(){
+   <h1 id="squeek-connect-title">{say('用 World 錢包登入','Sign in with your World wallet')}</h1>
+   <p>{say('登入後，鼠道修仙可以看到你的 GOLD 餘額和已擁有的外觀。','After sign-in, Squeek Ascension can see your GOLD balance and the cosmetics you own.')}</p>
+   <p className="celestao-gateway-note">{say('這一步只確認身分，不會支付 GOLD 或轉移資產。每次購買都要你在 World 另外簽名確認。不登入也能完整遊玩。','This step only confirms who you are. It does not pay GOLD or move assets. Each purchase needs its own signature in World. The game is fully playable without signing in.')}</p>
+-  {!next?<p role="alert">{say('登入連結已失效，請返回鼠道修仙重新開始。','This sign-in link is invalid. Return to Squeek Ascension and start again.')}</p>:<>
++  {unsupported?<p role="alert">{say('這個瀏覽器太舊，無法安全地登入鼠道修仙。請更新瀏覽器（例如最新版 Chrome、Edge、Firefox 或 Safari）後再試；不登入也能完整遊玩。','This browser is too old to sign in to Squeek Ascension safely. Update it (for example to a current Chrome, Edge, Firefox or Safari) and try again; the game is fully playable without signing in.')}</p>:!next?<p role="alert">{say('登入連結已失效，請返回鼠道修仙重新開始。','This sign-in link is invalid. Return to Squeek Ascension and start again.')}</p>:<>
+    {(options.options.length>1||options.needsChoice)&&<fieldset disabled={busy}><legend>{say('選擇錢包','Choose a wallet')}</legend>{options.options.map((o,i)=><button key={i} type="button" aria-pressed={options.chosen===o} onClick={()=>registry.choose(o)}>{o.info.name} ({o.info.rdns})</button>)}{options.duplicates.length>0&&<p>{say('有擴充套件使用相同名稱，請確認你選擇的錢包。','Some extensions use the same name. Check which wallet you select.')}</p>}</fieldset>}
+    {state.session&&<p className="celestao-gateway-address">{state.session.address}</p>}
+    {state.notice&&<p role="status">{noticeText(state.notice,say)}</p>}
+diff --git a/tests/squeek-store.test.mjs b/tests/squeek-store.test.mjs
+index 1265586..53af1ba 100644
+--- a/tests/squeek-store.test.mjs
++++ b/tests/squeek-store.test.mjs
+@@ -42,7 +42,7 @@ test('login is PKCE-bound, single-use and read-only; it never accepts another re
+  const q=async(patch={})=>new URLSearchParams({client_id:'squeek-ascension',redirect_uri:REDIRECT,response_type:'code',code_challenge_method:'S256',code_challenge:await squeekPkce(VERIFIER),state:STATE,lang:'en',...patch});
+  assert.equal((await f.call('authorize?'+await q({redirect_uri:'https://evil.example/'}),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).status,400);
+  assert.equal((await f.call('authorize?'+await q({client_id:'celestao'}),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).status,400);
+- assert.equal((await f.call('authorize?'+await q())).status,401);
++ assert.equal((await f.call('authorize?'+await q())).status,403,'no Fetch Metadata and not a page: refused before any session read');
+  const nav=await f.call('authorize?'+await q(),{headers:{'sec-fetch-mode':'navigate',accept:'text/html'}});assert.equal(nav.status,303);
+  const resume=new URL(nav.headers.get('location'),ISSUER);assert.equal(resume.pathname,'/squeek-connect/');assert.equal(squeekResume(resume.searchParams.get('next')),resume.searchParams.get('next'));
+  const mint=async()=>new URL((await f.call('authorize?'+await q(),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).headers.get('location')).searchParams.get('world_code');
+@@ -224,9 +224,9 @@ test('64b1ce06 #4: only a navigation made on World mints a code; links from othe
+   const fetched=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,...site?{'sec-fetch-site':site}:{}}});assert.equal(fetched.status,403);
+  }
+  assert.equal(codes(),0);
+- for(const site of ['same-origin','none']){const r=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,'sec-fetch-site':site}});
+-  assert.equal(r.status,303);assert.ok(new URL(r.headers.get('location')).searchParams.get('world_code'));}
+- assert.equal(codes(),2);
++ const r=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,'sec-fetch-site':'same-origin'}});
++ assert.equal(r.status,303);assert.ok(new URL(r.headers.get('location')).searchParams.get('world_code'));
++ assert.equal(codes(),1);
+ });
+ 
+ test('64b1ce06 #5: the GOLD panel does not list 鼠道修仙 cosmetics and explains the two new refusals',async()=>{
+@@ -235,3 +235,64 @@ test('64b1ce06 #5: the GOLD panel does not list 鼠道修仙 cosmetics and expla
+  const {goldPurchaseError}=await import('../src/world/goldPurchaseRules.ts');
+  for(const code of ['ALREADY_OWNED','SQUEEK_CHECKOUT_REQUIRED'])for(const zh of [true,false])assert.notEqual(goldPurchaseError(code,zh),code);
+ });
++
++// ---- Audit 85163d96 ----
++const authorizeQuery=async()=>new URLSearchParams({client_id:'squeek-ascension',redirect_uri:REDIRECT,response_type:'code',code_challenge_method:'S256',code_challenge:await squeekPkce(VERIFIER),state:STATE,lang:'en'});
++test('85163d96 #1: a browser without Fetch Metadata reaches the consent page with a notice, never a JSON dead end or a code',async t=>{const f=await setup(t);const q=await authorizeQuery();
++ const codes=()=>f.db.raw.prepare('SELECT count(*) n FROM squeek_auth_codes').get().n;
++ for(const cookie of [TOKEN,null]){
++  const r=await f.call('authorize?'+q,{headers:{accept:'text/html,application/xhtml+xml',...cookie?{cookie:SESSION_COOKIE+'='+cookie}:{}}});
++  assert.equal(r.status,303);const to=new URL(r.headers.get('location'),ISSUER);
++  assert.equal(to.pathname,'/squeek-connect/');assert.equal(to.searchParams.get('browser'),'unsupported');assert.equal(squeekResume(to.searchParams.get('next')),to.searchParams.get('next'));
++ }
++ const modern=await f.call('authorize?'+q,{headers:{accept:'text/html','sec-fetch-site':'cross-site','sec-fetch-mode':'navigate',cookie:SESSION_COOKIE+'='+TOKEN}});
++ assert.equal(new URL(modern.headers.get('location'),ISSUER).searchParams.get('browser'),null,'browsers that send Fetch Metadata get the normal page');
++ assert.equal(codes(),0);
++ const {readFile}=await import('node:fs/promises');const page=await readFile(new URL('../src/world/SqueekConnect.tsx',import.meta.url),'utf8');
++ assert.match(page,/get\('browser'\)==='unsupported'/);assert.match(page,/\{unsupported\?<p role="alert">/);
++});
++
++test('85163d96 #2: Sec-Fetch-Site none (a typed URL or a link from another app) goes through the consent page',async t=>{const f=await setup(t);const q=await authorizeQuery();
++ const r=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,accept:'text/html','sec-fetch-site':'none','sec-fetch-mode':'navigate','sec-fetch-dest':'document'}});
++ assert.equal(r.status,303);assert.equal(new URL(r.headers.get('location'),ISSUER).pathname,'/squeek-connect/');
++ assert.equal((await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,'sec-fetch-site':'none'}})).status,403);
++ assert.equal(f.db.raw.prepare('SELECT count(*) n FROM squeek_auth_codes').get().n,0);
++});
++
++test('85163d96 #3: refused authorize requests spend no login budget and read no session',async t=>{
++ const keys=[],reads=[];const f=await setup(t,{deps:{client:'198.51.100.7',allow:async k=>{keys.push(k);return keys.length<=20;}}});const q=await authorizeQuery();
++ const prepare=f.db.prepare.bind(f.db);f.db.prepare=sql=>{reads.push(sql);return prepare(sql);};
++ for(let i=0;i<20;i++)assert.equal((await f.call('authorize?'+q,{headers:{'sec-fetch-site':'cross-site','sec-fetch-mode':'no-cors','sec-fetch-dest':'image'}})).status,403);
++ assert.equal(keys.length,0);assert.equal(reads.length,0);
++ const r=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,'sec-fetch-site':'same-origin'}});
++ assert.equal(r.status,303);assert.ok(new URL(r.headers.get('location')).searchParams.get('world_code'));assert.deepEqual(keys,['squeek:authorize:198.51.100.7']);
++});
++
++const mintCode=async f=>new URL((await f.call('authorize?'+await authorizeQuery(),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).headers.get('location')).searchParams.get('world_code');
++const exchangeCode=(f,code,patch={})=>f.call('token',{method:'POST',headers:{origin:GAME},body:{grant_type:'authorization_code',client_id:'squeek-ascension',redirect_uri:REDIRECT,code,code_verifier:VERIFIER,...patch}});
++test('85163d96 #4: a well-formed code sent with any other field wrong is spent',async t=>{const f=await setup(t);
++ for(const patch of [{redirect_uri:REDIRECT+'x'},{client_id:'celestao'},{grant_type:'refresh_token'},{code_verifier:'short'}]){
++  const code=await mintCode(f);assert.equal((await exchangeCode(f,code,patch)).status,400);
++  assert.equal((await exchangeCode(f,code)).status,401,JSON.stringify(patch));
++  assert.equal(f.db.raw.prepare('SELECT token_hash FROM squeek_auth_codes WHERE code_hash=?').get(await sha256(code)).token_hash,'rejected');
++ }
++ assert.equal(f.db.raw.prepare('SELECT count(*) n FROM squeek_tokens').get().n,0);
++});
++
++test('85163d96 #5: a code presented again after a successful exchange revokes the grant issued on it',async t=>{const f=await setup(t);
++ const code=await mintCode(f),ok=await exchangeCode(f,code);assert.equal(ok.status,200);const grant=(await ok.json()).access_token;
++ assert.equal((await f.api(grant,'snapshot')).status,200);
++ assert.equal((await exchangeCode(f,code)).status,401);
++ assert.equal((await f.api(grant,'snapshot')).status,401);
++ // A spent-by-mistake code (wrong verifier) revokes nothing, and another login is unaffected.
++ const other=await f.login(),bad=await mintCode(f);assert.equal((await exchangeCode(f,bad,{code_verifier:'w'.repeat(43)})).status,401);assert.equal((await exchangeCode(f,bad)).status,401);
++ assert.equal((await f.api(other,'snapshot')).status,200);
++});
++
++test('85163d96 #6: the checkout page shows ALREADY_OWNED instead of a payment button for a pending order of an owned cosmetic',async t=>{const f=await setup(t);
++ await f.buy(FROST.sku,KEY2);const q=await f.buy(FROST.sku,KEY);await f.pay(q.body.order.orderId);await f.deliver();
++ const state=await (await f.page('state',{sku:FROST.sku,requestKey:KEY2,expectedAddress:W})).json();assert.equal(state.owned,true);assert.equal(state.order.status,'pending');
++ const {readFile}=await import('node:fs/promises');const page=await readFile(new URL('../src/world/SqueekCheckout.tsx',import.meta.url),'utf8');
++ assert.match(page,/throw Error\('CONTEXT_CHANGED'\);if\(latest\.owned\)throw Error\('ALREADY_OWNED'\);const order=squeekEconomyOrder/);
++ assert.match(page,/\{status\?<p role="status">\{status\}<\/p>:data\.owned\?<p role="status">\{ERRORS\.ALREADY_OWNED\[zh\?0:1\]\}<\/p>:order\.expiresAt/);
++});
+-- 
+2.55.0.windows.5
+

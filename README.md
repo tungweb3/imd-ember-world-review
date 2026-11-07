@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission29](Submission29/README.md) — fixes for audit 64b1ce06 of the 鼠道修仙 GOLD store (World `9d88f5c`, not deployed).**
+**Current: [Submission30](Submission30/README.md) — fixes for audit 85163d96 of the 鼠道修仙 GOLD store, second round (World `0cba662`, not deployed).**
 
-Read [Submission29/AUDIT_REQUEST.md](Submission29/AUDIT_REQUEST.md) first.
+Read [Submission30/AUDIT_REQUEST.md](Submission30/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission29](Submission29/README.md) — fixes for audit 64b1ce06 of the 鼠道修仙 GOLD store (World `9d88f5c`, not deployed); reviewed in job 85163d96, 3 Low and 3 Info, fixed in Submission30.**
 
 **Previous: [Submission28](Submission28/README.md) — fixes for audit 447bb70d, two links to 鼠道修仙, and the 鼠道修仙 GOLD cosmetic store (World `e93e55a`, not deployed); reviewed in job 64b1ce06, 5 Low, fixed in Submission29.**
 

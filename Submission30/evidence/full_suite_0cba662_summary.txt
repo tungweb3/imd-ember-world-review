@@ -1,0 +1,23 @@
+World source 0cba66284df8eed064909d93ca6f3bc3753570f9
+node --test --test-concurrency=2 tests/*.test.mjs, on these exact file contents
+✖ the locked wallet files match the audited version (15.6632ms)
+ℹ tests 3949
+ℹ pass 3943
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+✖ failing tests:
+✖ the locked wallet files match the audited version (15.6632ms)
+The one failure is "the locked wallet files match the audited version": server/economy-recovery.ts, server/world-gold-api.ts, server/world-gold.ts, src/world/CelestaoCheckout.tsx, src/world/WorldGoldPanel.tsx, src/world/economyWallet.ts, src/world/goldPurchaseRules.ts, src/world/worldGoldClient.ts, tests/economy-client.test.mjs differ from the audited hashes.
+None of them changed in this round. The manifest of audited hashes was not refreshed. That is deliberate: the deploy tool runs this suite, so this source cannot ship until the audit is done and the owner approves a refresh.
+tsc --noEmit: 0 errors
+tests/squeek-store.test.mjs alone: 23 tests, 23 pass (17 from Submission29, 6 new for 85163d96).
+Removal checks, one at a time, each restored afterwards; each made at least one store test fail:
+- Sec-Fetch-Site: none accepted as consent again (finding 2)
+- the browser=unsupported notice dropped (finding 1)
+- a header-less page request no longer treated as a navigation (finding 1)
+- a malformed exchange no longer spends the code (finding 4)
+- a reused code no longer revokes its grant (finding 5)
+- the checkout page's ALREADY_OWNED check before a payment dropped (finding 6)
+Nothing under integrations/celestao changed since 9d88f5c.
