@@ -1,0 +1,1351 @@
+diff --git a/integrations/celestao/celestao_world/paid.py b/integrations/celestao/celestao_world/paid.py
+index cb63d35..bfd9f02 100644
+--- a/integrations/celestao/celestao_world/paid.py
++++ b/integrations/celestao/celestao_world/paid.py
+@@ -27,6 +27,13 @@ class PrepareRequest(BaseModel):
+ 
+ def install(app,settings,vault,world,processor,clock,checked,still_current,headers):
+     tasks=set();app.state.delivery_tasks=tasks;active={}
++    def start(ident,value,payload):
++        # A request the page must not repeat as it is: not a storage outage, so no 503 that invites a retry.
++        try:return vault.prepare(ident.wallet,value.requestId,value.system,payload,True,clock())
++        except VaultError as exc:
++            if str(exc)=='IDEMPOTENCY_CONFLICT':raise HTTPException(409,'IDEMPOTENCY_CONFLICT') from None
++            if str(exc) in ('INVALID_REQUEST','INPUT_TOO_LARGE','DOCUMENT_TOO_LARGE','SAVE_CONSENT_REQUIRED'):raise HTTPException(422,str(exc)) from None
++            raise
+     @app.post('/api/world/runs')
+     async def prepare(value:PrepareRequest,ident=Depends(checked)):
+         if not settings.paid_enabled:raise HTTPException(503,'FEATURE_PAUSED')
+@@ -36,7 +43,7 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+         except NativeInputError as exc:raise HTTPException(422,str(exc)) from None
+         except NativeUnavailable:raise HTTPException(503,'ENGINE_UNAVAILABLE') from None
+         still_current(ident)
+-        run=vault.prepare(ident.wallet,value.requestId,value.system,payload,True,clock())
++        run=start(ident,value,payload)
+         for _ in range(LAPSED_RUN_TRIES):
+             try:checkout=await world.prepare_checkout(ident.grant,run)
+             except (AuthDenied,BridgeUnavailable) as error:
+@@ -49,7 +56,7 @@ def install(app,settings,vault,world,processor,clock,checked,still_current,heade
+             try:vault.retire_lapsed(ident.wallet,run['id'])
+             except Missing:pass
+             except VaultError:raise HTTPException(503,'CHECKOUT_UNAVAILABLE') from None
+-            run=vault.prepare(ident.wallet,value.requestId,value.system,payload,True,clock())
++            run=start(ident,value,payload)
+         else:raise HTTPException(503,'CHECKOUT_UNAVAILABLE')
+         # Checked first: a run whose buyer got no link goes at the end of its window.
+         still_current(ident)
+diff --git a/integrations/celestao/celestao_world/vault.py b/integrations/celestao/celestao_world/vault.py
+index 2b2bb13..7824b11 100644
+--- a/integrations/celestao/celestao_world/vault.py
++++ b/integrations/celestao/celestao_world/vault.py
+@@ -108,7 +108,11 @@ class Vault:
+             old=self.db.execute('SELECT * FROM runs WHERE owner=? AND request_id=?',(owner,request_id)).fetchone()
+             if old:
+                 if old['system']!=system or old['input_hash']!=digest: raise VaultError('IDEMPOTENCY_CONFLICT')
+-            else:
++                if old['state']=='failed':
++                    # Refunded, so the page's kept request may buy again. The old row keeps its id and order for a late delivery or refund.
++                    self.db.execute("UPDATE runs SET request_id=request_id||'~'||id WHERE id=?",(old['id'],))
++                    old=None
++            if not old:
+                 # A reload loses the page's request id. The same reading keeps its run, and so its one World order, so it cannot be paid for twice.
+                 # A failed run was refunded, so that reading can be bought again. A retired run that did get an order still counts.
+                 old=self.db.execute("SELECT * FROM runs WHERE owner=? AND system=? AND input_hash=? AND state<>'failed' AND (retired IS NULL OR order_id IS NOT NULL) ORDER BY state='complete' DESC,order_id IS NOT NULL DESC,created_ms DESC,id LIMIT 1",(owner,system,digest)).fetchone()
+diff --git a/integrations/celestao/tests/test_paid.py b/integrations/celestao/tests/test_paid.py
+index a434643..f03d005 100644
+--- a/integrations/celestao/tests/test_paid.py
++++ b/integrations/celestao/tests/test_paid.py
+@@ -309,6 +309,31 @@ class PaidTests(VaultFixture,unittest.IsolatedAsyncioTestCase):
+         run=await self.run_fixture();self.processor.mode='rejected'
+         self.assertEqual((await self.deliver(run)).json()['kind'],'terminal-failure')
+         self.assertNotEqual((await self.prepare(requestId='fixture_paid_reloaded_02')).json()['runId'],run['id'])
++    async def test_a_refunded_reading_can_be_bought_again_with_the_request_the_page_kept(self):
++        # Audit 447bb70d: a page restored from history keeps its request id.
++        run=await self.run_fixture();self.processor.mode='rejected'
++        self.assertEqual((await self.deliver(run)).json()['kind'],'terminal-failure')
++        again=await self.prepare();self.assertEqual(again.status_code,200);self.assertNotEqual(again.json()['runId'],run['id'])
++        self.assertEqual((await self.prepare()).json()['runId'],again.json()['runId'])
++        self.assertEqual(self.vault.run(A,run['id'])['state'],'failed')
++        late=await self.deliver(run);self.assertEqual((late.json()['kind'],late.json()['code']),('terminal-failure','CHART_NOT_GENERATED'))
++    async def test_a_request_the_page_must_not_repeat_is_not_reported_as_a_storage_outage(self):
++        # Audit 447bb70d: a conflict is permanent, so it is 409, not the 503 that invites a retry.
++        self.assertEqual((await self.prepare()).status_code,200)
++        for _ in range(2):
++            conflict=await self.prepare(system='ziwei');self.assertEqual((conflict.status_code,conflict.json()),(409,{'detail':'IDEMPOTENCY_CONFLICT'}))
++        original=self.vault.prepare
++        def busy(*_):raise vault_module.VaultError('STORAGE_BUSY')
++        self.vault.prepare=busy
++        try:
++            outage=await self.prepare(requestId='fixture_paid_storage_01');self.assertEqual((outage.status_code,outage.json()['error']),(503,'STORAGE_UNAVAILABLE'))
++        finally:self.vault.prepare=original
++        for code in ('INVALID_REQUEST','INPUT_TOO_LARGE','DOCUMENT_TOO_LARGE'):
++            def refuse(*_,code=code):raise vault_module.VaultError(code)
++            self.vault.prepare=refuse
++            try:
++                refused=await self.prepare(requestId='fixture_paid_refused_01');self.assertEqual((refused.status_code,refused.json()),(422,{'detail':code}))
++            finally:self.vault.prepare=original
+     async def test_a_lapsed_quote_gets_a_new_run_for_the_same_request_and_any_later_reload(self):
+         old=await self.run_fixture();self.world.lapsed=(old['id'],)
+         fresh=await self.prepare();self.assertEqual(fresh.status_code,200);new=fresh.json()['runId'];self.assertNotEqual(new,old['id'])
+diff --git a/integrations/celestao/tests/test_vault.py b/integrations/celestao/tests/test_vault.py
+index 290c5e1..ee3ebe7 100644
+--- a/integrations/celestao/tests/test_vault.py
++++ b/integrations/celestao/tests/test_vault.py
+@@ -173,6 +173,18 @@ class VaultTests(VaultFixture):
+         run=self.vault.prepare(A,'request_upgrade_0001','bazi',INPUT,True,1000);self.vault.db.execute('DROP INDEX runs_input');self.vault.db.execute('ALTER TABLE runs DROP COLUMN retired');self.vault.db.execute('ALTER TABLE runs DROP COLUMN failed_attempts');self.vault.db.execute('ALTER TABLE runs DROP COLUMN first_failed_ms');self.vault.db.execute('DROP TABLE pruned_runs');self.vault.close()
+         self.vault=Vault(self.path,KEY);self.assertEqual(self.vault.prepare(A,'request_upgrade_0002','bazi',INPUT,True,1000)['id'],run['id'])
+         self.vault.bind_order(A,run['id'],ORDER);claim=self.vault.claim(A,run['id'],ORDER,2000);self.assertFalse(self.vault.strike(A,run['id'],claim['attempt'],2000));self.assertFalse(self.vault.was_pruned(A,run['id']))
++    def test_a_failed_run_gives_its_request_to_a_new_run_and_keeps_its_order(self):
++        # Audit 447bb70d: a page restored from history still sends the request id of the refunded run.
++        r,c=self.prepared();self.vault.fail(A,r['id'],c['attempt'],'CHART_NOT_GENERATED')
++        with self.assertRaisesRegex(VaultError,'IDEMPOTENCY_CONFLICT'):self.vault.prepare(A,'request_fixture_0001','bazi',{**INPUT,'time':'04:00'},True,2000)
++        self.assertEqual(self.vault.run(A,r['id'])['state'],'failed')
++        new=self.vault.prepare(A,'request_fixture_0001','bazi',INPUT,True,2000)
++        self.assertNotEqual(new['id'],r['id']);self.assertTrue(new['fresh'])
++        self.assertEqual(self.vault.prepare(A,'request_fixture_0001','bazi',INPUT,True,2001)['id'],new['id'])
++        old=self.vault.run(A,r['id']);self.assertEqual((old['state'],old['order_id'],old['input_hash']),('failed',ORDER,r['input_hash']))
++        self.assertEqual(self.vault.db.execute('SELECT request_id FROM runs WHERE id=?',(r['id'],)).fetchone()['request_id'],'request_fixture_0001~'+r['id'])
++        with self.assertRaisesRegex(VaultError,'IDEMPOTENCY_CONFLICT'):self.vault.prepare(A,'request_fixture_0001','bazi',{**INPUT,'time':'04:00'},True,2002)
++        self.assertEqual(self.vault.prepare(B,'request_fixture_0001','bazi',INPUT,True,2003)['fresh'],True)
+     def test_reopen_and_wallet_isolation(self):
+         r,c,record=self.saved()
+         self.vault.close();self.vault=Vault(self.path,KEY)
+diff --git a/integrations/celestao/web/world-wallet.css b/integrations/celestao/web/world-wallet.css
+index 372b920..45aea38 100644
+--- a/integrations/celestao/web/world-wallet.css
++++ b/integrations/celestao/web/world-wallet.css
+@@ -7,3 +7,5 @@
+ @media print{html:root,body.world-pdf-mode{background-color:#fff!important;background-image:none!important}body.world-pdf-mode::before,body.world-pdf-mode::after{display:none!important}@page{background:#fff}}
+ @media print{.world-local-banner,.world-pdf-toolbar,.world-wallet-library,.world-wallet-confirm,.world-price-badge{display:none!important}.world-pdf-mode #main{overflow:visible!important;max-height:none!important;height:auto!important}.world-pdf-mode .profile-reader-mount{overflow:visible!important}}
+ .birth-time-pick{display:grid;gap:8px}.birth-time-pick select:disabled{opacity:.4}
++.sister-nav-label{display:inline-flex;align-items:center;gap:8px;vertical-align:top}.sister-nav-emblem{display:block;flex:none;width:44px;height:44px;margin-block:-44px;background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJTcXVlZWsgQXNjZW5zaW9uIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmN2UzYWQiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNiODkyNGYiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iZiIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZjZWNjNCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2Q4YjQ2YyIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNnKSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiPjxwYXRoIGQ9Ik0zIDM2IDE2IDE4bDYuNSA4Ii8+PHBhdGggZD0iTTE0IDMxIDM0IDVsMjYgMzAiLz48cGF0aCBkPSJNMzQgNWwtMy41IDEwTTE2IDE4bC0xLjggNi41Ii8+PC9nPjxwYXRoIGQ9Ik00NyA3bDEuMSAzIDMgMS4xLTMgMS4xLTEuMSAzLTEuMS0zLTMtMS4xIDMtMS4xeiIgZmlsbD0iI2ZmZjBjOSIvPjxnIHN0cm9rZT0iIzhhNmEzNSIgc3Ryb2tlLXdpZHRoPSIxLjEiPjxjaXJjbGUgY3g9IjI0IiBjeT0iMjcuNSIgcj0iMy44IiBmaWxsPSJ1cmwoI2YpIi8+PGNpcmNsZSBjeD0iNDAiIGN5PSIyNy41IiByPSIzLjgiIGZpbGw9InVybCgjZikiLz48cGF0aCBkPSJNMzIgMjUuNUMyNCAyNS41IDE5LjYgMzAuNSAxOSAzNi41IDE2IDQwLjUgMTcgNTIuNSAzMiA1Mi44IDQ3IDUyLjUgNDggNDAuNSA0NSAzNi41IDQ0LjQgMzAuNSA0MCAyNS41IDMyIDI1LjVaIiBmaWxsPSJ1cmwoI2YpIi8+PC9nPjxjaXJjbGUgY3g9IjI0IiBjeT0iMjcuOCIgcj0iMS44IiBmaWxsPSIjZTdiNDhjIi8+PGNpcmNsZSBjeD0iNDAiIGN5PSIyNy44IiByPSIxLjgiIGZpbGw9IiNlN2I0OGMiLz48ZWxsaXBzZSBjeD0iMjQuMiIgY3k9IjQwLjIiIHJ4PSIyLjYiIHJ5PSIxLjYiIGZpbGw9IiNlYzlmNzgiIG9wYWNpdHk9Ii41NSIvPjxlbGxpcHNlIGN4PSIzOS44IiBjeT0iNDAuMiIgcng9IjIuNiIgcnk9IjEuNiIgZmlsbD0iI2VjOWY3OCIgb3BhY2l0eT0iLjU1Ii8+PGNpcmNsZSBjeD0iMjciIGN5PSIzNS42IiByPSIyIiBmaWxsPSIjMWIxYTEyIi8+PGNpcmNsZSBjeD0iMzciIGN5PSIzNS42IiByPSIyIiBmaWxsPSIjMWIxYTEyIi8+PGNpcmNsZSBjeD0iMjcuNyIgY3k9IjM0LjkiIHI9Ii42IiBmaWxsPSIjZmZmIi8+PGNpcmNsZSBjeD0iMzcuNyIgY3k9IjM0LjkiIHI9Ii42IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTMwLjcgMzguNGgyLjZMMzIgMzkuOXoiIGZpbGw9IiM1YTNlMWMiLz48cGF0aCBkPSJNMjkuNSA0MXExLjI1IDEuNCAyLjUgMCAxLjI1IDEuNCAyLjUgMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNWEzZTFjIiBzdHJva2Utd2lkdGg9Ii45IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMjEuNSAzOC42bC02LTEuMk0yMS41IDQwLjZsLTYuMi40TTQyLjUgMzguNmw2LTEuMk00Mi41IDQwLjZsNi4yLjQiIHN0cm9rZT0iIzhhNmEzNSIgc3Ryb2tlLXdpZHRoPSIuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGcgZmlsbD0iIzE2MjMyMSIgc3Ryb2tlPSJ1cmwoI2cpIiBzdHJva2Utd2lkdGg9IjEuNyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTE3IDYwQzE4LjUgNTUgMjUgNTMuNCAzMiA1NC42IDM5IDUzLjQgNDUuNSA1NSA0NyA2MFoiLz48cGF0aCBkPSJNMi41IDYwYTUgNSAwIDAgMSA0LTYuNiA2IDYgMCAwIDEgMTEtMi4yIDQuNiA0LjYgMCAwIDEgNyAzLjIgNCA0IDAgMCAxIDIuOCA1LjZaIi8+PHBhdGggZD0iTTYxLjUgNjBhNSA1IDAgMCAwLTQtNi42IDYgNiAwIDAgMC0xMS0yLjIgNC42IDQuNiAwIDAgMC03IDMuMiA0IDQgMCAwIDAtMi44IDUuNloiLz48L2c+PHBhdGggZD0iTTExLjQgNTcuNmMtMS45LS4xLTIuMy0yLjYtLjYtMy4yIDEuNi0uNiAzLjEgMSAyLjMgMi42TTIwLjUgNThjLTEuMy0uMy0xLjMtMi4xIDAtMi4zIDEuMi0uMiAyIC45IDEuNCAyTTUyLjYgNTcuNmMxLjktLjEgMi4zLTIuNi42LTMuMi0xLjYtLjYtMy4xIDEtMi4zIDIuNk00My41IDU4YzEuMy0uMyAxLjMtMi4xIDAtMi4zLTEuMi0uMi0yIC45LTEuNCAyIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjZykiIHN0cm9rZS13aWR0aD0iMS4xIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48ZyBmaWxsPSJ1cmwoI2YpIiBzdHJva2U9IiM4YTZhMzUiIHN0cm9rZS13aWR0aD0iMSI+PGVsbGlwc2UgY3g9IjI3IiBjeT0iNTMuNCIgcng9IjMiIHJ5PSIyIi8+PGVsbGlwc2UgY3g9IjM3IiBjeT0iNTMuNCIgcng9IjMiIHJ5PSIyIi8+PC9nPjwvc3ZnPgo=) center/contain no-repeat}@media print{.sister-nav,.sister-nav-divider{display:none!important}}@media(min-width:800.02px) and (max-width:1009.98px),(min-width:1100.02px) and (max-width:1189.98px){.sister-nav,.sister-nav-divider{display:none}}
++.sister-banner-wrap{margin-top:36px;margin-bottom:32px}.sister-banner{display:block;color:var(--muted);text-decoration:none}.sister-banner img{display:block;width:100%;height:auto;aspect-ratio:3/1;border-radius:14px;border:1px solid var(--line,rgba(127,127,127,.25));transition:filter .2s ease}.sister-banner:hover img,.sister-banner:focus-visible img{filter:brightness(1.08)}.sister-banner:focus-visible{outline:2px solid currentColor;outline-offset:4px;border-radius:14px}.sister-banner-cap{display:block;margin-top:10px;font-size:12px;line-height:1.8}body[data-reading-system="profile"] .sister-banner-wrap{max-width:calc(920px + 2*clamp(8px,3vw,30px));margin:0 auto 32px;padding:0 calc(clamp(8px,3vw,30px) + 40px)}@media(max-width:600px){body[data-reading-system="profile"] .sister-banner-wrap{padding:0 20px}}@media print{.sister-banner-wrap{display:none!important}}
+diff --git a/integrations/celestao/web/world-wallet.js b/integrations/celestao/web/world-wallet.js
+index f2305ea..72732b0 100644
+--- a/integrations/celestao/web/world-wallet.js
++++ b/integrations/celestao/web/world-wallet.js
+@@ -6,7 +6,7 @@
+  const attempts=new Map(),say=(a,b)=>lang==='en'?b:a,opaque=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{43}$/.test(v);
+  const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
+  const button=(text,action)=>{const b=node('button',text,'btn secondary small');b.type='button';b.addEventListener('click',action);return b;};
+- function errorText(error){const code=error?.message;return ({FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted storage in your wallet collection.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),LOCATION_UNSUPPORTED:say('這個出生地緯度超過 66.5 度，西洋占星算不出宮位，所以無法製作這份解讀；沒有建立付款。','This birthplace is beyond 66.5° latitude, where western astrology houses cannot be calculated, so this reading is unavailable. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
++ function errorText(error){const code=error?.message;return ({IDEMPOTENCY_CONFLICT:say('這次送出的資料和先前的請求不一致，沒有建立付款；請再按一次。','This request did not match the earlier one, so no payment was created. Press the button again.'),FEATURE_PAUSED:say('新解讀暫停受理，已付款報告仍可查看。','New readings are paused. Paid reports remain available.'),AUTH_REQUIRED:say('請重新連接 World 錢包。','Reconnect your World wallet.'),CONTEXT_CHANGED:say('錢包已改變，請重新讀取收藏。','Wallet changed. Reload your collection.'),SAVE_CONSENT_REQUIRED:say('請先同意將這份解讀加密保存至錢包收藏。','First consent to encrypted storage in your wallet collection.'),ALL_FOUR_SOURCES_UNAVAILABLE:say('此出生時刻目前無法完整計算四種系統，沒有建立付款。','All four systems are not supported for this birth time. No payment was created.'),ALL_FOUR_SOURCES_REQUIRED:say('完整解讀包含四種系統，請重新確認。','Complete reading includes all four systems. Review your selection.'),INVALID_CHART_INPUT:say('出生資料未通過檢查，沒有建立付款。','Birth details did not pass validation. No payment was created.'),LOCATION_UNSUPPORTED:say('這個出生地緯度超過 66.5 度，西洋占星算不出宮位，所以無法製作這份解讀；沒有建立付款。','This birthplace is beyond 66.5° latitude, where western astrology houses cannot be calculated, so this reading is unavailable. No payment was created.'),YEAR_BEFORE_BIRTH:say('流年報告從出生後第一個完整的農曆年開始，請改選較晚的年份；沒有建立付款。','The report starts with the first full lunar year after birth. Choose a later year. No payment was created.'),ENGINE_UNAVAILABLE:say('計算引擎暫時無法提供，沒有建立付款。','The calculation engine is unavailable. No payment was created.'),NOT_FOUND:say('找不到這個錢包的報告；請確認錢包或垃圾桶。','This wallet has no such report. Check the wallet or trash.'),CHECKOUT_UNAVAILABLE:say('暫時無法確認原始訂單；請重試同一次執行。','Unable to confirm the original order. Retry this same execution.')})[code]||say('暫時無法讀取，請稍後再試。','Temporarily unavailable. Try again shortly.');}
+  function invalidate(){epoch++;identity=null;currentRecord=null;currentResult=null;document.getElementById('world-wallet-library')?.remove();document.querySelectorAll('[data-world-identity]').forEach(n=>n.replaceChildren(node('p',say('正在確認錢包…','Checking wallet…'))));clearReader?.();}
+  async function session(){const attempt=++sessionAttempt;
+   try{const response=await fetch('/api/world/session',{cache:'no-store',credentials:'same-origin',redirect:'error',headers:{'X-Requested-With':'CelestialAtlas'}}),value=await response.json();if(attempt!==sessionAttempt)return;
+@@ -47,7 +47,7 @@
+    // Navigation follows the explicit compute action. The World scene lives in
+    // its existing tab; this Celestao tab becomes the light payment page.
+    location.assign(url.href);
+-  }catch(error){showError(errorText(error));}finally{busy=false;if(b?.isConnected)b.disabled=!document.getElementById('consent')?.checked;}
++  }catch(error){if(error?.message==='IDEMPOTENCY_CONFLICT')attempts.delete(system+'|'+JSON.stringify(input));showError(errorText(error));}finally{busy=false;if(b?.isConnected)b.disabled=!document.getElementById('consent')?.checked;}
+  }
+  function openPdf(id){if(!opaque(id))return;const url=new URL(location.origin+'/');url.searchParams.set('world_pdf',id);url.searchParams.set('world_lang',lang);location.assign(url.href);}
+  async function openRecord(id){try{const response=await api('/api/world/collections/'+id);if(typeof reader!=='function')throw Error('READER_NOT_READY');if(!reader(response.result))throw Error('INVALID_RESULT');currentRecord=id;currentResult=response.result;}catch(error){console.warn('wallet_reader_failure',/^[A-Z_]{3,64}$/.test(error?.message)?error.message:error?.name||'UNAVAILABLE');throw error;}}
+@@ -90,7 +90,7 @@
+  document.addEventListener('click',event=>{const target=event.target.closest?.('[data-action="print"]');if(target&&currentRecord&&!pdf){event.preventDefault();event.stopImmediatePropagation();openPdf(currentRecord);}},true);
+  function privacy(){const sections=[[say('錢包身分與 GOLD','Wallet identity and GOLD'),say('登入經 World 驗證；玄曜不會取得你的錢包私鑰。GOLD 付款在 World 逐筆核對並簽名，登入收藏不等於付款。','World verifies sign-in. Celestial Atlas does not receive wallet private keys. Each GOLD payment is reviewed and signed in World; connecting collections is not payment.')],
+   [say('出生資料與錢包收藏','Birth details and wallet collections'),say('勾選保存同意後，出生資料與完整報告會在玄曜伺服器加密保存，網站只會顯示給有效登入的相同錢包。加密金鑰由玄曜伺服器保管，不在你的錢包裡，所以管理伺服器的人，或入侵伺服器的人，在技術上都能讀取。World 帳本接收服務、訂單及交付憑據，不接收出生資料與完整報告正文。','After explicit storage consent, birth details and complete reports are encrypted on the Celestial Atlas server, and the site shows them only to the same signed-in wallet. The encryption key is held by the Celestial Atlas server, not by your wallet, so people who manage the server, or anyone who breaks into it, could technically read them. World receives the service, order and delivery receipt, not birth details or the complete report.')],
+-  [say('資料保存多久','How long data is kept'),say('未完成付款的出生資料：如果 World 沒有接受這筆結帳，會在結帳期限（15 分鐘）過後的下一次清理時刪除；如果 World 已接受但你沒有付款，會在期限過後保留至少 30 天，之後由系統清理。已付款的報告和出生資料會加密保存在玄曜伺服器上的錢包收藏；移到垃圾桶可以還原，目前沒有永久刪除的功能。如果付款後報告做不出來而退款，這筆訂單的出生資料會在判定失敗後保留至少 30 天，以便處理問題，之後由系統清理。這種情況和上面「World 已接受但你沒有付款」的情況，清理後，玄曜伺服器上只留下不含出生資料的結帳代碼和錢包雜湊值，用來辨認之後收到的付款通知，這兩項會一直保留。World 的訂單和退款紀錄另外保留，不會跟著清理；其中有一個由出生資料和玄曜伺服器的密鑰算出的雜湊值。只看這個值無法還原出生資料，但同時拿到這把密鑰和 World 紀錄的人，可以拿猜測的出生資料來比對。已清理的資料，備份檔裡最多再留 30 天。','Birth details from an unfinished payment: if World does not accept the checkout, they are deleted at the next cleanup after the checkout window (15 minutes) ends; if World accepted it but you did not pay, they are kept for at least 30 days after the window ends and then cleaned up by the system. Paid reports and birth details stay encrypted in your wallet collection on the Celestial Atlas server; records moved to trash can be restored, and permanent deletion is not available yet. If a report cannot be made after payment and the order is refunded, its birth details are kept for at least 30 days after the failure is confirmed, so problems can be handled, and then cleaned up by the system. After that cleanup, and after the cleanup of a checkout World accepted but you did not pay, only a checkout code and a digest of your wallet remain on the Celestial Atlas server, with no birth details. These two are kept indefinitely to recognize later payment notices. World keeps its own order and refund records separately, and they are not cleaned up with this data. They include a digest calculated from the birth details and a secret key held by the Celestial Atlas server. The digest alone cannot be turned back into the birth details, but someone with both that key and World’s records could test guessed birth details against it. Cleared data may remain in backup files for up to 30 more days.')],
++  [say('資料保存多久','How long data is kept'),say('未完成付款的出生資料：如果 World 沒有接受這筆結帳，會在結帳期限（15 分鐘）過後的下一次清理時刪除；如果 World 已接受但你沒有付款，會在期限過後保留至少 30 天，之後由系統清理。已付款的報告和出生資料會加密保存在玄曜伺服器上的錢包收藏；移到垃圾桶可以還原，目前沒有永久刪除的功能。如果付款後報告做不出來而退款，這筆訂單的出生資料會在判定失敗後保留至少 30 天，以便處理問題，之後由系統清理。這種情況和上面「World 已接受但你沒有付款」的情況，清理後，玄曜伺服器上只留下不含出生資料的結帳代碼和錢包雜湊值，用來辨認之後收到的付款通知，這兩項會一直保留。World 的訂單和退款紀錄另外保留，不會跟著清理；其中有一個由出生資料和玄曜伺服器的密鑰算出的雜湊值。只看這個值無法還原出生資料，但同時拿到這把密鑰和 World 紀錄的人，可以拿猜測的出生資料來比對。已清理的資料可能還留在備份檔裡；備份不會自動刪除，由管理員手動刪除，最多再留 30 天。','Birth details from an unfinished payment: if World does not accept the checkout, they are deleted at the next cleanup after the checkout window (15 minutes) ends; if World accepted it but you did not pay, they are kept for at least 30 days after the window ends and then cleaned up by the system. Paid reports and birth details stay encrypted in your wallet collection on the Celestial Atlas server; records moved to trash can be restored, and permanent deletion is not available yet. If a report cannot be made after payment and the order is refunded, its birth details are kept for at least 30 days after the failure is confirmed, so problems can be handled, and then cleaned up by the system. After that cleanup, and after the cleanup of a checkout World accepted but you did not pay, only a checkout code and a digest of your wallet remain on the Celestial Atlas server, with no birth details. These two are kept indefinitely to recognize later payment notices. World keeps its own order and refund records separately, and they are not cleaned up with this data. They include a digest calculated from the birth details and a secret key held by the Celestial Atlas server. The digest alone cannot be turned back into the birth details, but someone with both that key and World’s records could test guessed birth details against it. Cleared data may remain in backup files. Backups are not deleted automatically; the operator deletes them by hand within 30 more days.')],
+   [say('公開網站的資料流與連線紀錄','Public-site data flow and connection logs'),say('celestao.com 使用 HTTPS。你送出後，出生日期、時間、地點及其他已填欄位會經 Cloudflare 反向代理傳到本站 VPS，由伺服器上安裝的排盤引擎處理。Cloudflare、VPS 主機與反向代理可能處理或保存 IP、請求時間、路徑及狀態碼等連線資訊；其記錄內容與保存期限依服務政策及部署設定而定。','celestao.com uses HTTPS. After you submit, your birth date, time, place and other completed fields pass through the Cloudflare reverse proxy to our VPS, where installed chart engines process them. Cloudflare, VPS hosting and the reverse proxy may process or retain connection information such as IP addresses, request times, paths and status codes. Their logging and retention depend on service policies and deployment settings.')],
+   [say('舊收藏、移除與 PDF','Older collections, removal and PDF'),say('舊的瀏覽器收藏不會自動上傳；其本機保存方式維持原樣。錢包收藏可移到垃圾桶後還原。重看及匯出不重新排盤、不另扣 GOLD。匯出的 PDF 是由你自行保存的未加密檔案。','Older browser collections are not uploaded automatically and retain their original local storage. Wallet records can be moved to trash and restored. Reopening and export do not recompute or charge GOLD. Exported PDFs are unencrypted files under your control.')],
+   [say('其他探索功能','Other exploration tools'),say('易經問題與原始擲卦值維持頁面記憶體暫存；其後端短期保留識別摘要以供限流及核對。網站未接入第三方個人化 AI 解讀。請勿把命理解讀當作醫療或投資建議。','I Ching questions and raw casting values remain in page memory; its backend briefly retains identifier digests for rate limiting and verification. No third-party personalized AI interpretation is connected. Readings are not medical or investment advice.')]];
+diff --git a/migrations/0025_squeek_store.sql b/migrations/0025_squeek_store.sql
+new file mode 100644
+index 0000000..849823b
+--- /dev/null
++++ b/migrations/0025_squeek_store.sql
+@@ -0,0 +1,58 @@
++-- 鼠道修仙 (Squeek Ascension) cosmetic store. Identity grants are read-only:
++-- they can show the wallet's GOLD and cosmetics, never debit GOLD. Every
++-- purchase is a World GOLD order the player signs on imdember.com.
++-- This migration does not enable any product or payment control.
++CREATE TABLE squeek_auth_codes (
++ code_hash TEXT PRIMARY KEY NOT NULL,
++ source_session_hash TEXT NOT NULL,
++ address TEXT NOT NULL,
++ code_challenge TEXT NOT NULL,
++ redirect_uri TEXT NOT NULL,
++ issued_at INTEGER NOT NULL,
++ expires_at INTEGER NOT NULL,
++ consumed_at INTEGER,
++ token_hash TEXT,
++ CHECK(expires_at>issued_at),
++ CHECK((consumed_at IS NULL)=(token_hash IS NULL))
++);
++CREATE INDEX squeek_auth_codes_expiry ON squeek_auth_codes(expires_at);
++CREATE TABLE squeek_tokens (
++ token_hash TEXT PRIMARY KEY NOT NULL,
++ source_session_hash TEXT NOT NULL,
++ address TEXT NOT NULL,
++ created_at INTEGER NOT NULL,
++ expires_at INTEGER NOT NULL,
++ revoked_at INTEGER,
++ CHECK(expires_at>created_at)
++);
++CREATE INDEX squeek_tokens_expiry ON squeek_tokens(expires_at);
++
++-- A separately invoked deployment action publishes the 11 approved cosmetics
++-- (owner decision 2026-11-07, 200 GOLD each). It is not a wallet-admin
++-- signature or a ledger entry, and it does not change any GOLD control: sales
++-- also need the Worker flag SQUEEK_SALES_ENABLED=1 and the shared service control.
++CREATE TABLE squeek_release_actions (
++ id TEXT PRIMARY KEY,
++ actor TEXT NOT NULL CHECK(actor='authorized-deployment'),
++ catalogue TEXT NOT NULL CHECK(catalogue='squeek-world-1'),
++ created_ms INTEGER NOT NULL CHECK(created_ms>0)
++);
++CREATE TRIGGER squeek_release_enable BEFORE INSERT ON squeek_release_actions BEGIN
++ SELECT CASE WHEN EXISTS(SELECT 1 FROM squeek_release_actions)
++ OR EXISTS(SELECT 1 FROM world_gold_products WHERE product LIKE 'squeek-%')
++ THEN RAISE(ABORT,'SQUEEK_RELEASE_BASELINE_CHANGED') END;
++ INSERT INTO world_gold_products(id,product,version,kind,title,gold,embeo,enabled,created_ms) VALUES
++ ('squeek-aura-frostmoon-sword-v1-v1','squeek-aura-frostmoon-sword-v1',1,'service','鼠道修仙・霜月劍意',200,NULL,1,NEW.created_ms),
++ ('squeek-aura-star-river-arcane-v1-v1','squeek-aura-star-river-arcane-v1',1,'service','鼠道修仙・星河流轉',200,NULL,1,NEW.created_ms),
++ ('squeek-aura-golden-body-v1-v1','squeek-aura-golden-body-v1',1,'service','鼠道修仙・不動金身',200,NULL,1,NEW.created_ms),
++ ('squeek-aura-blood-moon-demon-v1-v1','squeek-aura-blood-moon-demon-v1',1,'service','鼠道修仙・血月焚魂',200,NULL,1,NEW.created_ms),
++ ('squeek-glow-auspicious-cloud-v1-v1','squeek-glow-auspicious-cloud-v1',1,'service','鼠道修仙・祥雲靈環',200,NULL,1,NEW.created_ms),
++ ('squeek-glow-nine-stars-v1-v1','squeek-glow-nine-stars-v1',1,'service','鼠道修仙・九星連環',200,NULL,1,NEW.created_ms),
++ ('squeek-glow-fire-lotus-v1-v1','squeek-glow-fire-lotus-v1',1,'service','鼠道修仙・業火紅蓮',200,NULL,1,NEW.created_ms),
++ ('squeek-sky-sakura-v1-v1','squeek-sky-sakura-v1',1,'service','鼠道修仙・櫻吹雪',200,NULL,1,NEW.created_ms),
++ ('squeek-sky-fireflies-v1-v1','squeek-sky-fireflies-v1',1,'service','鼠道修仙・螢火之夜',200,NULL,1,NEW.created_ms),
++ ('squeek-sky-first-snow-v1-v1','squeek-sky-first-snow-v1',1,'service','鼠道修仙・初雪',200,NULL,1,NEW.created_ms),
++ ('squeek-sky-meteors-v1-v1','squeek-sky-meteors-v1',1,'service','鼠道修仙・流星雨',200,NULL,1,NEW.created_ms);
++END;
++CREATE TRIGGER squeek_release_no_update BEFORE UPDATE ON squeek_release_actions BEGIN SELECT RAISE(ABORT,'IMMUTABLE_RELEASE_ACTION'); END;
++CREATE TRIGGER squeek_release_no_delete BEFORE DELETE ON squeek_release_actions BEGIN SELECT RAISE(ABORT,'IMMUTABLE_RELEASE_ACTION'); END;
+diff --git a/server/economy-ledger.ts b/server/economy-ledger.ts
+index 665f6fc..2ecce1d 100644
+--- a/server/economy-ledger.ts
++++ b/server/economy-ledger.ts
+@@ -1,3 +1,4 @@
++import {SQUEEK_ONE_TIME_SQL,squeekOwnedElsewhere} from './squeek-ownership.ts';
+ import type {D1Database,D1PreparedStatement,D1Result} from './d1.ts';
+ import {recoverMessageAddress} from 'viem';
+ import {economyConfigStatement,economyPaymentEvidenceStatement,economyOrderScope,economyPaymentCases} from './economy-reconciliation.ts';
+@@ -264,6 +265,7 @@ export async function createEconomyGoldChallenge(db:D1Database,config:EconomyCon
+   if(!order||order.currency!=='GOLD')throw new EconomyConflict('ORDER_NOT_FOUND');
+   if(order.status==='paid')throw new EconomyConflict('ORDER_ALREADY_PAID');
+   const shared=await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);
++  if(shared&&await squeekOwnedElsewhere(db,id))throw new EconomyConflict('ALREADY_OWNED');
+   const previous=await bind(db,`SELECT nonce,origin,message,issued_ms issuedMs,expires_ms expiresMs,consumed_ms consumedMs FROM economy_gold_challenges WHERE order_id=? AND request_id=?`,id,args.requestId).first<{nonce:string;origin:string;message:string;issuedMs:number;expiresMs:number;consumedMs:number|null}>();
+   const now=freshEconomyClock(args);
+   // A different request/worker can observe a clock earlier than the quote.
+@@ -338,6 +340,7 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+   if(challenge.consumedMs!==null)throw new EconomyConflict('CHALLENGE_EXPIRED');
+   if(existing.expiresMs<=now)throw new EconomyConflict('ORDER_EXPIRED');
+   const shared=await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);
++  if(shared&&await squeekOwnedElsewhere(db,id))throw new EconomyConflict('ALREADY_OWNED');
+   const admissionNow=freshEconomyClock(args);
+   if(admissionNow<now)throw Error('INVALID_SETTLEMENT_CLOCK');now=admissionNow;
+   if(challenge.expiresMs<=now)throw new EconomyConflict('CHALLENGE_EXPIRED');
+@@ -346,7 +349,7 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+   const auth=authorizationSql(args.authorization,wallet,now,config),support=serviceProductAdmissionSql(shared?args.serviceProducts:undefined);
+   try{
+     await db.batch([
+-      bind(db,`INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) SELECT ?,?,-CAST(? AS INTEGER),'service-payment',?,? WHERE EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND wallet=? AND status='pending' AND expires_ms>?) AND EXISTS(SELECT 1 FROM economy_gold_challenges WHERE order_id=? AND request_id=? AND nonce=? AND consumed_ms IS NULL AND expires_ms>?) AND ${auth.sql} AND ${support.sql} AND ${shared?"EXISTS(SELECT 1 FROM world_gold_controls WHERE feature='service' AND enabled=1)":'1'} AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL)`,reference,wallet,existing.amount,reference,now,id,wallet,now,id,args.requestId,challenge.nonce,now,...auth.values,...(shared&&args.serviceProducts!==undefined?[id,JSON.stringify(args.serviceProducts)]:[]),config.id),
++      bind(db,`INSERT INTO economy_gold_journal(id,wallet,delta,kind,reference,created_ms) SELECT ?,?,-CAST(? AS INTEGER),'service-payment',?,? WHERE EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND wallet=? AND status='pending' AND expires_ms>?) AND EXISTS(SELECT 1 FROM economy_gold_challenges WHERE order_id=? AND request_id=? AND nonce=? AND consumed_ms IS NULL AND expires_ms>?) AND ${auth.sql} AND ${support.sql} AND ${shared?"EXISTS(SELECT 1 FROM world_gold_controls WHERE feature='service' AND enabled=1)":'1'} AND ${shared?SQUEEK_ONE_TIME_SQL:'1'} AND NOT EXISTS(SELECT 1 FROM economy_chain_state WHERE config_id=? AND halted_reason IS NOT NULL)`,reference,wallet,existing.amount,reference,now,id,wallet,now,id,args.requestId,challenge.nonce,now,...auth.values,...(shared&&args.serviceProducts!==undefined?[id,JSON.stringify(args.serviceProducts)]:[]),...shared?[id]:[],config.id),
+       bind(db,`UPDATE economy_orders SET status='paid',paid_ms=?,gold_request_id=? WHERE id=? AND wallet=? AND status='pending' AND EXISTS(SELECT 1 FROM economy_gold_journal WHERE reference=?)`,now,args.requestId,id,wallet,reference),
+       bind(db,`UPDATE economy_gold_challenges SET consumed_ms=? WHERE order_id=? AND request_id=? AND nonce=? AND consumed_ms IS NULL AND EXISTS(SELECT 1 FROM economy_orders WHERE id=? AND status='paid' AND gold_request_id=?)`,now,id,args.requestId,challenge.nonce,id,args.requestId),
+       ...shared?[bind(db,`INSERT INTO world_gold_jobs(order_id,wallet,state,updated_ms) SELECT id,wallet,'queued',? FROM economy_orders WHERE id=? AND status='paid' AND EXISTS(SELECT 1 FROM world_gold_links WHERE order_id=? AND kind='service') ON CONFLICT(order_id) DO NOTHING`,now,id,id)]:[]
+@@ -363,7 +366,7 @@ export async function payEconomyOrderGold(db:D1Database,config:EconomyConfig,arg
+     }
+   }
+   const completed=await read();
+-  if(completed?.status!=='paid'){await requireOrderAuthority(db,args.authorization,wallet,freshEconomyClock(args));await requireRunning(db,config);await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);throw new EconomyConflict('PAYMENT_UNAVAILABLE');}
++  if(completed?.status!=='paid'){await requireOrderAuthority(db,args.authorization,wallet,freshEconomyClock(args));await requireRunning(db,config);await sharedServiceAdmission(db,id,args.serviceReady,args.serviceProducts);if(shared&&await squeekOwnedElsewhere(db,id))throw new EconomyConflict('ALREADY_OWNED');throw new EconomyConflict('PAYMENT_UNAVAILABLE');}
+   if(completed.goldRequestId!==args.requestId)throw new EconomyConflict('IDEMPOTENCY_CONFLICT');
+   const {payload:_,goldRequestId:__,...order}=completed;return order;
+ }
+diff --git a/server/squeek-ownership.ts b/server/squeek-ownership.ts
+new file mode 100644
+index 0000000..e1cb3e6
+--- /dev/null
++++ b/server/squeek-ownership.ts
+@@ -0,0 +1,15 @@
++import type {D1Database} from './d1.ts';
++import {SQUEEK_PRODUCTS} from '../src/shared/squeekCatalog.ts';
++
++/** 鼠道修仙 cosmetics are one-time purchases. For the shared GOLD payment batch: true unless this order
++ * is a cosmetic the same wallet already owns through another live paid order (delivery not failed or
++ * refunded). It runs inside the debit's own transaction, so two tabs or two requests for one cosmetic
++ * can never both be charged. Binds one value: the order id. Any other product passes. */
++export const SQUEEK_PRODUCTS_JSON=JSON.stringify(SQUEEK_PRODUCTS);
++export const SQUEEK_ONE_TIME_SQL=`NOT EXISTS(SELECT 1 FROM economy_orders oa JOIN world_gold_links la ON la.order_id=oa.id JOIN world_gold_products pa ON pa.id=la.product_id
++ JOIN economy_orders ob ON ob.wallet=oa.wallet AND ob.id<>oa.id AND ob.status='paid' JOIN world_gold_links lb ON lb.order_id=ob.id JOIN world_gold_products pb ON pb.id=lb.product_id AND pb.product=pa.product
++ LEFT JOIN world_gold_jobs jb ON jb.order_id=ob.id
++ WHERE oa.id=? AND pa.product IN (SELECT value FROM json_each('${SQUEEK_PRODUCTS_JSON}')) AND COALESCE(jb.state,'queued') NOT IN ('failed','refunded'))`;
++export async function squeekOwnedElsewhere(db:D1Database,orderId:string){
++ return !(await db.prepare('SELECT '+SQUEEK_ONE_TIME_SQL+' ok').bind(orderId).first<{ok:number}>())?.ok;
++}
+diff --git a/server/squeek-store.ts b/server/squeek-store.ts
+new file mode 100644
+index 0000000..8bb6b88
+--- /dev/null
++++ b/server/squeek-store.ts
+@@ -0,0 +1,242 @@
++import {readSession,sha256} from './auth.ts';
++import type {D1Database} from './d1.ts';
++import type {EconomyConfig} from './economy-config.ts';
++import {API_HEADERS} from './world-api.ts';
++import {goldBalanceStatement,goldBalanceView,goldQuote} from './world-gold.ts';
++import type {GoldDeliveryProvider} from './world-gold-delivery.ts';
++import {SQUEEK_ONE_TIME_SQL,SQUEEK_PRODUCTS_JSON,squeekOwnedElsewhere} from './squeek-ownership.ts';
++import {economySessionClock,readEconomySession,revalidateEconomySession,economySessionFailure} from './economy-session.ts';
++import {SQUEEK_API_PREFIX,SQUEEK_CATALOG_VERSION,SQUEEK_CLIENT_ID,SQUEEK_ISSUER,SQUEEK_ITEMS,SQUEEK_ORIGIN,SQUEEK_PRODUCTS,SQUEEK_REDIRECT,SQUEEK_REQUEST_KEY,
++ squeekByProduct,squeekBySku,squeekRequestId,type SqueekItem} from '../src/shared/squeekCatalog.ts';
++
++/** 鼠道修仙 (Squeek Ascension) on World GOLD.
++ * - Identity: authorization code + PKCE for a public client (the game has no server). The grant is
++ *   read-only: it shows the wallet's GOLD and cosmetics and can never debit GOLD.
++ * - Purchase: the player opens /squeek-checkout/ on imdember.com, which creates a World GOLD order and
++ *   asks for the wallet's own signature of that single amount (the shared economy payment).
++ * - Ownership: derived from the wallet's paid order whose delivery has not failed or been refunded, as
++ *   the research day pass is. A refund therefore removes the cosmetic in the same ledger state.
++ * - No birth data, game save or Celestao record is asked for, stored or linked here. */
++export const SQUEEK_CODE_TTL_MS=60_000,SQUEEK_TOKEN_TTL_MS=60*60_000;
++const OPAQUE=/^[A-Za-z0-9_-]{43}$/,STATE=/^[A-Za-z0-9_-]{22,128}$/,ADDRESS=/^0x[0-9a-fA-F]{40}$/;
++const BASE={...API_HEADERS,'Referrer-Policy':'no-referrer'};
++const reply=(status:number,value:unknown,extra:Record<string,string>={})=>new Response(value===null?null:JSON.stringify(value),{status,headers:{...BASE,...extra}});
++const b64=(v:Uint8Array)=>btoa(String.fromCharCode(...v)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
++const opaque=()=>b64(crypto.getRandomValues(new Uint8Array(32)));
++export async function squeekPkce(verifier:string){return b64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));}
++/** allow: the per-key budget (20 a minute in production); allowClient: a wider per-client budget for the game's Bearer reads.
++ * subjectKey: Worker secret SQUEEK_SUBJECT_KEY. Without it every route answers 503. */
++export type SqueekDeps={db?:D1Database;config?:EconomyConfig|null;enabled?:boolean;ready?:boolean;now?:()=>number;client?:string;allow?:(key:string)=>Promise<boolean>;
++ allowClient?:(key:string)=>Promise<boolean>;subjectKey?:string;testConfig?:{issuer:string;redirect:string}};
++type Config={issuer:string;redirect:string;clientOrigin:string;subjectKey:string};
++const SUBJECT_KEY=/^[A-Za-z0-9_-]{43,128}$/;
++function config(deps:SqueekDeps):Config|null{
++ const subjectKey=deps.subjectKey;if(typeof subjectKey!=='string'||!SUBJECT_KEY.test(subjectKey))return null;
++ if(!deps.testConfig)return {issuer:SQUEEK_ISSUER,redirect:SQUEEK_REDIRECT,clientOrigin:SQUEEK_ORIGIN,subjectKey};
++ // Local test runs only: plain-HTTP loopback for both sides, never a public host.
++ try{const i=new URL(deps.testConfig.issuer),r=new URL(deps.testConfig.redirect),hosts=new Set(['localhost','127.0.0.1','[::1]']);
++  if(i.protocol!=='http:'||r.protocol!=='http:'||!hosts.has(i.hostname)||!hosts.has(r.hostname)||i.origin!==deps.testConfig.issuer||i.username||i.password||r.username||r.password||r.search||r.hash||r.pathname!=='/')return null;
++  return {issuer:i.origin,redirect:r.href,clientOrigin:r.origin,subjectKey};
++ }catch{return null;}
++}
++function clock(deps:SqueekDeps){const n=(deps.now??Date.now)();if(!Number.isSafeInteger(n)||n<=0)throw Error('INVALID_CLOCK');return n;}
++async function body(request:Request,keys:readonly string[]):Promise<Record<string,unknown>|null>{
++ if(!/^application\/json\s*(;|$)/i.test(request.headers.get('content-type')??'')||Number(request.headers.get('content-length'))>2048||!request.body)return null;
++ const reader=request.body.getReader(),chunks:Uint8Array[]=[];let length=0;
++ for(;;){const r=await reader.read();if(r.done)break;length+=r.value.byteLength;if(length>2048){await reader.cancel().catch(()=>{});return null;}chunks.push(r.value);}
++ const bytes=new Uint8Array(length);let at=0;for(const c of chunks){bytes.set(c,at);at+=c.length;}
++ try{const v=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));return v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k))?v:null;}catch{return null;}
++}
++/** The game sees a stable pseudonym and no part of the wallet address. It is an HMAC under a Worker secret, so it cannot be
++ * computed from an address list. The key must never be rotated: every subject id would change. */
++export async function squeekSubject(subjectKey:string,address:string){
++ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(subjectKey),{name:'HMAC',hash:'SHA-256'},false,['sign']);
++ const mac=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode('squeek-subject-v1:'+address.toLowerCase())));
++ return 'sq_'+[...mac].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,40);
++}
++
++// ---- Ownership and receipts (shared ledger, no copy of its state) ----
++const ORDERS=`FROM economy_orders o JOIN world_gold_links l ON l.order_id=o.id JOIN world_gold_products p ON p.id=l.product_id LEFT JOIN world_gold_jobs j ON j.order_id=o.id
++ WHERE o.wallet=? AND l.kind='service' AND o.currency='GOLD' AND p.product IN (SELECT value FROM json_each(?))`;
++const LIVE=`o.status='paid' AND COALESCE(j.state,'queued') NOT IN ('failed','refunded')`;
++const PRODUCTS_JSON=SQUEEK_PRODUCTS_JSON;
++export {SQUEEK_ONE_TIME_SQL,squeekOwnedElsewhere};
++export async function squeekEntitlements(db:D1Database,wallet:string){
++ const rows=(await db.prepare(`SELECT DISTINCT p.product product ${ORDERS} AND ${LIVE}`).bind(wallet.toLowerCase(),PRODUCTS_JSON).all<{product:string}>()).results;
++ return SQUEEK_ITEMS.filter(i=>rows.some(r=>r.product===i.product)).map(i=>i.sku);
++}
++type Row={id:string;request_id:string;product:string;amount:string;status:string;created_ms:number;expires_ms:number;paid_ms:number|null;delivery:string|null;updated_ms:number|null};
++const SELECT=`SELECT o.id,o.request_id,p.product,o.amount,o.status,o.created_ms,o.expires_ms,o.paid_ms,j.state delivery,j.updated_ms ${ORDERS}`;
++export type SqueekReceipt={orderId:string;requestKey:string|null;subjectId:string;sku:string;status:'pending'|'expired'|'paid'|'refund_pending'|'refunded';amountGold:string;createdAt:number;expiresAt:number;paidAt:number|null};
++function receipt(row:Row,subjectId:string,now:number):SqueekReceipt|null{
++ const item=squeekByProduct(row.product);if(!item)return null;
++ const status=row.status==='paid'?row.delivery==='refunded'?'refunded':row.delivery==='failed'?'refund_pending':'paid':row.expires_ms<=now?'expired':'pending';
++ return {orderId:row.id,requestKey:row.request_id.startsWith('sq_')?row.request_id.slice(3):null,subjectId,sku:item.sku,status,amountGold:String(row.amount),createdAt:row.created_ms,expiresAt:row.expires_ms,paidAt:row.paid_ms};
++}
++async function revision(db:D1Database,wallet:string){
++ const r=await db.prepare(`SELECT MAX(MAX(o.created_ms,COALESCE(o.paid_ms,0),COALESCE(j.updated_ms,0))) r ${ORDERS}`).bind(wallet,PRODUCTS_JSON).first<{r:number|null}>();
++ return Number(r?.r??0);
++}
++
++// ---- Delivery: nothing external is called, so a paid cosmetic cannot be "paid but undelivered" ----
++export function createSqueekDelivery():GoldDeliveryProvider{
++ return {id:'squeek-store-v1',products:SQUEEK_PRODUCTS,async deliver(order){
++  const item=squeekByProduct(order.product);
++  if(!item||order.idempotencyKey!==order.orderId||!/^0x[0-9a-f]{64}$/.test(order.orderId)||!/^0x[0-9a-f]{40}$/.test(order.wallet))throw Error('UNSUPPORTED_SERVICE');
++  return {kind:'delivered',result:{status:'ok',explanation:`鼠道修仙 cosmetic ${item.sku} (${item.nameEn}). Ownership follows this paid order; it changes only how the game looks.`,value:true}};
++ }};
++}
++
++// ---- Read-only grant ----
++export async function readSqueekGrant(db:D1Database,token:string,clock:()=>number){
++ if(!OPAQUE.test(token))return null;
++ const hash=await sha256(token),now=clock();
++ const row=await db.prepare(`SELECT t.address,MIN(t.expires_at,s.expires_at) expires_at FROM squeek_tokens t JOIN sessions s ON s.token_hash=t.source_session_hash AND s.address=t.address
++  WHERE t.token_hash=?1 AND t.revoked_at IS NULL AND t.created_at<=?2 AND t.expires_at>?2 AND s.revoked_at IS NULL AND s.expires_at>?2`).bind(hash,now).first<{address:string;expires_at:number}>();
++ const fresh=clock();if(fresh<now)throw Error('INVALID_CLOCK');return row&&row.expires_at>fresh?{...row,hash}:null;
++}
++const bearer=(request:Request)=>{const h=request.headers.get('authorization');return h&&h.length<=60&&h.startsWith('Bearer ')&&OPAQUE.test(h.slice(7))?h.slice(7):null;};
++async function salesOpen(db:D1Database,deps:SqueekDeps){
++ if(deps.enabled!==true||deps.ready!==true||!deps.config)return false;
++ const r=await db.prepare(`SELECT (SELECT COUNT(*) FROM world_gold_products p WHERE p.product IN (SELECT value FROM json_each(?1)) AND p.enabled=1 AND p.kind='service' AND CAST(p.gold AS TEXT)='200'
++  AND p.version=(SELECT MAX(version) FROM world_gold_products WHERE product=p.product)) n,(SELECT enabled FROM world_gold_controls WHERE feature='service') service`).bind(PRODUCTS_JSON).first<{n:number;service:number|null}>();
++ return Number(r?.n)===SQUEEK_ITEMS.length&&r?.service===1;
++}
++const item=(i:SqueekItem)=>({sku:i.sku,amountGold:i.gold,kind:i.kind,nameZh:i.nameZh,nameEn:i.nameEn});
++
++async function authorize(request:Request,url:URL,deps:SqueekDeps,cfg:Config,db:D1Database){
++ const q:Record<string,string>={},keys=['client_id','redirect_uri','response_type','code_challenge_method','code_challenge','state','lang'];
++ for(const [k,v]of url.searchParams){if(!keys.includes(k)||Object.hasOwn(q,k))return reply(400,{error:'BAD_REQUEST'});q[k]=v;}
++ if(q.client_id!==SQUEEK_CLIENT_ID||q.redirect_uri!==cfg.redirect||q.response_type!=='code'||q.code_challenge_method!=='S256'||!OPAQUE.test(q.code_challenge??'')||!STATE.test(q.state??'')||!['zh','en'].includes(q.lang??''))return reply(400,{error:'BAD_REQUEST'});
++ if(!await deps.allow!('squeek:authorize:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},{'Retry-After':'60'});
++ const start=clock(deps),session=await readSession(request,db,start);
++ // A code is issued only to a navigation the user made on World itself (Continue on /squeek-connect/) or typed. A link or
++ // redirect from any other site, the game included, goes through that page first, so no site can mint a code silently.
++ const site=request.headers.get('sec-fetch-site'),consented=site==='same-origin'||site==='none';
++ if(typeof session==='string'||!consented){
++  if(request.headers.get('sec-fetch-mode')==='navigate'&&request.headers.get('accept')?.includes('text/html'))return reply(303,null,{Location:'/squeek-connect/?next='+encodeURIComponent(url.pathname+url.search)+'&lang='+q.lang});
++  return typeof session==='string'?reply(401,{error:'AUTH_REQUIRED'}):reply(403,{error:'CONSENT_REQUIRED'});
++ }
++ const code=opaque(),hash=await sha256(code),now=clock(deps);if(now<start)return reply(503,{error:'SQUEEK_UNAVAILABLE'});
++ const row=await db.prepare(`INSERT INTO squeek_auth_codes(code_hash,source_session_hash,address,code_challenge,redirect_uri,issued_at,expires_at)
++  SELECT ?1,token_hash,address,?2,?3,?4,MIN(expires_at,?5) FROM sessions WHERE token_hash=?6 AND address=?7 AND revoked_at IS NULL AND expires_at>?4 RETURNING code_hash`)
++  .bind(hash,q.code_challenge,cfg.redirect,now,now+SQUEEK_CODE_TTL_MS,session.tokenHash,session.address).first();
++ if(!row)return reply(401,{error:'AUTH_REQUIRED'});
++ const target=new URL(cfg.redirect);target.searchParams.set('world_code',code);target.searchParams.set('world_state',q.state);return reply(303,null,{Location:target.href});
++}
++async function token(request:Request,deps:SqueekDeps,cfg:Config,db:D1Database,headers:Record<string,string>){
++ // Per client first: a caller-chosen code must not open a fresh budget.
++ if(!await deps.allow!('squeek:token-client:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},{...headers,'Retry-After':'60'});
++ const b=await body(request,['grant_type','client_id','redirect_uri','code','code_verifier']);
++ if(!b||b.grant_type!=='authorization_code'||b.client_id!==SQUEEK_CLIENT_ID||b.redirect_uri!==cfg.redirect||typeof b.code!=='string'||!OPAQUE.test(b.code)||typeof b.code_verifier!=='string'||!OPAQUE.test(b.code_verifier))return reply(400,{error:'BAD_REQUEST'},headers);
++ const [hash,challenge]=await Promise.all([sha256(b.code),squeekPkce(b.code_verifier)]);
++ if(!await deps.allow!('squeek:token:'+hash.slice(0,32)))return reply(429,{error:'RATE_LIMITED'},{...headers,'Retry-After':'60'});
++ const grant=opaque(),grantHash=await sha256(grant),now=clock(deps);
++ const rows=await db.batch([
++  // Any exchange attempt consumes the code (RFC 6749 4.1.2); only a matching verifier on a live session gets the grant.
++  db.prepare(`UPDATE squeek_auth_codes SET consumed_at=?1,token_hash=CASE WHEN code_challenge=?4 AND redirect_uri=?5
++   AND EXISTS(SELECT 1 FROM sessions s WHERE s.token_hash=source_session_hash AND s.address=squeek_auth_codes.address AND s.revoked_at IS NULL AND s.expires_at>?1) THEN ?2 ELSE 'rejected' END
++   WHERE code_hash=?3 AND consumed_at IS NULL AND issued_at<=?1 AND expires_at>?1 RETURNING token_hash`)
++   .bind(now,grantHash,hash,challenge,cfg.redirect),
++  db.prepare(`INSERT INTO squeek_tokens(token_hash,source_session_hash,address,created_at,expires_at)
++   SELECT c.token_hash,c.source_session_hash,c.address,?1,MIN(s.expires_at,?2) FROM squeek_auth_codes c JOIN sessions s ON s.token_hash=c.source_session_hash AND s.address=c.address
++   WHERE c.code_hash=?3 AND c.token_hash=?4 AND c.consumed_at=?1 AND s.revoked_at IS NULL AND s.expires_at>?1 RETURNING address,expires_at`)
++   .bind(now,now+SQUEEK_TOKEN_TTL_MS,hash,grantHash)
++ ]);
++ const row=rows[1]?.results[0] as {address:string;expires_at:number}|undefined;
++ if(rows[0]?.results.length!==1||(rows[0].results[0] as {token_hash:string}).token_hash!==grantHash||!row)return reply(401,{error:'INVALID_GRANT'},headers);
++ return reply(200,{token_type:'Bearer',access_token:grant,scope:'squeek:read',expires_at:row.expires_at,subject_id:await squeekSubject(cfg.subjectKey,row.address)},headers);
++}
++async function snapshot(db:D1Database,deps:SqueekDeps,cfg:Config,address:string,expires:number){
++ const subjectId=await squeekSubject(cfg.subjectKey,address),[balance]=await db.batch([goldBalanceStatement(db,address)]);
++ const view=goldBalanceView(balance.results[0] as {book:string;reserved:string}|undefined);
++ return {subjectId,balanceGold:view.available,entitlements:await squeekEntitlements(db,address),revision:await revision(db,address),
++  catalogVersion:SQUEEK_CATALOG_VERSION,salesEnabled:await salesOpen(db,deps),expiresAt:expires};
++}
++
++// ---- Checkout support for the World page (same origin, cookie session) ----
++async function checkout(request:Request,url:URL,route:string,deps:SqueekDeps,cfg:Config,db:D1Database){
++ const origin=request.headers.get('origin'),site=request.headers.get('sec-fetch-site'),read=route==='checkout/state';
++ if(origin!==null&&origin!==url.origin||!read&&(origin!==url.origin||url.search)||site!==null&&!['same-origin','none'].includes(site))return reply(403,{error:'FORBIDDEN_ORIGIN'});
++ const sclock=economySessionClock(deps.now??Date.now);let check:(()=>Promise<boolean>)|undefined;
++ try{
++  if(!await deps.allow!('squeek-checkout:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'});
++  const b=read?Object.fromEntries(url.searchParams):await body(request,['sku','requestKey','expectedAddress']);
++  if(!b||Object.keys(b).length!==3||!squeekBySku(b.sku)||typeof b.requestKey!=='string'||!SQUEEK_REQUEST_KEY.test(b.requestKey)||typeof b.expectedAddress!=='string'||!ADDRESS.test(b.expectedAddress))return reply(400,{error:'BAD_REQUEST'});
++  const it=squeekBySku(b.sku)!,start=sclock();
++  const session=await readEconomySession(request,db,sclock);if(typeof session==='string')return reply(401,{error:'AUTH_REQUIRED'});
++  check=()=>revalidateEconomySession(request,db,session,sclock);
++  const guarded=async(v:unknown,status=200)=>await check!()?reply(status,v):reply(401,{error:'AUTH_REQUIRED'});
++  if(session.address.toLowerCase()!==b.expectedAddress.toLowerCase())return guarded({error:'ACCOUNT_MISMATCH'},409);
++  const wallet=session.address.toLowerCase(),rid=squeekRequestId(b.requestKey);
++  const find=()=>db.prepare(`${SELECT} AND o.request_id=?`).bind(wallet,PRODUCTS_JSON,rid).first<Row>();
++  let existing=await find();
++  if(existing&&existing.product!==it.product)return guarded({error:'IDEMPOTENCY_CONFLICT'},409);
++  if(!read&&!existing){
++   if(session.walletType!=='EOA'||session.verificationMethod!=='ECDSA')return guarded({error:'EOA_REQUIRED'},403);
++   if(!await salesOpen(db,deps))return guarded({error:'SALES_CLOSED'},503);
++   if((await squeekEntitlements(db,wallet)).includes(it.sku))return guarded({error:'ALREADY_OWNED'},409);
++   await goldQuote({db,config:deps.config!,nowMs:sclock(),now:sclock,serviceReady:true},{wallet,requestId:rid,product:it.product,authorization:{tokenHash:session.tokenHash},squeekCheckout:true});
++   existing=await find();
++  }
++  const subjectId=await squeekSubject(cfg.subjectKey,wallet),now=sclock();if(now<start)throw Error('INVALID_CLOCK');
++  const owned=(await squeekEntitlements(db,wallet)).includes(it.sku);
++  const [balance]=await db.batch([goldBalanceStatement(db,wallet)]);const available=goldBalanceView(balance.results[0] as {book:string;reserved:string}|undefined).available;
++  return guarded({wallet,item:item(it),owned,balanceGold:available,order:existing?receipt(existing,subjectId,now):null,ready:await salesOpen(db,deps)});
++ }catch(error){const cause=await economySessionFailure(error,check),code=cause instanceof Error?cause.message:'CHECKOUT_UNAVAILABLE';
++  return reply(code==='AUTH_REQUIRED'?401:code==='BAD_REQUEST'?400:['IDEMPOTENCY_CONFLICT','ORDER_EXPIRED','FEATURE_PAUSED','PRODUCT_UNAVAILABLE','ALREADY_OWNED'].includes(code)?409:503,{error:/^[A-Z_]{3,80}$/.test(code)?code:'CHECKOUT_UNAVAILABLE'});}
++}
++
++const PUBLIC=new Map([['catalog','GET'],['token','POST'],['snapshot','GET'],['orders','GET'],['order','GET'],['quote','GET'],['logout','POST']]);
++export async function handleSqueek(request:Request,deps:SqueekDeps):Promise<Response|null>{
++ const url=new URL(request.url);if(!url.pathname.startsWith(SQUEEK_API_PREFIX))return null;
++ if(request.url.length>2048)return reply(400,{error:'BAD_REQUEST'});
++ const route=url.pathname.slice(SQUEEK_API_PREFIX.length),cfg=config(deps);
++ if(!cfg||!deps.db||!deps.allow)return reply(503,{error:'SQUEEK_UNAVAILABLE'});
++ if(url.origin!==cfg.issuer)return reply(403,{error:'ORIGIN_NOT_ALLOWED'});
++ const db=deps.db;
++ if(route==='authorize'){if(request.method!=='GET')return reply(405,{error:'METHOD_NOT_ALLOWED'},{Allow:'GET'});
++  const origin=request.headers.get('origin');if(origin!==null&&origin!==cfg.issuer&&origin!==cfg.clientOrigin)return reply(403,{error:'ORIGIN_NOT_ALLOWED'});
++  try{return await authorize(request,url,deps,cfg,db);}catch{return reply(503,{error:'SQUEEK_UNAVAILABLE'});}}
++ if(route==='checkout/state'||route==='checkout/quote'){if(request.method!==(route==='checkout/state'?'GET':'POST'))return reply(405,{error:'METHOD_NOT_ALLOWED'});return checkout(request,url,route,deps,cfg,db);}
++ const method=PUBLIC.get(route);if(!method)return reply(404,{error:'UNKNOWN_ROUTE'});
++ // Cross-origin calls come only from the game. Bearer grants are not ambient, so no cookie is read or set here.
++ const origin=request.headers.get('origin');if(origin!==null&&origin!==cfg.clientOrigin)return reply(403,{error:'ORIGIN_NOT_ALLOWED'});
++ const cors:Record<string,string>={'Access-Control-Allow-Origin':cfg.clientOrigin,Vary:'Origin','Cross-Origin-Resource-Policy':'cross-origin'};
++ if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...BASE,...cors,'Access-Control-Allow-Methods':method,'Access-Control-Allow-Headers':'authorization, content-type','Access-Control-Max-Age':'600'}});
++ if(request.method!==method)return reply(405,{error:'METHOD_NOT_ALLOWED'},{...cors,Allow:method});
++ try{
++  if(route==='catalog'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);if(!await deps.allow('squeek:catalog:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},cors);
++   return reply(200,{catalogVersion:SQUEEK_CATALOG_VERSION,salesEnabled:await salesOpen(db,deps),items:SQUEEK_ITEMS.map(item)},cors);}
++  if(route==='token'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);return await token(request,deps,cfg,db,cors);}
++  const tokenValue=bearer(request);if(!tokenValue)return reply(401,{error:'AUTH_REQUIRED'},{...cors,'WWW-Authenticate':'Bearer'});
++  // Both budgets before any database read: per client (a fresh random token must not open a new one), then per grant.
++  if(!await (deps.allowClient??deps.allow)('squeek:api-client:'+(deps.client??'unknown'))||!await deps.allow('squeek:api:'+(await sha256(tokenValue)).slice(0,32)))return reply(429,{error:'RATE_LIMITED'},{...cors,'Retry-After':'60'});
++  const tclock=()=>clock(deps),grant=await readSqueekGrant(db,tokenValue,tclock);
++  if(route==='logout'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);
++   if(grant)await db.prepare('UPDATE squeek_tokens SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').bind(clock(deps),grant.hash).run();return reply(204,null,cors);}
++  if(!grant)return reply(401,{error:'AUTH_REQUIRED'},{...cors,'WWW-Authenticate':'Bearer'});
++  const wallet=grant.address.toLowerCase(),subjectId=await squeekSubject(cfg.subjectKey,wallet);
++  if(route==='snapshot'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);return reply(200,await snapshot(db,deps,cfg,wallet,grant.expires_at),cors);}
++  if(route==='orders'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);const now=clock(deps);
++   const rows=(await db.prepare(`${SELECT} ORDER BY o.created_ms DESC,o.id DESC LIMIT 100`).bind(wallet,PRODUCTS_JSON).all<Row>()).results;
++   return reply(200,{subjectId,orders:rows.map(r=>receipt(r,subjectId,now)).filter(Boolean)},cors);}
++  if(route==='order'){const key=url.searchParams.get('requestKey');if(url.searchParams.size!==1||!key||!SQUEEK_REQUEST_KEY.test(key))return reply(400,{error:'BAD_REQUEST'},cors);
++   const row=await db.prepare(`${SELECT} AND o.request_id=?`).bind(wallet,PRODUCTS_JSON,squeekRequestId(key)).first<Row>();
++   return row?reply(200,{order:receipt(row,subjectId,clock(deps))},cors):reply(404,{error:'NOT_FOUND'},cors);}
++  // quote: what the World checkout page will ask the player to sign. Nothing is reserved or charged. The game sends the
++  // purchase key it will later look up; checkoutUrl is then a link the checkout page accepts as it is.
++  const p=url.searchParams,names=[...p.keys()],it=squeekBySku(p.get('sku')),requestKey=p.get('requestKey')??'',lang=p.get('lang')??'zh';
++  if(names.some(k=>!['sku','requestKey','lang'].includes(k))||new Set(names).size!==names.length||!it||!SQUEEK_REQUEST_KEY.test(requestKey)||!['zh','en'].includes(lang))return reply(400,{error:'BAD_REQUEST'},cors);
++  const snap=await snapshot(db,deps,cfg,wallet,grant.expires_at),owned=snap.entitlements.includes(it.sku);
++  return reply(200,{...item(it),subjectId,owned,affordable:BigInt(snap.balanceGold)>=BigInt(it.gold),balanceGold:snap.balanceGold,catalogVersion:SQUEEK_CATALOG_VERSION,salesEnabled:snap.salesEnabled,
++   checkoutUrl:cfg.issuer+'/squeek-checkout/?'+new URLSearchParams({sku:it.sku,request:requestKey,lang})},cors);
++ }catch{return reply(503,{error:'SQUEEK_UNAVAILABLE'},cors);}
++}
++export async function pruneSqueekAuth(db:D1Database,now:number){
++ if(!Number.isSafeInteger(now)||now<0)throw Error('INVALID_CLOCK');
++ const [codes,tokens]=await db.batch([
++  db.prepare('DELETE FROM squeek_auth_codes WHERE code_hash IN (SELECT code_hash FROM squeek_auth_codes WHERE expires_at<=?1 ORDER BY expires_at LIMIT 200)').bind(now),
++  db.prepare('DELETE FROM squeek_tokens WHERE token_hash IN (SELECT token_hash FROM squeek_tokens WHERE expires_at<=?1 ORDER BY expires_at LIMIT 200)').bind(now)
++ ]);return {codes:Number(codes.meta.changes??0),tokens:Number(tokens.meta.changes??0)};
++}
+diff --git a/server/world-gold-result.ts b/server/world-gold-result.ts
+index 9a6040e..ce60a28 100644
+--- a/server/world-gold-result.ts
++++ b/server/world-gold-result.ts
+@@ -1,10 +1,11 @@
+ import {FORTUNE_PRODUCTS,fortuneProduct} from '../src/shared/fortunePricing.ts';
++import {SQUEEK_PRODUCTS} from '../src/shared/squeekCatalog.ts';
+ /** Review fixture contracts for research/fortune results, not proof that a real
+  * upstream report exists. Real provider adapters must additionally validate
+  * their service-specific signed/authenticated response before this boundary. */
+ const text=(v:unknown):v is string=>typeof v==='string'&&v.trim().length>0;
+ const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
+-export const GOLD_RESULT_PRODUCTS:readonly string[]=['research','research-pass','fortune',...FORTUNE_PRODUCTS.map(p=>p.product)];
++export const GOLD_RESULT_PRODUCTS:readonly string[]=['research','research-pass','fortune',...FORTUNE_PRODUCTS.map(p=>p.product),...SQUEEK_PRODUCTS];
+ export const hasGoldResultContract=(product:string)=>GOLD_RESULT_PRODUCTS.some(p=>p===product);
+ function usableDocument(product:string,v:unknown){
+  if(!hasGoldResultContract(product))return false;
+diff --git a/server/world-gold.ts b/server/world-gold.ts
+index c294219..a20b652 100644
+--- a/server/world-gold.ts
++++ b/server/world-gold.ts
+@@ -8,6 +8,7 @@ import {requireWorldGoldSchema} from './world-gold-schema.ts';
+ import {reconcileRewardEntitlements} from './economy-rewards.ts';
+ import {encodeGoldResult,encodeMintAuth,hasGoldResultContract} from './world-gold-result.ts';
+ import {fortuneProduct} from '../src/shared/fortunePricing.ts';
++import {squeekByProduct} from '../src/shared/squeekCatalog.ts';
+ import {RESEARCH_PASS_PRODUCT,researchPassBlockReason,researchPassBlocker,researchPassGrant} from './research-pass.ts';
+ import {fastGoldReady,fastSettleStatements} from './world-gold-fast.ts';
+ 
+@@ -55,13 +56,15 @@ export async function worldGoldSnapshot(db:D1Database,wallet:string,nowMs:number
+  const view=goldBalanceView(balance.results[0] as {book:string;reserved:string}|undefined);
+  return {wallet,...view,asOf:nowMs,history:history.results,orders:orders.results,mints:mints.results,pendingRewards:owed.results,pendingRewardsLimit:100,historyLimit:100,goldTransferable:false,researchPass:await researchPassGrant(db,wallet,nowMs).catch(()=>null)};   // the panel is shared with Celestao: a pass lookup failure must not take it down
+ }
+-export async function goldQuote(ctx:WorldGoldContext,args:{wallet:string;requestId:string;product:string;authorization?:{tokenHash:string};fortuneCheckout?:string}){
++export async function goldQuote(ctx:WorldGoldContext,args:{wallet:string;requestId:string;product:string;authorization?:{tokenHash:string};fortuneCheckout?:string;squeekCheckout?:true}){
+  const {db,config,nowMs}=ctx;at(nowMs);await requireWorldGoldSchema(db);const wallet=economyAddress(args.wallet),rid=requestId(args.requestId);ident(args.product);
+  const fortune=fortuneProduct(args.product);
+  if(fortune){
+   if(!args.fortuneCheckout||!/^[A-Za-z0-9_-]{43}$/.test(args.fortuneCheckout)||rid!=='celestao_'+args.fortuneCheckout)fail('FORTUNE_CHECKOUT_REQUIRED');
+   if(!await st(db,'SELECT 1 FROM celestao_checkouts WHERE id=? AND wallet=? AND product=? AND (expires_ms>? OR order_id IS NOT NULL)',args.fortuneCheckout,wallet,args.product,nowMs).first())fail('FORTUNE_CHECKOUT_REQUIRED');
+  }
++ // 鼠道修仙 cosmetics are sold only by /api/squeek/checkout/quote, which checks the sales gate and ownership first.
++ if(squeekByProduct(args.product)&&(args.squeekCheckout!==true||!rid.startsWith('sq_')))fail('SQUEEK_CHECKOUT_REQUIRED');
+  const retryId=(row:{id:string;status:string;expires_ms:number;created_ms:number})=>{const fresh=at(ctx.now?.()??nowMs);if(fresh<nowMs||fresh<row.created_ms)fail('INVALID_CLOCK');if(row.status==='pending'&&row.expires_ms<=fresh)fail('ORDER_EXPIRED');return row.id;};
+  // Retrying an old request uses the original quote, even after disabling/repricing.
+  const old=await st(db,'SELECT id,status,expires_ms,created_ms FROM economy_orders WHERE wallet=? AND request_id=?',wallet,rid).first<{id:string;status:string;expires_ms:number;created_ms:number}>();
+diff --git a/src/main.tsx b/src/main.tsx
+index 26a6522..7c377f3 100644
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -7,15 +7,22 @@ import { initialMode } from "./world/dataMode.ts";
+ const marketEntry=location.pathname==='/aimarket/'||location.pathname==='/aimarket'||new URLSearchParams(location.search).get('portal')==='aimarket';
+ const celestialEntry=location.pathname==='/fortune-connect/'||location.pathname==='/fortune-connect';
+ const celestialCheckout=location.pathname==='/fortune-checkout/'||location.pathname==='/fortune-checkout';
++const squeekEntry=location.pathname==='/squeek-connect/'||location.pathname==='/squeek-connect';
++const squeekCheckout=location.pathname==='/squeek-checkout/'||location.pathname==='/squeek-checkout';
++const goldGuide=location.pathname==='/gold/'||location.pathname==='/gold';
++const lightEntry=celestialEntry||celestialCheckout||squeekEntry||squeekCheckout||goldGuide;
+ const collectionEntry=import.meta.env.DEV&&__COLLECTION_LOCAL__&&new URLSearchParams(location.search).get('collection')==='1';
+ const homeDemoEntry=import.meta.env.DEV&&new URLSearchParams(location.search).get('homeDemo')==='1';
+-if(!marketEntry&&!celestialEntry&&!celestialCheckout&&!collectionEntry&&!homeDemoEntry)bootRead(initialMode());
++if(!marketEntry&&!lightEntry&&!collectionEntry&&!homeDemoEntry)bootRead(initialMode());
+ // The World bootstrap starts its terrain work; the research entry does not load the 3D scene.
+ const Market=lazy(()=>import('./world/AIMarketGateway.tsx'));
+ const Celestial=lazy(()=>import('./world/CelestaoGateway.tsx'));
+ const CelestialCheckout=lazy(()=>import('./world/CelestaoCheckout.tsx'));
++const SqueekEntry=lazy(()=>import('./world/SqueekConnect.tsx'));
++const SqueekCheckout=lazy(()=>import('./world/SqueekCheckout.tsx'));
++const GoldGuide=lazy(()=>import('./world/GoldGuide.tsx'));
+ const World=lazy(()=>import('./world/WorldBootstrap.tsx'));
+ const Collection=import.meta.env.DEV&&__COLLECTION_LOCAL__?lazy(()=>import('./world/collection/CollectionLocalApp.tsx')):null;
+ const HomeDemo=import.meta.env.DEV?lazy(()=>import('./world/homeDemo/HomeDemoApp.tsx')):null;
+ declare const __COLLECTION_LOCAL__:boolean;
+-createRoot(document.getElementById("root")!).render(<React.StrictMode><Suspense fallback={<p role="status">{homeDemoEntry?'正在準備示範住宅…':collectionEntry?'正在開啟收藏預覽…':celestialEntry||celestialCheckout?'正在開啟玄曜錢包服務…':marketEntry?'正在開啟觀研館…':'世界正在展開…'}</p>}>{homeDemoEntry&&HomeDemo?<HomeDemo/>:collectionEntry&&Collection?<Collection/>:celestialCheckout?<CelestialCheckout/>:celestialEntry?<Celestial/>:marketEntry?<Market/>:<World/>}</Suspense></React.StrictMode>);
++createRoot(document.getElementById("root")!).render(<React.StrictMode><Suspense fallback={<p role="status">{homeDemoEntry?'正在準備示範住宅…':collectionEntry?'正在開啟收藏預覽…':squeekEntry||squeekCheckout?'正在開啟鼠道修仙錢包服務…':goldGuide?'正在開啟 GOLD 說明…':celestialEntry||celestialCheckout?'正在開啟玄曜錢包服務…':marketEntry?'正在開啟觀研館…':'世界正在展開…'}</p>}>{homeDemoEntry&&HomeDemo?<HomeDemo/>:collectionEntry&&Collection?<Collection/>:goldGuide?<GoldGuide/>:squeekCheckout?<SqueekCheckout/>:squeekEntry?<SqueekEntry/>:celestialCheckout?<CelestialCheckout/>:celestialEntry?<Celestial/>:marketEntry?<Market/>:<World/>}</Suspense></React.StrictMode>);
+diff --git a/src/shared/squeekCatalog.ts b/src/shared/squeekCatalog.ts
+new file mode 100644
+index 0000000..708c167
+--- /dev/null
++++ b/src/shared/squeekCatalog.ts
+@@ -0,0 +1,33 @@
++/** 鼠道修仙 (Squeek Ascension) cosmetic store, sold for World GOLD.
++ * Owner decision 2026-11-07: 11 one-time cosmetics, 200 GOLD each, no bundles.
++ * The World server is the only price authority; the game never sends an amount.
++ * A cosmetic gives no power, resources or time: it only changes what is drawn. */
++export const SQUEEK_ORIGIN='https://squeekascension.celestao.com';
++export const SQUEEK_REDIRECT='https://squeekascension.celestao.com/';
++export const SQUEEK_CLIENT_ID='squeek-ascension';
++export const SQUEEK_ISSUER='https://imdember.com';
++export const SQUEEK_API_PREFIX='/api/squeek/';
++export const SQUEEK_CATALOG_VERSION='squeek-world-1';
++export const SQUEEK_PRODUCT_VERSION=1;
++export type SqueekKind='aura'|'glow'|'sky';
++export type SqueekItem={sku:string;product:string;version:number;gold:string;kind:SqueekKind;nameZh:string;nameEn:string};
++const item=(sku:string,kind:SqueekKind,nameZh:string,nameEn:string):SqueekItem=>Object.freeze({sku,product:'squeek-'+sku.replace(/[._]/g,'-'),version:SQUEEK_PRODUCT_VERSION,gold:'200',kind,nameZh,nameEn});
++export const SQUEEK_ITEMS:readonly SqueekItem[]=Object.freeze([
++ item('aura.frostmoon_sword.v1','aura','霜月劍意','Frostmoon Sword Aura'),
++ item('aura.star_river_arcane.v1','aura','星河流轉','Star River'),
++ item('aura.golden_body.v1','aura','不動金身','Golden Body'),
++ item('aura.blood_moon_demon.v1','aura','血月焚魂','Blood Moon'),
++ item('glow.auspicious_cloud.v1','glow','祥雲靈環','Auspicious Halo'),
++ item('glow.nine_stars.v1','glow','九星連環','Nine Stars'),
++ item('glow.fire_lotus.v1','glow','業火紅蓮','Fire Lotus'),
++ item('sky.sakura.v1','sky','櫻吹雪','Falling Sakura'),
++ item('sky.fireflies.v1','sky','螢火之夜','Firefly Night'),
++ item('sky.first_snow.v1','sky','初雪','First Snow'),
++ item('sky.meteors.v1','sky','流星雨','Meteor Shower')
++]);
++export const SQUEEK_PRODUCTS:readonly string[]=Object.freeze(SQUEEK_ITEMS.map(i=>i.product));
++export const squeekBySku=(sku:unknown)=>typeof sku==='string'?SQUEEK_ITEMS.find(i=>i.sku===sku)??null:null;
++export const squeekByProduct=(product:unknown)=>typeof product==='string'?SQUEEK_ITEMS.find(i=>i.product===product)??null:null;
++/** The game's own purchase key. World prefixes it, so it never collides with another service's request id. */
++export const SQUEEK_REQUEST_KEY=/^[A-Za-z0-9_-]{22,64}$/;
++export const squeekRequestId=(key:string)=>'sq_'+key;
+diff --git a/src/world/GoldGuide.tsx b/src/world/GoldGuide.tsx
+new file mode 100644
+index 0000000..4f15aba
+--- /dev/null
++++ b/src/world/GoldGuide.tsx
+@@ -0,0 +1,32 @@
++import './celestaoGateway.css';
++
++/** Public explanation of GOLD for players arriving from partner sites (鼠道修仙, 玄曜).
++ * Plain text and one link into World: no sign-in, wallet call, order or tracking on this page.
++ * Wording follows the World GOLD panel and the staking hall; change them together. */
++export const GOLD_GUIDE={
++ zh:{what:'GOLD 是 IMD Ember World 的站內點數，用來支付 World 和合作網站的服務，例如玄曜的命理解讀、鼠道修仙的外觀。',
++  limits:'GOLD 綁定你的錢包，World 和合作網站共用同一份餘額。不可轉讓、不可賣出，也不能兌回 EMBEO。用 GOLD 付款沒有手續費。',
++  buy:'用 EMBEO 購買：100 EMBEO 換 1 GOLD，在以太坊主網付款，鏈上手續費另計，以錢包顯示為準。付款完成後約 15 分鐘入帳。購買是單向的，GOLD 不能換回 EMBEO。',
++  stake:'質押 EMBEO：在 World 的質押挖礦館質押 EMBEO，每天可以得到 GOLD，份量和規則以館內說明為準。本金可隨時取回。',
++  first:'第一次使用：需要一個瀏覽器錢包（例如 MetaMask）。在 World 用錢包登入時，你會簽一段登入訊息，這不花錢也不轉移資產。之後每一筆 GOLD 付款，都會再請你在 World 核對金額並簽名確認。',
++  free:'鼠道修仙不需要 GOLD 也能完整遊玩；GOLD 只用來買外觀。'},
++ en:{what:'GOLD is the points currency of IMD Ember World. It pays for services in World and on partner sites, such as Celestial Atlas readings and Squeek Ascension cosmetics.',
++  limits:'GOLD is bound to your wallet, and World and its partner sites share one balance. It cannot be transferred, sold or redeemed for EMBEO. Paying with GOLD has no fee.',
++  buy:'Buy with EMBEO: 100 EMBEO for 1 GOLD, paid on Ethereum mainnet. Network fees are separate and shown by your wallet. GOLD is credited about 15 minutes after payment. A purchase is one-way: GOLD cannot be changed back into EMBEO.',
++  stake:'Stake EMBEO: staking EMBEO in the World Staking Hall earns GOLD every day; the amounts and rules are shown in the hall. You can withdraw your principal at any time.',
++  first:'First time: you need a browser wallet such as MetaMask. Signing in to World asks you to sign a sign-in message, which costs nothing and moves no assets. Every GOLD payment then asks you to check the amount in World and sign it.',
++  free:'Squeek Ascension is fully playable without GOLD; GOLD only buys cosmetics.'}
++} as const;
++export default function GoldGuide(){
++ const zh=new URLSearchParams(location.search).get('lang')!=='en',g=zh?GOLD_GUIDE.zh:GOLD_GUIDE.en,say=(a:string,b:string)=>zh?a:b;
++ return <main className="celestao-gateway-page" lang={zh?'zh-Hant':'en'}><section className="celestao-gateway" aria-labelledby="gold-guide-title">
++  <p className="celestao-gateway-brand">IMD Ember World</p>
++  <h1 id="gold-guide-title">{say('什麼是 GOLD？','What is GOLD?')}</h1>
++  <p>{g.what}</p><p>{g.limits}</p>
++  <h2>{say('怎麼取得','How to get it')}</h2><p>{g.buy}</p><p>{g.stake}</p>
++  <h2>{say('第一次使用','Getting started')}</h2><p>{g.first}</p>
++  <p className="celestao-gateway-note">{g.free}</p>
++  <a className="celestao-gateway-primary" href="/?open=gold">{say('進入 World 購買 GOLD','Open World to buy GOLD')}</a>
++  <p className="celestao-gateway-note"><a href={zh?'/gold/?lang=en':'/gold/?lang=zh'}>{zh?'English':'繁體中文'}</a></p>
++ </section></main>;
++}
+diff --git a/src/world/SqueekCheckout.tsx b/src/world/SqueekCheckout.tsx
+new file mode 100644
+index 0000000..786e40c
+--- /dev/null
++++ b/src/world/SqueekCheckout.tsx
+@@ -0,0 +1,66 @@
++import {useCallback,useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
++import {createAuth,useAuth} from './WalletPanel.tsx';
++import {wallets} from './wallet.ts';
++import {noticeText} from './auth.ts';
++import {EconomyClient,economyRequestId,economySession} from './economyClient.ts';
++import {EconomyWalletController,localEconomyPending} from './economyWallet.ts';
++import {SqueekCheckoutClient,squeekEconomyOrder,type SqueekCheckoutState} from './squeekCheckoutClient.ts';
++import {squeekCheckoutParams,squeekReturnUrl} from './squeekEntry.ts';
++import './celestaoGateway.css';
++const ERRORS:Record<string,[string,string]>={
++ AUTH_REQUIRED:['請重新登入 World 錢包。','Sign in to World again.'],
++ ACCOUNT_MISMATCH:['錢包已切換，請用原本的錢包確認。','The wallet changed. Confirm with the original wallet.'],
++ ALREADY_OWNED:['你已經擁有這件外觀，不需要再買，也不會再扣 GOLD。','You already own this cosmetic. It cannot be bought again and no GOLD is taken.'],
++ SALES_CLOSED:['鼠道修仙的外觀目前還沒開賣。','Squeek Ascension cosmetics are not on sale yet.'],
++ FEATURE_PAUSED:['館內付費服務暫停中。','Paid services are paused.'],
++ INSUFFICIENT_GOLD:['GOLD 不足。不買也能完整遊玩；想取得 GOLD 請看下方「什麼是 GOLD」。','Not enough GOLD. The game is fully playable without buying; see "What is GOLD" below.'],
++ CONTEXT_CHANGED:['錢包狀態已改變，請重新確認原訂單。','Wallet context changed. Check the original order again.'],
++ ORDER_EXPIRED:['這張未付款訂單已過期，沒有扣 GOLD。請回到遊戲重新購買。','This unpaid order expired and no GOLD was taken. Return to the game to buy again.'],
++ IDEMPOTENCY_CONFLICT:['這個購買連結對應另一件外觀，請回到遊戲重新購買。','This purchase link belongs to another cosmetic. Return to the game and buy again.'],
++ EOA_REQUIRED:['這個錢包類型不能用 GOLD 付款，請改用一般錢包登入。','This wallet type cannot pay with GOLD. Sign in with a standard wallet.']
++};
++export default function SqueekCheckout(){
++ const {sku,requestKey,zh,valid}=squeekCheckoutParams(location.search),t=(a:string,b:string)=>zh?a:b;
++ const registry=wallets(),options=useSyncExternalStore(registry.subscribe,()=>registry.state,()=>registry.state);
++ const authClient=useMemo(()=>createAuth(registry),[registry]),auth=useAuth(authClient,false),authRef=useRef(auth);authRef.current=auth;
++ const client=useMemo(()=>new SqueekCheckoutClient({auth:()=>authRef.current}),[]);
++ const session=economySession(auth),identity=session?session.address+':'+session.expiresAt:'',generation=useRef(0),lock=useRef(false);
++ const [data,setData]=useState<SqueekCheckoutState|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[controller,setController]=useState<EconomyWalletController|null>(null);
++ const refresh=useCallback(async()=>{if(!valid||!economySession(authRef.current))return;const g=generation.current;try{const next=await client.state(sku,requestKey);if(g===generation.current)setData(next);}catch(e){if(g===generation.current){setData(null);setError(e instanceof Error?e.message:'UNAVAILABLE');}}},[client,sku,requestKey,valid]);
++ useEffect(()=>{generation.current++;lock.current=false;setBusy(false);setData(null);setError('');void refresh();let active=true,c:EconomyWalletController|undefined;
++  if(identity)void new EconomyClient({auth:()=>authRef.current}).config().then(config=>{if(!active||!config.enabled)return;c=new EconomyWalletController({config,auth:()=>authRef.current,provider:()=>registry.current(),onProviderChange:fn=>registry.subscribeProvider(fn),pending:localEconomyPending});setController(c);}).catch(()=>{});
++  return()=>{active=false;generation.current++;c?.dispose();setController(null);};
++ },[identity,refresh,registry]);
++ useEffect(()=>{if(!identity)return;const onFocus=()=>void refresh(),timer=setInterval(onFocus,15000);window.addEventListener('focus',onFocus);return()=>{clearInterval(timer);window.removeEventListener('focus',onFocus);};},[identity,refresh]);
++ const operate=async(pay=false)=>{if(lock.current||!valid)return;lock.current=true;setBusy(true);setError('');const g=generation.current;
++  try{const latest=await client.state(sku,requestKey);if(g!==generation.current)throw Error('CONTEXT_CHANGED');
++   if(pay){if(!controller||!latest.order||latest.order.status!=='pending')throw Error('CONTEXT_CHANGED');const order=squeekEconomyOrder(latest.order,latest.item),rid=economyRequestId(),challenge=await new EconomyClient({auth:()=>authRef.current}).goldChallenge(order,rid,location.origin);await controller.payGold(order,rid,challenge);if(controller.state.error)throw Error(controller.state.error);}
++   else await client.quote(sku,requestKey);
++  }catch(e){if(g===generation.current)setError(e instanceof Error?e.message:'UNAVAILABLE');}
++  finally{if(g===generation.current){lock.current=false;setBusy(false);void refresh();}}
++ };
++ const order=data?.order,name=data?(zh?data.item.nameZh:data.item.nameEn):'';
++ const status=order?.status==='paid'?t('已付款，外觀已加到你的帳號。回到遊戲就能看到。','Paid. The cosmetic is on your account; return to the game to see it.')
++  :order?.status==='refund_pending'?t('這筆沒有完成，系統正在退回 GOLD，外觀不會保留。','This purchase did not complete. The GOLD is being returned and the cosmetic is not kept.')
++  :order?.status==='refunded'?t('這筆已退回 GOLD，外觀不保留。','This purchase was refunded; the cosmetic is not kept.')
++  :order?.status==='expired'?ERRORS.ORDER_EXPIRED[zh?0:1]:'';
++ return <main className="celestao-gateway-page"><section className="celestao-gateway" aria-labelledby="squeek-checkout-title"><p className="celestao-gateway-brand">IMD Ember World × {t('鼠道修仙','Squeek Ascension')}</p><h1 id="squeek-checkout-title">{t('確認購買外觀','Review this cosmetic')}</h1>
++  <p className="celestao-gateway-note">{t('外觀只改變畫面，不會變強、不會多拿資源或加快進度。GOLD 綁定此錢包，無法轉讓、賣出或兌回。這次簽名只授權下方單筆 GOLD 費用，沒有手續費。','A cosmetic only changes how things look: no power, resources or speed. GOLD is wallet-bound and cannot be transferred, sold or redeemed. Your signature authorizes only this one GOLD payment; there is no fee.')}</p>
++  {!valid?<p role="alert">{t('購買連結無效，請返回鼠道修仙。','Invalid purchase link. Return to Squeek Ascension.')}</p>:<>
++   {!identity&&<>{options.options.length>1&&<fieldset><legend>{t('選擇錢包','Choose a wallet')}</legend>{options.options.map((o,i)=><button type="button" key={i} aria-pressed={options.chosen===o} onClick={()=>registry.choose(o)}>{o.info.name}</button>)}</fieldset>}<button className="celestao-gateway-primary" disabled={!auth.sessionKnown||auth.phase!=='idle'||options.needsChoice} onClick={()=>void authClient.signIn()}>{t('登入 World 錢包','Sign in to your World wallet')}</button></>}
++   {auth.notice&&<p role="status">{noticeText(auth.notice,t)}</p>}
++   {data&&<><p className="celestao-gateway-address">{data.wallet}</p><h2>{name}</h2>
++    <p className="celestao-checkout-price">{Number(data.item.gold).toLocaleString('en-US')} GOLD　<small>{t('一次付款，不能重複購買','One-time payment; cannot be bought twice')}</small></p>
++    <p className="celestao-gateway-note">{t('目前可用 GOLD：','Available GOLD: ')}{Number(data.balanceGold).toLocaleString('en-US')}</p>
++    {order?<><p className="celestao-gateway-note">{t('原始訂單','Original order')}<br/><code>{order.orderId}</code></p>
++     {status?<p role="status">{status}</p>:order.expiresAt<=Date.now()?<p role="alert">{ERRORS.ORDER_EXPIRED[zh?0:1]}</p>:<button className="celestao-gateway-primary" disabled={busy||!controller||!data.ready} onClick={()=>void operate(true)}>{busy?t('正在確認原單…','Checking original order…'):t('簽名確認支付 ','Sign payment of ')+data.item.gold+' GOLD'}</button>}</>
++    :data.owned?<p role="status">{ERRORS.ALREADY_OWNED[zh?0:1]}</p>
++    :!data.ready?<p role="status">{ERRORS.SALES_CLOSED[zh?0:1]}</p>
++    :<button className="celestao-gateway-primary" disabled={busy} onClick={()=>void operate()}>{t('建立這筆 GOLD 訂單','Create this GOLD order')}</button>}</>}
++   {error&&<p role="alert">{ERRORS[error]?.[zh?0:1]??t('暫時無法確認，請稍後查詢原訂單。','Unable to confirm. Check the original order again shortly.')} <small>({error})</small></p>}
++   {identity&&<button type="button" disabled={busy} onClick={()=>void refresh()}>{t('查詢原訂單','Check original order')}</button>}
++  </>}
++  <p className="celestao-gateway-note"><a href={'/gold/?lang='+(zh?'zh':'en')}>{t('什麼是 GOLD？怎麼取得？','What is GOLD, and how do I get it?')}</a></p>
++  <a className="celestao-gateway-back" href={squeekReturnUrl(valid?requestKey:null)} referrerPolicy="no-referrer">{t('返回鼠道修仙','Return to Squeek Ascension')}</a>
++ </section></main>;
++}
+diff --git a/src/world/SqueekConnect.tsx b/src/world/SqueekConnect.tsx
+new file mode 100644
+index 0000000..67bc990
+--- /dev/null
++++ b/src/world/SqueekConnect.tsx
+@@ -0,0 +1,32 @@
++import {useEffect,useMemo,useState,useSyncExternalStore} from 'react';
++import {createAuth,useAuth} from './WalletPanel.tsx';
++import {noticeText} from './auth.ts';
++import {wallets} from './wallet.ts';
++import {squeekResume,canContinueToSqueek} from './squeekEntry.ts';
++import {SQUEEK_REDIRECT} from '../shared/squeekCatalog.ts';
++import './celestaoGateway.css';
++
++/** Identity only: this page never creates an order or calls a payment signer.
++ * The authorize endpoint rechecks the real World session cookie. */
++export default function SqueekConnect(){
++ const zh=new URLSearchParams(location.search).get('lang')!=='en',say=(a:string,b:string)=>zh?a:b;
++ const next=squeekResume(new URLSearchParams(location.search).get('next'));
++ const registry=wallets(),options=useSyncExternalStore(registry.subscribe,()=>registry.state,()=>registry.state);
++ const client=useMemo(()=>createAuth(registry),[registry]),state=useAuth(client,false),[now,setNow]=useState(Date.now);
++ useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
++ const ready=!!next&&canContinueToSqueek(state,now),busy=state.phase!=='idle'||state.leaving||state.waiting;
++ return <main className="celestao-gateway-page"><section className="celestao-gateway" aria-labelledby="squeek-connect-title">
++  <p className="celestao-gateway-brand">IMD Ember World × {say('鼠道修仙','Squeek Ascension')}</p>
++  <h1 id="squeek-connect-title">{say('用 World 錢包登入','Sign in with your World wallet')}</h1>
++  <p>{say('登入後，鼠道修仙可以看到你的 GOLD 餘額和已擁有的外觀。','After sign-in, Squeek Ascension can see your GOLD balance and the cosmetics you own.')}</p>
++  <p className="celestao-gateway-note">{say('這一步只確認身分，不會支付 GOLD 或轉移資產。每次購買都要你在 World 另外簽名確認。不登入也能完整遊玩。','This step only confirms who you are. It does not pay GOLD or move assets. Each purchase needs its own signature in World. The game is fully playable without signing in.')}</p>
++  {!next?<p role="alert">{say('登入連結已失效，請返回鼠道修仙重新開始。','This sign-in link is invalid. Return to Squeek Ascension and start again.')}</p>:<>
++   {(options.options.length>1||options.needsChoice)&&<fieldset disabled={busy}><legend>{say('選擇錢包','Choose a wallet')}</legend>{options.options.map((o,i)=><button key={i} type="button" aria-pressed={options.chosen===o} onClick={()=>registry.choose(o)}>{o.info.name} ({o.info.rdns})</button>)}{options.duplicates.length>0&&<p>{say('有擴充套件使用相同名稱，請確認你選擇的錢包。','Some extensions use the same name. Check which wallet you select.')}</p>}</fieldset>}
++   {state.session&&<p className="celestao-gateway-address">{state.session.address}</p>}
++   {state.notice&&<p role="status">{noticeText(state.notice,say)}</p>}
++   {ready?<a className="celestao-gateway-primary" href={next} referrerPolicy="no-referrer" onClick={e=>{if(!canContinueToSqueek(client.state,Date.now())||squeekResume(next)===null)e.preventDefault();}}>{say('以此錢包繼續','Continue with this wallet')}</a>:<button className="celestao-gateway-primary" type="button" disabled={busy||!state.sessionKnown||options.needsChoice} onClick={()=>void client.signIn()}>{busy?say('正在確認錢包…','Checking wallet…'):!state.sessionKnown?say('正在確認登入狀態…','Checking session…'):say('連接並登入 World 錢包','Connect and sign in to World')}</button>}
++  </>}
++  <p className="celestao-gateway-note"><a href={'/gold/?lang='+(zh?'zh':'en')}>{say('什麼是 GOLD？','What is GOLD?')}</a></p>
++  <a className="celestao-gateway-back" href={SQUEEK_REDIRECT} rel="noreferrer" referrerPolicy="no-referrer">{say('返回鼠道修仙','Return to Squeek Ascension')}</a>
++ </section></main>;
++}
+diff --git a/src/world/WorldApp.tsx b/src/world/WorldApp.tsx
+index e5adf8e..efbfcdb 100644
+--- a/src/world/WorldApp.tsx
++++ b/src/world/WorldApp.tsx
+@@ -135,6 +135,8 @@ function WorldContent(){
+   useEffect(()=>{const open=()=>{setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);setGame(false);setEconomy(false);setGold(false);setInventory(true);};window.addEventListener('world:inventory-open',open);return()=>window.removeEventListener('world:inventory-open',open);},[]);
+   const [economy,setEconomy]=useState(()=>new URLSearchParams(location.search).get('portal')==='economy');
+   useEffect(()=>{const open=()=>{setInventory(false);setDrawer(null);setMini(false);setSelfie(false);setAvatar(false);setResearch(false);setLibrary(false);setGame(false);setEconomy(false);setGold(true);};window.addEventListener('world:gold-open',open);return()=>window.removeEventListener('world:gold-open',open);},[]);
++  // /?open=gold (the public GOLD guide's link): open the GOLD panel once, after the listener above is in place.
++  useEffect(()=>{if(new URLSearchParams(location.search).get('open')==='gold')window.dispatchEvent(new Event('world:gold-open'));},[]);
+   // Like the library and the game: closing drops ?portal=gold|economy, so a reload or a language switch does not reopen it.
+   const dropPortal=(name:string)=>{const url=new URL(location.href);if(url.searchParams.get('portal')===name){url.searchParams.delete('portal');history.replaceState(null,'',url);}};
+   const closeGold=useCallback(()=>{setGold(false);dropPortal('gold');},[]),closeEconomy=useCallback(()=>{setEconomy(false);dropPortal('economy');},[]);
+diff --git a/src/world/WorldGoldPanel.tsx b/src/world/WorldGoldPanel.tsx
+index e6101f6..9ee7a01 100644
+--- a/src/world/WorldGoldPanel.tsx
++++ b/src/world/WorldGoldPanel.tsx
+@@ -1,6 +1,6 @@
+ import {fortuneProduct} from '../shared/fortunePricing.ts';
+ import {GOLD_GRANT_MAX} from '../shared/goldGrants.ts';
+-import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand} from './goldGrantRules.ts';
++import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand,withinGrantLeft} from './goldGrantRules.ts';
+ import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react';
+ import type {AuthState} from './auth.ts';
+ import {WorldGoldClient,goldPriceInputAtomic,type GoldState,type GoldOrder} from './worldGoldClient.ts';
+@@ -11,6 +11,7 @@ import {dropPendingCreditByHash,markPendingCreditMined,paymentFailed,paymentHash
+ import {ResearchPassCard} from './ResearchPassCard.tsx';
+ import {ResearchPassConfirm} from './ResearchPassConfirm.tsx';
+ import {RESEARCH_PASS_PRODUCT} from './researchPassCopy.ts';
++import {squeekByProduct} from '../shared/squeekCatalog.ts';
+ import {goldPurchaseError} from './goldPurchaseRules.ts';
+ import {GoldReviewRecord} from './goldReviewRecord.ts';
+ import {wallets} from './wallet.ts';
+@@ -61,7 +62,8 @@ export function Admin({client,data,refresh,zh,signGrant}:{client:WorldGoldClient
+  <label className="gold-purchase-ack"><input type="checkbox" checked={grantChecked} onChange={e=>setGrantChecked(e.target.checked)}/>{zh?'我已核對地址和數量':'I checked the address and the amount'}</label>
+  <small>{zh?'收款方要是一般錢包，合約錢包收到也花不掉。全小寫的地址無法核對校驗碼，請從原始來源複製。':'The recipient must be an ordinary wallet: a contract wallet could not spend it. An all-lowercase address has no checksum to verify, so copy it from the source.'}</small>
+  {!signGrant&&<small role="status">{zh?'錢包還沒準備好（讀不到付款設定），暫時不能發放。請重新整理頁面。':'The wallet is not ready (payment settings could not be read), so grants are closed for now. Reload the page.'}</small>}
+- <button disabled={!grantFormReady({to:grantTo,gold:grantGold,checked:grantChecked})||data.grantLeft==='0'||!signGrant} onClick={()=>void sendGrant()}>{zh?'確認發放':'Send GOLD'}</button>
++ {/^[1-9][0-9]{0,8}$/.test(grantGold)&&!withinGrantLeft(grantGold,data.grantLeft,data.grantsLeft)&&<small role="status">{zh?`超過 24 小時內還可發的數量（${data.grantLeft} GOLD、${data.grantsLeft} 筆），這筆不能發。`:`More than is left for the last 24 hours (${data.grantLeft} GOLD, ${data.grantsLeft} grants), so this grant cannot be sent.`}</small>}
++ <button disabled={!grantFormReady({to:grantTo,gold:grantGold,checked:grantChecked,left:data.grantLeft,count:data.grantsLeft})||data.grantLeft==='0'||!signGrant} onClick={()=>void sendGrant()}>{zh?'確認發放':'Send GOLD'}</button>
+  {data.recentGrants?.length?<><p>{zh?'最近發放（最多 10 筆）：':'Recent grants (latest 10):'}</p><ul className="gold-history">{data.recentGrants.map(g=><li key={g.id}><span>{g.wallet}</span><b>{g.gold} GOLD</b><small>{new Date(g.created_ms).toISOString()}</small></li>)}</ul></>:null}</fieldset>}
+  <fieldset disabled={busy||reason.trim().length<3}><legend>{zh?'AIMarket 免費活動（UTC）':'AIMarket free trial (UTC)'}</legend><p>{data.campaign.active?(zh?'進行中':'Active'):zh?'未開放':'Inactive'}</p>
+  <label>{zh?'開始時間 UTC':'Starts UTC'}<input type="datetime-local" value={starts} onChange={e=>setStarts(e.target.value)}/></label><label>{zh?'結束時間 UTC':'Ends UTC'}<input type="datetime-local" value={ends} onChange={e=>setEnds(e.target.value)}/></label>
+@@ -137,7 +139,7 @@ export function WorldGoldPanel({state,language,onClose,onSignIn}:{state:AuthStat
+  {configFailed&&<p role="alert">{zh?'錢包付款設定讀取失敗，請按下方「更新餘額與狀態」重試。':'Payment settings could not be read. Press "Refresh ledger" below to retry.'}</p>}
+  <GoldPurchase data={data} selected={selected} wallet={wallet} config={configRef.current} busy={busy} zh={zh} pending={pending} quote={product=>void run(()=>quote(product))} prepare={()=>selected&&void run(()=>pay(selected))} approve={()=>void run(()=>controller!.approve())} confirm={()=>void run(()=>controller!.confirm())} check={hash=>void run(()=>controller!.checkReceipt(hash))} clearUnknown={()=>void run(()=>controller!.clearUnknownAfterWalletCheck())} reconcile={()=>selected&&void run(()=>client.reconcile(selected.id))} clear={()=>setSelected(null)}/>
+  <details className="gold-ledger-details"><summary>{zh?'帳本、訂單與其他館內服務':'Ledger, orders and hall services'}</summary>
+- {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購買點數不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service').map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
++ {data.deliveryReady!==true&&<p role="status">{zh?'館內付費服務尚未開放；購買點數不受此限制。':'Paid hall services are not available yet; this does not affect topups.'}</p>}<div className="gold-products">{data.products.filter(p=>p.enabled&&p.kind==='service'&&!squeekByProduct(p.product)).map(p=>p.product===RESEARCH_PASS_PRODUCT?<ResearchPassCard key={p.id} product={p} pass={data.researchPass} zh={zh} busy={busy||wallet.busy} insufficient={lacks(p.gold)} disabled={data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||lacks(p.gold)} onCreate={()=>void run(()=>quote(p.product))}/>:<article key={p.id}><h2>{p.title}</h2><p>{p.gold} GOLD</p><small>v{p.version}</small>{p.serviceable===false&&<p role="status">{zh?'此服務暫時無法提供，目前不接受新訂單。':'This service is temporarily unavailable; new orders are disabled.'}</p>}{fortuneProduct(p.product)?<a href="https://celestao.com/" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{zh?'前往玄曜確認出生資料':'Review birth details in Celestial Atlas'}</a>:<button disabled={busy||wallet.busy||data.paymentsReady!==true||!data.controls.find(c=>c.feature==='service')?.enabled||data.deliveryReady!==true||p.serviceable===false} onClick={()=>void run(()=>quote(p.product))}>{zh?'建立訂單':'Create order'}</button>}</article>)}</div>
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product===RESEARCH_PASS_PRODUCT&&<ResearchPassConfirm order={selected} zh={zh} acknowledged={passAck===selected.id} busy={busy||wallet.busy} onAcknowledge={checked=>setPassAck(checked?selected.id:null)} onSign={()=>void run(()=>pay(selected))}/>}
+  {selected&&selected.kind==='service'&&selected.status==='pending'&&selected.product!==RESEARCH_PASS_PRODUCT&&<section className="gold-confirm"><h2>{zh?'核對原始訂單':'Review original order'}</h2><code>{selected.id}</code><p>{selected.amount} GOLD · {zh?'此筆服務費用':'Service payment'}</p><button disabled={busy||wallet.busy} onClick={()=>void run(()=>pay(selected))}>{zh?'簽名確認扣點':'Sign GOLD payment'}</button></section>}
+  {selected?.kind==='service'&&<div className="gold-actions">{['approve-required','reset-required'].includes(wallet.phase)&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.approve())}>{zh?'確認指定額度授權':'Approve exact amount'}</button>}{wallet.phase==='confirm'&&<button disabled={wallet.busy} onClick={()=>void run(()=>controller!.confirm())}>{zh?'確認 EMBEO 付款':'Confirm EMBEO payment'}</button>}{wallet.hash&&<code>{wallet.hash}</code>}{['unknown','pending'].includes(wallet.phase)&&<button onClick={()=>void run(()=>controller!.checkReceipt())}>{zh?'查詢原交易':'Check original transaction'}</button>}</div>}
+diff --git a/src/world/celestaoGateway.css b/src/world/celestaoGateway.css
+index 4e38650..710e384 100644
+--- a/src/world/celestaoGateway.css
++++ b/src/world/celestaoGateway.css
+@@ -6,3 +6,4 @@ body:has(.celestao-gateway-page){margin:0}
+ .celestao-gateway-primary{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:12px 18px;margin-top:28px;background:#cfb17a;color:#171c18;border:0;border-radius:5px;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}.celestao-gateway-primary:disabled{opacity:.55;cursor:wait}
+ .celestao-gateway-back{display:inline-block;margin-top:24px;color:#e3c998}.celestao-gateway a:focus-visible,.celestao-gateway button:focus-visible{outline:3px solid #e3c998;outline-offset:4px}
+ .celestao-gateway code{overflow-wrap:anywhere;font-size:12px}.celestao-gateway .celestao-checkout-price{font-size:28px;color:#e3c998}.celestao-gateway s{color:#a4ada3}
++.celestao-gateway-note a{color:#e3c998}
+diff --git a/src/world/goldGrantRules.ts b/src/world/goldGrantRules.ts
+index 50e0e68..85b9d72 100644
+--- a/src/world/goldGrantRules.ts
++++ b/src/world/goldGrantRules.ts
+@@ -1,8 +1,14 @@
+ import {GOLD_GRANT_MAX,GOLD_GRANT_SIGNATURE_ASK_MS,goldGrantMessage} from '../shared/goldGrants.ts';
+ 
+-export function grantFormReady({to,gold,checked}:{to:string;gold:string;checked:boolean}){
++export function grantFormReady({to,gold,checked,left,count}:{to:string;gold:string;checked:boolean;left?:string;count?:string}){
+  const address=to.trim();
+- return checked&&/^0x[0-9a-fA-F]{40}$/.test(address)&&!/^0x0{40}$/.test(address)&&/^[1-9][0-9]{0,8}$/.test(gold)&&Number(gold)<=GOLD_GRANT_MAX;
++ return checked&&/^0x[0-9a-fA-F]{40}$/.test(address)&&!/^0x0{40}$/.test(address)&&/^[1-9][0-9]{0,8}$/.test(gold)&&Number(gold)<=GOLD_GRANT_MAX&&withinGrantLeft(gold,left,count);
++}
++/** False when the amount is above the GOLD left for the last 24 hours, or no grant is left, so no signature is asked for a grant the server must refuse.
++ * A value the panel did not get does not block: the server checks the limit either way. */
++export function withinGrantLeft(gold:string,left?:string,count?:string){
++ if(typeof count==='string'&&/^[0-9]+$/.test(count)&&BigInt(count)===BigInt(0))return false;
++ return !(typeof left==='string'&&/^[0-9]+$/.test(left)&&/^[1-9][0-9]{0,8}$/.test(gold)&&BigInt(gold)>BigInt(left));
+ }
+ export type GrantAttempt={key:string;id:string};
+ /** The same grant keeps its request id, so resending after a lost answer cannot pay twice; a different one gets a new id. */
+@@ -28,7 +34,7 @@ const WALLET_REFUSALS:Record<string,[string,string]>={
+ export function grantError(code:string,zh:boolean){
+  const wallet=Object.hasOwn(WALLET_REFUSALS,code)?WALLET_REFUSALS[code]:null;if(wallet)return wallet[zh?0:1];
+  if(code==='GRANT_DUPLICATE_RECENT')return zh?'這個地址 10 分鐘內已發過相同數量，請先看下方最近紀錄，避免重複發放。':'This wallet got the same amount in the last 10 minutes. Check the recent grants below.';
+- if(code==='GRANT_DAILY_LIMIT')return zh?'已達 24 小時發放上限（20,000 GOLD 或 100 筆）。':'The 24-hour grant limit is reached (20,000 GOLD or 100 grants).';
++ if(code==='GRANT_DAILY_LIMIT')return zh?'這筆會超過 24 小時發放上限（20,000 GOLD 或 100 筆），請看上方還可發的數量。':'This grant would go over the 24-hour limit (20,000 GOLD or 100 grants). Check what is left above.';
+  if(code==='INVALID_ADDRESS_CHECKSUM')return zh?'地址的大小寫對不上，可能打錯字了，請重新複製。':'The address fails its checksum, so it may be mistyped. Copy it again.';
+  if(code==='RECIPIENT_NOT_EOA')return zh?'這個地址曾用合約錢包登入，收到也花不掉，請改用一般錢包。':'This address has signed in as a contract wallet and could not spend the GOLD. Use an ordinary wallet.';
+  if(code==='GRANT_SIGNATURE_EXPIRED')return zh?'簽章已過期，或電腦時間不對，請再發一次。':'The signature expired, or this computer\'s clock is off. Send it again.';
+diff --git a/src/world/goldPurchaseRules.ts b/src/world/goldPurchaseRules.ts
+index 64f5804..3369ac2 100644
+--- a/src/world/goldPurchaseRules.ts
++++ b/src/world/goldPurchaseRules.ts
+@@ -34,6 +34,8 @@ export function goldPurchaseError(code:string,zh:boolean){
+   ORDER_EXPIRED:['報價已到期；若已送出交易，請查詢原單。','Quote expired. If a transaction was sent, check the original order.'],
+   FEATURE_PAUSED:['目前暫停新的購買點數，原交易仍會核對入帳。','New purchases are paused. Original payments are still reconciled.'],
+   TERMS_REQUIRED:['請先閱讀並勾選同意通行證條款，再簽名確認。','Read and accept the pass terms before signing.'],
++  ALREADY_OWNED:['你已經擁有這個外觀，不會再扣點。','You already own this cosmetic. No GOLD is taken.'],
++  SQUEEK_CHECKOUT_REQUIRED:['鼠道修仙的外觀請從遊戲裡購買。','Buy Squeek Ascension cosmetics from the game.'],
+   PASS_ALREADY_ACTIVE:['每日通行證仍在有效期間，到期後才能再次購買。','Your day pass is still active. You can buy another after it ends.'],
+   PASS_ORDER_PENDING:['已有一筆待付款的通行證訂單，請先完成，或等它到期（約 15 分鐘）再重新下單。','You already have a pending pass order. Finish it, or wait for it to expire (about 15 minutes) before ordering again.'],
+   TRANSACTION_REVERTED:['鏈上交易失敗，請核對原交易；鏈上手續費仍可能產生。','Transaction reverted. Check the original transaction; network fees may still apply.'],
+diff --git a/src/world/squeekCheckoutClient.ts b/src/world/squeekCheckoutClient.ts
+new file mode 100644
+index 0000000..16a86b9
+--- /dev/null
++++ b/src/world/squeekCheckoutClient.ts
+@@ -0,0 +1,39 @@
++import {squeekBySku,SQUEEK_REQUEST_KEY,type SqueekItem} from '../shared/squeekCatalog.ts';
++import {economySession,sameSession,EconomyClientError,type EconomyOrder} from './economyClient.ts';
++import type {AuthState} from './auth.ts';
++
++export type SqueekOrder={orderId:string;requestKey:string|null;subjectId:string;sku:string;status:'pending'|'expired'|'paid'|'refund_pending'|'refunded';amountGold:string;createdAt:number;expiresAt:number;paidAt:number|null};
++export type SqueekCheckoutState={wallet:string;item:SqueekItem;owned:boolean;balanceGold:string;order:SqueekOrder|null;ready:boolean};
++const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
++const ms=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>0;
++/** Every field is checked against the built-in catalogue: the page never shows a price the server did not send for this item. */
++export function parseSqueekCheckout(v:unknown,sku:string,requestKey:string,wallet:string):SqueekCheckoutState{
++ const bad=()=>{throw new EconomyClientError('INVALID_RESPONSE');};
++ const it=squeekBySku(sku);if(!it)return bad();
++ if(!object(v)||v.wallet!==wallet.toLowerCase()||!object(v.item)||typeof v.owned!=='boolean'||typeof v.ready!=='boolean'||typeof v.balanceGold!=='string'||!/^(0|[1-9][0-9]{0,77})$/.test(v.balanceGold))return bad();
++ const i=v.item;if(i.sku!==it.sku||i.amountGold!==it.gold||i.kind!==it.kind||i.nameZh!==it.nameZh||i.nameEn!==it.nameEn)return bad();
++ if(v.order!==null){const o=v.order;
++  if(!object(o)||typeof o.orderId!=='string'||!/^0x[0-9a-f]{64}$/.test(o.orderId)||o.requestKey!==requestKey||o.sku!==it.sku||o.amountGold!==it.gold||!['pending','expired','paid','refund_pending','refunded'].includes(String(o.status))||!ms(o.createdAt)||!ms(o.expiresAt)||o.expiresAt<=o.createdAt||o.paidAt!==null&&!ms(o.paidAt)||typeof o.subjectId!=='string')return bad();
++ }
++ return {wallet:v.wallet,item:it,owned:v.owned,balanceGold:v.balanceGold,order:v.order as SqueekOrder|null,ready:v.ready};
++}
++/** The shape the shared wallet payment controller signs: one pending World GOLD order. */
++export function squeekEconomyOrder(o:SqueekOrder,it:SqueekItem):EconomyOrder{
++ return {id:o.orderId,serviceId:it.product,currency:'GOLD',amount:o.amountGold,status:o.status==='pending'?'pending':'paid',createdMs:o.createdAt,expiresMs:o.expiresAt,paidMs:o.paidAt};
++}
++export class SqueekCheckoutClient{
++ private deps:{auth:()=>AuthState;fetch?:typeof fetch;now?:()=>number};
++ constructor(deps:{auth:()=>AuthState;fetch?:typeof fetch;now?:()=>number}){this.deps=deps;}
++ async request(sku:string,requestKey:string,quote=false,signal?:AbortSignal):Promise<SqueekCheckoutState>{
++  if(!squeekBySku(sku)||!SQUEEK_REQUEST_KEY.test(requestKey))throw new EconomyClientError('INVALID_REQUEST');
++  const now=this.deps.now??Date.now,session=economySession(this.deps.auth(),now()),started=now();if(!session)throw new EconomyClientError('AUTH_REQUIRED');
++  const guard=()=>{if(signal?.aborted||now()<started||!sameSession(economySession(this.deps.auth(),now()),session))throw new EconomyClientError('CONTEXT_CHANGED');};
++  guard();const value={sku,requestKey,expectedAddress:session.address.toLowerCase()},path='/api/squeek/checkout/'+(quote?'quote':'state');
++  const response=await (this.deps.fetch??fetch)(path+(quote?'':'?'+new URLSearchParams(value)),{method:quote?'POST':'GET',credentials:'same-origin',cache:'no-store',redirect:'error',signal,...quote?{headers:{'content-type':'application/json'},body:JSON.stringify(value)}:{}});
++  guard();const data:unknown=await response.json();guard();
++  if(!response.ok)throw new EconomyClientError(object(data)&&typeof data.error==='string'?data.error:'UNAVAILABLE');
++  return parseSqueekCheckout(data,sku,requestKey,session.address);
++ }
++ state(sku:string,requestKey:string,signal?:AbortSignal){return this.request(sku,requestKey,false,signal);}
++ quote(sku:string,requestKey:string,signal?:AbortSignal){return this.request(sku,requestKey,true,signal);}
++}
+diff --git a/src/world/squeekEntry.ts b/src/world/squeekEntry.ts
+new file mode 100644
+index 0000000..034486f
+--- /dev/null
++++ b/src/world/squeekEntry.ts
+@@ -0,0 +1,22 @@
++import {SQUEEK_API_PREFIX,SQUEEK_CLIENT_ID,SQUEEK_ISSUER,SQUEEK_REDIRECT,SQUEEK_ORIGIN,SQUEEK_REQUEST_KEY,squeekBySku} from '../shared/squeekCatalog.ts';
++export {canContinueToCelestao as canContinueToSqueek} from './celestaoEntry.ts';
++/** A resume link can only repeat a complete, already bounded 鼠道修仙 authorize request on World.
++ * It cannot select a different redirect or an arbitrary URL. */
++export function squeekResume(value:unknown):string|null{
++ if(typeof value!=='string'||value.length>1800||!value.startsWith('/')||value.startsWith('//')||/[\\\u0000- ]/.test(value))return null;
++ try{const u=new URL(value,SQUEEK_ISSUER);if(u.origin!==SQUEEK_ISSUER||u.pathname!==SQUEEK_API_PREFIX+'authorize'||u.hash||u.username||u.password)return null;
++  const keys=['client_id','redirect_uri','response_type','code_challenge_method','code_challenge','state','lang'];
++  if(u.searchParams.size!==keys.length||keys.some(k=>u.searchParams.getAll(k).length!==1)||[...u.searchParams.keys()].some(k=>!keys.includes(k)))return null;
++  if(u.searchParams.get('client_id')!==SQUEEK_CLIENT_ID||u.searchParams.get('redirect_uri')!==SQUEEK_REDIRECT||u.searchParams.get('response_type')!=='code'||u.searchParams.get('code_challenge_method')!=='S256'||!/^[A-Za-z0-9_-]{43}$/.test(u.searchParams.get('code_challenge')??'')||!/^[A-Za-z0-9_-]{22,128}$/.test(u.searchParams.get('state')??'')||!['zh','en'].includes(u.searchParams.get('lang')??''))return null;
++  return u.pathname+u.search;
++ }catch{return null;}
++}
++/** The checkout page's own parameters. The game chooses the cosmetic and its purchase key, never the amount. */
++export function squeekCheckoutParams(search:string){
++ const q=new URLSearchParams(search),sku=q.get('sku')??'',requestKey=q.get('request')??'';
++ return {sku,requestKey,zh:q.get('lang')!=='en',valid:!!squeekBySku(sku)&&SQUEEK_REQUEST_KEY.test(requestKey)&&q.getAll('sku').length===1&&q.getAll('request').length===1};
++}
++/** Back to the game, carrying only the game's own purchase key so it can look the order up. */
++export function squeekReturnUrl(requestKey:string|null){
++ const u=new URL(SQUEEK_REDIRECT);if(requestKey&&SQUEEK_REQUEST_KEY.test(requestKey))u.searchParams.set('world_order',requestKey);return u.origin===SQUEEK_ORIGIN?u.href:SQUEEK_REDIRECT;
++}
+diff --git a/tests/celestao-checkout-client.test.mjs b/tests/celestao-checkout-client.test.mjs
+index a955491..f40be35 100644
+--- a/tests/celestao-checkout-client.test.mjs
++++ b/tests/celestao-checkout-client.test.mjs
+@@ -21,8 +21,9 @@ test('quote never supplies prices, keeps the stable run id and requires the orig
+  assert.deepEqual(JSON.parse(seen[0].options.body),{runId,expectedAddress:wallet});assert.equal(seen[0].options.redirect,'error');
+  auth={...auth,session:{...auth.session,expiresAt:now}};await assert.rejects(()=>client.quote(runId),/AUTH_REQUIRED/);assert.equal(seen.length,1);
+ });
+-test('both Celestao light routes skip the World snapshot and renderer bootstrap',()=>{
++test('the Celestao, 鼠道修仙 and GOLD guide light routes skip the World snapshot and renderer bootstrap',()=>{
+  const main=readFileSync(new URL('../src/main.tsx',import.meta.url),'utf8');
+- assert.match(main,/if\(!marketEntry&&!celestialEntry&&!celestialCheckout&&!collectionEntry&&!homeDemoEntry\)bootRead/);
+- for(const file of ['CelestaoGateway.tsx','CelestaoCheckout.tsx']){const code=readFileSync(new URL('../src/world/'+file,import.meta.url),'utf8');assert.doesNotMatch(code,/WebGLRenderer|WorldBootstrap|new Scene\(/);}
++ assert.match(main,/const lightEntry=celestialEntry\|\|celestialCheckout\|\|squeekEntry\|\|squeekCheckout\|\|goldGuide;/);
++ assert.match(main,/if\(!marketEntry&&!lightEntry&&!collectionEntry&&!homeDemoEntry\)bootRead/);
++ for(const file of ['CelestaoGateway.tsx','CelestaoCheckout.tsx','SqueekConnect.tsx','SqueekCheckout.tsx','GoldGuide.tsx']){const code=readFileSync(new URL('../src/world/'+file,import.meta.url),'utf8');assert.doesNotMatch(code,/WebGLRenderer|WorldBootstrap|new Scene\(/);}
+ });
+diff --git a/tests/presence.test.mjs b/tests/presence.test.mjs
+index 280b56e..10b21e2 100644
+--- a/tests/presence.test.mjs
++++ b/tests/presence.test.mjs
+@@ -16,7 +16,7 @@ const A='0x'+'a'.repeat(40),B='0x'+'b'.repeat(40);
+ const owners=map=>Object.assign(Array(2000).fill(null),map);
+ 
+ test('migrations: numbered files, applied in order, creating the tables and the sign-in budget columns and indexes',()=>{
+-  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql','0017_world_inventory.sql','0018_wallet_mining.sql','0019_celestao_wallet_bridge.sql','0020_celestao_checkouts.sql','0021_world_gold_fast_credit.sql','0023_celestao_annual_ziwei.sql','0024_world_gold_grants.sql']);
++  assert.deepEqual(migrationFiles(),['0001_wallet_login.sql','0002_sign_in_budgets.sql','0003_sign_in_layers.sql','0004_index_candidates.sql','0005_lanes_and_subnets.sql','0006_members.sql','0008_member_hardening.sql','0009_aimarket_bridge.sql','0010_world_economy.sql','0011_world_economy_staging.sql','0012_economy_reward_bindings.sql','0013_economy_reconciliation.sql','0014_world_gold_integration.sql','0015_world_gold_audit_hardening.sql','0016_world_gold_cross_path_guards.sql','0017_world_inventory.sql','0018_wallet_mining.sql','0019_celestao_wallet_bridge.sql','0020_celestao_checkouts.sql','0021_world_gold_fast_credit.sql','0023_celestao_annual_ziwei.sql','0024_world_gold_grants.sql','0025_squeek_store.sql']);
+   // Exact legacy identity schema; additive financial preservation is exercised
+   // separately against all migrations by economy-migration/world-gold tests.
+   const db=openD1(migrationFiles().filter(f=>Number(f.slice(0,4))<10)),tables=db.raw.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);
+diff --git a/tests/squeek-store.test.mjs b/tests/squeek-store.test.mjs
+new file mode 100644
+index 0000000..1265586
+--- /dev/null
++++ b/tests/squeek-store.test.mjs
+@@ -0,0 +1,237 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {fixture,W,B,NOW} from './world-gold-audit5-fixture.mjs';
++import {SESSION_COOKIE,sha256} from '../server/auth.ts';
++import {reconcileWorldGold,goldQuote} from '../server/world-gold.ts';
++import {payEconomyOrderGold} from '../server/economy-ledger.ts';
++import {runGoldServiceJobs} from '../server/world-gold-delivery.ts';
++import {createSqueekDelivery,handleSqueek,pruneSqueekAuth,squeekPkce,squeekSubject,squeekEntitlements} from '../server/squeek-store.ts';
++import {SQUEEK_ITEMS,SQUEEK_PRODUCTS,squeekRequestId} from '../src/shared/squeekCatalog.ts';
++import {squeekResume,squeekCheckoutParams,squeekReturnUrl} from '../src/world/squeekEntry.ts';
++import {parseSqueekCheckout,squeekEconomyOrder} from '../src/world/squeekCheckoutClient.ts';
++
++// Maps to the game's acceptance list (鼠道修仙-GOLD商店原企劃與測試.md, adjusted to single items on 2026-11-07).
++const ISSUER='https://imdember.com',GAME='https://squeekascension.celestao.com',REDIRECT=GAME+'/';
++const TOKEN='t'.repeat(43),TOKEN_B='u'.repeat(43),VERIFIER='v'.repeat(43),STATE='s'.repeat(32);
++const FROST=SQUEEK_ITEMS[0],SNOW=SQUEEK_ITEMS.find(i=>i.sku==='sky.first_snow.v1');
++const KEY='k'.repeat(30),KEY2='m'.repeat(30),SUBJECT_KEY='q'.repeat(48);
++const SAME={'sec-fetch-site':'same-origin'};
++async function setup(t,{release=true,deps={}}={}){const f=await fixture();t.after(f.close);
++ await f.admin({action:'product',product:'pack',kind:'topup',title:'Fixture funding',gold:'1000',embeo:'7',enabled:true,version:2});await f.topup();
++ const session=async(token,wallet)=>f.db.raw.prepare('INSERT INTO sessions(token_hash,address,chain_id,created_at,expires_at,nonce,wallet_type,verification_method) VALUES(?,?,1,?,?,?,?,?)').run(await sha256(token),wallet,NOW-1,NOW+3600000,'squeek-'+wallet,'EOA','ECDSA');
++ await session(TOKEN,W);await session(TOKEN_B,B);
++ if(release)f.db.raw.prepare("INSERT INTO squeek_release_actions(id,actor,catalogue,created_ms) VALUES('release-1','authorized-deployment','squeek-world-1',?)").run(NOW);
++ const d={db:f.db,config:f.config,enabled:true,ready:true,now:()=>NOW,allow:async()=>true,subjectKey:SUBJECT_KEY,...deps};
++ const call=(path,{method='GET',headers={},body,deps:extra={}}={})=>handleSqueek(new Request(ISSUER+'/api/squeek/'+path,{method,headers:{...body!==undefined?{'content-type':'application/json'}:{},...headers},...body!==undefined?{body:JSON.stringify(body)}:{}}),{...d,...extra});
++ const page=(route,value,{cookie=TOKEN,method=route==='state'?'GET':'POST'}={})=>call('checkout/'+route+(method==='GET'?'?'+new URLSearchParams(value):''),{method,headers:{origin:ISSUER,cookie:SESSION_COOKIE+'='+cookie},...method==='GET'?{}:{body:value}});
++ const login=async(cookie=TOKEN)=>{
++  const q=new URLSearchParams({client_id:'squeek-ascension',redirect_uri:REDIRECT,response_type:'code',code_challenge_method:'S256',code_challenge:await squeekPkce(VERIFIER),state:STATE,lang:'zh'});
++  const r=await call('authorize?'+q,{headers:{...SAME,cookie:SESSION_COOKIE+'='+cookie}});assert.equal(r.status,303);
++  const to=new URL(r.headers.get('location'));assert.equal(to.origin+to.pathname,REDIRECT);assert.equal(to.searchParams.get('world_state'),STATE);
++  const tok=await call('token',{method:'POST',headers:{origin:GAME},body:{grant_type:'authorization_code',client_id:'squeek-ascension',redirect_uri:REDIRECT,code:to.searchParams.get('world_code'),code_verifier:VERIFIER}});
++  assert.equal(tok.status,200);assert.equal(tok.headers.get('access-control-allow-origin'),GAME);return (await tok.json()).access_token;
++ };
++ const api=async(grant,path,init={})=>{const r=await call(path,{...init,headers:{origin:GAME,authorization:'Bearer '+grant,...init.headers}});return {status:r.status,body:r.status===204?null:await r.json()};};
++ const buy=async(sku=FROST.sku,key=KEY)=>{const r=await page('quote',{sku,requestKey:key,expectedAddress:W});return {status:r.status,body:await r.json()};};
++ const deliver=()=>runGoldServiceJobs(f.db,createSqueekDelivery(),()=>NOW);
++ const debits=()=>f.db.raw.prepare("SELECT count(*) n FROM economy_gold_journal WHERE kind='service-payment'").get().n;
++ return {...f,deps:d,call,page,login,api,buy,deliver,debits};
++}
++
++test('login is PKCE-bound, single-use and read-only; it never accepts another redirect or client',async t=>{const f=await setup(t);
++ const q=async(patch={})=>new URLSearchParams({client_id:'squeek-ascension',redirect_uri:REDIRECT,response_type:'code',code_challenge_method:'S256',code_challenge:await squeekPkce(VERIFIER),state:STATE,lang:'en',...patch});
++ assert.equal((await f.call('authorize?'+await q({redirect_uri:'https://evil.example/'}),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).status,400);
++ assert.equal((await f.call('authorize?'+await q({client_id:'celestao'}),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).status,400);
++ assert.equal((await f.call('authorize?'+await q())).status,401);
++ const nav=await f.call('authorize?'+await q(),{headers:{'sec-fetch-mode':'navigate',accept:'text/html'}});assert.equal(nav.status,303);
++ const resume=new URL(nav.headers.get('location'),ISSUER);assert.equal(resume.pathname,'/squeek-connect/');assert.equal(squeekResume(resume.searchParams.get('next')),resume.searchParams.get('next'));
++ const mint=async()=>new URL((await f.call('authorize?'+await q(),{headers:{...SAME,cookie:SESSION_COOKIE+'='+TOKEN}})).headers.get('location')).searchParams.get('world_code');
++ let code=await mint();
++ const exchange=(patch={})=>f.call('token',{method:'POST',headers:{origin:GAME},body:{grant_type:'authorization_code',client_id:'squeek-ascension',redirect_uri:REDIRECT,code,code_verifier:VERIFIER,...patch}});
++ assert.equal((await f.call('token',{method:'POST',headers:{origin:'https://evil.example'},body:{}})).status,403);
++ // Audit 64b1ce06 #4: a failed exchange consumes the code, so the right verifier afterwards gets nothing.
++ assert.equal((await exchange({code_verifier:'w'.repeat(43)})).status,401);
++ assert.equal((await exchange()).status,401);
++ code=await mint();
++ const ok=await exchange();assert.equal(ok.status,200);const grant=await ok.json();
++ assert.equal(grant.scope,'squeek:read');assert.equal(grant.subject_id,await squeekSubject(SUBJECT_KEY,W));assert.ok(!JSON.stringify(grant).includes(W.slice(2)));
++ assert.equal((await exchange()).status,401,'a code is single-use');
++ // The read-only grant cannot reach any payment route.
++ const pay=await f.call('checkout/quote',{method:'POST',headers:{origin:ISSUER,authorization:'Bearer '+grant.access_token},body:{sku:FROST.sku,requestKey:KEY,expectedAddress:W}});assert.equal(pay.status,401);
++ const pre=await f.call('snapshot',{method:'OPTIONS',headers:{origin:GAME}});assert.equal(pre.status,204);assert.equal(pre.headers.get('access-control-allow-credentials'),null);
++});
++
++test('catalogue: 11 cosmetics at 200 GOLD; closed until released and switched on',async t=>{
++ const closed=await setup(t,{release:false});
++ let c=await (await closed.call('catalog',{headers:{origin:GAME}})).json();
++ assert.equal(c.items.length,11);assert.ok(c.items.every(i=>i.amountGold==='200'));assert.equal(c.salesEnabled,false);
++ assert.equal((await closed.buy()).body.error,'SALES_CLOSED');
++ const off=await setup(t,{deps:{enabled:false}});c=await (await off.call('catalog')).json();assert.equal(c.salesEnabled,false);assert.equal((await off.buy()).body.error,'SALES_CLOSED');
++ const open=await setup(t);c=await (await open.call('catalog')).json();assert.equal(c.salesEnabled,true);
++ assert.deepEqual(open.db.raw.prepare("SELECT product,gold FROM world_gold_products WHERE product LIKE 'squeek-%' ORDER BY product").all().map(r=>r.product),[...SQUEEK_PRODUCTS].sort());
++ assert.throws(()=>open.db.raw.prepare("INSERT INTO squeek_release_actions(id,actor,catalogue,created_ms) VALUES('release-2','authorized-deployment','squeek-world-1',?)").run(NOW),/SQUEEK_RELEASE_BASELINE_CHANGED/);
++});
++
++test('PAY-01, PAY-06: one purchase takes 200 once; receipt, balance and cosmetic agree, and the order can be looked up',async t=>{const f=await setup(t);const grant=await f.login();
++ const before=(await f.api(grant,'snapshot')).body;assert.equal(before.balanceGold,'1000');assert.deepEqual(before.entitlements,[]);
++ const q=await f.buy();assert.equal(q.status,200);assert.equal(q.body.order.status,'pending');assert.equal(q.body.order.amountGold,'200');
++ assert.equal((await f.api(grant,'order?requestKey='+KEY)).body.order.status,'pending');
++ await f.pay(q.body.order.orderId);await f.deliver();
++ const after=(await f.api(grant,'snapshot')).body;assert.equal(after.balanceGold,'800');assert.deepEqual(after.entitlements,[FROST.sku]);assert.ok(after.revision>=before.revision);
++ const receipt=(await f.api(grant,'order?requestKey='+KEY)).body.order;assert.equal(receipt.status,'paid');assert.equal(receipt.requestKey,KEY);assert.equal(receipt.sku,FROST.sku);assert.equal(receipt.subjectId,after.subjectId);
++ assert.equal(f.debits(),1);assert.equal((await f.api(grant,'orders')).body.orders.length,1);
++ assert.equal((await f.api(grant,'order?requestKey='+KEY2)).status,404);
++});
++
++test('PAY-02: an owned cosmetic cannot be bought again and takes no GOLD, even through the generic World quote',async t=>{const f=await setup(t);
++ const q=await f.buy();await f.pay(q.body.order.orderId);await f.deliver();
++ const again=await f.buy(FROST.sku,KEY2);assert.equal(again.status,409);assert.equal(again.body.error,'ALREADY_OWNED');
++ // Audit 64b1ce06 #5: the generic World quote cannot create a cosmetic order at all, with or without an sq_ request id.
++ await assert.rejects(()=>f.quote(SNOW.product),/SQUEEK_CHECKOUT_REQUIRED/);
++ await assert.rejects(()=>goldQuote({db:f.db,config:f.config,nowMs:NOW,serviceReady:true},{wallet:W,requestId:squeekRequestId(KEY2),product:SNOW.product}),/SQUEEK_CHECKOUT_REQUIRED/);
++ assert.equal(f.debits(),1);assert.equal((await f.snapshot()).available,'800');
++});
++
++test('PAY-04: two tabs buying the same cosmetic are charged once; the other order is refused inside the debit transaction',async t=>{const f=await setup(t);
++ const a=(await f.buy(FROST.sku,KEY)).body.order.orderId,b=(await f.buy(FROST.sku,KEY2)).body.order.orderId;assert.notEqual(a,b);
++ const second=await f.challenge(b),batch=f.db.batch;
++ // Tab A pays between tab B's pre-check and tab B's debit.
++ f.db.batch=async list=>{f.db.batch=batch;await f.pay(a);return batch(list);};
++ await assert.rejects(()=>payEconomyOrderGold(f.db,f.config,second),/ALREADY_OWNED/);
++ assert.equal(f.debits(),1);assert.equal((await f.snapshot()).available,'800');
++ assert.equal(f.db.raw.prepare('SELECT status FROM economy_orders WHERE id=?').get(b).status,'pending');
++});
++
++test('PAY-05: retries reuse one order; a replayed signature charges once; a key cannot be reused for another cosmetic',async t=>{const f=await setup(t);
++ const ids=new Set();for(let i=0;i<20;i++)ids.add((await f.buy()).body.order.orderId);assert.equal(ids.size,1);const [id]=ids;
++ const signed=await f.challenge(id);for(let i=0;i<20;i++)await payEconomyOrderGold(f.db,f.config,signed);
++ assert.equal(f.debits(),1);assert.equal((await f.snapshot()).available,'800');
++ const other=await f.buy(SNOW.sku,KEY);assert.equal(other.status,409);assert.equal(other.body.error,'IDEMPOTENCY_CONFLICT');
++ const otherOrder=(await f.buy(SNOW.sku,KEY2)).body.order.orderId;
++ await assert.rejects(()=>payEconomyOrderGold(f.db,f.config,{...signed,orderId:otherOrder}),/GOLD_SIGNATURE_REQUIRED|INVALID_GOLD_SIGNATURE/);
++ assert.equal(f.debits(),1);
++});
++
++test('PAY-07, PAY-10: a failed delivery refunds once and removes the cosmetic; buying again charges once more',async t=>{const f=await setup(t);const grant=await f.login();
++ const id=(await f.buy()).body.order.orderId;await f.pay(id);
++ await runGoldServiceJobs(f.db,{id:'squeek-test-failure',products:SQUEEK_PRODUCTS,deliver:async()=>({kind:'terminal-failure',code:'TEST_FAILURE',proof:{kind:'provider-confirmed-nondelivery',reference:'test:squeek:1'}})},()=>NOW);
++ await reconcileWorldGold(f.db,NOW);
++ const snap=(await f.api(grant,'snapshot')).body;assert.equal(snap.balanceGold,'1000');assert.deepEqual(snap.entitlements,[]);
++ assert.ok(['refund_pending','refunded'].includes((await f.api(grant,'order?requestKey='+KEY)).body.order.status));
++ assert.equal(f.db.raw.prepare("SELECT count(*) n FROM world_gold_entries WHERE kind='service-refund'").get().n,1);
++ await reconcileWorldGold(f.db,NOW);assert.equal(f.db.raw.prepare("SELECT count(*) n FROM world_gold_entries WHERE kind='service-refund'").get().n,1);
++ const again=(await f.buy(FROST.sku,KEY2)).body.order.orderId;await f.pay(again);await f.deliver();
++ assert.equal((await f.snapshot()).available,'800');assert.deepEqual(await squeekEntitlements(f.db,W),[FROST.sku]);
++});
++
++test('PAY-08: the browser cannot set price, quantity or identity',async t=>{const f=await setup(t);
++ assert.equal((await f.page('quote',{sku:FROST.sku,requestKey:KEY,expectedAddress:W,amountGold:'1'})).status,400);
++ assert.equal((await f.page('quote',{sku:'aura.unknown.v1',requestKey:KEY,expectedAddress:W})).status,400);
++ const other=await f.page('quote',{sku:FROST.sku,requestKey:KEY,expectedAddress:B});assert.equal(other.status,409);assert.equal((await other.json()).error,'ACCOUNT_MISMATCH');
++ assert.equal((await f.call('checkout/quote',{method:'POST',headers:{origin:GAME,cookie:SESSION_COOKIE+'='+TOKEN},body:{sku:FROST.sku,requestKey:KEY,expectedAddress:W}})).status,403);
++ assert.equal(f.db.raw.prepare("SELECT count(*) n FROM economy_orders WHERE service_id LIKE 'squeek-%'").get().n,0);
++ const q=await f.buy();assert.equal(q.body.order.amountGold,'200');
++});
++
++test('PAY-09: an expired order or a short balance never charges and never goes negative',async t=>{const f=await setup(t);
++ const id=(await f.buy()).body.order.orderId;
++ await assert.rejects(async()=>payEconomyOrderGold(f.db,f.config,{...await f.challenge(id),nowMs:NOW+900001}),/ORDER_EXPIRED|CHALLENGE_EXPIRED/);
++ // Spend the balance down to 100 GOLD, then try a 200 GOLD cosmetic.
++ const keys=['a','b','c','d'].map(c=>c.repeat(30));
++ for(const [i,item] of SQUEEK_ITEMS.slice(1,5).entries()){const o=(await f.buy(item.sku,keys[i])).body.order.orderId;await f.pay(o);}
++ assert.equal((await f.snapshot()).available,'200');
++ const fifth=(await f.buy(SQUEEK_ITEMS[5].sku,'e'.repeat(30))).body.order.orderId;await f.pay(fifth);assert.equal((await f.snapshot()).available,'0');
++ const short=(await f.buy(SQUEEK_ITEMS[6].sku,'f'.repeat(30))).body.order.orderId;
++ await assert.rejects(()=>f.pay(short),/INSUFFICIENT_GOLD/);assert.equal((await f.snapshot()).available,'0');
++});
++
++test('DATA-02: a grant shows only its own wallet and ends with the World session',async t=>{const f=await setup(t);
++ const a=await f.login(),b=await f.login(TOKEN_B);
++ const q=await f.buy();await f.pay(q.body.order.orderId);await f.deliver();
++ assert.deepEqual((await f.api(a,'snapshot')).body.entitlements,[FROST.sku]);
++ const sb=(await f.api(b,'snapshot')).body;assert.deepEqual(sb.entitlements,[]);assert.notEqual(sb.subjectId,(await f.api(a,'snapshot')).body.subjectId);
++ assert.equal((await f.api(b,'order?requestKey='+KEY)).status,404);
++ assert.equal((await f.api(a,'logout',{method:'POST'})).status,204);assert.equal((await f.api(a,'snapshot')).status,401);
++ f.db.raw.prepare('UPDATE sessions SET revoked_at=? WHERE address=?').run(NOW,B);assert.equal((await f.api(b,'snapshot')).status,401);
++ assert.deepEqual(await pruneSqueekAuth(f.db,NOW+3600001),{codes:2,tokens:2});
++});
++
++test('delivery is in-World and only for 鼠道修仙 cosmetics',async t=>{
++ const p=createSqueekDelivery(),id='0x'+'1'.repeat(64);
++ assert.equal((await p.deliver({orderId:id,wallet:W,product:FROST.product,idempotencyKey:id})).kind,'delivered');
++ await assert.rejects(()=>p.deliver({orderId:id,wallet:W,product:'fortune-bazi',idempotencyKey:id}),/UNSUPPORTED_SERVICE/);
++ assert.equal(squeekRequestId(KEY),'sq_'+KEY);
++});
++
++test('page helpers accept only bounded links and server data that matches the catalogue',()=>{
++ assert.equal(squeekResume('/api/squeek/authorize?client_id=x'),null);assert.equal(squeekResume('https://evil.example/api/squeek/authorize'),null);
++ assert.equal(squeekCheckoutParams('?sku='+FROST.sku+'&request='+KEY).valid,true);assert.equal(squeekCheckoutParams('?sku=x&request='+KEY).valid,false);
++ assert.equal(squeekReturnUrl(KEY),REDIRECT+'?world_order='+KEY);assert.equal(squeekReturnUrl('<bad>'),REDIRECT);
++ const order={orderId:'0x'+'a'.repeat(64),requestKey:KEY,subjectId:'sq_x',sku:FROST.sku,status:'pending',amountGold:'200',createdAt:NOW,expiresAt:NOW+900000,paidAt:null};
++ const good={wallet:W,item:{sku:FROST.sku,amountGold:'200',kind:FROST.kind,nameZh:FROST.nameZh,nameEn:FROST.nameEn},owned:false,balanceGold:'1000',order,ready:true};
++ assert.equal(parseSqueekCheckout(good,FROST.sku,KEY,W).item.product,FROST.product);
++ assert.throws(()=>parseSqueekCheckout({...good,item:{...good.item,amountGold:'1'}},FROST.sku,KEY,W),/INVALID_RESPONSE/);
++ assert.throws(()=>parseSqueekCheckout({...good,order:{...order,amountGold:'1'}},FROST.sku,KEY,W),/INVALID_RESPONSE/);
++ assert.equal(squeekEconomyOrder(order,FROST).serviceId,FROST.product);
++});
++
++// ---- Audit 64b1ce06 ----
++test('64b1ce06 #1: the quote checkoutUrl is a link the checkout page accepts, in the player language',async t=>{const f=await setup(t);const grant=await f.login();
++ const orders=()=>f.db.raw.prepare("SELECT count(*) n FROM economy_orders").get().n,before=orders();
++ assert.equal((await f.api(grant,'quote?sku='+FROST.sku)).status,400,'the purchase key is required');
++ assert.equal((await f.api(grant,'quote?sku='+FROST.sku+'&requestKey='+KEY+'&lang=fr')).status,400);
++ assert.equal((await f.api(grant,'quote?sku='+FROST.sku+'&requestKey='+KEY+'&requestKey='+KEY2)).status,400);
++ const q=(await f.api(grant,'quote?sku='+FROST.sku+'&requestKey='+KEY+'&lang=en')).body,u=new URL(q.checkoutUrl);
++ assert.equal(u.origin+u.pathname,ISSUER+'/squeek-checkout/');
++ const parsed=squeekCheckoutParams(u.search);assert.equal(parsed.valid,true);assert.equal(parsed.requestKey,KEY);assert.equal(parsed.sku,FROST.sku);assert.equal(parsed.zh,false);
++ assert.equal(squeekCheckoutParams(new URL((await f.api(grant,'quote?sku='+FROST.sku+'&requestKey='+KEY)).body.checkoutUrl).search).zh,true);
++ assert.equal(orders(),before,'quote reserves nothing');
++});
++
++test('64b1ce06 #2: the token and Bearer routes spend a per-client budget first, before any database work',async t=>{
++ const keys=[],reads=[];const f=await setup(t);
++ const prepare=f.db.prepare.bind(f.db);f.db.prepare=sql=>{reads.push(sql);return prepare(sql);};
++ const deny=prefix=>({client:'198.51.100.7',allow:async k=>{keys.push(k);return !k.startsWith(prefix);},allowClient:async k=>{keys.push(k);return !k.startsWith(prefix);}});
++ for(let i=0;i<3;i++){const code=String.fromCharCode(97+i).repeat(43);
++  const r=await f.call('token',{method:'POST',headers:{origin:GAME},body:{grant_type:'authorization_code',client_id:'squeek-ascension',redirect_uri:REDIRECT,code,code_verifier:VERIFIER},deps:deny('squeek:token-client:')});
++  assert.equal(r.status,429);}
++ assert.ok(keys.every(k=>k==='squeek:token-client:198.51.100.7'),keys.join());assert.equal(reads.length,0);
++ keys.length=0;
++ for(let i=0;i<3;i++){const r=await f.call('snapshot',{headers:{origin:GAME,authorization:'Bearer '+String.fromCharCode(100+i).repeat(43)},deps:deny('squeek:api-client:')});assert.equal(r.status,429);}
++ assert.ok(keys.every(k=>k==='squeek:api-client:198.51.100.7'),keys.join());assert.equal(reads.length,0,'no grant lookup once the client budget is spent');
++ // A per-grant limit still applies, also before the grant lookup.
++ const r=await f.call('snapshot',{headers:{origin:GAME,authorization:'Bearer '+'z'.repeat(43)},deps:deny('squeek:api:')});assert.equal(r.status,429);assert.equal(reads.length,0);
++});
++
++test('64b1ce06 #3: the subject id is keyed and the game gets no part of the wallet address',async t=>{const f=await setup(t);const grant=await f.login();
++ const snap=(await f.api(grant,'snapshot')).body;
++ assert.equal(snap.subjectId,await squeekSubject(SUBJECT_KEY,W));assert.equal(Object.hasOwn(snap,'walletHint'),false);
++ assert.notEqual(snap.subjectId,'sq_'+(await sha256('squeek-subject-v1:'+W.toLowerCase())).slice(0,40),'not computable from the address alone');
++ assert.notEqual(await squeekSubject('r'.repeat(48),W),snap.subjectId);
++ for(const path of ['snapshot','orders','quote?sku='+FROST.sku+'&requestKey='+KEY]){const text=JSON.stringify((await f.api(grant,path)).body).toLowerCase();
++  assert.ok(!text.includes(W.slice(2,8).toLowerCase())&&!text.includes(W.slice(-4).toLowerCase()),path);}
++ for(const subjectKey of [undefined,'short','x'.repeat(43)+'!']){
++  assert.equal((await f.call('catalog',{headers:{origin:GAME},deps:{subjectKey}})).status,503);}
++});
++
++test('64b1ce06 #4: only a navigation made on World mints a code; links from other sites go through the consent page',async t=>{const f=await setup(t);
++ const q=new URLSearchParams({client_id:'squeek-ascension',redirect_uri:REDIRECT,response_type:'code',code_challenge_method:'S256',code_challenge:await squeekPkce('x'.repeat(43)),state:STATE,lang:'en'});
++ const codes=()=>f.db.raw.prepare('SELECT count(*) n FROM squeek_auth_codes').get().n;
++ for(const site of ['cross-site','same-site',null]){
++  const h={cookie:SESSION_COOKIE+'='+TOKEN,'sec-fetch-mode':'navigate',accept:'text/html',...site?{'sec-fetch-site':site}:{}};
++  const r=await f.call('authorize?'+q,{headers:h});assert.equal(r.status,303);
++  const to=new URL(r.headers.get('location'),ISSUER);assert.equal(to.pathname,'/squeek-connect/');assert.equal(to.searchParams.get('world_code'),null);
++  const fetched=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,...site?{'sec-fetch-site':site}:{}}});assert.equal(fetched.status,403);
++ }
++ assert.equal(codes(),0);
++ for(const site of ['same-origin','none']){const r=await f.call('authorize?'+q,{headers:{cookie:SESSION_COOKIE+'='+TOKEN,'sec-fetch-site':site}});
++  assert.equal(r.status,303);assert.ok(new URL(r.headers.get('location')).searchParams.get('world_code'));}
++ assert.equal(codes(),2);
++});
++
++test('64b1ce06 #5: the GOLD panel does not list 鼠道修仙 cosmetics and explains the two new refusals',async()=>{
++ const {readFile}=await import('node:fs/promises');const panel=await readFile(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++ assert.match(panel,/p\.enabled&&p\.kind==='service'&&!squeekByProduct\(p\.product\)/);
++ const {goldPurchaseError}=await import('../src/world/goldPurchaseRules.ts');
++ for(const code of ['ALREADY_OWNED','SQUEEK_CHECKOUT_REQUIRED'])for(const zh of [true,false])assert.notEqual(goldPurchaseError(code,zh),code);
++});
+diff --git a/tests/world-gold-grants.test.mjs b/tests/world-gold-grants.test.mjs
+index 8622ae9..b072e22 100644
+--- a/tests/world-gold-grants.test.mjs
++++ b/tests/world-gold-grants.test.mjs
+@@ -13,7 +13,7 @@ import {generatePrivateKey,privateKeyToAccount} from 'viem/accounts';
+ import {createHash} from 'node:crypto';
+ import {GOLD_GRANT_DAILY,GOLD_GRANT_DAILY_COUNT,GOLD_GRANT_DUPLICATE_MS,GOLD_GRANT_MAX,GOLD_GRANT_SIGNATURE_ASK_MS,GOLD_GRANT_SIGNATURE_MS,goldGrantMessage} from '../src/shared/goldGrants.ts';
+ import {createCelestaoDelivery} from '../server/celestao-delivery.ts';
+-import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand} from '../src/world/goldGrantRules.ts';
++import {grantAttemptFor,grantError,grantFormReady,signedGrantCommand,withinGrantLeft} from '../src/world/goldGrantRules.ts';
+ 
+ const NOW=Date.UTC(2026,9,18),DAY=86400000,ROOT='https://imdember.com',TOKEN='s'.repeat(43),RECIPIENT='0x'+'c'.repeat(40);
+ const [GRANT_A,THIRD_ADMIN,GRANT_B]=AIMARKET_ACTIVITY_ADMIN_WALLETS,ORDINARY='0x'+'a'.repeat(40);
+@@ -184,12 +184,23 @@ test('the form rules: a complete checked grant within the limit, and one id per
+  assert.equal(first.id,'id1');assert.equal(grantAttemptFor(first,'a',make).id,'id1');assert.equal(grantAttemptFor(first,'b',make).id,'id2');
+  assert.match(grantError('GRANT_DUPLICATE_RECENT',true),/10 分鐘/);assert.equal(grantError('OTHER',true),'OTHER');
+ });
++test('the form asks for no signature above what is left in the last 24 hours (audit 447bb70d)',()=>{
++ const good={to:RECIPIENT,gold:'2',checked:true};
++ assert.equal(grantFormReady({...good,left:'1',count:'96'}),false);assert.equal(grantFormReady({...good,gold:'1',left:'1',count:'96'}),true);
++ assert.equal(grantFormReady({...good,left:'20000',count:'0'}),false);assert.equal(grantFormReady({...good,left:'0',count:'5'}),false);
++ assert.equal(grantFormReady({...good,gold:'5000',left:'5000',count:'1'}),true);assert.equal(grantFormReady({...good,gold:'4999',left:'04999',count:'1'}),true);
++ assert.equal(grantFormReady(good),true,'no allowance read: the server still checks');assert.equal(grantFormReady({...good,left:'?',count:''}),true);
++ assert.equal(withinGrantLeft('19999','20000','100'),true);assert.equal(withinGrantLeft('6000','20000','100'),true,'above one grant is grantFormReady\'s job');assert.equal(withinGrantLeft('20000','19999','100'),false);
++ for(const zh of [true,false])assert.doesNotMatch(grantError('GRANT_DAILY_LIMIT',zh),/已達|is reached/);
++ const panel=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
++ assert.match(panel,/!withinGrantLeft\(grantGold,data\.grantLeft,data\.grantsLeft\)&&<small role="status">/);
++});
+ test('the client accepts the grant fields and the panel offers the form only when the server says so',async t=>{
+  const f=await fixture(t),state=await f.state();
+  assert.equal(parseWorldGold(state,GRANT_A).canGrant,true);assert.equal(parseWorldGold(state,GRANT_A).grantLeft,'20000');
+  const panel=readFileSync(new URL('../src/world/WorldGoldPanel.tsx',import.meta.url),'utf8');
+  assert.match(panel,/\{data\.canGrant&&<fieldset/);
+- assert.match(panel,/disabled=\{!grantFormReady\(\{to:grantTo,gold:grantGold,checked:grantChecked\}\)\|\|data\.grantLeft==='0'\|\|!signGrant\}/);
++ assert.match(panel,/disabled=\{!grantFormReady\(\{to:grantTo,gold:grantGold,checked:grantChecked,left:data\.grantLeft,count:data\.grantsLeft\}\)\|\|data\.grantLeft==='0'\|\|!signGrant\}/);
+  assert.match(panel,/grantAttempt\.current=grantAttemptFor\(grantAttempt\.current,key,economyRequestId\)/);
+  assert.match(panel,/run\(\(\)=>signedGrantCommand\(\{[^}]*\}\),id\)/);
+  assert.match(panel,/signedGrantCommand\(\{origin:location\.origin,admin:data\.wallet,to,gold:grantGold,reason,requestId:id,now:Date\.now\(\),sign:signGrant\}\)/);
+diff --git a/worker/app.ts b/worker/app.ts
+index 559c466..951969f 100644
+--- a/worker/app.ts
++++ b/worker/app.ts
+@@ -19,6 +19,7 @@ import {createAIMarketDelivery} from '../server/aimarket-delivery.ts';
+ import {createResearchPassDelivery} from '../server/research-pass.ts';
+ import {createCelestaoDelivery} from '../server/celestao-delivery.ts';
+ import {handleCelestaoCheckout} from '../server/celestao-checkout.ts';
++import {createSqueekDelivery,handleSqueek,pruneSqueekAuth} from '../server/squeek-store.ts';
+ import {handleWorldGoldReport} from '../server/world-gold-report.ts';
+ import {createEconomyRpc,syncEconomyChain,EconomyRpcError,ECONOMY_PROVIDER_LOG_BLOCK_RANGE,type EconomyRpc} from '../server/economy-rpc.ts';
+ import type {EconomyConfig} from '../server/economy-config.ts';
+@@ -38,7 +39,7 @@ type RateLimit={limit(options:{key:string}):Promise<{success:boolean}>};
+  *  chain reads; never sent to clients. AIMARKET_BRIDGE_SECRET: separate backend-only random SSO credential, never an
+  *  owner key; absent means bridge disabled. DB: D1 for sign-in and presence. CHAIN_MOCK_OWNERS: local E2E only (loopback). */
+ export type Env={WORLD_GOLD_GRANTS?:string;ASSETS:AssetsBinding;API_LIMITER?:RateLimit;SEAT_LIMITER?:RateLimit;AUTH_LIMITER?:RateLimit;CHAIN_LIMITER?:RateLimit;ALCHEMY_API_KEY?:string;
+-  DB?:D1Database;CHAIN_MOCK_OWNERS?:string;AIMARKET_BRIDGE_SECRET?:string;CELESTAO_BRIDGE_SECRET?:string;CELESTAO_DELIVERY_SECRET?:string;CELESTAO_PAID_ENABLED?:string;ECONOMY_LIMITER?:RateLimit;ECONOMY_CHAIN_LIMITER?:RateLimit;BRIDGE_LIMITER?:RateLimit};
++  DB?:D1Database;CHAIN_MOCK_OWNERS?:string;AIMARKET_BRIDGE_SECRET?:string;CELESTAO_BRIDGE_SECRET?:string;CELESTAO_DELIVERY_SECRET?:string;CELESTAO_PAID_ENABLED?:string;SQUEEK_SALES_ENABLED?:string;SQUEEK_SUBJECT_KEY?:string;ECONOMY_LIMITER?:RateLimit;ECONOMY_CHAIN_LIMITER?:RateLimit;BRIDGE_LIMITER?:RateLimit};
+ export type Context={waitUntil(promise:Promise<unknown>):void};
+ /** The research server's and Celestao's per-request session checks ('aimarket:session:*', 'celestao:session:*') get their own, larger budget (wrangler.jsonc
+  *  BRIDGE_LIMITER) when it is bound; every other bridge key, and local runs without it, keep AUTH_LIMITER. */
+@@ -157,7 +158,7 @@ export type EconomyWorkerDeps={config:()=>Promise<EconomyConfig|null>;rpc?:(env:
+ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstreamFetch,now:()=>number=Date.now,collections=CHARACTER_COLLECTIONS,
+   edgeCache:()=>EdgeCache|undefined=defaultCache,economy:EconomyWorkerDeps={config:reviewedEconomyConfig}) {
+   const ownership=new Ownership(gateway,collections),noCode=new Map<string,number>();   // per isolate (server/auth.ts NoCodeCache)
+-  const deliveryFor=(env:Env)=>economy.delivery??combineGoldProviders(createAIMarketDelivery(env.AIMARKET_BRIDGE_SECRET,chainFetch,now),createCelestaoDelivery(env.DB,env.CELESTAO_DELIVERY_SECRET,chainFetch,now),createResearchPassDelivery());
++  const deliveryFor=(env:Env)=>economy.delivery??combineGoldProviders(createAIMarketDelivery(env.AIMARKET_BRIDGE_SECRET,chainFetch,now),createCelestaoDelivery(env.DB,env.CELESTAO_DELIVERY_SECRET,chainFetch,now),createResearchPassDelivery(),env.SQUEEK_SALES_ENABLED==='1'?createSqueekDelivery():undefined);
+   /** The economy RPC under ECONOMY_CHAIN_LIMITER (the finalized indexer's key). */
+   const economyRpc=(env:Env,key:'economy:rpc'):EconomyRpc=>{
+     const base=economy.rpc?.(env)??createEconomyRpc({key:env.ALCHEMY_API_KEY||undefined,fetch:chainFetch});
+@@ -194,6 +195,13 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+           ready:deliveryFor(env)?.products?.some(p=>p.startsWith('fortune-'))===true,config:await economy.config(),now,client:rateLimitKey(ip),allow:key=>allow('home',key)});
+         if(checkout)return checkout;
+       }
++      // 鼠道修仙: read-only identity for the game and the World checkout page. Sales stay closed unless SQUEEK_SALES_ENABLED=1.
++      if(new URL(request.url).pathname.startsWith('/api/squeek/')){
++        const squeek=await handleSqueek(request,{db:env.DB,config:await economy.config().catch(()=>null),enabled:env.SQUEEK_SALES_ENABLED==='1',
++          ready:deliveryFor(env)?.products?.some(p=>p.startsWith('squeek-'))===true,now,client:rateLimitKey(ip),allow:key=>allow('home',key),allowClient:key=>allow('api',key),
++          subjectKey:env.SQUEEK_SUBJECT_KEY});
++        if(squeek)return squeek;
++      }
+       const bridge=await handleAIMarketAuth(request,{db:env.DB,secret:env.AIMARKET_BRIDGE_SECRET,now,client:rateLimitKey(ip),
+         allow:async key=>{const limiter=authBudget(env,key);if(!limiter)throw new LimiterMissing('AUTH_LIMITER');return (await limiter.limit({key})).success;}});
+       if(bridge)return bridge;
+@@ -259,12 +267,13 @@ export function createWorker(gateway:ReadGateway,chainFetch:typeof fetch=upstrea
+       if(env.AIMARKET_BRIDGE_SECRET)ctx.waitUntil(pruneAIMarketAuth(env.DB,probeNow).then(r=>console.log('aimarket_bridge_cleanup',JSON.stringify(r)))
+         .catch(()=>console.log('aimarket_bridge_cleanup',JSON.stringify({status:'unavailable'}))));
+       if(env.CELESTAO_BRIDGE_SECRET)ctx.waitUntil(pruneCelestaoAuth(env.DB,probeNow).catch(()=>{}));
++      ctx.waitUntil(pruneSqueekAuth(env.DB,probeNow).catch(()=>{}));
+     }
+   };
+ }
+ 
+ /** The same paths as assets.run_worker_first in wrangler.jsonc (tests/worker.test.mjs compares them). */
+-export const WORKER_ROUTES:readonly string[]=['/api/world/','/api/auth/','/api/me/','/api/wallet/','/api/aimarket-auth/','/api/celestao-auth/','/api/celestao-checkout/','/api/economy/','/api/gold/'];
++export const WORKER_ROUTES:readonly string[]=['/api/world/','/api/auth/','/api/me/','/api/wallet/','/api/aimarket-auth/','/api/celestao-auth/','/api/celestao-checkout/','/api/squeek/','/api/economy/','/api/gold/'];
+ /** Content-hashed files, cached for a week by public/_headers. */
+ const HASHED_FILES=/^\/(?:assets|audio)\//;
+ /** The entry's wrapper, now that assets.not_found_handling is "none" and a path with no file comes here. A missing hashed
+diff --git a/wrangler.jsonc b/wrangler.jsonc
+index e6e9ec4..a8a3a9d 100644
+--- a/wrangler.jsonc
++++ b/wrangler.jsonc
+@@ -30,7 +30,7 @@
+     // Do not set run_worker_first to true, and never enable "cache" (Workers Cache bills every asset request).
+     // The wallet routes (server/auth.ts): sign-in, the session's home, and a wallet's public assets.
+     // AIMarket SSO stays disabled until 0009 is applied and its independent AIMARKET_BRIDGE_SECRET is configured.
+-    "run_worker_first": ["/api/world/*", "/api/auth/*", "/api/me/*", "/api/wallet/*", "/api/aimarket-auth/*", "/api/celestao-auth/*", "/api/celestao-checkout/*", "/api/economy/*", "/api/gold/*"]
++    "run_worker_first": ["/api/world/*", "/api/auth/*", "/api/me/*", "/api/wallet/*", "/api/aimarket-auth/*", "/api/celestao-auth/*", "/api/celestao-checkout/*", "/api/squeek/*", "/api/economy/*", "/api/gold/*"]
+   },
+   "routes": [{ "pattern": "imdember.com", "custom_domain": true }],
+   // workers.dev stays off: a brand-new account has no workers.dev subdomain, and a non-interactive deploy that asks
