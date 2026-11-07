@@ -1,0 +1,137 @@
+From 69ad4b5be1d4e08f23318cc3cc9797b5b157f5b2 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Sun, 8 Nov 2026 00:17:34 +0800
+Subject: [PATCH] Fix audit 48111df0 (3 Info): spend codes on every malformed
+ exchange, revoke on reuse in both branches, keep code rows for a grant
+ lifetime
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/squeek-store.ts      | 31 ++++++++++++++++++++-----------
+ tests/squeek-store.test.mjs | 30 +++++++++++++++++++++++++++++-
+ 2 files changed, 49 insertions(+), 12 deletions(-)
+
+diff --git a/server/squeek-store.ts b/server/squeek-store.ts
+index 6818165..274b1de 100644
+--- a/server/squeek-store.ts
++++ b/server/squeek-store.ts
+@@ -40,12 +40,16 @@ function config(deps:SqueekDeps):Config|null{
+  }catch{return null;}
+ }
+ function clock(deps:SqueekDeps){const n=(deps.now??Date.now)();if(!Number.isSafeInteger(n)||n<=0)throw Error('INVALID_CLOCK');return n;}
+-async function body(request:Request,keys:readonly string[]):Promise<Record<string,unknown>|null>{
+- if(!/^application\/json\s*(;|$)/i.test(request.headers.get('content-type')??'')||Number(request.headers.get('content-length'))>2048||!request.body)return null;
++const JSON_TYPE=/^application\/json\s*(;|$)/i;
++const exact=(v:Record<string,unknown>|null,keys:readonly string[])=>v&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k))?v:null;
++async function body(request:Request,keys:readonly string[]):Promise<Record<string,unknown>|null>{return exact(await json(request),keys);}
++/** At most 2048 bytes of a JSON object. anyType: read it whatever the Content-Type says (the token route decides afterwards). */
++async function json(request:Request,anyType=false):Promise<Record<string,unknown>|null>{
++ if(!anyType&&!JSON_TYPE.test(request.headers.get('content-type')??'')||Number(request.headers.get('content-length'))>2048||!request.body)return null;
+  const reader=request.body.getReader(),chunks:Uint8Array[]=[];let length=0;
+  for(;;){const r=await reader.read();if(r.done)break;length+=r.value.byteLength;if(length>2048){await reader.cancel().catch(()=>{});return null;}chunks.push(r.value);}
+  const bytes=new Uint8Array(length);let at=0;for(const c of chunks){bytes.set(c,at);at+=c.length;}
+- try{const v=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));return v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k))?v:null;}catch{return null;}
++ try{const v=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));return v&&typeof v==='object'&&!Array.isArray(v)?v:null;}catch{return null;}
+ }
+ /** The game sees a stable pseudonym and no part of the wallet address. It is an HMAC under a Worker secret, so it cannot be
+  * computed from an address list. The key must never be rotated: every subject id would change. */
+@@ -124,13 +128,18 @@ async function authorize(request:Request,url:URL,deps:SqueekDeps,cfg:Config,db:D
+  if(!row)return reply(401,{error:'AUTH_REQUIRED'});
+  const target=new URL(cfg.redirect);target.searchParams.set('world_code',code);target.searchParams.set('world_state',q.state);return reply(303,null,{Location:target.href});
+ }
+-async function token(request:Request,deps:SqueekDeps,cfg:Config,db:D1Database,headers:Record<string,string>){
++/** A code presented again after it was used means it leaked: revoke the grant issued on it (RFC 6749 4.1.2). */
++const revokeReused=(db:D1Database,now:number,hash:string)=>db.prepare(`UPDATE squeek_tokens SET revoked_at=?1 WHERE revoked_at IS NULL AND token_hash=(SELECT token_hash FROM squeek_auth_codes WHERE code_hash=?2 AND token_hash<>'rejected')`).bind(now,hash).run();
++async function token(request:Request,deps:SqueekDeps,cfg:Config,db:D1Database,headers:Record<string,string>,search:boolean){
+  // Per client first: a caller-chosen code must not open a fresh budget.
+  if(!await deps.allow!('squeek:token-client:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},{...headers,'Retry-After':'60'});
+- const b=await body(request,['grant_type','client_id','redirect_uri','code','code_verifier']);
++ const raw=await json(request,true),b=!search&&JSON_TYPE.test(request.headers.get('content-type')??'')?exact(raw,['grant_type','client_id','redirect_uri','code','code_verifier']):null;
+  if(!b||b.grant_type!=='authorization_code'||b.client_id!==SQUEEK_CLIENT_ID||b.redirect_uri!==cfg.redirect||typeof b.code!=='string'||!OPAQUE.test(b.code)||typeof b.code_verifier!=='string'||!OPAQUE.test(b.code_verifier)){
+-  // A well-formed code that arrives with anything else wrong is spent as well: one attempt per code.
+-  if(b&&typeof b.code==='string'&&OPAQUE.test(b.code))await db.prepare(`UPDATE squeek_auth_codes SET consumed_at=?1,token_hash='rejected' WHERE code_hash=?2 AND consumed_at IS NULL`).bind(clock(deps),await sha256(b.code)).run();
++  // A well-formed code that arrives with anything else wrong (fields, key set, content type, query string) is spent as
++  // well: one attempt per code. If it was already used, the grant issued on it is revoked, as on the main path.
++  if(raw&&typeof raw.code==='string'&&OPAQUE.test(raw.code)){const n=clock(deps),h=await sha256(raw.code);
++   const spent=await db.prepare(`UPDATE squeek_auth_codes SET consumed_at=?1,token_hash='rejected' WHERE code_hash=?2 AND consumed_at IS NULL`).bind(n,h).run();
++   if(!Number(spent.meta?.changes))await revokeReused(db,n,h);}
+   return reply(400,{error:'BAD_REQUEST'},headers);
+  }
+  const [hash,challenge]=await Promise.all([sha256(b.code),squeekPkce(b.code_verifier)]);
+@@ -148,8 +157,7 @@ async function token(request:Request,deps:SqueekDeps,cfg:Config,db:D1Database,he
+    .bind(now,now+SQUEEK_TOKEN_TTL_MS,hash,grantHash)
+  ]);
+  const row=rows[1]?.results[0] as {address:string;expires_at:number}|undefined;
+- // A code presented again after it was used means it leaked: revoke the grant issued on it (RFC 6749 4.1.2).
+- if(rows[0]?.results.length===0)await db.prepare(`UPDATE squeek_tokens SET revoked_at=?1 WHERE revoked_at IS NULL AND token_hash=(SELECT token_hash FROM squeek_auth_codes WHERE code_hash=?2 AND token_hash<>'rejected')`).bind(now,hash).run();
++ if(rows[0]?.results.length===0)await revokeReused(db,now,hash);
+  if(rows[0]?.results.length!==1||(rows[0].results[0] as {token_hash:string}).token_hash!==grantHash||!row)return reply(401,{error:'INVALID_GRANT'},headers);
+  return reply(200,{token_type:'Bearer',access_token:grant,scope:'squeek:read',expires_at:row.expires_at,subject_id:await squeekSubject(cfg.subjectKey,row.address)},headers);
+ }
+@@ -214,7 +222,7 @@ export async function handleSqueek(request:Request,deps:SqueekDeps):Promise<Resp
+  try{
+   if(route==='catalog'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);if(!await deps.allow('squeek:catalog:'+(deps.client??'unknown')))return reply(429,{error:'RATE_LIMITED'},cors);
+    return reply(200,{catalogVersion:SQUEEK_CATALOG_VERSION,salesEnabled:await salesOpen(db,deps),items:SQUEEK_ITEMS.map(item)},cors);}
+-  if(route==='token'){if(url.search)return reply(400,{error:'BAD_REQUEST'},cors);return await token(request,deps,cfg,db,cors);}
++  if(route==='token')return await token(request,deps,cfg,db,cors,url.search!=='');
+   const tokenValue=bearer(request);if(!tokenValue)return reply(401,{error:'AUTH_REQUIRED'},{...cors,'WWW-Authenticate':'Bearer'});
+   // Both budgets before any database read: per client (a fresh random token must not open a new one), then per grant.
+   if(!await (deps.allowClient??deps.allow)('squeek:api-client:'+(deps.client??'unknown'))||!await deps.allow('squeek:api:'+(await sha256(tokenValue)).slice(0,32)))return reply(429,{error:'RATE_LIMITED'},{...cors,'Retry-After':'60'});
+@@ -242,7 +250,8 @@ export async function handleSqueek(request:Request,deps:SqueekDeps):Promise<Resp
+ export async function pruneSqueekAuth(db:D1Database,now:number){
+  if(!Number.isSafeInteger(now)||now<0)throw Error('INVALID_CLOCK');
+  const [codes,tokens]=await db.batch([
+-  db.prepare('DELETE FROM squeek_auth_codes WHERE code_hash IN (SELECT code_hash FROM squeek_auth_codes WHERE expires_at<=?1 ORDER BY expires_at LIMIT 200)').bind(now),
++  // A code row is kept until every grant made from it has expired, so a replayed code can still revoke its grant.
++  db.prepare('DELETE FROM squeek_auth_codes WHERE code_hash IN (SELECT code_hash FROM squeek_auth_codes WHERE expires_at<=?1 ORDER BY expires_at LIMIT 200)').bind(now-SQUEEK_TOKEN_TTL_MS),
+   db.prepare('DELETE FROM squeek_tokens WHERE token_hash IN (SELECT token_hash FROM squeek_tokens WHERE expires_at<=?1 ORDER BY expires_at LIMIT 200)').bind(now)
+  ]);return {codes:Number(codes.meta.changes??0),tokens:Number(tokens.meta.changes??0)};
+ }
+diff --git a/tests/squeek-store.test.mjs b/tests/squeek-store.test.mjs
+index 53af1ba..0407e5a 100644
+--- a/tests/squeek-store.test.mjs
++++ b/tests/squeek-store.test.mjs
+@@ -153,7 +153,9 @@ test('DATA-02: a grant shows only its own wallet and ends with the World session
+  assert.equal((await f.api(b,'order?requestKey='+KEY)).status,404);
+  assert.equal((await f.api(a,'logout',{method:'POST'})).status,204);assert.equal((await f.api(a,'snapshot')).status,401);
+  f.db.raw.prepare('UPDATE sessions SET revoked_at=? WHERE address=?').run(NOW,B);assert.equal((await f.api(b,'snapshot')).status,401);
+- assert.deepEqual(await pruneSqueekAuth(f.db,NOW+3600001),{codes:2,tokens:2});
++ // Codes are kept one grant lifetime past their own expiry (audit 48111df0 #3).
++ assert.deepEqual(await pruneSqueekAuth(f.db,NOW+3600001),{codes:0,tokens:2});
++ assert.deepEqual(await pruneSqueekAuth(f.db,NOW+60000+3600000),{codes:2,tokens:0});
+ });
+ 
+ test('delivery is in-World and only for 鼠道修仙 cosmetics',async t=>{
+@@ -296,3 +298,29 @@ test('85163d96 #6: the checkout page shows ALREADY_OWNED instead of a payment bu
+  assert.match(page,/throw Error\('CONTEXT_CHANGED'\);if\(latest\.owned\)throw Error\('ALREADY_OWNED'\);const order=squeekEconomyOrder/);
+  assert.match(page,/\{status\?<p role="status">\{status\}<\/p>:data\.owned\?<p role="status">\{ERRORS\.ALREADY_OWNED\[zh\?0:1\]\}<\/p>:order\.expiresAt/);
+ });
++
++// ---- Audit 48111df0 ----
++test('48111df0 #1: any failed exchange that names a well-formed code spends it: extra or missing key, other content type, query string',async t=>{const f=await setup(t);
++ const body=extra=>({grant_type:'authorization_code',client_id:'squeek-ascension',redirect_uri:REDIRECT,code_verifier:VERIFIER,...extra});
++ const send=(code,{json=body({code}),type='application/json',path='token'}={})=>f.call(path,{method:'POST',headers:{origin:GAME,'content-type':type},body:json});
++ const cases=[c=>send(c,{json:body({code:c,extra:1})}),c=>{const j=body({code:c});delete j.code_verifier;return send(c,{json:j});},c=>send(c,{type:'text/plain'}),c=>send(c,{path:'token?x=1'})];
++ for(const [i,attempt] of cases.entries()){const code=await mintCode(f);
++  assert.equal((await attempt(code)).status,400,'case '+i);assert.equal((await exchangeCode(f,code)).status,401,'case '+i);
++  assert.equal(f.db.raw.prepare('SELECT token_hash FROM squeek_auth_codes WHERE code_hash=?').get(await sha256(code)).token_hash,'rejected');}
++ assert.equal(f.db.raw.prepare('SELECT count(*) n FROM squeek_tokens').get().n,0);
++});
++
++test('48111df0 #2: a used code replayed with any field wrong revokes its grant too',async t=>{const f=await setup(t);
++ for(const patch of [{client_id:'celestao'},{redirect_uri:REDIRECT+'x'},{code_verifier:'short'}]){
++  const code=await mintCode(f),grant=(await (await exchangeCode(f,code)).json()).access_token;assert.equal((await f.api(grant,'snapshot')).status,200);
++  assert.equal((await exchangeCode(f,code,patch)).status,400);assert.equal((await f.api(grant,'snapshot')).status,401,JSON.stringify(patch));}
++ const other=await f.login(),bad=await mintCode(f);assert.equal((await exchangeCode(f,bad,{client_id:'celestao'})).status,400);assert.equal((await exchangeCode(f,bad,{client_id:'celestao'})).status,400);
++ assert.equal((await f.api(other,'snapshot')).status,200,'a code spent by mistake revokes nothing');
++});
++
++test('48111df0 #3: a replay revokes the grant for its whole lifetime, also after the quarter-hour prune',async t=>{const f=await setup(t);
++ const code=await mintCode(f),grant=(await (await exchangeCode(f,code)).json()).access_token;
++ const late=NOW+59*60000;assert.deepEqual(await pruneSqueekAuth(f.db,late),{codes:0,tokens:0});
++ assert.equal((await f.call('token',{method:'POST',headers:{origin:GAME},body:{grant_type:'authorization_code',client_id:'squeek-ascension',redirect_uri:REDIRECT,code,code_verifier:VERIFIER},deps:{now:()=>late}})).status,401);
++ assert.equal((await f.call('snapshot',{headers:{origin:GAME,authorization:'Bearer '+grant},deps:{now:()=>late}})).status,401);
++});
+-- 
+2.55.0.windows.5
+

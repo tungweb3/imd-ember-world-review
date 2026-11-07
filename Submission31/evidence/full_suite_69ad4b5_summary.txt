@@ -1,0 +1,21 @@
+World source 69ad4b5be1d4e08f23318cc3cc9797b5b157f5b2
+node --test --test-concurrency=2 tests/*.test.mjs, on these exact file contents
+✖ the locked wallet files match the audited version (28.616ms)
+ℹ tests 3952
+ℹ pass 3946
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+✖ failing tests:
+✖ the locked wallet files match the audited version (28.616ms)
+The one failure is "the locked wallet files match the audited version": server/economy-recovery.ts, server/world-gold-api.ts, server/world-gold.ts, src/world/CelestaoCheckout.tsx, src/world/WorldGoldPanel.tsx, src/world/economyWallet.ts, src/world/goldPurchaseRules.ts, src/world/worldGoldClient.ts, tests/economy-client.test.mjs differ from the audited hashes.
+None of them changed in this round. The manifest has not been refreshed yet; the owner decides that after this package is published.
+tsc --noEmit: 0 errors
+tests/squeek-store.test.mjs alone: 26 tests, 26 pass (23 from Submission30, 3 new for 48111df0).
+Removal checks, one at a time, each restored afterwards; each made at least one store test fail:
+- the token body read only with a JSON Content-Type again (finding 1)
+- the spend decided from the strict body again (finding 1)
+- no revoke in the 400 branch (finding 2)
+- code rows pruned at their own expiry again (finding 3)
+Nothing under integrations/celestao changed since 0cba662.
