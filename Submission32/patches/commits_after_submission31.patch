@@ -1,0 +1,276 @@
+From 1eb74faeeef8e8840247967a045698762ecc653a Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Sun, 8 Nov 2026 00:44:05 +0800
+Subject: [PATCH 1/4] Refresh the wallet lock after the closed Swarm audit
+ cycle
+
+The nine locked files changed in Submission23 to 30 were reviewed in jobs
+521bc017, 37a926e3, 6fc92ac1, 447bb70d, 64b1ce06, 85163d96 and 48111df0;
+Submission31 (e42b9f1) closed the cycle. The owner approved go-live on
+2026-11-08.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ security/wallet-lock.json | 36 +++++++++++++++++++++++++++---------
+ 1 file changed, 27 insertions(+), 9 deletions(-)
+
+diff --git a/security/wallet-lock.json b/security/wallet-lock.json
+index [omitted] 100644
+--- a/security/wallet-lock.json
++++ b/security/wallet-lock.json
+@@ -34,20 +34,20 @@
+     "tests/wallet-client.test.mjs": "1c0d3d7056a76ffad01318521d1ed874d0db3df10c64447e9d1d87c6ec1aacc2",
+     "tests/wallet-harness.mjs": "20d5e9b6e001cc2476f077a9ef7d4529860a28f73e675c00481a7c4be2b3ba26",
+     "migrations/0021_world_gold_fast_credit.sql": "f619dd23adc964bb1f49f7c82d0508d51e6e81fb24eb381e551bc23bac4e2240",
+-    "server/economy-recovery.ts": "79889fa32ed288f98964742286fd59263f248e74aaeaeb19fccbfe361a296f43",
++    "server/economy-recovery.ts": "66f37566637c642e0462445d3b2206ed80f09f6d2ed9069a5a8436134790b736",
+     "server/economy-rpc.ts": "53becc8d5f6e2b29316f82d95cc88d9fc755dfeeb7ac8df82445b92a209756be",
+-    "server/world-gold-api.ts": "646c5e45bda4023d0ad0b94ba493f9c9c74176d49d1d5be027a8e7ee3cfb0296",
++    "server/world-gold-api.ts": "763e706bbbf9042ad20b34bae6dbeea56a22eaea2718083836107eb23b1812e3",
+     "server/world-gold-fast.ts": "d0da654bb0fdd0aaae5d10fcae21476dedcc7cfd2023a385123f8bdd4d300a3b",
+-    "server/world-gold.ts": "4dc72dec22826fe419c3a6de448a701ec8eaf0c889379ccdfcaec9958177d44f",
++    "server/world-gold.ts": "8eb155713acb0095a49876ba042314c7644f1fedea6017ce72242de8afbf550c",
+     "src/world/AIMarketPane.tsx": "65e6ebb4a3b1e8a26f8a7b4401e363ab47a2345a338144f63d8b1a77c8f88336",
+-    "src/world/CelestaoCheckout.tsx": "815920a6b6340e4b72df596bde8fd972d6956fa10783424b4e2cb404e56a50e8",
++    "src/world/CelestaoCheckout.tsx": "271741f55e76243ec8964f1f66af1a51c4030b84c92792f5f734710ac034150d",
+     "src/world/celestaoCheckoutClient.ts": "48b4b933362e2fda6bd2aa7e26cfe1e7cee31f9b3443c29254b2409d51833f3f",
+     "src/world/EconomyPane.tsx": "bc3be6146941ad8992545f80052e4a240137a0a788d6a28bb83e6b9474e5905e",
+     "src/world/economyClient.ts": "c0780b956a284826d9ab3e56f40cbe7993bc70dcd86de08f7cb55a7b46eb2cd4",
+-    "src/world/economyWallet.ts": "1dd7442fb852e4882ee72bb54490333d99552852689729faa907041937a39a04",
++    "src/world/economyWallet.ts": "aa201e2692aa293aa3047dae5822e2de69d3eef09189bde83b78bd77fff977b8",
+     "src/world/GoldPurchase.tsx": "8de249a391ccf84c3508f6d2e1ce189529210e6f27bb8aa2fa4fe3e351492b2c",
+     "src/world/goldPurchasePreview.tsx": "b9b5a474510276f1a92c8b5a931226d873f084aa1fad81b67cc9e50263dd13a9",
+-    "src/world/goldPurchaseRules.ts": "aa3eb14a23fba144c335d969b3368b993a7c2f486618d9478625eeaa38a1f64c",
++    "src/world/goldPurchaseRules.ts": "4e092ec63995889ec6093bfc1d1a0b198bb6cdb6dfe608fcb9e9b9bd5f6a4907",
+     "src/world/memberBalancesClient.ts": "c9ea76085210a09438e22db9aebafc11be132b6e1d96287ad5a7535c70fc409f",
+     "src/world/MiningPanel.tsx": "242104e49b975489ea84e8a3950bd80d7cc68b0139c13053fbed807891aa0bdd",
+     "src/world/pendingGoldCredit.ts": "d19f8d72bd6f4adb4372c151cb1f6a623b023e4e5699cab97487451e69fbb608",
+@@ -55,9 +55,9 @@
+     "src/world/useMemberBalances.ts": "16dc61eca0aeddd666db2d18513ebf1ddae647e7ce0203f8ec67e3b88b75196d",
+     "src/world/WalletBalanceHud.tsx": "cdf898e298e289255874e573155a0975d9738b38766abd9440a0146944132c7c",
+     "src/world/WalletBalancesBlock.tsx": "b3f3b85cf1e42a6b7b802ff3e3e05fe14b2ee9d2dc3f02242d0d84037445a3ba",
+-    "src/world/worldGoldClient.ts": "9a668e1988f2a487aac661464f167544be2b1ab4bf25c882e78aff843923c642",
+-    "src/world/WorldGoldPanel.tsx": "2d6edea6b41a8d606f65f2156c9e1de828f493c0a9e25ec71c6b9dfffc048b93",
+-    "tests/economy-client.test.mjs": "c988c25cd9882b38f43dabbba819f154064adffba131dd342fab39214e1ec6a3",
++    "src/world/worldGoldClient.ts": "8fa63f0b4f695af8924a23a48dbef143831c178f2839c92e291fa33c3a038da6",
++    "src/world/WorldGoldPanel.tsx": "c3d8416491209cd4e902a60803daeaa82139473dbbb9ea34bba63f193d691f79",
++    "tests/economy-client.test.mjs": "11beb28b90041ad7d5793c53349f59ee047933e97a01e21535f8b6a1b96c2b8c",
+     "tests/economy-pane.test.mjs": "e96e894e0a792336072ee8522dbf8e6b4899ed1427d4ada3d0619f3d780da425",
+     "tests/economy-wallet-recovery.test.mjs": "3a85d2270fd53150d7c1b1f1d76629c23cc00d7fa6c429803a0d5caf282bcd79",
+     "tests/gold-purchase-ui.test.mjs": "2979850728b995cfc443cabb8f19e84ccfbeffd27053f5d9c81c4b80eb928509",
+@@ -150,6 +150,24 @@
+         "scripts/wallet-lock.mjs",
+         "tests/wallet-lock.test.mjs"
+       ]
++    },
++    {
++      "date": "2026-11-07T16:43:58.807Z",
++      "head": "69ad4b5",
++      "reason": "Swarm audit cycle closed 2026-11-08: Submission23-30 (jobs 521bc017, 37a926e3, 6fc92ac1, 447bb70d, 64b1ce06, 85163d96, 48111df0), Submission31 published e42b9f1; owner approved go-live 2026-11-08",
++      "changed": [
++        "server/economy-recovery.ts",
++        "server/world-gold-api.ts",
++        "server/world-gold.ts",
++        "src/world/CelestaoCheckout.tsx",
++        "src/world/WorldGoldPanel.tsx",
++        "src/world/economyWallet.ts",
++        "src/world/goldPurchaseRules.ts",
++        "src/world/worldGoldClient.ts",
++        "tests/economy-client.test.mjs"
++      ],
++      "missing": [],
++      "added": []
+     }
+   ]
+ }
+-- 
+2.55.0.windows.5
+
+
+From f33468a8f601b3e30782a59bac4dd0b711071e5a Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Sun, 8 Nov 2026 23:21:34 +0800
+Subject: [PATCH 2/4] Deliver paid orders from Workers with redirect:'manual'
+
+Cloudflare Workers reject fetch(...,{redirect:'error'}) with a TypeError
+before any request is sent, so every Celestao (and AI Market) delivery
+failed silently and the job retried forever. 'manual' is supported, and
+both callers already refuse any non-200 response, so redirects are still
+rejected. A test now keeps redirect:'error' out of server/ and worker/.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ server/aimarket-delivery.ts          |  2 +-
+ server/celestao-delivery.ts          |  2 +-
+ tests/aimarket-delivery.test.mjs     |  2 +-
+ tests/celestao-checkout.test.mjs     |  2 +-
+ tests/worker-fetch-redirect.test.mjs | 15 +++++++++++++++
+ 5 files changed, 19 insertions(+), 4 deletions(-)
+ create mode 100644 tests/worker-fetch-redirect.test.mjs
+
+diff --git a/server/aimarket-delivery.ts b/server/aimarket-delivery.ts
+index f87c7e8..26d78ed 100644
+--- a/server/aimarket-delivery.ts
++++ b/server/aimarket-delivery.ts
+@@ -25,7 +25,7 @@ export function createAIMarketDelivery(secret:string|undefined,transport:typeof
+     if(!/^0x[0-9a-f]{64}$/.test(order.orderId)||!/^0x[0-9a-f]{40}$/.test(order.wallet)||order.product!=='research')throw Error('UNSUPPORTED_SERVICE');
+     const at=clock();if(!Number.isSafeInteger(at)||at<=0)throw Error('INVALID_CLOCK');
+     const path=PATH+'/'+action,body=JSON.stringify({orderId:order.orderId,wallet:order.wallet,product:order.product,...action==='read'?{reference:order.reference}:{}}),time=String(Math.floor(at/1000));
+-    const response=await transport(ORIGIN+path,{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),headers:{'content-type':'application/json','accept':'application/json','x-ember-gold-signature':await deliverySignature(secret!,'request',path,time,body)},body});
++    const response=await transport(ORIGIN+path,{method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{'content-type':'application/json','accept':'application/json','x-ember-gold-signature':await deliverySignature(secret!,'request',path,time,body)},body});
+     if(response.status!==200||response.headers.get('content-type')?.split(';')[0]!=='application/json'||!response.body)throw Error('DELIVERY_UNAVAILABLE');
+     const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let raw='',size=0;const cap=action==='read'?MAX_RESEARCH_RESPONSE_BYTES:16000;
+     try{for(;;){const c=await reader.read();if(c.done)break;size+=c.value.length;if(size>cap){await reader.cancel();throw Error('DELIVERY_UNAVAILABLE');}raw+=decoder.decode(c.value,{stream:true});}raw+=decoder.decode();}finally{reader.releaseLock();}
+diff --git a/server/celestao-delivery.ts b/server/celestao-delivery.ts
+index 029f116..bc1466e 100644
+--- a/server/celestao-delivery.ts
++++ b/server/celestao-delivery.ts
+@@ -15,7 +15,7 @@ export function createCelestaoDelivery(db:D1Database|undefined,secret:string|und
+   if(!bound)throw Error('DELIVERY_UNAVAILABLE');
+   const time=clock();if(!Number.isSafeInteger(time)||time<=0)throw Error('INVALID_CLOCK');
+   const body=JSON.stringify({schema:CELESTAO_DELIVERY_SCHEMA,orderId:order.orderId,wallet:order.wallet,product:order.product,runId:bound.id,inputHash:bound.input_hash});
+-  const response=await transport('https://celestao.com'+CELESTAO_DELIVERY_PATH,{method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),headers:{'content-type':'application/json','accept':'application/json','x-celestao-signature':await celestaoSignature(secret,'request',CELESTAO_DELIVERY_PATH,String(Math.floor(time/1000)),body)},body});
++  const response=await transport('https://celestao.com'+CELESTAO_DELIVERY_PATH,{method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{'content-type':'application/json','accept':'application/json','x-celestao-signature':await celestaoSignature(secret,'request',CELESTAO_DELIVERY_PATH,String(Math.floor(time/1000)),body)},body});
+   // The vault refused this paid order: retrying will not help, and nothing else reports it.
+   if(response.status===409)console.error('celestao_delivery_refused',order.orderId);
+   if(response.status!==200)throw Error('DELIVERY_UNAVAILABLE');
+diff --git a/tests/aimarket-delivery.test.mjs b/tests/aimarket-delivery.test.mjs
+index 6bb992f..50ae393 100644
+--- a/tests/aimarket-delivery.test.mjs
++++ b/tests/aimarket-delivery.test.mjs
+@@ -9,7 +9,7 @@ const SECRET='local-cross-service-fixture-secret-32',SCHEMA='ember-world-researc
+ const order={orderId:'0x'+'1'.repeat(64),wallet:W,product:'research'};
+ async function reply(path,order,patch={},invalid=false){const raw=JSON.stringify({schema:SCHEMA,orderId:order.orderId,wallet:order.wallet,product:order.product,kind:'delivered',result:{provider:'aimarket-vps-v1',report:'Published research document',reportId:'a'.repeat(64),reportDate:'2026-10-19',documentHash:'a'.repeat(64)},...patch});return new Response(raw,{headers:{'content-type':'application/json','x-ember-gold-signature':invalid?'invalid':await deliverySignature(SECRET,'response',path,String(Math.floor(NOW/1000)),raw)}});}
+ test('fixed HTTPS endpoint signs exact order binding and accepts only authenticated structured replies',async()=>{
+- let calls=0;const p=createAIMarketDelivery(SECRET,async(url,init)=>{calls++;assert.equal(url,'https://aimarket.trade/api/internal/world-gold/deliver');assert.equal(init.redirect,'error');assert.equal(JSON.stringify(init).includes('Bearer '),false);const body=JSON.parse(init.body);assert.deepEqual(body,order);assert.equal(init.headers['x-ember-gold-signature'],await deliverySignature(SECRET,'request','/api/internal/world-gold/deliver',String(Math.floor(NOW/1000)),init.body));return reply('/api/internal/world-gold/deliver',body);},()=>NOW);
++ let calls=0;const p=createAIMarketDelivery(SECRET,async(url,init)=>{calls++;assert.equal(url,'https://aimarket.trade/api/internal/world-gold/deliver');assert.equal(init.redirect,'manual');assert.equal(JSON.stringify(init).includes('Bearer '),false);const body=JSON.parse(init.body);assert.deepEqual(body,order);assert.equal(init.headers['x-ember-gold-signature'],await deliverySignature(SECRET,'request','/api/internal/world-gold/deliver',String(Math.floor(NOW/1000)),init.body));return reply('/api/internal/world-gold/deliver',body);},()=>NOW);
+  assert.deepEqual(p.products,['research']);assert.equal((await p.deliver({...order,idempotencyKey:order.orderId})).kind,'delivered');assert.equal(calls,1);
+  await assert.rejects(p.deliver({...order,idempotencyKey:'forged'}),/INVALID_IDEMPOTENCY_KEY/);assert.equal(createAIMarketDelivery(undefined),undefined);
+ });
+diff --git a/tests/celestao-checkout.test.mjs b/tests/celestao-checkout.test.mjs
+index 96a6777..74754c9 100644
+--- a/tests/celestao-checkout.test.mjs
++++ b/tests/celestao-checkout.test.mjs
+@@ -65,7 +65,7 @@ test('pausing admissions preserves authenticated original-order reads without al
+ });
+ test('delivery only sends a paid bound order and accepts a signed matching private receipt',async t=>{const f=await setup(t);await prepare(f);const id=(await (await browser(f,'quote')).json()).orderId;
+  let calls=0,mode='ok';const receipt={schema:'celestao-receipt/v1',provider:'celestao-v1',system:'bazi',recordId:'d'.repeat(43),documentHash:'a'.repeat(64),createdMs:NOW};
+- const fetcher=async(url,init)=>{calls++;assert.equal(url,'https://celestao.com'+DELIVERY);assert.equal(init.redirect,'error');assert.equal(init.headers.origin,undefined);
++ const fetcher=async(url,init)=>{calls++;assert.equal(url,'https://celestao.com'+DELIVERY);assert.equal(init.redirect,'manual');assert.equal(init.headers.origin,undefined);
+   assert.equal(await verifyCelestaoSignature(SECRET,'request',DELIVERY,init.headers['x-celestao-signature'],init.body,NOW),true);
+   const b=JSON.parse(init.body);assert.deepEqual(b,{schema:SCHEMA,orderId:id,wallet:W,product:'fortune-bazi',runId:RUN,inputHash:INPUT});
+   const raw=JSON.stringify({...b,kind:'delivered',result:receipt,...mode==='wrong-wallet'?{wallet:B}:{}});
+diff --git a/tests/worker-fetch-redirect.test.mjs b/tests/worker-fetch-redirect.test.mjs
+new file mode 100644
+index [omitted]
+--- /dev/null
++++ b/tests/worker-fetch-redirect.test.mjs
+@@ -0,0 +1,15 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readdirSync,readFileSync} from 'node:fs';
++import {join} from 'node:path';
++
++// Cloudflare Workers reject fetch(...,{redirect:'error'}) with a TypeError before sending anything
++// (Node accepts it, so unit tests passed while every production delivery failed). Worker code uses 'manual'.
++test('Worker-side code never passes redirect:error to fetch',()=>{
++ const offenders=[];
++ for(const dir of ['server','worker'])for(const name of readdirSync(dir))if(name.endsWith('.ts')){
++  const text=readFileSync(join(dir,name),'utf8');
++  if(/redirect\s*:\s*['"]error['"]/.test(text))offenders.push(join(dir,name));
++ }
++ assert.deepEqual(offenders,[]);
++});
+-- 
+2.55.0.windows.5
+
+
+From deba7cc1409f7b90579a67deaa9a72f0dffd8f64 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Sun, 8 Nov 2026 23:21:34 +0800
+Subject: [PATCH 3/4] Keep World music playing while the GOLD and wallet panes
+ are open
+
+The 3D scene still pauses behind them; library, game and inventory keep
+pausing the music as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/world/WorldApp.tsx             | 2 +-
+ tests/world-library-cover.test.mjs | 6 ++++++
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/src/world/WorldApp.tsx b/src/world/WorldApp.tsx
+index efbfcdb..31d2731 100644
+--- a/src/world/WorldApp.tsx
++++ b/src/world/WorldApp.tsx
+@@ -140,7 +140,7 @@ function WorldContent(){
+   // Like the library and the game: closing drops ?portal=gold|economy, so a reload or a language switch does not reopen it.
+   const dropPortal=(name:string)=>{const url=new URL(location.href);if(url.searchParams.get('portal')===name){url.searchParams.delete('portal');history.replaceState(null,'',url);}};
+   const closeGold=useCallback(()=>{setGold(false);dropPortal('gold');},[]),closeEconomy=useCallback(()=>{setEconomy(false);dropPortal('economy');},[]);
+-  const portalOpen=research||library||game||gold||economy||inventory,audioCovered=library||game||gold||economy||inventory||opening,audioCoveredNow=useRef(audioCovered);audioCoveredNow.current=audioCovered;
++  const portalOpen=research||library||game||gold||economy||inventory,/* GOLD and the wallet keep the World music playing (the scene still pauses) */audioCovered=library||game||inventory||opening,audioCoveredNow=useRef(audioCovered);audioCoveredNow.current=audioCovered;
+   const sceneCovered=portalOpen||(opening&&sceneReady);
+   const libraryAudio=useRef<ReturnType<typeof librarySoundHost>|null>(null);
+   const closeResearch=useCallback(()=>{setResearch(false);requestAnimationFrame(()=>host.current?.querySelector('canvas')?.focus());},[]);
+diff --git a/tests/world-library-cover.test.mjs b/tests/world-library-cover.test.mjs
+index [omitted] 100644
+--- a/tests/world-library-cover.test.mjs
++++ b/tests/world-library-cover.test.mjs
+@@ -57,6 +57,12 @@ test('actual game audio cover pauses World audio across library/game swaps and r
+  f.render({research:true});assert.deepEqual(f.calls.filter(([name])=>name==='audioPaused').at(-1),['audioPaused',false]);f.dispose();
+ });
+ 
++test('GOLD and wallet panes pause the scene but keep World music playing',()=>{
++ for(const pane of ['gold','economy']){const f=fixture();f.render({});f.render({[pane]:true});
++  assert.equal(f.calls.filter(([k])=>k==='suspend').length,1);assert.equal(f.calls.some(([k,v])=>k==='audioPaused'&&v===true),false);
++  f.render({});assert.equal(f.calls.filter(([k])=>k==='resume').length,1);f.dispose();}
++});
++
+ test('inventory preserves one shared scene/audio hold and each existing hall callback closes it before opening another pane',()=>{
+  const f=fixture();f.render({});f.render({inventory:true});assert.equal(f.calls.filter(([k])=>k==='suspend').length,1);assert.deepEqual(f.calls.filter(([k])=>k==='audioPaused').at(-1),['audioPaused',true]);
+  f.render({library:true});assert.equal(f.calls.filter(([k])=>k==='suspend').length,1);assert.equal(f.calls.filter(([k])=>k==='resume').length,0);
+-- 
+2.55.0.windows.5
+
+
+From 0c1537449137f263232d21f7b0e0687388f31fdc Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Mon, 9 Nov 2026 00:27:23 +0800
+Subject: [PATCH 4/4] Mirror Celestao 382a266: tell payers the report takes
+ about 1-2 minutes
+
+Same world-wallet.js as celestao-source 382a266 (live in Celestao image
+db6ade9629ba since 2026-11-09). The confirm step states the usual wait, and
+a paid run still being prepared says so instead of 'not delivered'.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ integrations/celestao/web/world-wallet.js | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/integrations/celestao/web/world-wallet.js b/integrations/celestao/web/world-wallet.js
+index 72732b0..c20bffc 100644
+--- a/integrations/celestao/web/world-wallet.js
++++ b/integrations/celestao/web/world-wallet.js
+@@ -36,7 +36,7 @@
+  function mountIdentity(){document.querySelectorAll('[data-world-identity]').forEach(identityBox);}
+  function confirmation(system){if(!catalog?.billingInstalled)return '';const p=product(system);if(!p)return '';
+   const full=p.gold!==p.listGold;
+-  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p></section>`;
++  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p><p class="security-note">${say('付款後通常約 1–2 分鐘產生報告，完成後自動存進「我的收藏」；等待期間不需再次付款。','After payment, your report is usually ready in about 1–2 minutes and is saved to My collection automatically. Do not pay again while you wait.')}</p></section>`;
+  }
+  async function compute({system,input,showError}){if(busy)return;busy=true;const b=document.getElementById('compute-button');if(b)b.disabled=true;
+   try{if(catalog.paymentsEnabled!==true)throw Error('FEATURE_PAUSED');if(!identity)throw Error('AUTH_REQUIRED');if(!document.getElementById('world-save-consent')?.checked)throw Error('SAVE_CONSENT_REQUIRED');
+@@ -65,7 +65,7 @@
+  async function showRun(host,id){const old=runPolls.get(host);if(old?.timer)clearTimeout(old.timer);const request={};runPolls.set(host,request);const p=node('p',say('正在查詢原始解讀…','Checking original reading…'));p.role='status';host.append(p);const generation=epoch;
+   try{const run=await api('/api/world/runs/'+id);if(generation!==epoch||!host.isConnected||runPolls.get(host)!==request)return;
+    if(run.state==='complete'&&opaque(run.recordId)){p.textContent=say('原始報告已保存，不需再次付款。','Your original report is saved. No further payment is needed.');host.append(button(say('開啟原始報告','Open original report'),()=>void openRecord(run.recordId).catch(e=>p.textContent=errorText(e))));const list=document.getElementById('world-wallet-records');if(list)void collection(list);}
+-   else{p.textContent=run.state==='cleared'?say('這筆解讀沒有完成，出生資料已依保存期限清除。如果有付款，付款和退款紀錄請到 World 原始訂單查詢。','This reading did not complete, and its birth details were cleared after the retention period. If you paid, check the original World order for payment and refund records.'):run.state==='failed'?say('此筆解讀未完成，請至 World 查詢原單退款。','This reading did not complete. Check the original refund in World.'):say('這筆解讀尚未交付，請查詢原始訂單，不需另建新單。','This reading has not been delivered. Check its original order; do not create another.');const link=node('a',say('查詢 World 原始訂單','Check original World order'),'btn secondary small');link.href=catalog.worldOrigin+'/fortune-checkout/?run='+id+'&lang='+lang;link.referrerPolicy='no-referrer';host.append(link,button(say('重新查詢','Check again'),()=>{host.replaceChildren();void showRun(host,id);}));}
++   else{p.textContent=run.state==='cleared'?say('這筆解讀沒有完成，出生資料已依保存期限清除。如果有付款，付款和退款紀錄請到 World 原始訂單查詢。','This reading did not complete, and its birth details were cleared after the retention period. If you paid, check the original World order for payment and refund records.'):run.state==='failed'?say('此筆解讀未完成，請至 World 查詢原單退款。','This reading did not complete. Check the original refund in World.'):run.state==='working'?say('已付款，報告正在產生，通常約 1–2 分鐘；此頁會自動更新，不需另建新單。','Paid. Your report is being prepared, usually in about 1–2 minutes. This page updates by itself; do not create another order.'):say('這筆解讀還沒開始產生。如果已在 World 付款，通常約 1–2 分鐘內會開始；請查詢原始訂單，不需另建新單。','This reading has not started yet. If you paid in World, it usually starts within 1–2 minutes. Check its original order; do not create another.');const link=node('a',say('查詢 World 原始訂單','Check original World order'),'btn secondary small');link.href=catalog.worldOrigin+'/fortune-checkout/?run='+id+'&lang='+lang;link.referrerPolicy='no-referrer';host.append(link,button(say('重新查詢','Check again'),()=>{host.replaceChildren();void showRun(host,id);}));}
+    if(['prepared','working'].includes(run.state))request.timer=setTimeout(()=>{if(generation===epoch&&host.isConnected&&runPolls.get(host)===request&&document.visibilityState==='visible'){host.replaceChildren();void showRun(host,id);}},5000);
+   }catch(e){p.textContent=errorText(e);}
+  }
+-- 
+2.55.0.windows.5
+

@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission31](Submission31/README.md) — fixes for audit 48111df0 of the 鼠道修仙 GOLD store; published for the record, no further review requested; review cycle closed (World `69ad4b5`, not deployed).**
+**Current: [Submission32](Submission32/README.md) — paid delivery from Workers (`redirect:'manual'`) and the Celestao wait text; already live at the owner's choice (World `0c15374`, Celestao `382a266`).**
 
-Read [Submission31/REMEDIATION.md](Submission31/REMEDIATION.md) first.
+Read [Submission32/AUDIT_REQUEST.md](Submission32/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission31](Submission31/README.md) — fixes for audit 48111df0 of the 鼠道修仙 GOLD store; published for the record, no further review requested; review cycle closed (World `69ad4b5`, not deployed).**
 
 **Previous: [Submission30](Submission30/README.md) — fixes for audit 85163d96 of the 鼠道修仙 GOLD store, second round (World `0cba662`, not deployed); reviewed in job 48111df0, 3 Info, fixed in Submission31.**
 

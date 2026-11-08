@@ -1,0 +1,16 @@
+World source 0c1537449137f263232d21f7b0e0687388f31fdc
+node --test --test-concurrency=2 tests/*.test.mjs, on these exact file contents
+ℹ tests 3954
+ℹ suites 0
+ℹ pass 3949
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 308799.6761
+No failure: the wallet-lock test passes (no locked file differs from security/wallet-lock.json).
+tsc --noEmit: 0 errors
+The same suite ran inside the deploy of deba7cc (2026-11-08): 3,954 tests, 3,949 pass, 0 fail, 5 skipped.
+Celestao image db6ade9629ba (source 382a266) was built on the VPS on top of the live image and checked before the switch:
+it differs from the live image only in the three planned files, with the live owners and modes; the wallet unit tests,
+the six-system offline computation and an isolated production start-up passed.

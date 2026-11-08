@@ -1,0 +1,689 @@
+{
+ "schema": "imd-ember-world-review-selected-source/v1",
+ "submission": 32,
+ "privateBase": "69ad4b5",
+ "privateSource": "0c1537449137f263232d21f7b0e0687388f31fdc",
+ "files": [
+  {
+   "path": "integrations/celestao/web/world-wallet.js",
+   "status": "M",
+   "bytes": 27682,
+   "sha256": "4e7f33cd008cb86989c7df1fb6049a8af636aa521d283d8043e4a589939b5c8f",
+   "blob": "c20bffc79ae37649f2fc887049d5531694077ca7",
+   "privateBlob": "c20bffc79ae37649f2fc887049d5531694077ca7"
+  },
+  {
+   "path": "security/wallet-lock.json",
+   "status": "M",
+   "bytes": 11093,
+   "sha256": "9c236d4a76e42f3c6c839264410e6b16a116ee13789cc58ea52768214ca15838",
+   "blob": "e3b48068de7c8156c5dd8d8490321b8dc2c78155",
+   "privateBlob": "e3b48068de7c8156c5dd8d8490321b8dc2c78155"
+  },
+  {
+   "path": "server/aimarket-delivery.ts",
+   "status": "M",
+   "bytes": 5719,
+   "sha256": "19d2997fb96188df4a16b6280924f529f2a88380526dbf7341964ce555530750",
+   "blob": "26d78edc0013d3b49d66856b7721560fac787024",
+   "privateBlob": "26d78edc0013d3b49d66856b7721560fac787024"
+  },
+  {
+   "path": "server/celestao-delivery.ts",
+   "status": "M",
+   "bytes": 3446,
+   "sha256": "ecee31f3715b843308d5ecce581e4748bcb8f3f2feed094421efbc72286f30a8",
+   "blob": "bc1466ed67abea3b62736fd674e6122737e3a9a9",
+   "privateBlob": "bc1466ed67abea3b62736fd674e6122737e3a9a9"
+  },
+  {
+   "path": "src/world/WorldApp.tsx",
+   "status": "M",
+   "bytes": 88165,
+   "sha256": "8555a4e828cfb4d9409ad496c995fac12d2abd3f964c0f8510807df71976d789",
+   "blob": "31d2731e3b2ee8296ba2716a265c593f0e53cb85",
+   "privateBlob": "31d2731e3b2ee8296ba2716a265c593f0e53cb85"
+  },
+  {
+   "path": "tests/aimarket-delivery.test.mjs",
+   "status": "M",
+   "bytes": 6154,
+   "sha256": "ca32e977b884d95a3c9512567d68e3ed789e6916909491d96ff21daa411d52aa",
+   "blob": "50ae3937c30b56937c00b8e331948c3e278573d0",
+   "privateBlob": "50ae3937c30b56937c00b8e331948c3e278573d0"
+  },
+  {
+   "path": "tests/celestao-checkout.test.mjs",
+   "status": "M",
+   "bytes": 18088,
+   "sha256": "bb1fad9c51510fe808d0c4287a95392f0c5b031052af6f7360ecc32fe852439b",
+   "blob": "74754c976e2cabc2929499d5b108341bc3152524",
+   "privateBlob": "74754c976e2cabc2929499d5b108341bc3152524"
+  },
+  {
+   "path": "tests/worker-fetch-redirect.test.mjs",
+   "status": "A",
+   "bytes": 720,
+   "sha256": "0555df111d35e92a10f32a75d9c6d0b7dcec475faf19782963c31138102ab8a3",
+   "blob": "0ea9008c9dd1faee9aa8dbdc3c2115ec370805ce",
+   "privateBlob": "0ea9008c9dd1faee9aa8dbdc3c2115ec370805ce"
+  },
+  {
+   "path": "tests/world-library-cover.test.mjs",
+   "status": "M",
+   "bytes": 12832,
+   "sha256": "52d0dae237ac82782372ce3c874968b95984bcc3cb657b9bdc6c744c49133b7c",
+   "blob": "02a7afd38529e976ab2711595df8f36043dbc727",
+   "privateBlob": "02a7afd38529e976ab2711595df8f36043dbc727"
+  },
+  {
+   "path": "server/squeek-store.ts",
+   "status": "context",
+   "bytes": 26277,
+   "sha256": "cad8a7baefaadd686582167d6bea47b09c263f7f59fab8b195b61b228125e5f6",
+   "blob": "274b1de3177e7ec4fc3932143eb53795b9b96c41",
+   "privateBlob": "274b1de3177e7ec4fc3932143eb53795b9b96c41"
+  },
+  {
+   "path": "tests/squeek-store.test.mjs",
+   "status": "context",
+   "bytes": 31375,
+   "sha256": "cc1025f8cc315d831825e1c560a922a7ed313ea47ed776b1a0f78778ea43cb1b",
+   "blob": "0407e5a0040c0aadabf535ec9f6cd926073d2559",
+   "privateBlob": "0407e5a0040c0aadabf535ec9f6cd926073d2559"
+  },
+  {
+   "path": "src/world/SqueekCheckout.tsx",
+   "status": "context",
+   "bytes": 9153,
+   "sha256": "65a7b739a7cdf41865338db3a00e1d8b2b5566f87ee23a22189fbc412909de16",
+   "blob": "bfbe50e48129db916a2ffc7904e38c748b0b98d9",
+   "privateBlob": "bfbe50e48129db916a2ffc7904e38c748b0b98d9"
+  },
+  {
+   "path": "src/world/SqueekConnect.tsx",
+   "status": "context",
+   "bytes": 4337,
+   "sha256": "1e1f4886cc617c671b151a698d74d26c70740559fcff077a52b9c6cc34e963ac",
+   "blob": "5fb01aafae55a6d86bacab8117adcdfa0a99ec19",
+   "privateBlob": "5fb01aafae55a6d86bacab8117adcdfa0a99ec19"
+  },
+  {
+   "path": "server/world-gold.ts",
+   "status": "context",
+   "bytes": 39801,
+   "sha256": "fb5e3a06da05b6a1bb1e3a8fced644ec6ad22306ca4546fa9f5e38c031ef7d46",
+   "masked": true
+  },
+  {
+   "path": "src/world/WorldGoldPanel.tsx",
+   "status": "context",
+   "bytes": 32433,
+   "sha256": "c3d8416491209cd4e902a60803daeaa82139473dbbb9ea34bba63f193d691f79",
+   "blob": "9ee7a01203f1dccceb34dfaf0de961d4e583a93e",
+   "privateBlob": "9ee7a01203f1dccceb34dfaf0de961d4e583a93e"
+  },
+  {
+   "path": "src/world/goldPurchaseRules.ts",
+   "status": "context",
+   "bytes": 7182,
+   "sha256": "4e092ec63995889ec6093bfc1d1a0b198bb6cdb6dfe608fcb9e9b9bd5f6a4907",
+   "blob": "3369ac24eea341da6b7c076a6844ea621afc4a84",
+   "privateBlob": "3369ac24eea341da6b7c076a6844ea621afc4a84"
+  },
+  {
+   "path": "worker/app.ts",
+   "status": "context",
+   "bytes": 26480,
+   "sha256": "6b0cf7d479ad711eb4d6341048ad51684fb7947b439c72b64036fdbf0934b185",
+   "blob": "951969f1b86e11c3ba60aa3814447341e3389320",
+   "privateBlob": "951969f1b86e11c3ba60aa3814447341e3389320"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/paid.py",
+   "status": "context",
+   "bytes": 11398,
+   "sha256": "002a2602da98503cb5bb3986ff4857d3a69cb0c7fa04b7e87d8f55eeadc2c49e",
+   "blob": "bfd9f0293b6a851783ea615f56f9292742ce7fca",
+   "privateBlob": "bfd9f0293b6a851783ea615f56f9292742ce7fca"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/vault.py",
+   "status": "context",
+   "bytes": 22349,
+   "sha256": "34e8c164ab105c7478cbed452044a7c517219585571188d3cc954e196fee99ce",
+   "blob": "7824b1127e4b2c06516cdd7a9ae738e172b93c57",
+   "privateBlob": "7824b1127e4b2c06516cdd7a9ae738e172b93c57"
+  },
+  {
+   "path": "integrations/celestao/tests/test_paid.py",
+   "status": "context",
+   "bytes": 55402,
+   "sha256": "992c0cf2d2e1f196476401a3cebb680e2ffd8d41ccd94a6a68dc90c882886f97",
+   "blob": "f03d005c0147eca4e891b030e513e8e8ab5f5c4d",
+   "privateBlob": "f03d005c0147eca4e891b030e513e8e8ab5f5c4d"
+  },
+  {
+   "path": "integrations/celestao/tests/test_vault.py",
+   "status": "context",
+   "bytes": 22114,
+   "sha256": "4bd353808b9394f2c633a4e0f34db86a038454641f28a1a74d8603801d3e26f4",
+   "blob": "ee3ebe753c6b194b8e0c209e47ccbab7b0f73397",
+   "privateBlob": "ee3ebe753c6b194b8e0c209e47ccbab7b0f73397"
+  },
+  {
+   "path": "integrations/celestao/web/world-wallet.css",
+   "status": "context",
+   "bytes": 8332,
+   "sha256": "be72f9c3fff7d2075ef0074359159371f6df8029a2855da42191187b102ffec6",
+   "blob": "45aea3834890965097b9c70c269cd4aa439bbcf4",
+   "privateBlob": "45aea3834890965097b9c70c269cd4aa439bbcf4"
+  },
+  {
+   "path": "migrations/0025_squeek_store.sql",
+   "status": "context",
+   "bytes": 3706,
+   "sha256": "50d680426040a9b1de7a28d5154ce38a7bfecd826d3d7218dc8d967ab8d26461",
+   "blob": "849823b74dcb46a418a5420ff0b1e9157e1b81ae",
+   "privateBlob": "849823b74dcb46a418a5420ff0b1e9157e1b81ae"
+  },
+  {
+   "path": "server/economy-ledger.ts",
+   "status": "context",
+   "bytes": 41631,
+   "sha256": "8a031f2ef2682fa1857adf4bce82d4b83a7c7ed4aa3a8093e73ad47ab54f0337",
+   "blob": "2ecce1dad031bab8ba12e914940947e167f6e2fb",
+   "privateBlob": "2ecce1dad031bab8ba12e914940947e167f6e2fb"
+  },
+  {
+   "path": "server/squeek-ownership.ts",
+   "status": "context",
+   "bytes": 1345,
+   "sha256": "80f7c63da4ad5cfd0c52c5a2dc875724f760de48e41c4aa021f1e3a541079e37",
+   "blob": "e1cb3e617b79f9dda90c026186810576d230aa94",
+   "privateBlob": "e1cb3e617b79f9dda90c026186810576d230aa94"
+  },
+  {
+   "path": "server/world-gold-result.ts",
+   "status": "context",
+   "bytes": 6071,
+   "sha256": "7537de30c76ea0aa6a58442ae76e7137ffef7abd9588ed0b2659be4cce8fdcbb",
+   "blob": "ce60a286e1e80684fab04ca8c7c55fec1c42ba34",
+   "privateBlob": "ce60a286e1e80684fab04ca8c7c55fec1c42ba34"
+  },
+  {
+   "path": "src/main.tsx",
+   "status": "context",
+   "bytes": 2949,
+   "sha256": "73dadf109c6e14b7950caf09c3c1a8868d57b904da30c2a01671030ff8a1ee9d",
+   "blob": "7c377f30d58b7ec9c15a4143c7a68774732d47d8",
+   "privateBlob": "7c377f30d58b7ec9c15a4143c7a68774732d47d8"
+  },
+  {
+   "path": "src/shared/squeekCatalog.ts",
+   "status": "context",
+   "bytes": 2415,
+   "sha256": "f60619fe403b61fd1166a5b68243974c967134f987fb08310cd759ecdc03a533",
+   "blob": "708c167eac694e993de6e0f76e9289c69c9f24fb",
+   "privateBlob": "708c167eac694e993de6e0f76e9289c69c9f24fb"
+  },
+  {
+   "path": "src/world/GoldGuide.tsx",
+   "status": "context",
+   "bytes": 3442,
+   "sha256": "22ccf3816a9943198fc9d8fe96646ee7a9ced502e787e8903608dbb834815982",
+   "blob": "4f15abaafa1182a69f65aabf5a4647c39209dceb",
+   "privateBlob": "4f15abaafa1182a69f65aabf5a4647c39209dceb"
+  },
+  {
+   "path": "src/world/celestaoGateway.css",
+   "status": "context",
+   "bytes": 1751,
+   "sha256": "2b8a2f705a795fa1e77c6ba5e9b18a02c9c2fe8ebd26dd18a75541980e2bb816",
+   "blob": "710e38447982d2400fc58ea16f64569fb54b985c",
+   "privateBlob": "710e38447982d2400fc58ea16f64569fb54b985c"
+  },
+  {
+   "path": "src/world/goldGrantRules.ts",
+   "status": "context",
+   "bytes": 5134,
+   "sha256": "cb138e0d5796e30690fa73a1777689a16a7307ecc5ea7d0edf295110e3cf214f",
+   "blob": "85b9d7236f405161977664fa408c0bc1aca35a9f",
+   "privateBlob": "85b9d7236f405161977664fa408c0bc1aca35a9f"
+  },
+  {
+   "path": "src/world/squeekCheckoutClient.ts",
+   "status": "context",
+   "bytes": 4000,
+   "sha256": "242c3453c7f47102d537d5a4695ef7ea38b6021781a59bb95ffdb5af51653bb6",
+   "blob": "16a86b96f7ffe9523c473cc08c51288bb5ad4468",
+   "privateBlob": "16a86b96f7ffe9523c473cc08c51288bb5ad4468"
+  },
+  {
+   "path": "src/world/squeekEntry.ts",
+   "status": "context",
+   "bytes": 2269,
+   "sha256": "524c534daa904b224664fa3ebe6598fe01f500f09b12b57a3587144ef26a2d18",
+   "blob": "034486f59f890952dd560223129aecf77492bbbf",
+   "privateBlob": "034486f59f890952dd560223129aecf77492bbbf"
+  },
+  {
+   "path": "tests/celestao-checkout-client.test.mjs",
+   "status": "context",
+   "bytes": 3242,
+   "sha256": "53285bc093e025118ee5caf879f2f0b66474f5035103fffe0a4c8028cc7791dc",
+   "blob": "f40be35d84db8fe315b47a0ce1c0869095238af9",
+   "privateBlob": "f40be35d84db8fe315b47a0ce1c0869095238af9"
+  },
+  {
+   "path": "tests/presence.test.mjs",
+   "status": "context",
+   "bytes": 21177,
+   "sha256": "a46a4b3ee1d10d41a4d92a7051896fed25dc0fa242700f569cc26bc7f93c6e02",
+   "blob": "10b21e2d2a2cb59d31be5b4ece5b81f669044dba",
+   "privateBlob": "10b21e2d2a2cb59d31be5b4ece5b81f669044dba"
+  },
+  {
+   "path": "tests/world-gold-grants.test.mjs",
+   "status": "context",
+   "bytes": 39539,
+   "sha256": "25ab445587de78b4a41c3b3530fdd763330ee6da3bd8962834e029b77cfda4e5",
+   "masked": true
+  },
+  {
+   "path": "wrangler.jsonc",
+   "status": "context",
+   "bytes": 6571,
+   "sha256": "0bc5a7016ca6ae02f642a9bdfb7611a4d9d581a10468cc3f7ea7b9a63378db56",
+   "masked": true
+  },
+  {
+   "path": "integrations/celestao/celestao_world/app.py",
+   "status": "context",
+   "bytes": 12860,
+   "sha256": "5c7f6ed42ff2f7390b7c0a7f436486030aa88a00ddaec21855417d8026d1a78d",
+   "blob": "2676f63d46ce1c0da4a5910c036ebe6aaff87fd6",
+   "privateBlob": "2676f63d46ce1c0da4a5910c036ebe6aaff87fd6"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/bridge.py",
+   "status": "context",
+   "bytes": 6681,
+   "sha256": "bbb633f847258cd84d42e9a82eb88c462b35bfa5b5c2732dc3b026885f19ab1a",
+   "blob": "6e99244a719e5c3049f9d7942c5982c8bb8bb95f",
+   "privateBlob": "6e99244a719e5c3049f9d7942c5982c8bb8bb95f"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/native.py",
+   "status": "context",
+   "bytes": 6932,
+   "sha256": "684ea0c599106464900b69f644cf0b6d27ca81d24fb93313fc1e55ea23497aa2",
+   "blob": "a5ce320553221b0bffde6efde7924d8ddcafebd3",
+   "privateBlob": "a5ce320553221b0bffde6efde7924d8ddcafebd3"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/orders.py",
+   "status": "context",
+   "bytes": 1637,
+   "sha256": "d7d4d7ac24417328d1204a0f2e04ed88f20eae3b57540ac4e315f2f71367ea1b",
+   "blob": "b1aaddb1bd4a416af39c6d9c4d082ea052fbde2e",
+   "privateBlob": "b1aaddb1bd4a416af39c6d9c4d082ea052fbde2e"
+  },
+  {
+   "path": "integrations/celestao/tests/test_api.py",
+   "status": "context",
+   "bytes": 13765,
+   "sha256": "a34c885fa2cbd77ec1883809e17e7c033b34c20e8b5f1f86622cc403e17e4b6f",
+   "blob": "a3b5ecd6cc1184a29c52a4775b0c58750056b927",
+   "privateBlob": "a3b5ecd6cc1184a29c52a4775b0c58750056b927"
+  },
+  {
+   "path": "integrations/celestao/tests/test_native_annual.py",
+   "status": "context",
+   "bytes": 4463,
+   "sha256": "bf2d10189b7fcc9687787f8cf3ec241b6e6dfacff207fe575ee3614eac212dc4",
+   "blob": "29c14c9453fbaaf38ee947bce5baa6b1a3ff24d4",
+   "privateBlob": "29c14c9453fbaaf38ee947bce5baa6b1a3ff24d4"
+  },
+  {
+   "path": "integrations/celestao/tests/test_native_location.py",
+   "status": "context",
+   "bytes": 2483,
+   "sha256": "703b34cb35309dc57f793229143dbf0c46f4d495892f3f2110a49986f1c76400",
+   "blob": "d1424b039ec0a54b4d670029a6f432a4b88fe6ed",
+   "privateBlob": "d1424b039ec0a54b4d670029a6f432a4b88fe6ed"
+  },
+  {
+   "path": "server/celestao-checkout.ts",
+   "status": "context",
+   "bytes": 8579,
+   "sha256": "114dd595481d6fec8da7d2b24c8616ddcb9c3a84959a4c9e76093ea02c326d92",
+   "blob": "432fac54c2bf3c7b732d823a5b0b46506492816a",
+   "privateBlob": "432fac54c2bf3c7b732d823a5b0b46506492816a"
+  },
+  {
+   "path": "server/world-gold-api.ts",
+   "status": "context",
+   "bytes": 11705,
+   "sha256": "763e706bbbf9042ad20b34bae6dbeea56a22eaea2718083836107eb23b1812e3",
+   "blob": "8deb656923e06765892ae025665369df149e0655",
+   "privateBlob": "8deb656923e06765892ae025665369df149e0655"
+  },
+  {
+   "path": "src/shared/goldGrants.ts",
+   "status": "context",
+   "bytes": 1387,
+   "sha256": "de6144ee3acd49c92ea1daee3a8336611fbaac42b406c28b4df5aee166bd3a03",
+   "blob": "de0bda08f67988ebfa435a2b74b91fd13589fede",
+   "privateBlob": "de0bda08f67988ebfa435a2b74b91fd13589fede"
+  },
+  {
+   "path": "src/world/CelestaoCheckout.tsx",
+   "status": "context",
+   "bytes": 8235,
+   "sha256": "271741f55e76243ec8964f1f66af1a51c4030b84c92792f5f734710ac034150d",
+   "blob": "fafc481d13da5b458eb0aeb97754fa39d8543586",
+   "privateBlob": "fafc481d13da5b458eb0aeb97754fa39d8543586"
+  },
+  {
+   "path": "src/world/economyWallet.ts",
+   "status": "context",
+   "bytes": 38034,
+   "sha256": "aa201e2692aa293aa3047dae5822e2de69d3eef09189bde83b78bd77fff977b8",
+   "blob": "179472966ae64b834ec3c7bea15ffcbc9829720c",
+   "privateBlob": "179472966ae64b834ec3c7bea15ffcbc9829720c"
+  },
+  {
+   "path": "src/world/worldGoldClient.ts",
+   "status": "context",
+   "bytes": 4166,
+   "sha256": "8fa63f0b4f695af8924a23a48dbef143831c178f2839c92e291fa33c3a038da6",
+   "blob": "59912b8485ffea6d9c3c1164398feab1caf1ce9b",
+   "privateBlob": "59912b8485ffea6d9c3c1164398feab1caf1ce9b"
+  },
+  {
+   "path": "tests/celestao-lapse-page.test.mjs",
+   "status": "context",
+   "bytes": 727,
+   "sha256": "2e662342b90b94e9b3d1e7e633c3bc96c3a4edc46a75eda3bf42db03328dcd4e",
+   "blob": "7f8d564d6984b7e8e3e006a1bb5868af03323662",
+   "privateBlob": "7f8d564d6984b7e8e3e006a1bb5868af03323662"
+  },
+  {
+   "path": "tests/celestao-location.test.mjs",
+   "status": "context",
+   "bytes": 679,
+   "sha256": "62582b6471488ac4cd55ee210a45104f0cc6ed680428d4ce4f60af89cff0daa7",
+   "blob": "74a2001d58603687e8b1860308dab118ce3aa5fc",
+   "privateBlob": "74a2001d58603687e8b1860308dab118ce3aa5fc"
+  },
+  {
+   "path": "tests/celestao-retention.test.mjs",
+   "status": "context",
+   "bytes": 991,
+   "sha256": "1ee94c3aa2cae2c0286dfcc77be1d06f5a97305beb561b7ab666ad83fa89de04",
+   "blob": "170db2e60698beb9692eb91d20c5ffb460efdeef",
+   "privateBlob": "170db2e60698beb9692eb91d20c5ffb460efdeef"
+  },
+  {
+   "path": "tests/economy-client.test.mjs",
+   "status": "context",
+   "bytes": 40392,
+   "sha256": "11beb28b90041ad7d5793c53349f59ee047933e97a01e21535f8b6a1b96c2b8c",
+   "blob": "627f61c7df944cca81faf8103fc48a4a8d1b828a",
+   "privateBlob": "627f61c7df944cca81faf8103fc48a4a8d1b828a"
+  },
+  {
+   "path": "tests/world-gold-grants-ui.test.mjs",
+   "status": "context",
+   "bytes": 2896,
+   "sha256": "e5baea46b333824193fbe50724cbe8f1d77dba79b38013383bb1681936391f36",
+   "blob": "e8dc4f348d972a0df65a3402947438303e9b9bb5",
+   "privateBlob": "e8dc4f348d972a0df65a3402947438303e9b9bb5"
+  },
+  {
+   "path": "docs/world-gold-audit6-remediation.md",
+   "status": "context",
+   "bytes": 13080,
+   "sha256": "cf5383278f367fe2907c69704d7821f634403eda3563530878736e21df63025e",
+   "blob": "f6895c0625589fd9bdf38b07f85d7e8d6c356908",
+   "privateBlob": "f6895c0625589fd9bdf38b07f85d7e8d6c356908"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/limits.py",
+   "status": "context",
+   "bytes": 2679,
+   "sha256": "1b8398a61219d4012c2eca1796a3002fce95ded5c67760291ddc3d93c7f6fce6",
+   "blob": "e78571f12943cc7faf693f714f77749095ea03ef",
+   "privateBlob": "e78571f12943cc7faf693f714f77749095ea03ef"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/sessions.py",
+   "status": "context",
+   "bytes": 7018,
+   "sha256": "8a2d4a2ffbccf03c6ea26793582029c5cfc32b180500d84f3815fbe969efe643",
+   "blob": "6d6bdc98f344ce745903270918d7cd8bd83d31cb",
+   "privateBlob": "6d6bdc98f344ce745903270918d7cd8bd83d31cb"
+  },
+  {
+   "path": "integrations/celestao/tests/test_limits.py",
+   "status": "context",
+   "bytes": 2910,
+   "sha256": "ecd8a7204b92718afde495e6ad238cd3b1639dd44c6617dcd88078ff778685cf",
+   "blob": "09e2e774d4cfbe09ed71d9ccd8389b0bc7986f00",
+   "privateBlob": "09e2e774d4cfbe09ed71d9ccd8389b0bc7986f00"
+  },
+  {
+   "path": "integrations/celestao/tests/test_sessions.py",
+   "status": "context",
+   "bytes": 4165,
+   "sha256": "60ce9bab1d304db88ea347f6f73bee23dd614a4fd4b2ecbf50ebacd8edcc2bdb",
+   "blob": "5d5842816aaf3408013947e843fb37b89c953ec5",
+   "privateBlob": "5d5842816aaf3408013947e843fb37b89c953ec5"
+  },
+  {
+   "path": "migrations/0023_celestao_annual_ziwei.sql",
+   "status": "context",
+   "bytes": 2338,
+   "sha256": "fb8a4fc3dcfc7232a30528fbd7c45e02e1b192b3c568c96a8f9b06b654433409",
+   "blob": "283130906eb488d9f3db986671636d4e8e26ebac",
+   "privateBlob": "283130906eb488d9f3db986671636d4e8e26ebac"
+  },
+  {
+   "path": "migrations/0024_world_gold_grants.sql",
+   "status": "context",
+   "bytes": 3322,
+   "sha256": "73d730c32c36ef5cbb790c77ec077473c98e1905fb992f2f5b35dd17b84030f8",
+   "masked": true
+  },
+  {
+   "path": "server/celestao-auth.ts",
+   "status": "context",
+   "bytes": 11325,
+   "sha256": "f45a6aed7af37d4ca7381128178a408c3e0a8560fcb0900fff2c137841fc49c4",
+   "blob": "766526f175581dac4b29ffbb22570d50fcb8d176",
+   "privateBlob": "766526f175581dac4b29ffbb22570d50fcb8d176"
+  },
+  {
+   "path": "server/economy-recovery.ts",
+   "status": "context",
+   "bytes": 34091,
+   "sha256": "66f37566637c642e0462445d3b2206ed80f09f6d2ed9069a5a8436134790b736",
+   "blob": "9de0544ded245d164bf800964785343eff91fb9b",
+   "privateBlob": "9de0544ded245d164bf800964785343eff91fb9b"
+  },
+  {
+   "path": "src/shared/fortunePricing.ts",
+   "status": "context",
+   "bytes": 1652,
+   "sha256": "15db0c6464debda009ae6cf0fd9fbae76b9c847dab06141736ed6e443b11f05a",
+   "blob": "0e8d62aa06c6353552c7c355ab48fc5ad19d5ab6",
+   "privateBlob": "0e8d62aa06c6353552c7c355ab48fc5ad19d5ab6"
+  },
+  {
+   "path": "tests/bridge-budget.test.mjs",
+   "status": "context",
+   "bytes": 2033,
+   "sha256": "a5da141cb8a65bd669919518af2fbce80e182a40dc5a4a5b1a86de4b36a82878",
+   "blob": "57c3c405c9447e7894e63814582bed50c7f0c956",
+   "privateBlob": "57c3c405c9447e7894e63814582bed50c7f0c956"
+  },
+  {
+   "path": "tests/celestao-auth.test.mjs",
+   "status": "context",
+   "bytes": 9504,
+   "sha256": "657f36065240d0f392bd80db912e827be65e19f16fe6a776e4d9fdf92bef143d",
+   "blob": "a26f5714595afca2a12407a2da1262178bb0386e",
+   "privateBlob": "a26f5714595afca2a12407a2da1262178bb0386e"
+  },
+  {
+   "path": "tests/celestao-release.test.mjs",
+   "status": "context",
+   "bytes": 4865,
+   "sha256": "e9ddf98c96fe1a125b14f3ed430bb27ab0bda2bda4b109a529892a64048ec815",
+   "blob": "73609b32ca549f3007d765b41b97fb93b13fc620",
+   "privateBlob": "73609b32ca549f3007d765b41b97fb93b13fc620"
+  },
+  {
+   "path": "tests/fortune-pricing.test.mjs",
+   "status": "context",
+   "bytes": 2418,
+   "sha256": "3cf603192c2c2cae07b6531bca0f6bc0c9abb06b6599db5ebce149ef7ecc25af",
+   "blob": "7f374e2210a123e29628022a3ce671c569b5b74f",
+   "privateBlob": "7f374e2210a123e29628022a3ce671c569b5b74f"
+  },
+  {
+   "path": "tests/world-gold-grants-recovery.test.mjs",
+   "status": "context",
+   "bytes": 3328,
+   "sha256": "fca5a311d9a3619489372a6543fdb394522168fa39cd36609e964fd127223e11",
+   "masked": true
+  },
+  {
+   "path": "server/world-gold-delivery.ts",
+   "status": "context",
+   "bytes": 3812,
+   "sha256": "ce741691ab8fdfc0402ed8f9e7634488d442fbc11be6c6a891b664c8fa078e09",
+   "blob": "867853f82908c48d108e65ca49b76ad8ef1996b0",
+   "privateBlob": "867853f82908c48d108e65ca49b76ad8ef1996b0"
+  },
+  {
+   "path": "server/celestao-protocol.ts",
+   "status": "context",
+   "bytes": 2440,
+   "sha256": "350e7744bcfc1e9440c9469722cded974fc4a9d8d64b9ab1eb0836d159f297d5",
+   "blob": "df9c4c67358fb7e6d14fcdc96deef5e15699e314",
+   "privateBlob": "df9c4c67358fb7e6d14fcdc96deef5e15699e314"
+  },
+  {
+   "path": "server/world-gold-fast.ts",
+   "status": "context",
+   "bytes": 14452,
+   "sha256": "d0da654bb0fdd0aaae5d10fcae21476dedcc7cfd2023a385123f8bdd4d300a3b",
+   "blob": "7db61d2b2f12df820bd085f24d0fe2b5b654dccd",
+   "privateBlob": "7db61d2b2f12df820bd085f24d0fe2b5b654dccd"
+  },
+  {
+   "path": "server/world-gold-schema.ts",
+   "status": "context",
+   "bytes": 10928,
+   "sha256": "fb22864a7e7f23885f33a336d63084e7c939b1694498dc356f8d9933f6ddfebb",
+   "blob": "ca377450b00a300509fda36c8a8bb3702c2f5000",
+   "privateBlob": "ca377450b00a300509fda36c8a8bb3702c2f5000"
+  },
+  {
+   "path": "migrations/0014_world_gold_integration.sql",
+   "status": "context",
+   "bytes": 8653,
+   "sha256": "d53d121ed6a919a2e5399f8d42a3d7121bdf5530701abd92d53f83801f7c6a7b",
+   "blob": "5368ca19a8eff119b168295779d21badb61f98ac",
+   "privateBlob": "5368ca19a8eff119b168295779d21badb61f98ac"
+  },
+  {
+   "path": "migrations/0015_world_gold_audit_hardening.sql",
+   "status": "context",
+   "bytes": 5034,
+   "sha256": "e801cb9cdb212b0567d8514ddecb79b3c9c6cd6c2c2755fac4447352d03038e5",
+   "blob": "f38845244cb8f35fe01ef1937edc45f4ebd5613d",
+   "privateBlob": "f38845244cb8f35fe01ef1937edc45f4ebd5613d"
+  },
+  {
+   "path": "migrations/0021_world_gold_fast_credit.sql",
+   "status": "context",
+   "bytes": 9118,
+   "sha256": "f619dd23adc964bb1f49f7c82d0508d51e6e81fb24eb381e551bc23bac4e2240",
+   "blob": "396260e1226c7042702dfcb7e6b97c167ea67020",
+   "privateBlob": "396260e1226c7042702dfcb7e6b97c167ea67020"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/config.py",
+   "status": "context",
+   "bytes": 3252,
+   "sha256": "1777d2989ca6952230f318aa9fdceaf82f84b1da15cdf4ce629c89e26670334b",
+   "blob": "e406085aca4f27efe43010342455bca7dcb77b80",
+   "privateBlob": "e406085aca4f27efe43010342455bca7dcb77b80"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/production.py",
+   "status": "context",
+   "bytes": 577,
+   "sha256": "b84bcc9ac77ef95954a62fc9054f6594bf19e98041bcfac684b912e190c7dc30",
+   "blob": "f2250c44ca10bf3381ca22c2197c6b2b78647d29",
+   "privateBlob": "f2250c44ca10bf3381ca22c2197c6b2b78647d29"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/protocol.py",
+   "status": "context",
+   "bytes": 852,
+   "sha256": "1be1af9afd9dd4fec9371fd9a56933fb731ee16fb9227c23776b1029a1ca0393",
+   "blob": "aaed9dc5e6c77f1acc1b656c5543deee4f25899c",
+   "privateBlob": "aaed9dc5e6c77f1acc1b656c5543deee4f25899c"
+  },
+  {
+   "path": "integrations/celestao/celestao_world/relay_transport.py",
+   "status": "context",
+   "bytes": 1378,
+   "sha256": "867ee01cd26ed233bba5859f26c6c6032eb17dd1af30d82276d36ef83710380a",
+   "blob": "596e97e867eeb69165bb8559c4a4b2f6a8b49b36",
+   "privateBlob": "596e97e867eeb69165bb8559c4a4b2f6a8b49b36"
+  },
+  {
+   "path": "tests/world-gold-audit5-fixture.mjs",
+   "status": "context",
+   "bytes": 3428,
+   "sha256": "8ced5901213ef5fa062804564d7f5f2392cd207614a637e30b5a7889f5c2442c",
+   "blob": "56bb268d62392331c38182dadca51f2822a5edab",
+   "privateBlob": "56bb268d62392331c38182dadca51f2822a5edab"
+  }
+ ],
+ "celestao": {
+  "privateBase": "dd679fe",
+  "privateSource": "382a266bd41bfc90b9f3563da51171650ece3eb2",
+  "files": [
+   {
+    "path": "celestao/world_wallet_web/index-pdf.html",
+    "celestaoPath": "world_wallet_web/index-pdf.html",
+    "bytes": 10127,
+    "sha256": "6958d0719d21814d2e728d215c45aabfed17e922522b660c6117387f29ef0cb0",
+    "blob": "aabd9d2143501c2bd9a1599aca2f4c08d8d79276",
+    "privateBlob": "aabd9d2143501c2bd9a1599aca2f4c08d8d79276"
+   },
+   {
+    "path": "celestao/world_wallet_web/index.html",
+    "celestaoPath": "world_wallet_web/index.html",
+    "bytes": 10199,
+    "sha256": "d2e2145e27aae3e6bf771b9944c357d11d6a3a61f7ef14ac05011f06768f0034",
+    "blob": "1de77b44ae9d08f1438f15cea3534bb65c63bb25",
+    "privateBlob": "1de77b44ae9d08f1438f15cea3534bb65c63bb25"
+   },
+   {
+    "path": "celestao/world_wallet_web/world-wallet.js",
+    "celestaoPath": "world_wallet_web/world-wallet.js",
+    "bytes": 27790,
+    "sha256": "a223f3f85e9a011210b3d99a3e35b3116cbb2bfd1c684b8758e2c4f6068d0660",
+    "blob": "a346ec68ce8872639ffaa8d755d8bae115cc048c",
+    "privateBlob": "a346ec68ce8872639ffaa8d755d8bae115cc048c"
+   }
+  ]
+ }
+}
