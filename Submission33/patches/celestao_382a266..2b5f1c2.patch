@@ -1,0 +1,97 @@
+From 2988b2f247b0378e76203f587764fe5b61ad3b06 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 10 Nov 2026 23:35:38 +0800
+Subject: [PATCH 1/2] =?UTF-8?q?World=20wallet:=20keep=20polling=20a=20paid?=
+ =?UTF-8?q?=20run=20after=20a=20failed=20status=20check;=20wait=20text=201?=
+ =?UTF-8?q?=E2=80=933=20minutes?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Audit 88a680a7 #1: one failed GET /api/world/runs/<id> used to end the
+"this page updates by itself" view and drop the World order link and the
+Check again button. Now any failure except a lost sign-in keeps both, and
+every failure except a lost sign-in or an unknown run keeps the 5 s poll.
+Audit 88a680a7 #5: deliveries are retried on the next minute's run, so the
+wait text says about 1–3 minutes instead of 1–2.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ world_wallet_web/world-wallet.js | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/world_wallet_web/world-wallet.js b/world_wallet_web/world-wallet.js
+index [omitted] 100644
+--- a/world_wallet_web/world-wallet.js
++++ b/world_wallet_web/world-wallet.js
+@@ -36,7 +36,7 @@
+  function mountIdentity(){document.querySelectorAll('[data-world-identity]').forEach(identityBox);}
+  function confirmation(system){if(!catalog?.billingInstalled)return '';const p=product(system);if(!p)return '';
+   const full=p.gold!==p.listGold;
+-  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p><p class="security-note">${say('付款後通常約 1–2 分鐘產生報告，完成後自動存進「我的收藏」；等待期間不需再次付款。','After payment, your report is usually ready in about 1–2 minutes and is saved to My collection automatically. Do not pay again while you wait.')}</p></section>`;
++  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p><p class="security-note">${say('付款後通常約 1–3 分鐘產生報告，完成後自動存進「我的收藏」；等待期間不需再次付款。','After payment, your report is usually ready in about 1–3 minutes and is saved to My collection automatically. Do not pay again while you wait.')}</p></section>`;
+  }
+  async function compute({system,input,showError}){if(busy)return;busy=true;const b=document.getElementById('compute-button');if(b)b.disabled=true;
+   try{if(catalog.paymentsEnabled!==true)throw Error('FEATURE_PAUSED');if(!identity)throw Error('AUTH_REQUIRED');if(!document.getElementById('world-save-consent')?.checked)throw Error('SAVE_CONSENT_REQUIRED');
+@@ -63,11 +63,14 @@
+   }catch(error){console.warn('wallet_collection_failure',/^[A-Z_]{3,64}$/.test(error?.message)?error.message:error?.name||'UNAVAILABLE');status.textContent=errorText(error);}
+  }
+  async function showRun(host,id){const old=runPolls.get(host);if(old?.timer)clearTimeout(old.timer);const request={};runPolls.set(host,request);const p=node('p',say('正在查詢原始解讀…','Checking original reading…'));p.role='status';host.append(p);const generation=epoch;
++  const live=()=>generation===epoch&&host.isConnected&&runPolls.get(host)===request;
++  const controls=()=>{const link=node('a',say('查詢 World 原始訂單','Check original World order'),'btn secondary small');link.href=catalog.worldOrigin+'/fortune-checkout/?run='+id+'&lang='+lang;link.referrerPolicy='no-referrer';host.append(link,button(say('重新查詢','Check again'),()=>{host.replaceChildren();void showRun(host,id);}));};
++  const poll=()=>{request.timer=setTimeout(()=>{if(live()&&document.visibilityState==='visible'){host.replaceChildren();void showRun(host,id);}},5000);};
+   try{const run=await api('/api/world/runs/'+id);if(generation!==epoch||!host.isConnected||runPolls.get(host)!==request)return;
+    if(run.state==='complete'&&opaque(run.recordId)){p.textContent=say('原始報告已保存，不需再次付款。','Your original report is saved. No further payment is needed.');host.append(button(say('開啟原始報告','Open original report'),()=>void openRecord(run.recordId).catch(e=>p.textContent=errorText(e))));const list=document.getElementById('world-wallet-records');if(list)void collection(list);}
+-   else{p.textContent=run.state==='cleared'?say('這筆解讀沒有完成，出生資料已依保存期限清除。如果有付款，付款和退款紀錄請到 World 原始訂單查詢。','This reading did not complete, and its birth details were cleared after the retention period. If you paid, check the original World order for payment and refund records.'):run.state==='failed'?say('此筆解讀未完成，請至 World 查詢原單退款。','This reading did not complete. Check the original refund in World.'):run.state==='working'?say('已付款，報告正在產生，通常約 1–2 分鐘；此頁會自動更新，不需另建新單。','Paid. Your report is being prepared, usually in about 1–2 minutes. This page updates by itself; do not create another order.'):say('這筆解讀還沒開始產生。如果已在 World 付款，通常約 1–2 分鐘內會開始；請查詢原始訂單，不需另建新單。','This reading has not started yet. If you paid in World, it usually starts within 1–2 minutes. Check its original order; do not create another.');const link=node('a',say('查詢 World 原始訂單','Check original World order'),'btn secondary small');link.href=catalog.worldOrigin+'/fortune-checkout/?run='+id+'&lang='+lang;link.referrerPolicy='no-referrer';host.append(link,button(say('重新查詢','Check again'),()=>{host.replaceChildren();void showRun(host,id);}));}
+-   if(['prepared','working'].includes(run.state))request.timer=setTimeout(()=>{if(generation===epoch&&host.isConnected&&runPolls.get(host)===request&&document.visibilityState==='visible'){host.replaceChildren();void showRun(host,id);}},5000);
+-  }catch(e){p.textContent=errorText(e);}
++   else{p.textContent=run.state==='cleared'?say('這筆解讀沒有完成，出生資料已依保存期限清除。如果有付款，付款和退款紀錄請到 World 原始訂單查詢。','This reading did not complete, and its birth details were cleared after the retention period. If you paid, check the original World order for payment and refund records.'):run.state==='failed'?say('此筆解讀未完成，請至 World 查詢原單退款。','This reading did not complete. Check the original refund in World.'):run.state==='working'?say('已付款，報告正在產生，通常約 1–3 分鐘；此頁會自動更新，不需另建新單。','Paid. Your report is being prepared, usually in about 1–3 minutes. This page updates by itself; do not create another order.'):say('這筆解讀還沒開始產生。如果已在 World 付款，通常約 1–3 分鐘內會開始；請查詢原始訂單，不需另建新單。','This reading has not started yet. If you paid in World, it usually starts within 1–3 minutes. Check its original order; do not create another.');controls();}
++   if(['prepared','working'].includes(run.state))poll();
++  }catch(e){p.textContent=errorText(e);const code=e?.message;if(live()&&code!=='AUTH_REQUIRED'&&code!=='CONTEXT_CHANGED'){controls();if(code!=='NOT_FOUND')poll();}}
+  }
+  async function mount(){if(!catalog?.walletEnabled)return;mountIdentity();
+   // Prices belong in the chart menu and the confirmation step; the reception (desk signs and welcome buttons) stays price-free.
+-- 
+2.55.0.windows.5
+
+
+From 2b5f1c2f29a7d1ccc22f95b7d6e41b2a9353d6e8 Mon Sep 17 00:00:00 2001
+From: IMD Ember <operator@imdember.invalid>
+Date: Tue, 10 Nov 2026 23:35:58 +0800
+Subject: [PATCH 2/2] Load world-wallet.js 2988b2f (cache tag 6ac8b2051ba2)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ world_wallet_web/index-pdf.html | 2 +-
+ world_wallet_web/index.html     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/world_wallet_web/index-pdf.html b/world_wallet_web/index-pdf.html
+index aabd9d2..912c933 100644
+--- a/world_wallet_web/index-pdf.html
++++ b/world_wallet_web/index-pdf.html
+@@ -44,7 +44,7 @@
+   <link rel="stylesheet" href="annual-ziwei-site.css?v=r3-20261101">
+   <script src="annual-ziwei-reading.js?v=r3-20261101" defer></script>
+   <script src="chart-terms.js?v=r5-20261103" defer></script>
+-  <script src="/world-assets/world-wallet.js?v=a223f3f85e9a" defer></script>
++  <script src="/world-assets/world-wallet.js?v=6ac8b2051ba2" defer></script>
+   
+   <link rel="stylesheet" href="iching.css?v=7619db90aa11">
+ <link rel="stylesheet" href="/world-assets/world-wallet.css">
+diff --git a/world_wallet_web/index.html b/world_wallet_web/index.html
+index 1de77b4..632e812 100644
+--- a/world_wallet_web/index.html
++++ b/world_wallet_web/index.html
+@@ -44,7 +44,7 @@
+   <link rel="stylesheet" href="annual-ziwei-site.css?v=r3-20261101">
+   <script src="annual-ziwei-reading.js?v=r3-20261101" defer></script>
+   <script src="chart-terms.js?v=r5-20261103" defer></script>
+-  <script src="/world-assets/world-wallet.js?v=a223f3f85e9a" defer></script>
++  <script src="/world-assets/world-wallet.js?v=6ac8b2051ba2" defer></script>
+   <script type="module" src="reception.bundle.js?v=7619db90aa11"></script>
+   <link rel="stylesheet" href="iching.css?v=7619db90aa11">
+ <link rel="stylesheet" href="/world-assets/world-wallet.css">
+-- 
+2.55.0.windows.5
+

@@ -1,0 +1,22 @@
+World source 7672dc5861a8f96e446bf439dda75f3fd89bae06
+node --test --test-concurrency=2 tests/*.test.mjs, on these exact file contents
+ℹ tests 3960
+ℹ suites 0
+ℹ pass 3955
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 5
+ℹ todo 0
+ℹ duration_ms 510216.0275
+No failure: the wallet-lock test passes (no locked file differs from security/wallet-lock.json).
+Submission32 (0c15374) ran 3,954 tests; the 6 new ones are the 88a680a7 tests.
+tsc --noEmit: 0 errors
+Removal checks, one at a time on the World copy, each restored afterwards:
+- the old catch in showRun (no link, no button, no poll after a failed check): 2 tests fail (finding 1)
+- the old "1–2 minutes" text: 1 test fails (finding 5)
+- a nested src/shared/ file with redirect:'error', then cache:'force-cache', then credentials: 1 test fails each time (finding 2)
+- redirect:'follow' in server/celestao-delivery.ts, then in server/aimarket-delivery.ts: 2 tests fail each time (finding 4)
+Celestao image 59cf266f154b (source 2b5f1c2) was built on the VPS on top of the live image db6ade9629ba and checked before the switch:
+it differs from the live image only in the three planned files, with the live owners and modes; the wallet unit tests,
+the six-system offline computation and an isolated production start-up passed. After the switch the public site serves
+world-wallet.js?v=6ac8b2051ba2 with the same SHA-256 as the file in celestao/.

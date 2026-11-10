@@ -1,8 +1,10 @@
 # IMD Ember World — selected-source review
 
-**Current: [Submission32](Submission32/README.md) — paid delivery from Workers (`redirect:'manual'`) and the Celestao wait text; already live at the owner's choice (World `0c15374`, Celestao `382a266`).**
+**Current: [Submission33](Submission33/README.md) — fixes for audit 88a680a7: Celestao paid-run polling and wait text (live), wider Workers fetch guard and 3xx tests (World `7672dc5`, Celestao `2b5f1c2`).**
 
-Read [Submission32/AUDIT_REQUEST.md](Submission32/AUDIT_REQUEST.md) first.
+Read [Submission33/AUDIT_REQUEST.md](Submission33/AUDIT_REQUEST.md) first.
+
+**Previous: [Submission32](Submission32/README.md) — paid delivery from Workers (`redirect:'manual'`) and the Celestao wait text; already live at the owner's choice (World `0c15374`, Celestao `382a266`); reviewed in job 88a680a7, 3 Low and 3 Info, fixed or disclosed in Submission33.**
 
 The history of `main` was rewritten on 2026-11-09; old commit ids map to new ones in [HISTORY_REWRITE.md](HISTORY_REWRITE.md).
 

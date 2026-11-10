@@ -1,0 +1,184 @@
+diff --git a/integrations/celestao/web/world-wallet.js b/integrations/celestao/web/world-wallet.js
+index c20bffc..3720e6b 100644
+--- a/integrations/celestao/web/world-wallet.js
++++ b/integrations/celestao/web/world-wallet.js
+@@ -36,7 +36,7 @@
+  function mountIdentity(){document.querySelectorAll('[data-world-identity]').forEach(identityBox);}
+  function confirmation(system){if(!catalog?.billingInstalled)return '';const p=product(system);if(!p)return '';
+   const full=p.gold!==p.listGold;
+-  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p><p class="security-note">${say('付款後通常約 1–2 分鐘產生報告，完成後自動存進「我的收藏」；等待期間不需再次付款。','After payment, your report is usually ready in about 1–2 minutes and is saved to My collection automatically. Do not pay again while you wait.')}</p></section>`;
++  return `<section class="world-wallet-confirm"><h3>${say('本次解讀費用','This reading')}</h3>${full?`<p>${say('四項合計','Four systems combined')} <s>3,400 GOLD／${say('次','reading')}</s></p>`:''}<p class="world-wallet-price">${full?say('特價 ','Special price '):''}${priceText(p)}</p>${full?`<p>${say('包含四柱八字、紫微斗數、西洋星盤與人類圖；需要全部來源可用才建立付款。','Includes Four Pillars, Zi Wei, Western astrology and Human Design. Payment is prepared only when all four sources are supported.')}</p>`:''}<div data-world-identity></div><label class="check-label"><input id="world-save-consent" type="checkbox"><span>${say('我同意將這次出生資料與完整報告加密保存在玄曜伺服器，綁定此 World 錢包；加密金鑰由玄曜保管。之後重看與匯出 PDF 不另扣 GOLD。舊瀏覽器收藏不會自動上傳。','I consent to encrypted storage of these birth details and the complete report on the Celestial Atlas server, bound to this World wallet. Celestial Atlas holds the encryption key. Reopening and PDF export cost no additional GOLD. Old browser collections are not uploaded automatically.')}</span></label><p class="security-note">${say('GOLD 認錢包、無法轉讓或賣出；下一步會在 World 核對單筆費用並簽名確認。','GOLD is wallet-bound, nontransferable and unsellable. Next, review and sign this individual payment in World.')}</p><p class="security-note">${say('付款後通常約 1–3 分鐘產生報告，完成後自動存進「我的收藏」；等待期間不需再次付款。','After payment, your report is usually ready in about 1–3 minutes and is saved to My collection automatically. Do not pay again while you wait.')}</p></section>`;
+  }
+  async function compute({system,input,showError}){if(busy)return;busy=true;const b=document.getElementById('compute-button');if(b)b.disabled=true;
+   try{if(catalog.paymentsEnabled!==true)throw Error('FEATURE_PAUSED');if(!identity)throw Error('AUTH_REQUIRED');if(!document.getElementById('world-save-consent')?.checked)throw Error('SAVE_CONSENT_REQUIRED');
+@@ -63,11 +63,14 @@
+   }catch(error){console.warn('wallet_collection_failure',/^[A-Z_]{3,64}$/.test(error?.message)?error.message:error?.name||'UNAVAILABLE');status.textContent=errorText(error);}
+  }
+  async function showRun(host,id){const old=runPolls.get(host);if(old?.timer)clearTimeout(old.timer);const request={};runPolls.set(host,request);const p=node('p',say('正在查詢原始解讀…','Checking original reading…'));p.role='status';host.append(p);const generation=epoch;
++  const live=()=>generation===epoch&&host.isConnected&&runPolls.get(host)===request;
++  const controls=()=>{const link=node('a',say('查詢 World 原始訂單','Check original World order'),'btn secondary small');link.href=catalog.worldOrigin+'/fortune-checkout/?run='+id+'&lang='+lang;link.referrerPolicy='no-referrer';host.append(link,button(say('重新查詢','Check again'),()=>{host.replaceChildren();void showRun(host,id);}));};
++  const poll=()=>{request.timer=setTimeout(()=>{if(live()&&document.visibilityState==='visible'){host.replaceChildren();void showRun(host,id);}},5000);};
+   try{const run=await api('/api/world/runs/'+id);if(generation!==epoch||!host.isConnected||runPolls.get(host)!==request)return;
+    if(run.state==='complete'&&opaque(run.recordId)){p.textContent=say('原始報告已保存，不需再次付款。','Your original report is saved. No further payment is needed.');host.append(button(say('開啟原始報告','Open original report'),()=>void openRecord(run.recordId).catch(e=>p.textContent=errorText(e))));const list=document.getElementById('world-wallet-records');if(list)void collection(list);}
+-   else{p.textContent=run.state==='cleared'?say('這筆解讀沒有完成，出生資料已依保存期限清除。如果有付款，付款和退款紀錄請到 World 原始訂單查詢。','This reading did not complete, and its birth details were cleared after the retention period. If you paid, check the original World order for payment and refund records.'):run.state==='failed'?say('此筆解讀未完成，請至 World 查詢原單退款。','This reading did not complete. Check the original refund in World.'):run.state==='working'?say('已付款，報告正在產生，通常約 1–2 分鐘；此頁會自動更新，不需另建新單。','Paid. Your report is being prepared, usually in about 1–2 minutes. This page updates by itself; do not create another order.'):say('這筆解讀還沒開始產生。如果已在 World 付款，通常約 1–2 分鐘內會開始；請查詢原始訂單，不需另建新單。','This reading has not started yet. If you paid in World, it usually starts within 1–2 minutes. Check its original order; do not create another.');const link=node('a',say('查詢 World 原始訂單','Check original World order'),'btn secondary small');link.href=catalog.worldOrigin+'/fortune-checkout/?run='+id+'&lang='+lang;link.referrerPolicy='no-referrer';host.append(link,button(say('重新查詢','Check again'),()=>{host.replaceChildren();void showRun(host,id);}));}
+-   if(['prepared','working'].includes(run.state))request.timer=setTimeout(()=>{if(generation===epoch&&host.isConnected&&runPolls.get(host)===request&&document.visibilityState==='visible'){host.replaceChildren();void showRun(host,id);}},5000);
+-  }catch(e){p.textContent=errorText(e);}
++   else{p.textContent=run.state==='cleared'?say('這筆解讀沒有完成，出生資料已依保存期限清除。如果有付款，付款和退款紀錄請到 World 原始訂單查詢。','This reading did not complete, and its birth details were cleared after the retention period. If you paid, check the original World order for payment and refund records.'):run.state==='failed'?say('此筆解讀未完成，請至 World 查詢原單退款。','This reading did not complete. Check the original refund in World.'):run.state==='working'?say('已付款，報告正在產生，通常約 1–3 分鐘；此頁會自動更新，不需另建新單。','Paid. Your report is being prepared, usually in about 1–3 minutes. This page updates by itself; do not create another order.'):say('這筆解讀還沒開始產生。如果已在 World 付款，通常約 1–3 分鐘內會開始；請查詢原始訂單，不需另建新單。','This reading has not started yet. If you paid in World, it usually starts within 1–3 minutes. Check its original order; do not create another.');controls();}
++   if(['prepared','working'].includes(run.state))poll();
++  }catch(e){p.textContent=errorText(e);const code=e?.message;if(live()&&code!=='AUTH_REQUIRED'&&code!=='CONTEXT_CHANGED'){controls();if(code!=='NOT_FOUND')poll();}}
+  }
+  async function mount(){if(!catalog?.walletEnabled)return;mountIdentity();
+   // Prices belong in the chart menu and the confirmation step; the reception (desk signs and welcome buttons) stays price-free.
+diff --git a/tests/aimarket-delivery.test.mjs b/tests/aimarket-delivery.test.mjs
+index 50ae393..8f3ef67 100644
+--- a/tests/aimarket-delivery.test.mjs
++++ b/tests/aimarket-delivery.test.mjs
+@@ -17,6 +17,15 @@ test('HTTP errors, bad signatures, wallet/order mismatches and backward clocks n
+  for(const response of [async()=>new Response('Internal Server Error',{status:500}),async()=>reply('/api/internal/world-gold/deliver',order,{},true),async()=>reply('/api/internal/world-gold/deliver',order,{wallet:B}),async()=>reply('/api/internal/world-gold/deliver',order,{orderId:'0x'+'2'.repeat(64)})]){const p=createAIMarketDelivery(SECRET,response,()=>NOW);await assert.rejects(p.deliver({...order,idempotencyKey:order.orderId}));}
+  let now=NOW;const p=createAIMarketDelivery(SECRET,async()=>{const r=await reply('/api/internal/world-gold/deliver',order);now--;return r;},()=>now);await assert.rejects(p.deliver({...order,idempotencyKey:order.orderId}));
+ });
++test('88a680a7 #4: a 3xx answer is never followed and never counts as delivered or as a refund',async()=>{
++ for(const status of [301,302,303,307,308]){
++  let calls=0;const transport=async(url,init)=>{calls++;assert.equal(init.redirect,'manual');return new Response(null,{status,headers:{location:'https://aimarket.trade/api/internal/world-gold/deliver?moved=1'}});};
++  const p=createAIMarketDelivery(SECRET,transport,()=>NOW);
++  await assert.rejects(p.deliver({...order,idempotencyKey:order.orderId}),/DELIVERY_UNAVAILABLE/);
++  await assert.rejects(p.readReport({...order,reference:'a'.repeat(64)}),/DELIVERY_UNAVAILABLE/);
++  assert.equal(calls,2,status+': the redirect was followed');
++ }
++});
+ test('document read verifies its bound frozen hash and never substitutes the latest report',async()=>{
+  const canonical='{"report_date":"2026-10-19","value":0}\n',reference=await deliveryDigest(canonical),document={report_date:'2026-10-19',value:0,report_id:reference};
+  const p=createAIMarketDelivery(SECRET,async(url,init)=>reply('/api/internal/world-gold/read',JSON.parse(init.body),{reference,document,canonical}),()=>NOW);
+diff --git a/tests/celestao-checkout.test.mjs b/tests/celestao-checkout.test.mjs
+index 74754c9..18e4bec 100644
+--- a/tests/celestao-checkout.test.mjs
++++ b/tests/celestao-checkout.test.mjs
+@@ -98,6 +98,19 @@ test('the browser accepts real SQL delivery and refund states and retains the or
+   assert.equal((await (await browser(f,'quote')).json()).orderId,id);
+  }
+ });
++test('88a680a7 #4: a 3xx from the vault is never followed and never delivers or refunds a paid order',async t=>{
++ for(const status of [301,302,303,307,308]){
++  const f=await setup(t);await prepare(f);const id=(await (await browser(f,'quote')).json()).orderId;await f.pay(id);await reconcileWorldGold(f.db,NOW);
++  let calls=0;const redirect=async(url,init)=>{calls++;assert.equal(init.redirect,'manual');return new Response(null,{status,headers:{location:'https://celestao.com'+DELIVERY+'?moved=1'}});};
++  const provider=createCelestaoDelivery(f.db,SECRET,redirect,()=>NOW);
++  await assert.rejects(()=>provider.deliver({orderId:id,wallet:W,product:'fortune-bazi',idempotencyKey:id}),/DELIVERY_UNAVAILABLE/);assert.equal(calls,1,status+': the redirect was followed');
++  await runGoldServiceJobs(f.db,provider,()=>NOW);assert.equal(calls,2,status+': the job runner did not call the vault exactly once');
++  await reconcileWorldGold(f.db,NOW);
++  const state=parseCelestaoCheckout(await (await browser(f)).json(),RUN,W);
++  assert.equal(state.order.status,'paid');assert.ok(!['delivered','refunded'].includes(state.order.delivery),status+': '+state.order.delivery);
++  assert.equal((await f.snapshot()).available,'9000',status+': the charge must stand while delivery is pending');
++ }
++});
+ 
+ test('the annual reading binds, charges and delivers as its own product under a World-valid id',async t=>{const f=await setup(t);
+  await f.admin({action:'product',product:'fortune-annual-ziwei',kind:'service',title:'流年運勢',gold:'1000',enabled:true,version:1});
+diff --git a/tests/celestao-home-prices.test.mjs b/tests/celestao-home-prices.test.mjs
+index f2ab01b..212c7fa 100644
+--- a/tests/celestao-home-prices.test.mjs
++++ b/tests/celestao-home-prices.test.mjs
+@@ -50,15 +50,15 @@ const CATALOG={walletEnabled:true,paymentsEnabled:true,billingInstalled:true,pro
+ {system:'western',gold:'800',listGold:'800',nameZh:'西洋',nameEn:'Western'},{system:'human',gold:'600',listGold:'600',nameZh:'人類圖',nameEn:'Human Design'},
+  {system:'profile',gold:'3000',listGold:'3400',nameZh:'年度',nameEn:'Annual'}]};
+ 
+-async function load({catalog=CATALOG,page}){
++async function load({catalog=CATALOG,page,api,search='',timers}){
+  const html=el('html'),head=el('head'),body=el('body'),main=el('main',{id:'main'});html.append(head,body);body.append(main);
+  const {home,menu}=page(main);
+  const windowListeners={};
+  const document={head,body,createElement:tag=>new El(tag),getElementById:id=>[html,...html.descendants()].find(e=>e.id===id)??null,
+-  querySelectorAll:selector=>html.querySelectorAll(selector),querySelector:selector=>html.querySelector(selector),addEventListener(){},visibilityState:'visible'};
++  querySelectorAll:selector=>selector==='#main > .container'?main.children.filter(e=>e.className.split(/\s+/).includes('container')):html.querySelectorAll(selector),querySelector:selector=>html.querySelector(selector),addEventListener(){},visibilityState:'visible'};
+  const window={addEventListener:(type,fn)=>{(windowListeners[type]??=[]).push(fn);}};
+- const fetch=async url=>url==='/api/world/catalog'?{ok:true,status:200,json:async()=>catalog}:{ok:false,status:401,json:async()=>({error:'AUTH_REQUIRED'})};
+- vm.runInNewContext(source,{document,window,fetch,location:{hostname:'celestao.com',search:'',assign(){}},URLSearchParams,URL,console,setTimeout,clearTimeout,Date,Number,Error,WeakMap,Map});
++ const fetch=async url=>url==='/api/world/catalog'?{ok:true,status:200,json:async()=>catalog}:api?api(url):{ok:false,status:401,json:async()=>({error:'AUTH_REQUIRED'})};
++ vm.runInNewContext(source,{document,window,fetch,location:{hostname:'celestao.com',search,assign(){}},URLSearchParams,URL,console,setTimeout:timers?.set??setTimeout,clearTimeout:timers?.clear??clearTimeout,Date,Number,Error,WeakMap,Map});
+  await new Promise(r=>setTimeout(r,10));   // boot(): catalog + session fetches, then the app script is injected
+  const route=(path='/',lang='zh')=>{for(const fn of windowListeners['celestial:route']??[])fn({detail:{lang,path}});};
+  return {route,home,menu,main,badgesIn:root=>root.querySelectorAll('.world-price-badge').map(b=>b.text)};
+@@ -107,3 +107,37 @@ test('without billing no price appears anywhere',async()=>{
+  const w=await load({catalog:{...CATALOG,billingInstalled:false},page:receptionPage});w.route('/');
+  assert.equal(w.main.querySelectorAll('.world-price-badge').length,0);
+ });
++
++// Audit 88a680a7 #1: the "report is being prepared, this page updates by itself" view of a paid run (/saved?world_run=…).
++// A failed status check must keep the World order link, the "check again" button and the 5-second poll.
++const RID='r'.repeat(43),SESSION={wallet:'0x'+'a'.repeat(40),expiresAt:Date.now()+3600000,context:'c'.repeat(64),csrf:'d'.repeat(64)};
++const ok=v=>({ok:true,status:200,json:async()=>v}),bound=v=>ok({...v,context:SESSION.context}),fail=(status,v)=>({ok:false,status,json:async()=>v});
++const settle=()=>new Promise(r=>setTimeout(r,10));
++function fakeTimers(){const pending=[];
++ return {pending,set:(fn,ms)=>{if(ms<5000)return setTimeout(fn,ms);const t={fn,ms,cancelled:false};pending.push(t);return t;},
++  clear:t=>{if(t&&typeof t==='object'&&'cancelled' in t)t.cancelled=true;else clearTimeout(t);},
++  live:()=>pending.filter(t=>!t.cancelled).length,
++  async fire(){const due=pending.splice(0).filter(t=>!t.cancelled);for(const t of due)t.fn();await settle();return due.length;}};}
++async function runPage(answers){const calls=[],timers=fakeTimers();
++ const api=async url=>{if(url==='/api/world/session')return ok(SESSION);if(url.startsWith('/api/world/collections'))return bound({records:[],nextCursor:null});
++  if(url==='/api/world/runs/'+RID){calls.push(url);const next=answers.shift();if(next instanceof Error)throw next;return next;}throw Error('unexpected '+url);};
++ const w=await load({page:receptionPage,api,search:'?world_run='+RID,timers});w.route('/saved');await settle();
++ const library=()=>w.main.querySelector('#world-wallet-library');
++ const host=()=>library()?.children.find(c=>c.tagName==='DIV'&&!c.id&&c.children[0]?.role==='status');
++ const view=()=>{const h=host();return {text:h?.children[0].text??'',link:h?.children.find(c=>c.tagName==='A')?.href??null,again:h?.children.some(c=>c.tagName==='BUTTON'&&c.text==='重新查詢')??false};};
++ return {calls,timers,view,library};}
++const ORDER='https://imdember.com/fortune-checkout/?run='+RID+'&lang=zh';
++
++test('88a680a7 #1: a failed status check keeps the order link, the check-again button and the poll until the report is saved',async()=>{
++ const p=await runPage([new TypeError('fetch failed'),fail(503,{detail:'UNAVAILABLE'}),bound({state:'working'}),bound({state:'complete',recordId:'x'.repeat(43)})]);
++ for(const step of ['network error','503']){const v=p.view();assert.equal(v.link,ORDER,step);assert.equal(v.again,true,step);assert.equal(p.timers.live(),1,step+': polling stopped');await p.timers.fire();}
++ assert.match(p.view().text,/已付款，報告正在產生，通常約 1–3 分鐘/);assert.equal(p.view().link,ORDER);assert.equal(p.timers.live(),1);
++ await p.timers.fire();
++ assert.match(p.view().text,/原始報告已保存/);assert.equal(p.timers.live(),0);assert.equal(p.calls.length,4);
++});
++test('88a680a7 #1: an unknown run keeps the link but stops polling; a lost sign-in stops polling',async()=>{
++ const missing=await runPage([fail(404,{detail:'NOT_FOUND'})]);
++ assert.equal(missing.view().link,ORDER);assert.equal(missing.view().again,true);assert.equal(missing.timers.live(),0);
++ const signedOut=await runPage([fail(401,{detail:'AUTH_REQUIRED'})]);
++ assert.equal(signedOut.timers.live(),0);assert.equal(signedOut.calls.length,1);
++});
+diff --git a/tests/worker-fetch-redirect.test.mjs b/tests/worker-fetch-redirect.test.mjs
+index 0ea9008..f7428f4 100644
+--- a/tests/worker-fetch-redirect.test.mjs
++++ b/tests/worker-fetch-redirect.test.mjs
+@@ -1,15 +1,35 @@
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+-import {readdirSync,readFileSync} from 'node:fs';
++import {readdirSync,readFileSync,statSync} from 'node:fs';
+ import {join} from 'node:path';
+ 
+-// Cloudflare Workers reject fetch(...,{redirect:'error'}) with a TypeError before sending anything
+-// (Node accepts it, so unit tests passed while every production delivery failed). Worker code uses 'manual'.
+-test('Worker-side code never passes redirect:error to fetch',()=>{
++// Cloudflare Workers reject some fetch options that Node accepts: redirect:'error' throws a TypeError before
++// anything is sent (unit tests passed while every production delivery failed), and so do unsupported cache modes
++// and the browser-only credentials/referrerPolicy/integrity fields. Worker code uses redirect:'manual'.
++// Scope: every source file the Worker bundle can import (server/, worker/, src/shared/), at any depth.
++// Browser code under src/world/ is not scanned: there redirect:'error' and cache:'no-store' are valid.
++const ROOTS=['server','worker','src/shared'],EXT=/\.(ts|tsx|mts|js|mjs)$/;
++const walk=dir=>readdirSync(dir).flatMap(name=>{const path=join(dir,name);return statSync(path).isDirectory()?walk(path):EXT.test(name)?[path]:[];});
++const files=ROOTS.flatMap(walk);
++const options=(text,key)=>[...text.matchAll(new RegExp(String.raw`\b${key}\s*:\s*(['"\`])([^'"\`]*)\1`,'g'))].map(m=>m[2]);
++const KNOWN=['server/celestao-delivery.ts','server/aimarket-delivery.ts','server/aimarket-proxy.ts'].map(p=>join(p));
++
++test('the scan reaches every Worker source directory',()=>{
++ for(const root of ROOTS)assert.ok(files.some(f=>f.startsWith(join(root,''))),root+' was not scanned');
++ for(const known of KNOWN)assert.ok(files.includes(known),known+' was not scanned');
++});
++test('Worker-side code only uses redirect:manual or redirect:follow',()=>{
++ const offenders=[],seen=new Set();
++ for(const file of files)for(const value of options(readFileSync(file,'utf8'),'redirect')){seen.add(file);if(value!=='manual'&&value!=='follow')offenders.push(file+': redirect:'+value);}
++ assert.deepEqual(offenders,[]);
++ // The two delivery adapters and the AIMarket proxy keep their explicit redirect:'manual'.
++ for(const known of KNOWN)assert.ok(seen.has(known),known+' lost its explicit redirect option');
++});
++test('Worker-side code uses no fetch option that Workers reject',()=>{
+  const offenders=[];
+- for(const dir of ['server','worker'])for(const name of readdirSync(dir))if(name.endsWith('.ts')){
+-  const text=readFileSync(join(dir,name),'utf8');
+-  if(/redirect\s*:\s*['"]error['"]/.test(text))offenders.push(join(dir,name));
++ for(const file of files){const text=readFileSync(file,'utf8');
++  for(const value of options(text,'cache'))if(value!=='no-store'&&value!=='no-cache')offenders.push(file+': cache:'+value);
++  for(const key of ['credentials','referrerPolicy','integrity'])if(new RegExp(String.raw`\b${key}\s*:`).test(text))offenders.push(file+': '+key);
+  }
+  assert.deepEqual(offenders,[]);
+ });
